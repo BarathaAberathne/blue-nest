@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── Brand colours ─────────────────────────────────────────── */
+    --paper: #f9f4ee;
+    --soft-white: #fffdf9;
+    --blush: #f6d5df;
+    --mint: #aee6dd;
+    --aqua: #7fd8d2;
+    --lavender: #bfa6e8;
+    --butter: #f7d774;
+    --peach: #f6d1b3;
+    --ink: #5a4a42;
+    --rose-ink: #cf7d9c;
+    --line: rgba(90, 74, 66, 0.1);
+
+    /* ── Spacing scale ─────────────────────────────────────────── */
+    /* section outer y-padding : py-8  (mobile)  lg:py-12  (desktop) */
+    /* section outer x-padding : px-4  sm:px-6   lg:px-8             */
+    /* section inner gap       : gap-8 (mobile)  lg:gap-12 (desktop) */
+    /* hero y-padding          : py-5  (mobile)  lg:py-7   (desktop) */
+    /* hero height             : min-h-[calc(100vh-9rem)]            */
+
+    /* ── Typography scale ──────────────────────────────────────── */
+    /* hero heading            : text-[3.2rem] sm:text-[4.4rem] lg:text-[5.2rem] */
+    /* section-title           : text-4xl sm:text-5xl                */
+    /* section-kicker          : text-sm uppercase tracking-[0.16em] */
+    /* section-subtitle        : text-lg leading-relaxed             */
+    /* body                    : text-base leading-7                 */
+
+    /* ── Border radii ──────────────────────────────────────────── */
+    /* card                    : rounded-[2rem]   */
+    /* strip / panel           : rounded-[2.5rem] */
+    /* button                  : rounded-full     */
+    /* image inner             : rounded-[1.4rem] */
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at top left, rgba(246, 213, 223, 0.6), transparent 28%),
+      radial-gradient(circle at top right, rgba(174, 230, 221, 0.5), transparent 26%),
+      linear-gradient(180deg, #fffdfa 0%, var(--paper) 58%, #fff8f4 100%);
+    color: var(--ink);
+    @apply antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+
+  ::selection {
+    background: rgba(191, 166, 232, 0.35);
+  }
+}
+
+@layer components {
+  .container-site {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Standard section outer wrapper — consistent across all pages */
+  .section-outer {
+    @apply px-4 py-8 sm:px-6 lg:px-8 lg:py-12;
+  }
+
+  /* ── Shared button base ─────────────────────────────────────── */
+  /* All .btn-* classes follow the same rule as PastelButton:     */
+  /*   default  → solid fill, white/ink text, transparent border  */
+  /*   hover    → transparent bg, coloured border, coloured text  */
+
+  .btn-primary {
+    @apply inline-flex items-center gap-2 justify-center rounded-full
+           border-2 border-transparent px-6 py-3 text-base font-extrabold
+           text-white transition-all duration-200 hover:-translate-y-0.5
+           hover:bg-transparent hover:border-[#f4aac8] hover:text-[#f4aac8];
+    background-color: #f4aac8; /* blush pink */
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 justify-center rounded-full
+           border-2 border-transparent px-6 py-3 text-base font-extrabold
+           text-white transition-all duration-200 hover:-translate-y-0.5
+           hover:bg-transparent hover:border-[#6ecfc9] hover:text-[#6ecfc9];
+    background-color: #6ecfc9; /* mint teal */
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center gap-2 justify-center rounded-full
+           border-2 border-transparent px-6 py-3 text-base font-extrabold
+           text-white transition-all duration-200 hover:-translate-y-0.5
+           hover:bg-transparent hover:border-[#b99fe0] hover:text-[#b99fe0];
+    background-color: #b99fe0; /* lavender */
+  }
+
+  .card {
+    @apply overflow-hidden rounded-[2rem] bg-[var(--soft-white)]
+           shadow-[0_14px_40px_rgba(90,74,66,0.08)] ring-1;
+    ring-color: rgba(255, 255, 255, 0.8);
+  }
+
+  .section-title {
+    @apply font-heading text-4xl leading-tight sm:text-5xl;
+    color: var(--ink);
+  }
+
+  .section-subtitle {
+    @apply mt-4 text-lg leading-relaxed;
+    color: rgba(90, 74, 66, 0.82);
+  }
+
+  .paper-panel {
+    @apply relative overflow-hidden rounded-[2.5rem] border border-white/60 bg-[var(--soft-white)]
+           shadow-[0_16px_50px_rgba(90,74,66,0.12)];
+  }
+
+  .section-kicker {
+    @apply inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-extrabold uppercase tracking-[0.16em];
+    background: rgba(246, 213, 223, 0.7);
+    color: var(--rose-ink);
+  }
+
+  .pastel-chip {
+    @apply inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold;
+    border-color: rgba(90, 74, 66, 0.08);
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--ink);
+  }
+
+  .sketch-strip {
+    background:
+      radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.22) 0, transparent 22%),
+      radial-gradient(circle at 80% 65%, rgba(255, 255, 255, 0.18) 0, transparent 18%),
+      linear-gradient(180deg, #91e2dc 0%, #73d6ce 100%);
+  }
+
+  .soft-divider {
+    background:
+      linear-gradient(90deg, rgba(246, 213, 223, 0.8), rgba(174, 230, 221, 0.65), rgba(191, 166, 232, 0.75));
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}

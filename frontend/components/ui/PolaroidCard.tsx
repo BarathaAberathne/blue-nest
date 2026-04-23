@@ -1,0 +1,40 @@
+import type { LucideIcon } from "lucide-react";
+import Image from "next/image";
+
+type PolaroidCardProps = {
+  title: string;
+  description: string;
+  image: string;
+  alt: string;
+  accent: string;
+  icon: LucideIcon;
+};
+
+export default function PolaroidCard({
+  title,
+  description,
+  image,
+  alt,
+  accent,
+  icon: Icon,
+}: PolaroidCardProps) {
+  return (
+    <article className="card p-3">
+      <div className="relative aspect-[4/5] overflow-hidden rounded-[1.7rem]">
+        <Image src={image} alt={alt} fill className="object-cover" sizes="(max-width: 768px) 100vw, 25vw" />
+      </div>
+      <div className="px-3 pb-4 pt-5">
+        <div
+          className="mb-4 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(90,74,66,0.12)]"
+          style={{ backgroundColor: accent }}
+        >
+          <Icon className="h-6 w-6" strokeWidth={1.8} />
+        </div>
+        <h3 className="font-heading text-[2rem] leading-none" style={{ color: accent }}>
+          {title}
+        </h3>
+        <p className="mt-3 text-base leading-7 text-[rgba(90,74,66,0.82)]">{description}</p>
+      </div>
+    </article>
+  );
+}

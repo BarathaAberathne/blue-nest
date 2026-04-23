@@ -1,0 +1,125 @@
+// ── Branch ───────────────────────────────────────────────────────────────────
+export type BranchStatus = "active" | "coming_soon";
+
+export interface BranchContact {
+  phone?: string;
+  email: string;
+  address: string;
+  map_url?: string;
+}
+
+export interface BranchAdmissions {
+  age_range: string;
+  opening_time?: string;
+  closing_time?: string;
+  notes?: string;
+}
+
+export interface Branch {
+  id: string;
+  slug: string;
+  name: string;
+  status: BranchStatus;
+  short_description: string;
+  hero_image_url?: string;
+  contact: BranchContact;
+  admissions: BranchAdmissions;
+}
+
+// ── Product ──────────────────────────────────────────────────────────────────
+export interface Category {
+  id: string;
+  slug: string;
+  name: string;
+}
+
+export interface Product {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  price: number; // pence
+  currency: string;
+  category_id: string;
+  image_url?: string;
+  stock_qty: number;
+  is_active: boolean;
+}
+
+// ── Cart ─────────────────────────────────────────────────────────────────────
+export interface CartItem {
+  product_id: string;
+  name: string;
+  price: number;
+  qty: number;
+  image_url?: string;
+}
+
+export interface Cart {
+  id: string;
+  user_id: string;
+  items: CartItem[];
+}
+
+// ── Order ─────────────────────────────────────────────────────────────────────
+export type OrderStatus =
+  | "pending"
+  | "paid"
+  | "processing"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
+
+export interface OrderItem {
+  product_id: string;
+  name: string;
+  price: number;
+  qty: number;
+}
+
+export interface Order {
+  id: string;
+  user_id: string;
+  items: OrderItem[];
+  status: OrderStatus;
+  total_amount: number;
+  currency: string;
+  created_at: string;
+}
+
+// ── Blog ─────────────────────────────────────────────────────────────────────
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  author_name: string;
+  cover_image?: string;
+  tags?: string[];
+  published_at?: string;
+}
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+export type UserRole = "customer" | "admin" | "branch_manager";
+
+export interface User {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: UserRole;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  refresh_token?: string;
+  user: User;
+}
+
+// ── API ───────────────────────────────────────────────────────────────────────
+export interface ApiEnvelope<T> {
+  data?: T;
+  error?: string;
+  message?: string;
+}
