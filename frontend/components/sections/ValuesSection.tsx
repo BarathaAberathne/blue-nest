@@ -1,5 +1,8 @@
 import { Flower2, HeartHandshake, Lightbulb, Search, ShieldCheck, Sparkles } from "lucide-react";
+import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
+
+const rotations = [-3, 1.5, -2, 2.5, -1, 2];
 
 const values = [
   {
@@ -42,32 +45,40 @@ const values = [
 
 export default function ValuesSection() {
   return (
-    <section className="px-4 pb-8 pt-6 sm:px-6 lg:px-8 lg:pb-12">
-      <div className="container-site">
-        <Reveal>
-          <div className="rounded-[2.5rem] bg-[rgba(255,253,249,0.72)] px-6 py-8 shadow-[0_12px_35px_rgba(90,74,66,0.08)] ring-1 ring-white/70 sm:px-8">
-            <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-6">
-              {values.map((value) => {
-                const Icon = value.icon;
+    <section className="relative overflow-hidden px-4 pb-8 pt-6 sm:px-6 lg:px-8 lg:pb-12">
+      <Doodle kind="solidstar" className="left-[2%]   top-8    h-10 w-10 text-[#f7d774]" />
+      <Doodle kind="rainbow"   className="right-[3%]  bottom-6 h-16 w-16" />
+      <Doodle kind="flower"    className="left-[48%]  top-6    h-8  w-8  text-[#f4aac8]" />
+      <Doodle kind="leaf"      className="right-[12%] top-10   h-9  w-9  text-[#7fd8d2]" />
 
-                return (
-                  <div key={value.title} className="text-center xl:px-2">
-                    <div
-                      className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-[0_10px_24px_rgba(90,74,66,0.08)]"
-                      style={{ color: value.color }}
-                    >
-                      <Icon className="h-7 w-7" strokeWidth={1.8} />
-                    </div>
-                    <h3 className="mt-4 font-heading text-[2rem] leading-none" style={{ color: value.color }}>
-                      {value.title}
-                    </h3>
-                    <p className="mt-3 text-sm leading-6 text-[rgba(90,74,66,0.78)]">{value.description}</p>
+      <div className="container-site">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {values.map((value, i) => {
+            const Icon = value.icon;
+            return (
+              <Reveal key={value.title} delay={i * 0.06}>
+                <div
+                  className="rounded-[2.5rem] px-6 py-7"
+                  style={{
+                    transform: `rotate(${rotations[i]}deg)`,
+                    background: `${value.color}20`,
+                  }}
+                >
+                  <div
+                    className="flex h-14 w-14 items-center justify-center rounded-full"
+                    style={{ backgroundColor: `${value.color}22`, color: value.color }}
+                  >
+                    <Icon className="h-7 w-7" strokeWidth={1.8} />
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </Reveal>
+                  <h3 className="mt-4 font-heading text-[1.8rem] leading-none" style={{ color: value.color }}>
+                    {value.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-[rgba(90,74,66,0.78)]">{value.description}</p>
+                </div>
+              </Reveal>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

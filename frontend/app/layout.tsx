@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
-import { Amatic_SC, Roboto } from "next/font/google";
+import { Chewy, Nunito } from "next/font/google";
 import "@/styles/globals.css";
 
-const bodyFont = Roboto({
+const displayFont = Chewy({
   subsets: ["latin"],
-  variable: "--font-sans",
-  weight: ["300", "400", "500", "700"],
+  weight: ["400"],
+  variable: "--font-display",
   display: "swap",
 });
 
-const headingFont = Amatic_SC({
+const bodyFont = Nunito({
   subsets: ["latin"],
-  variable: "--font-heading",
-  weight: ["700"],
+  variable: "--font-body",
   display: "swap",
 });
 
@@ -34,7 +33,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${bodyFont.variable} ${headingFont.variable} font-sans`}>{children}</body>
+      <body className={`${displayFont.variable} ${bodyFont.variable} font-body antialiased`}>
+        {children}
+      </body>
     </html>
   );
 }

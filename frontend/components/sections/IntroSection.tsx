@@ -1,15 +1,18 @@
 import { ArrowRight } from "lucide-react";
-import Image from "next/image";
 import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
+import PaperSection from "@/components/ui/PaperSection";
 import PastelButton from "@/components/ui/PastelButton";
+import StickerCard from "@/components/ui/StickerCard";
 
 export default function IntroSection() {
   return (
-    <section className="relative px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-      <Doodle kind="heart" className="left-[2%] top-12 h-12 w-12 text-[#8bdde0]" />
-      <Doodle kind="star" className="right-[6%] top-10 h-10 w-10 text-[#f3bf62]" />
-      <Doodle kind="leaf" className="right-[10%] bottom-10 h-12 w-12 text-[#f4b2c9]" />
+    <PaperSection className="px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+      <Doodle kind="flower"    className="left-[1%]   top-10   h-14 w-14 text-[#f49cb5]" />
+      <Doodle kind="star"      className="right-[5%]  top-8    h-11 w-11 text-[#f3bf62]" />
+      <Doodle kind="leaf"      className="right-[9%]  bottom-8 h-13 w-13 text-[#8bdde0]" />
+      <Doodle kind="solidstar" className="left-[42%]  top-6    h-7  w-7  text-[#b99fe0]" />
+      <Doodle kind="cloud"     className="left-[10%]  bottom-6 h-10 w-10 text-[#85d6f1]" />
 
       <div className="container-site grid gap-8 lg:grid-cols-[1fr_1.05fr] lg:items-center">
         <Reveal>
@@ -32,43 +35,34 @@ export default function IntroSection() {
         </Reveal>
 
         <Reveal delay={0.12}>
-          <div className="relative mx-auto min-h-[26rem] w-full max-w-[40rem]">
-            <div className="absolute left-0 top-2 w-[68%] rotate-[-2deg] rounded-[2rem] bg-white p-3 shadow-[0_18px_40px_rgba(90,74,66,0.14)]">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-[1.6rem]">
-                <Image
-                  src="/home/classroom-collage.png"
-                  alt="Children enjoying Montessori activities"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 28vw"
-                />
-              </div>
-            </div>
-            <div className="absolute right-0 top-0 w-[38%] rotate-[6deg] rounded-[1.6rem] bg-white p-3 shadow-[0_16px_36px_rgba(90,74,66,0.14)]">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-[1.2rem]">
-                <Image
-                  src="/home/outdoor-childrens-play-area.jpg"
-                  alt="Outdoor learning space"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 40vw, 16vw"
-                />
-              </div>
-            </div>
-            <div className="absolute bottom-0 right-10 w-[42%] rotate-[-5deg] rounded-[1.6rem] bg-white p-3 shadow-[0_16px_36px_rgba(90,74,66,0.14)]">
-              <div className="relative aspect-[5/4] overflow-hidden rounded-[1.2rem]">
-                <Image
-                  src="/home/children-outdoor-play.jpg"
-                  alt="Children playing outdoors"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 45vw, 18vw"
-                />
-              </div>
-            </div>
+          <div className="relative mx-auto min-h-[28rem] w-full max-w-[42rem]">
+            <StickerCard
+              src="/home/classroom-collage.png"
+              alt="Children enjoying Montessori activities"
+              rotate={-4}
+              sizes="(max-width: 1024px) 100vw, 28vw"
+              className="absolute left-0 top-4 z-0 w-[68%]"
+              aspectRatio="4/5"
+            />
+            <StickerCard
+              src="/home/outdoor-childrens-play-area.jpg"
+              alt="Outdoor learning space"
+              rotate={7}
+              sizes="(max-width: 1024px) 40vw, 16vw"
+              className="absolute right-[-5%] top-0 z-10 w-[41%]"
+              aspectRatio="4/5"
+            />
+            <StickerCard
+              src="/home/children-outdoor-play.jpg"
+              alt="Children playing outdoors"
+              rotate={-5}
+              sizes="(max-width: 1024px) 45vw, 18vw"
+              className="absolute bottom-0 right-4 z-20 w-[46%]"
+              aspectRatio="5/4"
+            />
           </div>
         </Reveal>
       </div>
-    </section>
+    </PaperSection>
   );
 }

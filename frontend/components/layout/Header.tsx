@@ -54,8 +54,8 @@ export default function Header() {
       {/* ── Sticky shell — overflow visible so logo bleeds into hero ── */}
       <header className="sticky top-0 z-50 overflow-visible border-b border-white/60 bg-[rgba(255,253,249,0.95)] backdrop-blur">
 
-        {/* ── Blush top strip (compact) ───────────────────────────── */}
-        <div className="bg-[#f6dce5]">
+        {/* ── Blush top strip (compact) — hidden on mobile ───────── */}
+        <div className="hidden sm:block bg-[#f6dce5]">
           <div className="container-site flex items-center justify-between gap-3 py-1.5">
 
             {/* Search — narrow & short */}
@@ -94,12 +94,12 @@ export default function Header() {
         </div>
 
         {/* ── Logo + contacts row ─────────────────────────────────── */}
-        <div className="container-site relative py-1">
+        <div className="container-site relative py-2 sm:py-1">
           <div className="flex items-center justify-between gap-3">
 
-            {/* Logo — large, bleeds below header into hero */}
+            {/* Logo — compact on mobile, bleeds below header into hero on desktop */}
             <Link href="/" className="relative flex shrink-0 items-center">
-              <div className="relative -mb-14 -mt-3 h-36 w-36 sm:-mb-16 sm:h-44 sm:w-44">
+              <div className="relative h-14 w-14 sm:-mb-16 sm:-mt-3 sm:h-44 sm:w-44">
                 <Image
                   src="/home/logo.png"
                   alt="Blue Nest Montessori logo"
@@ -114,7 +114,7 @@ export default function Header() {
             {/* Branch contacts + MENU */}
             <div className="flex flex-1 items-center justify-end gap-3 overflow-x-auto pb-1">
               {branches.slice(0, 3).map((branch) => (
-                <div key={branch.label} className="flex min-w-fit items-center gap-1.5 text-[var(--ink)]">
+                <div key={branch.label} className="hidden sm:flex min-w-fit items-center gap-1.5 text-[var(--ink)]">
                   <Phone className="h-5 w-5 shrink-0 text-[#7fd8d2]" />
                   <div className="leading-tight">
                     <p className="text-xs font-extrabold underline underline-offset-2">{branch.label}</p>
