@@ -50,7 +50,7 @@ export default function FeatureCardsSection() {
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {cards.map((card, index) => (
-            <Reveal key={card.title} delay={0.08 * index}>
+            <Reveal key={card.title} delay={0.08 * index} className="h-full">
               <PolaroidCard {...card} />
             </Reveal>
           ))}

@@ -37,24 +37,24 @@ export default function IntroSection() {
         <Reveal delay={0.12}>
           <div className="relative mx-auto min-h-[28rem] w-full max-w-[42rem]">
             <StickerCard
-              src="/home/classroom-collage.png"
-              alt="Children enjoying Montessori activities"
+              src="/home/children-outdoor-play.jpg"
+              alt="Children outdoor play at Blue Nest"
               rotate={-4}
               sizes="(max-width: 1024px) 100vw, 28vw"
               className="absolute left-0 top-4 z-0 w-[68%]"
               aspectRatio="4/5"
             />
             <StickerCard
-              src="/home/outdoor-childrens-play-area.jpg"
-              alt="Outdoor learning space"
+              src="/home/DSC_0177.jpg"
+              alt="Blue Nest Montessori classroom"
               rotate={7}
               sizes="(max-width: 1024px) 40vw, 16vw"
               className="absolute right-[-5%] top-0 z-10 w-[41%]"
               aspectRatio="4/5"
             />
             <StickerCard
-              src="/home/children-outdoor-play.jpg"
-              alt="Children playing outdoors"
+              src="/home/DSC_0151.jpg"
+              alt="Children learning at Blue Nest"
               rotate={-5}
               sizes="(max-width: 1024px) 45vw, 18vw"
               className="absolute bottom-0 right-4 z-20 w-[46%]"

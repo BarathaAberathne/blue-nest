@@ -1,84 +1,124 @@
-import { Flower2, HeartHandshake, Lightbulb, Search, ShieldCheck, Sparkles } from "lucide-react";
 import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
 
-const rotations = [-3, 1.5, -2, 2.5, -1, 2];
-
-const values = [
-  {
-    title: "Confidence",
-    description: "We help children believe in themselves and their abilities.",
-    color: "#ef8cab",
-    icon: Sparkles,
-  },
-  {
-    title: "Respect",
-    description: "We nurture kindness, empathy and respect for others.",
-    color: "#5fc8c7",
-    icon: Flower2,
-  },
-  {
-    title: "Independence",
-    description: "Children are encouraged to explore, choose and grow at their own pace.",
-    color: "#a48cdc",
-    icon: Lightbulb,
-  },
-  {
-    title: "Compassion",
-    description: "Care, sharing and understanding are woven into every day.",
-    color: "#f0bd55",
-    icon: HeartHandshake,
-  },
-  {
-    title: "Curiosity",
-    description: "We spark curiosity and a love of learning that lasts.",
-    color: "#63cad2",
-    icon: Search,
-  },
-  {
-    title: "Creativity",
-    description: "Every child is invited to imagine, create and express themselves.",
-    color: "#e683a4",
-    icon: ShieldCheck,
-  },
+const pills = [
+  { label: "Confidence",   color: "#ef8cab" },
+  { label: "Respect",      color: "#5fc8c7" },
+  { label: "Independence", color: "#a48cdc" },
+  { label: "Compassion",   color: "#f0bd55" },
+  { label: "Curiosity",    color: "#63cad2" },
+  { label: "Creativity",   color: "#e683a4" },
 ];
 
 export default function ValuesSection() {
   return (
-    <section className="relative overflow-hidden px-4 pb-8 pt-6 sm:px-6 lg:px-8 lg:pb-12">
-      <Doodle kind="solidstar" className="left-[2%]   top-8    h-10 w-10 text-[#f7d774]" />
-      <Doodle kind="rainbow"   className="right-[3%]  bottom-6 h-16 w-16" />
-      <Doodle kind="flower"    className="left-[48%]  top-6    h-8  w-8  text-[#f4aac8]" />
-      <Doodle kind="leaf"      className="right-[12%] top-10   h-9  w-9  text-[#7fd8d2]" />
+    <section className="relative px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-28">
+      {/* Ambient doodles — low opacity, stay out of content zone */}
+      <Doodle kind="solidstar" className="left-[1%]   top-10   h-9  w-9  text-[#f7d774] opacity-60" />
+      <Doodle kind="rainbow"   className="right-[2%]  bottom-8 h-16 w-16 opacity-50" />
+      <Doodle kind="flower"    className="left-[46%]  top-7    h-8  w-8  text-[#f4aac8] opacity-55" />
+      <Doodle kind="leaf"      className="right-[10%] top-12   h-9  w-9  text-[#7fd8d2] opacity-55" />
+      <Doodle kind="cloud"     className="left-[6%]   bottom-10 h-10 w-10 text-[#85d6f1] opacity-40 hidden sm:block" />
+      <Doodle kind="heart"     className="right-[22%] bottom-6  h-7  w-7  text-[#f49cb5] opacity-45 hidden sm:block" />
 
       <div className="container-site">
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {values.map((value, i) => {
-            const Icon = value.icon;
-            return (
-              <Reveal key={value.title} delay={i * 0.06}>
-                <div
-                  className="rounded-[2.5rem] px-6 py-7"
-                  style={{
-                    transform: `rotate(${rotations[i]}deg)`,
-                    background: `${value.color}20`,
-                  }}
+
+        {/* ── Kicker ─────────────────────────────────────────────── */}
+        <Reveal>
+          <p className="section-kicker text-center">Our core values</p>
+        </Reveal>
+
+        {/* ── Pill row ────────────────────────────────────────────── */}
+        <Reveal delay={0.07}>
+          <div className="mt-6 flex flex-wrap justify-center gap-2.5 sm:gap-3">
+            {pills.map((pill) => (
+              <span
+                key={pill.label}
+                className="rounded-full border-[1.5px] px-5 py-2 font-body text-[0.8rem] font-bold tracking-wide sm:px-6 sm:text-sm"
+                style={{ borderColor: pill.color, color: pill.color }}
+              >
+                {pill.label}
+              </span>
+            ))}
+          </div>
+        </Reveal>
+
+        {/* ── Quote block — main visual focus ─────────────────────── */}
+        <Reveal delay={0.13}>
+          <div className="mx-auto mt-14 max-w-3xl text-center sm:mt-16">
+
+            {/* Opening mark */}
+            <span
+              className="font-heading text-[5rem] leading-none text-[#ef8cab] opacity-30 sm:text-[6.5rem]"
+              aria-hidden="true"
+            >
+              &ldquo;
+            </span>
+
+            <p className="font-heading text-[1.65rem] leading-[1.65] text-[rgba(90,74,66,0.72)] sm:text-[2rem] lg:text-[2.2rem]">
+              Tell me and I forget.{" "}
+              <span className="text-[#5fc8c7]">Teach me and I remember.</span>{" "}
+              Involve me and I learn.
+            </p>
+
+            <cite className="mt-5 block text-[0.7rem] font-extrabold uppercase not-italic tracking-[0.24em] text-[rgba(90,74,66,0.38)]">
+              — Maria Montessori
+            </cite>
+
+            {/* Soft ornamental divider under quote */}
+            <div className="mx-auto mt-8 flex items-center justify-center gap-3" aria-hidden="true">
+              <div className="h-px w-16 bg-[rgba(90,74,66,0.12)]" />
+              <div className="h-1.5 w-1.5 rounded-full bg-[#ef8cab] opacity-60" />
+              <div className="h-px w-16 bg-[rgba(90,74,66,0.12)]" />
+            </div>
+          </div>
+        </Reveal>
+
+        {/* ── Two-column body text ─────────────────────────────────── */}
+        <Reveal delay={0.2}>
+          <div className="mx-auto mt-12 grid max-w-5xl gap-y-7 text-[1rem] leading-[1.95] text-[rgba(90,74,66,0.72)] sm:mt-14 lg:grid-cols-2 lg:gap-x-16 lg:gap-y-0">
+
+            {/* Left column */}
+            <div className="space-y-6">
+              <p>
+                At Blue Nest Montessori School, our day nursery offers a blend of structured learning
+                and play, guided by the Montessori method. Our methods of teaching prioritise the EYFS
+                in combination with our own Montessori methods, giving your child the best of both
+                worlds. We serve families in Harrow, Pinner, and Borehamwood, with locations designed
+                to create a stimulating environment for children aged 3 months to 5 years old.
+              </p>
+              <p>
+                Our private nursery runs five days a week, from 7:30 am to 6 pm, and is ideal for
+                working parents looking for a private daycare solution that supports their child&rsquo;s
+                growth in a caring, safe space. Our nursery classrooms are spacious, filled with
+                natural light, and equipped with the finest Montessori materials that encourage
+                learning through play. We even have an eco-friendly forest school!
+              </p>
+            </div>
+
+            {/* Right column */}
+            <div className="space-y-6">
+              <p>
+                We were awarded the Montessori School of the Year during the London Prestige Awards
+                from 2019&ndash;2025, which went hand in hand with our Rated Good Ofsted report.
+                Our quality of learning and ability to embrace fun sets us apart from other day
+                nurseries.
+              </p>
+              <p>
+                To learn more about our curriculum or to speak to our wonderful team,{" "}
+                <a
+                  href="/contact"
+                  className="font-semibold text-[#5fc8c7] underline-offset-2 hover:underline"
                 >
-                  <div
-                    className="flex h-14 w-14 items-center justify-center rounded-full"
-                    style={{ backgroundColor: `${value.color}22`, color: value.color }}
-                  >
-                    <Icon className="h-7 w-7" strokeWidth={1.8} />
-                  </div>
-                  <h3 className="mt-4 font-heading text-[1.8rem] leading-none" style={{ color: value.color }}>
-                    {value.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-6 text-[rgba(90,74,66,0.78)]">{value.description}</p>
-                </div>
-              </Reveal>
-            );
-          })}
-        </div>
+                  contact us today
+                </a>
+                .
+              </p>
+            </div>
+
+          </div>
+        </Reveal>
+
       </div>
     </section>
   );
