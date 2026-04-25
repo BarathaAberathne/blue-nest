@@ -39,10 +39,10 @@ const cards = [
 
 export default function FeatureCardsSection() {
   return (
-    <section className="relative px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+    <section className="relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
       <div className="container-site">
         <Reveal>
-          <div className="mb-8 text-center">
+          <div className="mb-10 text-center">
             <span className="section-kicker">What families notice first</span>
             <h2 className="section-title mt-4 text-[#cf7d9c]">A bright, playful environment built for confidence</h2>
           </div>

@@ -26,6 +26,21 @@ Every change must feel calm, breathable, and premium — not dense or corporate.
 - **Body / UI**: Nunito → `font-body` (CSS class)
 - Design tokens live in `frontend/styles/globals.css`
 
+### Typography hierarchy (use these CSS classes — no arbitrary `text-[x.xrem]` sizes)
+| Class | Size | Usage |
+|---|---|---|
+| `.section-kicker` | `text-sm` | Small uppercase label above a heading |
+| `.section-title` | `text-4xl / sm:text-5xl` | Main section `<h2>` |
+| `.section-subtitle` | `text-lg leading-relaxed` | Lead paragraph under a title |
+| `.card-title` | `text-[2rem] leading-none` | Heading inside any card (`<h3>`) |
+| `.body-text` | `text-base leading-7` | Standard body paragraphs |
+| `text-sm` | — | Captions, meta labels, footer links |
+
+Rules:
+- Same type level = same class everywhere. Never hardcode an alternative size for the same level.
+- Kicker → title gap: always `mt-4`.
+- Section header → content gap: always `mb-10`.
+
 ---
 
 ## Agent Rules — MUST follow
@@ -55,9 +70,19 @@ When `PolaroidCard` (or any card component) is wrapped in `<Reveal>` inside a CS
 
 ### Section padding (standard)
 ```
-px-4 py-8 sm:px-6 lg:px-8 lg:py-12          ← compact sections
-px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24  ← spacious / editorial sections
+px-4 py-12 sm:px-6 lg:px-8 lg:py-16          ← all standard content sections
+px-4 py-12 sm:px-6 lg:px-8 lg:py-16          ← strip/CTA sections (same scale)
+px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20 ← editorial/breathing sections (ValuesSection)
 ```
+
+All sections must use `container-site` for their inner content wrapper (never `max-w-6xl` etc.).
+
+### Spacing scale
+- Kicker → heading: `mt-4`
+- Section header block → card/content grid: `mb-10`
+- Gap between cards: `gap-6`
+- Gap between stacked text paragraphs: `space-y-6`
+- Section internal padding (cards/panels): `p-3` to `px-8 py-7`
 
 ---
 

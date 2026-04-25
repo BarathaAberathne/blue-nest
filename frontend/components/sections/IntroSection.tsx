@@ -7,7 +7,7 @@ import StickerCard from "@/components/ui/StickerCard";
 
 export default function IntroSection() {
   return (
-    <PaperSection className="px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+    <PaperSection className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
       <Doodle kind="flower"    className="left-[1%]   top-10   h-14 w-14 text-[#f49cb5]" />
       <Doodle kind="star"      className="right-[5%]  top-8    h-11 w-11 text-[#f3bf62]" />
       <Doodle kind="leaf"      className="right-[9%]  bottom-8 h-13 w-13 text-[#8bdde0]" />
@@ -17,10 +17,10 @@ export default function IntroSection() {
       <div className="container-site grid gap-8 lg:grid-cols-[1fr_1.05fr] lg:items-center">
         <Reveal>
           <span className="section-kicker">Our nurturing approach</span>
-          <h2 className="section-title mt-6 max-w-xl text-[#58c5c7]">
+          <h2 className="section-title mt-4 max-w-xl text-[#58c5c7]">
             Montessori school for 3-month-olds to 5-year-olds
           </h2>
-          <div className="section-subtitle max-w-xl space-y-5">
+          <div className="section-subtitle max-w-xl space-y-6">
             <p>
               At Blue Nest Montessori School, we welcome babies and toddlers from 3 months up to 5 years old, ensuring they get the right start in life within a calm, supportive environment.
             </p>

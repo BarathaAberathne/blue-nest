@@ -41,7 +41,7 @@ export default function SectionDivider({
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none -mb-px block leading-none ${className}`}
+      className={`pointer-events-none -mb-px w-screen overflow-hidden leading-none ${className}`}
       style={{ background: from }}
     >
       <svg

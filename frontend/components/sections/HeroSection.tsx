@@ -150,12 +150,12 @@ export default function HeroSection() {
           </span>
 
           <h1 className="mt-5 max-w-[22rem] font-heading leading-[0.97]">
-            <span className="block text-[2.9rem] text-[#cf7d9c]">Excellent</span>
-            <span className="block text-[2.9rem] text-[#cf7d9c]">Children&apos;s</span>
-            <span className="block text-[2.9rem] text-[#58c5c7]">Nurseries</span>
-            <span className="block text-[2.9rem] text-[#a97ecf]">in Harrow,</span>
-            <span className="block text-[2.9rem] text-[#a97ecf]">Pinner &amp;</span>
-            <span className="block text-[2.9rem] text-[#cf7d9c]">Borehamwood</span>
+            <span className="block text-[2.9rem] text-white">Excellent</span>
+            <span className="block text-[2.9rem] text-white">Children&apos;s</span>
+            <span className="block text-[2.9rem] text-white">Nurseries</span>
+            <span className="block text-[2.9rem] text-white">in Harrow,</span>
+            <span className="block text-[2.9rem] text-white">Pinner &amp;</span>
+            <span className="block text-[2.9rem] text-white">Borehamwood</span>
           </h1>
 
           <p className="mt-6 max-w-[22rem] text-[1.05rem] leading-8 text-[rgba(90,74,66,0.88)]">
@@ -238,9 +238,9 @@ export default function HeroSection() {
             Montessori for ages 3 months to 5 years
           </span>
           <h1 className="mt-4 max-w-3xl font-heading leading-[0.94]">
-            <span className="block text-[3.2rem] text-[#cf7d9c] xl:text-[4.4rem]">Excellent children&apos;s nurseries</span>
-            <span className="block text-[3.2rem] text-[#58c5c7] xl:text-[4.4rem]">in Harrow, Pinner</span>
-            <span className="block text-[3.2rem] text-[#a97ecf] xl:text-[4.4rem]">&amp; Borehamwood</span>
+            <span className="block text-[3.2rem] text-white xl:text-[4.4rem]">Excellent children&apos;s nurseries</span>
+            <span className="block text-[3.2rem] text-white xl:text-[4.4rem]">in Harrow, Pinner</span>
+            <span className="block text-[3.2rem] text-white xl:text-[4.4rem]">&amp; Borehamwood</span>
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-[rgba(90,74,66,0.88)] lg:text-lg">
             A warm, safe and inspiring Montessori environment where children learn, play and grow with confidence.

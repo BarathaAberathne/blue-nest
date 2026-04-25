@@ -12,7 +12,7 @@ const pills = [
 
 export default function ValuesSection() {
   return (
-    <section className="relative px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-28">
+    <section className="relative px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
       {/* Ambient doodles — low opacity, stay out of content zone */}
       <Doodle kind="solidstar" className="left-[1%]   top-10   h-9  w-9  text-[#f7d774] opacity-60" />
       <Doodle kind="rainbow"   className="right-[2%]  bottom-8 h-16 w-16 opacity-50" />
@@ -34,7 +34,7 @@ export default function ValuesSection() {
             {pills.map((pill) => (
               <span
                 key={pill.label}
-                className="rounded-full border-[1.5px] px-5 py-2 font-body text-[0.8rem] font-bold tracking-wide sm:px-6 sm:text-sm"
+                className="rounded-full border-[1.5px] px-5 py-2 font-body text-sm font-bold tracking-wide sm:px-6"
                 style={{ borderColor: pill.color, color: pill.color }}
               >
                 {pill.label}
@@ -76,10 +76,10 @@ export default function ValuesSection() {
 
         {/* ── Two-column body text ─────────────────────────────────── */}
         <Reveal delay={0.2}>
-          <div className="mx-auto mt-12 grid max-w-5xl gap-y-7 text-[1rem] leading-[1.95] text-[rgba(90,74,66,0.72)] sm:mt-14 lg:grid-cols-2 lg:gap-x-16 lg:gap-y-0">
+          <div className="mx-auto mt-12 grid max-w-5xl gap-y-7 sm:mt-14 lg:grid-cols-2 lg:gap-x-16 lg:gap-y-0">
 
             {/* Left column */}
-            <div className="space-y-6">
+            <div className="body-text space-y-7">
               <p>
                 At Blue Nest Montessori School, our day nursery offers a blend of structured learning
                 and play, guided by the Montessori method. Our methods of teaching prioritise the EYFS
@@ -97,7 +97,7 @@ export default function ValuesSection() {
             </div>
 
             {/* Right column */}
-            <div className="space-y-6">
+            <div className="body-text space-y-7">
               <p>
                 We were awarded the Montessori School of the Year during the London Prestige Awards
                 from 2019&ndash;2025, which went hand in hand with our Rated Good Ofsted report.

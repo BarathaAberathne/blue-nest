@@ -23,17 +23,17 @@ export default function PolaroidCard({
       <div className="relative aspect-[4/5] overflow-hidden rounded-[1.7rem]">
         <Image src={image} alt={alt} fill className="object-cover" sizes="(max-width: 768px) 100vw, 25vw" />
       </div>
-      <div className="flex flex-col flex-1 px-3 pb-4 pt-5">
+      <div className="flex flex-col flex-1 px-3 pb-5 pt-6">
         <div
-          className="mb-4 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(90,74,66,0.12)]"
+          className="mb-5 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(90,74,66,0.12)]"
           style={{ backgroundColor: accent }}
         >
           <Icon className="h-6 w-6" strokeWidth={1.8} />
         </div>
-        <h3 className="font-heading text-[2rem] leading-none" style={{ color: accent }}>
+        <h3 className="card-title" style={{ color: accent }}>
           {title}
         </h3>
-        <p className="mt-3 text-base leading-7 text-[rgba(90,74,66,0.82)]">{description}</p>
+        <p className="body-text mt-4">{description}</p>
       </div>
     </article>
   );

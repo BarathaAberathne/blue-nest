@@ -123,7 +123,7 @@ function PrincipleFeatureCard({ principle }: { principle: Principle }) {
       role="region"
       aria-label={`Details for principle ${principle.number}`}
     >
-      <div className="flex items-start gap-5">
+      <div className="flex items-start gap-6">
         {/* Ghost number */}
         <span
           className="select-none font-heading text-[5.5rem] leading-none"
@@ -133,10 +133,10 @@ function PrincipleFeatureCard({ principle }: { principle: Principle }) {
           {principle.number}
         </span>
         <div>
-          <h3 className="font-heading text-[2.5rem] leading-tight" style={{ color: principle.color }}>
+          <h3 className="card-title" style={{ color: principle.color }}>
             {principle.title}
           </h3>
-          <p className="mt-3 text-[1.05rem] leading-8 text-[rgba(90,74,66,0.82)]">
+          <p className="body-text mt-4">
             {principle.description}
           </p>
         </div>
@@ -213,7 +213,7 @@ function AccordionItem({
             transition={{ duration: 0.28, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <p className="px-5 pb-5 text-[0.95rem] leading-7 text-[rgba(90,74,66,0.82)]">
+            <p className="body-text px-5 pb-6 pt-1">
               {principle.description}
             </p>
           </motion.div>
@@ -234,7 +234,7 @@ export default function LearningPathSection() {
   }
 
   return (
-    <section className="paper-bg relative overflow-hidden px-4 pb-12 pt-10 sm:px-6 lg:px-8 lg:pb-16 lg:pt-14">
+    <section className="paper-bg relative overflow-hidden px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
       {/* Doodles */}
       <Doodle kind="solidstar" className="left-[2%]   top-10   h-9  w-9  text-[#f7d774]" />
       <Doodle kind="flower"    className="right-[3%]  top-8    h-11 w-11 text-[#ef8cab]" />
@@ -247,7 +247,7 @@ export default function LearningPathSection() {
 
         {/* ── Section header ──────────────────────────────────── */}
         <Reveal>
-          <div className="mb-10 text-center lg:mb-12">
+          <div className="mb-10 text-center">
             <span className="section-kicker">Our Natural Approach</span>
             <h2 className="section-title mt-4 text-[#58c5c7]">Learning Through Play</h2>
             <p className="section-subtitle mx-auto max-w-2xl">

@@ -25,6 +25,7 @@
     background-color: var(--paper);
     color: var(--ink);
     font-family: var(--font-body), sans-serif;
+    overflow-x: clip;
     @apply antialiased;
   }
 
@@ -93,6 +94,18 @@
   }
 
   /* ── Typography ──────────────────────────────────────────── */
+  /*
+   * Type hierarchy (use these everywhere — no arbitrary sizes):
+   *   .section-kicker   — small uppercase label above a heading
+   *   .section-title    — large section heading (h2)
+   *   .section-subtitle — introductory body paragraph under a heading
+   *   .card-title       — heading inside a card (h3)
+   *   .body-text        — standard body paragraph
+   *   text-sm           — captions, meta labels, footer links
+   *
+   * Rule: kicker → title gap is always mt-4. Section header → content gap is mb-10.
+   */
+
   .section-title {
     font-family: var(--font-display), cursive;
     @apply text-4xl leading-tight sm:text-5xl;
@@ -101,7 +114,7 @@
 
   .section-subtitle {
     font-family: var(--font-body), sans-serif;
-    @apply mt-4 text-lg leading-relaxed;
+    @apply mt-5 text-lg leading-[1.75];
     color: rgba(90, 74, 66, 0.82);
   }
 
@@ -111,6 +124,19 @@
            text-sm font-extrabold uppercase tracking-[0.16em];
     background: rgba(246, 213, 223, 0.7);
     color: var(--rose-ink);
+  }
+
+  /* Card heading — use for h3 inside any card component */
+  .card-title {
+    font-family: var(--font-display), cursive;
+    @apply text-[2rem] leading-none;
+  }
+
+  /* Standard body paragraph — use instead of arbitrary text-[x.xxrem] */
+  .body-text {
+    font-family: var(--font-body), sans-serif;
+    @apply text-base leading-[1.85];
+    color: rgba(90, 74, 66, 0.82);
   }
 
   /* ── Buttons ─────────────────────────────────────────────── */
@@ -152,5 +178,83 @@
 
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+/* ── Bird animations ─────────────────────────────────────────────── */
+@keyframes bird-fly-left {
+  0% {
+    transform: translateX(-120px) translateY(0);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(calc(100vw + 120px)) translateY(0);
+    opacity: 0;
+  }
+}
+
+@keyframes bird-fly-right {
+  0% {
+    transform: translateX(120px) translateY(0);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(calc(-100vw - 120px)) translateY(0);
+    opacity: 0;
+  }
+}
+
+@keyframes bird-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes bird-wing-flap {
+  /* glide */
+  0%   { transform: scaleY(1);    }
+  10%  { transform: scaleY(1);    }
+  /* burst 1 */
+  13%  { transform: scaleY(0.78); }
+  17%  { transform: scaleY(1.04); }
+  20%  { transform: scaleY(0.82); }
+  24%  { transform: scaleY(1);    }
+  /* glide */
+  38%  { transform: scaleY(1);    }
+  /* burst 2 — double tap */
+  41%  { transform: scaleY(0.75); }
+  44%  { transform: scaleY(1);    }
+  47%  { transform: scaleY(0.80); }
+  50%  { transform: scaleY(1);    }
+  /* glide */
+  66%  { transform: scaleY(1);    }
+  /* burst 3 — single slow dip */
+  70%  { transform: scaleY(0.84); }
+  76%  { transform: scaleY(1);    }
+  /* glide to end */
+  100% { transform: scaleY(1);    }
+}
+
+@keyframes bird-trail-dash {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 8;
   }
 }

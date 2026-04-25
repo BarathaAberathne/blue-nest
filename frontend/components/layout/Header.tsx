@@ -6,7 +6,6 @@ import {
   Mail,
   Menu,
   MessageCircle,
-  Mountain,
   Phone,
   Search,
   ShieldCheck,
@@ -327,51 +326,49 @@ export default function Header() {
             onClick={() => setMenuOpen(false)}
           />
 
-          <aside className="absolute right-0 top-0 flex h-full w-full max-w-[42rem] flex-col overflow-y-auto rounded-l-[2rem] bg-white shadow-[-20px_0_60px_rgba(90,74,66,0.18)]">
-            <div className="flex items-center justify-between px-10 py-6">
-              {/* Logo only — no text duplication */}
-              <div className="relative h-60 w-60">
+          <aside className="absolute right-0 top-0 flex h-full w-full max-w-[42rem] flex-col overflow-hidden rounded-l-[2rem] bg-white shadow-[-20px_0_60px_rgba(90,74,66,0.18)]">
+
+            {/* Header row */}
+            <div className="flex shrink-0 items-center justify-between px-8 py-3">
+              <div className="relative h-[72px] w-[136px]">
                 <Image
                   src="/home/logo_new.png"
                   alt="Blue Nest Montessori logo"
                   fill
-                  className="object-contain"
-                  sizes="240px"
+                  className="object-contain object-left"
+                  sizes="136px"
                 />
               </div>
-
-              {/* Close button */}
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}
                 aria-label="Close navigation menu"
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-[#7fd8d2] text-white transition hover:bg-[#6ab5ad]"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-[#7fd8d2] text-white transition hover:bg-[#6ab5ad]"
               >
-                <X className="h-6 w-6" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="px-12">
-              <div className="my-4 h-px bg-[#f1a8ca]" />
-              <div className="absolute left-[-8rem] top-[26rem] hidden lg:block">
-                <div className="relative h-72 w-72 overflow-hidden rounded-full border-[6px] border-white shadow-[0_18px_45px_rgba(90,74,66,0.2)]">
-                  <Image
-                    src="/home/classroom-collage.png"
-                    alt="Children at Blue Nest Montessori"
-                    fill
-                    className="object-cover"
-                    sizes="288px"
-                  />
-                </div>
-              </div>
+            {/* Ambient doodles — left gutter and bottom-right corner */}
+            <Doodle kind="solidstar" className="absolute left-3 top-40   h-6 w-6 text-[#f7d774] opacity-30" />
+            <Doodle kind="heart"     className="absolute left-2 top-[52%] h-5 w-5 text-[#f4aac8] opacity-28" />
+            <Doodle kind="leaf"      className="absolute left-3 top-[72%] h-6 w-6 text-[#7fd8d2] opacity-30" />
+            <Doodle kind="flower"    className="absolute bottom-12 right-5  h-8 w-8 text-[#ef8cab] opacity-30" />
+            <Doodle kind="rainbow"   className="absolute bottom-5  right-14 h-10 w-10           opacity-20 hidden sm:block" />
+            <Doodle kind="cloud"     className="absolute bottom-16 right-2  h-7 w-7 text-[#85d6f1] opacity-22 hidden sm:block" />
 
-              <nav className="relative z-10 mt-6 space-y-1 pb-10">
+            {/* Content — fills remaining height, items stretch evenly */}
+            <div className="flex min-h-0 flex-1 flex-col px-10">
+              <div className="h-px shrink-0 bg-[#f1a8ca]" />
+
+              {/* Nav items share available height equally via flex-1 */}
+              <nav className="relative z-10 mt-2 flex min-h-0 flex-1 flex-col" aria-label="Main navigation">
                 {navLinks.map((link) => (
-                  <div key={link.href}>
+                  <div key={link.href} className="flex min-h-0 flex-1 flex-col justify-center">
                     <Link
                       href={link.href}
                       onClick={() => setMenuOpen(false)}
-                      className="block py-5 text-[1.05rem] font-extrabold uppercase tracking-[0.01em] text-[var(--ink)] transition hover:text-[#4ec0c3]"
+                      className="block text-[0.9rem] font-extrabold uppercase tracking-[0.04em] text-[var(--ink)] transition hover:text-[#4ec0c3]"
                     >
                       {link.label}
                     </Link>
@@ -380,15 +377,16 @@ export default function Header() {
                 ))}
               </nav>
 
-              <div className="pb-10">
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a97ecf]">Our Branches</p>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {/* Branches — pinned to bottom */}
+              <div className="shrink-0 pb-4 pt-3">
+                <p className="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-[#a97ecf]">Our Branches</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
                   {branches.map((branch) => (
                     <Link
                       key={branch.href}
                       href={branch.href}
                       onClick={() => setMenuOpen(false)}
-                      className="rounded-[1.2rem] border border-[rgba(90,74,66,0.08)] px-4 py-3 text-sm font-bold text-[var(--ink)] transition hover:border-[#7fd8d2] hover:bg-[#f8fffe]"
+                      className="rounded-[1rem] border border-[rgba(90,74,66,0.08)] px-3 py-2 text-xs font-bold text-[var(--ink)] transition hover:border-[#7fd8d2] hover:bg-[#f8fffe]"
                     >
                       <span>{branch.label}</span>
                       {branch.comingSoon && (

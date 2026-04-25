@@ -29,6 +29,7 @@ export default function HomePage() {
       <LearningPathSection />
       <SectionDivider from="#f9f4ee" to="rgba(191,166,232,0.15)" variant="wave" />
       <ValuesSection />
+      <SectionDivider from="rgba(191,166,232,0.15)" to="#fdf6f0" variant="torn" />
     </PublicLayout>
   );
 }

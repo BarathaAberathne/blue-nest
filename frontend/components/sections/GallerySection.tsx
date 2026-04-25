@@ -6,7 +6,7 @@ import StickerCard from "@/components/ui/StickerCard";
 
 export default function GallerySection() {
   return (
-    <PaperSection bgClass="blush-bg" className="px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+    <PaperSection bgClass="blush-bg" className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
       <Doodle kind="flower"    className="left-[7%]   top-20 h-13 w-13 text-[#ef8cab]" />
       <Doodle kind="stars"     className="right-[6%]  top-16 h-13 w-13 text-[#8bcfef]" />
       <Doodle kind="heart"     className="left-[2%]   bottom-10 h-9 w-9 text-[#f4aac8]" />
@@ -16,7 +16,7 @@ export default function GallerySection() {
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <Reveal>
             <span className="section-kicker">A peek inside Blue Nest</span>
-            <h2 className="section-title mt-6 text-[#58c5c7]">Warm spaces for play, calm focus and outdoor discovery</h2>
+            <h2 className="section-title mt-4 text-[#58c5c7]">Warm spaces for play, calm focus and outdoor discovery</h2>
             <p className="section-subtitle max-w-xl">
               From carefully prepared classrooms to inviting garden areas, our environments are designed to feel comforting, creative and full of possibility.
             </p>
