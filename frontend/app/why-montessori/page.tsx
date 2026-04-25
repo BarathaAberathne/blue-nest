@@ -1,59 +1,341 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import { ArrowRight, Mail, Phone } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
-import PageWrapper from "@/components/ui/PageWrapper";
-import SectionWrapper from "@/components/ui/SectionWrapper";
+import SectionDivider from "@/components/ui/SectionDivider";
+import PastelButton from "@/components/ui/PastelButton";
+import StickerCard from "@/components/ui/StickerCard";
+import Doodle from "@/components/ui/Doodle";
+import { Reveal } from "@/components/ui/Motion";
 
-export const metadata: Metadata = { title: "Why Montessori" };
-
-const principles = [
-  { icon: "🧠", title: "Child-Led Learning", desc: "Children choose their activities within a structured environment, developing intrinsic motivation and deep focus." },
-  { icon: "🤝", title: "Mixed-Age Groups", desc: "Older children mentor younger ones, building empathy and reinforcing their own knowledge." },
-  { icon: "🎯", title: "Prepared Environment", desc: "Every material, surface, and detail is intentionally designed to invite exploration and independence." },
-  { icon: "📏", title: "Freedom with Limits", desc: "Children move, speak, and work freely within clear boundaries that build self-discipline." },
-  { icon: "🌱", title: "Holistic Development", desc: "Social, emotional, physical, and cognitive growth are nurtured as one interconnected whole." },
-  { icon: "🔍", title: "Intrinsic Motivation", desc: "No grades, no gold stars — children learn for the joy of discovery, not external reward." },
-];
+export const metadata: Metadata = {
+  title: "Why Montessori — Blue Nest Montessori School",
+};
 
 export default function WhyMontessoriPage() {
   return (
     <PublicLayout>
-      <PageWrapper>
-        <div className="max-w-3xl">
-          <h1 className="section-title">Why Montessori?</h1>
-          <p className="section-subtitle">
-            Developed by Dr Maria Montessori over a century ago, the Montessori method is one of the most researched and respected
-            educational approaches in the world. At Blue Nest, we have made it the heart of everything we do.
-          </p>
-        </div>
-      </PageWrapper>
 
-      <SectionWrapper tinted>
-        <h2 className="section-title text-center mb-10">Core Principles</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {principles.map((p) => (
-            <div key={p.title} className="card p-6">
-              <div className="text-3xl mb-3">{p.icon}</div>
-              <h3 className="font-heading font-semibold text-gray-900 mb-2">{p.title}</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">{p.desc}</p>
+      {/* ══════════════════════════════════════════════════════
+          HERO
+      ══════════════════════════════════════════════════════ */}
+      <section className="paper-bg relative flex min-h-[62vh] items-center">
+        {/* Background image + layered overlays */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <Image
+            src="/home/outdoor-learning-and-play-area.jpg"
+            alt="Blue Nest Montessori learning environment"
+            fill
+            priority
+            className="object-cover object-right"
+            sizes="100vw"
+          />
+          <div className="absolute inset-0 bg-[#fff8f2]/68" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_18%_55%,rgba(246,213,223,0.52),transparent_48%),radial-gradient(ellipse_at_82%_20%,rgba(127,216,210,0.18),transparent_38%)]" />
+          <div
+            className="absolute inset-0 opacity-35"
+            style={{
+              backgroundImage: "radial-gradient(circle, rgba(90,74,66,0.07) 1px, transparent 1px)",
+              backgroundSize: "20px 20px",
+            }}
+          />
+        </div>
+
+        <Doodle kind="bird"      className="left-[6%]   top-8    h-9  w-9  text-[#7fd8d2]   opacity-70" />
+        <Doodle kind="cloud"     className="right-[5%]  top-10   h-12 w-12 text-[#85d6f1]   opacity-45 hidden sm:block" />
+        <Doodle kind="solidstar" className="right-[14%] bottom-8 h-8  w-8  text-[#f7d774]   opacity-55 hidden sm:block" />
+        <Doodle kind="rainbow"   className="left-[46%]  top-6    h-10 w-10                  opacity-40 hidden lg:block" />
+
+        <div className="container-site relative z-10 py-16 sm:py-20 lg:py-24">
+          <Reveal>
+            <div className="max-w-xl">
+              <span className="section-kicker">Blue Nest Montessori School</span>
+              <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-white sm:text-[3rem] lg:text-[3.4rem]">
+                Montessori nursery in Harrow, Pinner and Borehamwood
+              </h1>
+              <p className="body-text mt-5 max-w-lg !text-white/90">
+                Blue Nest Montessori School provides a home away from home, where children can
+                learn, develop and grow. If you&rsquo;d like any information about our prospectus
+                or fee structure, contact us today.
+              </p>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <PastelButton href="/contact" variant="rose">
+                  Contact Us <ArrowRight className="h-4 w-4" />
+                </PastelButton>
+                <PastelButton href="/admission" variant="mint">
+                  Application Form <ArrowRight className="h-4 w-4" />
+                </PastelButton>
+              </div>
             </div>
-          ))}
+          </Reveal>
         </div>
-      </SectionWrapper>
+      </section>
 
-      <SectionWrapper>
-        <div className="max-w-3xl mx-auto">
-          <h2 className="section-title mb-6">What the Research Says</h2>
-          <p className="text-gray-600 leading-relaxed mb-4">
-            Longitudinal studies consistently show that children educated in Montessori environments develop stronger executive
-            function, reading, and mathematics skills — alongside superior social and emotional competencies — compared to peers
-            in traditional settings.
-          </p>
-          <p className="text-gray-600 leading-relaxed">
-            At Blue Nest, we combine the timeless Montessori philosophy with modern early-years research to give every child
-            the very best start.
-          </p>
+      <SectionDivider from="transparent" to="#f9f4ee" variant="wave" />
+
+      {/* ══════════════════════════════════════════════════════
+          MARIA MONTESSORI
+      ══════════════════════════════════════════════════════ */}
+      <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <Doodle kind="heart"  className="right-[5%]  top-10    h-9  w-9  text-[#f4aac8] opacity-50" />
+        <Doodle kind="leaf"   className="right-[8%]  bottom-10 h-10 w-10 text-[#7fd8d2] opacity-55" />
+        <Doodle kind="flower" className="left-[2%]   bottom-12 h-10 w-10 text-[#ef8cab] opacity-45 hidden sm:block" />
+
+        <div className="container-site">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
+
+            {/* Image — left */}
+            <Reveal>
+              <div className="relative mx-auto flex w-full max-w-[360px] items-center justify-center">
+                <div
+                  className="absolute h-[88%] w-[88%] bg-[rgba(191,166,232,0.22)]"
+                  style={{ borderRadius: "42% 58% 54% 46% / 46% 54% 58% 42%" }}
+                />
+                <StickerCard
+                  src="/site-images/why-montessori/maria-moontessori.png"
+                  alt="Maria Montessori"
+                  rotate={-3}
+                  sizes="(max-width: 1024px) 80vw, 36vw"
+                  className="relative z-10 w-[86%]"
+                  aspectRatio="4/5"
+                />
+              </div>
+            </Reveal>
+
+            {/* Text — right */}
+            <Reveal delay={0.1}>
+              <span className="section-kicker">The founder</span>
+              <h2 className="section-title mt-4 text-[#cf7d9c]">Maria Montessori</h2>
+              <div className="mt-3 flex gap-1.5" aria-hidden="true">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div key={i} className="h-[3px] w-5 rounded-full bg-[#f1a8ca]" />
+                ))}
+              </div>
+              <div className="body-text mt-5 space-y-5">
+                <p>
+                  Dr. Maria Montessori was a pioneer in the education of young children and
+                  founded the Montessori Method of teaching. She believed that children have
+                  sensitive periods for learning. These are the times when the child will be
+                  sensitive to a certain type of knowledge and will learn effortlessly.
+                </p>
+                <p>
+                  The Montessori nursery environment is carefully designed to respond to the
+                  child&rsquo;s needs at the early stages and provides maximum opportunity for
+                  their development.
+                </p>
+              </div>
+            </Reveal>
+
+          </div>
         </div>
-      </SectionWrapper>
+      </section>
+
+      <SectionDivider from="#f9f4ee" to="rgba(246,213,223,0.26)" variant="scallop" />
+
+      {/* ══════════════════════════════════════════════════════
+          GREAT START TO SCHOOL LIFE
+      ══════════════════════════════════════════════════════ */}
+      <section className="blush-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <Doodle kind="solidstar" className="left-[4%]   top-10    h-9  w-9  text-[#f7d774] opacity-55" />
+        <Doodle kind="cloud"     className="right-[5%]  bottom-10 h-12 w-12 text-[#85d6f1] opacity-45 hidden sm:block" />
+        <Doodle kind="bird"      className="right-[12%] bottom-8  h-8  w-8  text-[#ef8cab] opacity-50 hidden sm:block" />
+
+        <div className="container-site">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
+
+            {/* Text — left */}
+            <Reveal>
+              <h2 className="section-title text-[var(--ink)]">
+                Give your child a great start to school life
+              </h2>
+              <div className="body-text mt-5 space-y-5">
+                <p>
+                  The Montessori philosophy is founded upon the child&rsquo;s natural curiosity
+                  and love of learning with all materials required for learning within their reach.
+                  This is a time when teachers allow the children to &lsquo;work&rsquo; at various
+                  activities. These activities may be adult-led or the ones that children choose
+                  independently from the shelves. These include Montessori equipment and other
+                  carefully selected materials from a wide variety of sources.
+                </p>
+                <p>
+                  The teachers have a clear understanding of each child&rsquo;s stage of
+                  development, so they will be able to &lsquo;direct&rsquo; the child to any
+                  particular activity which the teacher feels they need to achieve. This is a time
+                  when teachers will show children how to use the Montessori equipment, either on
+                  a 1&nbsp;:&nbsp;1 basis or in a group, according to the guidance given by the
+                  Montessori philosophy.
+                </p>
+              </div>
+            </Reveal>
+
+            {/* Image — right */}
+            <Reveal delay={0.1}>
+              <div className="mx-auto w-full max-w-[360px]">
+                <StickerCard
+                  src="/home/DSC_0177.jpg"
+                  alt="Child working with Montessori materials"
+                  rotate={4}
+                  sizes="(max-width: 1024px) 80vw, 36vw"
+                  className="w-full"
+                  aspectRatio="4/5"
+                />
+              </div>
+            </Reveal>
+
+          </div>
+        </div>
+      </section>
+
+      <SectionDivider from="rgba(246,213,223,0.26)" to="#f9f4ee" variant="scallop" flip />
+
+      {/* ══════════════════════════════════════════════════════
+          TESTIMONIAL
+      ══════════════════════════════════════════════════════ */}
+      <section className="paper-bg relative px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+        <Doodle kind="bird"      className="right-[5%]  top-10   h-9  w-9  text-[#7fd8d2] opacity-55" />
+        <Doodle kind="flower"    className="left-[2%]   bottom-8 h-10 w-10 text-[#f4aac8] opacity-50 hidden sm:block" />
+        <Doodle kind="solidstar" className="left-[46%]  top-8    h-7  w-7  text-[#f7d774] opacity-45" />
+
+        <div className="container-site">
+          <Reveal>
+            <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[1fr_1.35fr] lg:items-center">
+
+              {/* Image — left */}
+              <div className="mx-auto w-full max-w-[300px]">
+                <StickerCard
+                  src="/home/outdoor-childrens-play-area.jpg"
+                  alt="Cosy learning space at Blue Nest"
+                  rotate={-3}
+                  sizes="(max-width: 1024px) 70vw, 26vw"
+                  className="w-full"
+                  aspectRatio="4/3"
+                />
+              </div>
+
+              {/* Quote — right */}
+              <div>
+                <span
+                  className="font-heading text-[5rem] leading-none text-[#ef8cab] opacity-30 sm:text-[6rem]"
+                  aria-hidden="true"
+                >
+                  &ldquo;
+                </span>
+                <p className="font-heading text-[1.5rem] leading-[1.65] text-[rgba(90,74,66,0.75)] sm:text-[1.75rem]">
+                  The best nursery I could&rsquo;ve chosen for my daughter. She is so happy there.
+                  The staff are so caring and thoughtful. I would go there myself if I only could.
+                </p>
+                <div className="mt-6 flex items-center gap-3">
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#ef8cab] opacity-60" />
+                  <cite className="font-body text-[0.7rem] font-extrabold not-italic uppercase tracking-[0.22em] text-[rgba(90,74,66,0.45)]">
+                    Agnieszka G
+                  </cite>
+                </div>
+              </div>
+
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      <SectionDivider from="#f9f4ee" to="#7fd8d2" variant="torn" />
+
+      {/* ══════════════════════════════════════════════════════
+          CTA / CONTACT
+      ══════════════════════════════════════════════════════ */}
+      <section className="chalk-bg relative overflow-hidden px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <Doodle kind="rainbow"   className="left-[2%]   bottom-8 h-14 w-14           opacity-35 hidden sm:block" />
+        <Doodle kind="leaf"      className="right-[3%]  top-12   h-10 w-10 text-white/50          hidden sm:block" />
+        <Doodle kind="solidstar" className="left-[8%]   top-10   h-8  w-8  text-[#f7d774]/70" />
+        <Doodle kind="flower"    className="right-[18%] bottom-6 h-9  w-9  text-[#f4aac8]/60 hidden lg:block" />
+
+        <div className="container-site">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-16">
+
+            {/* Left — heading + contact details */}
+            <Reveal>
+              <h2 className="font-heading text-[2.2rem] leading-[1.2] text-white sm:text-[2.6rem]">
+                We provide a wonderful environment where children can learn and grow
+              </h2>
+
+              <div className="mt-8 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
+                    <Phone className="h-4 w-4 text-white" />
+                  </div>
+                  <div className="text-sm font-semibold leading-relaxed text-white/90">
+                    <div>020 8863 2076</div>
+                    <div>020 8429 5411</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
+                    <Mail className="h-4 w-4 text-white" />
+                  </div>
+                  <a
+                    href="mailto:info@bluenest.uk"
+                    className="text-sm font-semibold text-white/90 transition hover:text-white"
+                  >
+                    info@bluenest.uk
+                  </a>
+                </div>
+              </div>
+
+              <p className="mt-8 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/55">
+                Follow us
+              </p>
+              <div className="mt-3 flex gap-3">
+                {["Facebook", "Instagram", "TikTok"].map((name) => (
+                  <a
+                    key={name}
+                    href="#"
+                    aria-label={name}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-[0.6rem] font-bold text-white transition hover:bg-white/30"
+                  >
+                    {name[0]}
+                  </a>
+                ))}
+              </div>
+            </Reveal>
+
+            {/* Right — contact form */}
+            <Reveal delay={0.1}>
+              <div className="rounded-[2rem] bg-white/12 px-6 py-7 ring-1 ring-white/20 backdrop-blur-sm sm:px-8">
+                <form className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <input
+                      type="text"
+                      placeholder="Your Name"
+                      className="w-full rounded-[1rem] border-0 bg-white/90 px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.4)] focus:outline-none focus:ring-2 focus:ring-white"
+                    />
+                    <input
+                      type="email"
+                      placeholder="Email Address"
+                      className="w-full rounded-[1rem] border-0 bg-white/90 px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.4)] focus:outline-none focus:ring-2 focus:ring-white"
+                    />
+                  </div>
+                  <input
+                    type="tel"
+                    placeholder="Phone Number"
+                    className="w-full rounded-[1rem] border-0 bg-white/90 px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.4)] focus:outline-none focus:ring-2 focus:ring-white"
+                  />
+                  <textarea
+                    rows={4}
+                    placeholder="Your Message"
+                    className="w-full resize-none rounded-[1rem] border-0 bg-white/90 px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.4)] focus:outline-none focus:ring-2 focus:ring-white"
+                  />
+                  <button type="submit" className="btn-primary w-full">
+                    Send Message <ArrowRight className="h-4 w-4" />
+                  </button>
+                </form>
+              </div>
+            </Reveal>
+
+          </div>
+        </div>
+      </section>
+
+      <SectionDivider from="#7fd8d2" to="#fdf6f0" variant="torn" />
+
     </PublicLayout>
   );
 }
