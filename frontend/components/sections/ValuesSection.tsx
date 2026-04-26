@@ -4,7 +4,7 @@ import { Reveal } from "@/components/ui/Motion";
 const pills = [
   { label: "Confidence",   color: "#ef8cab" },
   { label: "Respect",      color: "#5fc8c7" },
-  { label: "Independence", color: "#a48cdc" },
+  { label: "Independence", color: "#7fd8d2" },
   { label: "Compassion",   color: "#f0bd55" },
   { label: "Curiosity",    color: "#63cad2" },
   { label: "Creativity",   color: "#e683a4" },

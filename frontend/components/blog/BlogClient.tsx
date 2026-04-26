@@ -28,7 +28,7 @@ const TAG_COLOUR: Record<TagSlug, string> = {
   "all":           "#5a4a42",
   "forest-school": "#3d8a52",
   "advice":        "#cf7d9c",
-  "home-learning": "#9a7ec8",
+  "home-learning": "#5fc8c7",
   "branch-news":   "#3aada9",
   "montessori":    "#c45820",
 };

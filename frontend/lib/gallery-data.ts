@@ -271,7 +271,7 @@ export const GALLERY_ITEMS: GalleryItem[] = [
 export const BRANCH_COLOURS: Record<Exclude<BranchFilter, "all">, string> = {
   harrow:      "#f4aac8",
   pinner:      "#7fd8d2",
-  borehamwood: "#b99fe0",
+  borehamwood: "#7fd8d2",
 };
 
 export const CATEGORY_LABELS: Record<Exclude<CategoryFilter, "all">, string> = {

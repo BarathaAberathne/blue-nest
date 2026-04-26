@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ArrowRight, Check, ShoppingCart, X } from "lucide-react";
 import Doodle from "@/components/ui/Doodle";
 import PastelButton from "@/components/ui/PastelButton";
-import SectionDivider from "@/components/ui/SectionDivider";
 
 // ── Types & data ──────────────────────────────────────────────────────────────
 
@@ -33,7 +32,7 @@ const CATEGORIES: { value: CategorySlug; label: string; colour: string }[] = [
   { value: "all",          label: "All",         colour: "#5a4a42" },
   { value: "sensory",      label: "Sensory",      colour: "#cf7d9c" },
   { value: "outdoor",      label: "Outdoor",      colour: "#3d8a52" },
-  { value: "maths",        label: "Maths",        colour: "#9a7ec8" },
+  { value: "maths",        label: "Maths",        colour: "#5fc8c7" },
   { value: "literacy",     label: "Literacy",     colour: "#3aada9" },
   { value: "life-skills",  label: "Life Skills",  colour: "#c45820" },
   { value: "accessories",  label: "Accessories",  colour: "#a07a00" },
@@ -43,7 +42,7 @@ const CATEGORIES: { value: CategorySlug; label: string; colour: string }[] = [
 const CAT_BG: Record<Exclude<CategorySlug, "all">, string> = {
   sensory:       "rgba(244,170,200,0.18)",
   outdoor:       "rgba(142,203,155,0.20)",
-  maths:         "rgba(185,159,224,0.18)",
+  maths:         "rgba(127,216,210,0.18)",
   literacy:      "rgba(127,216,210,0.18)",
   "life-skills": "rgba(249,160,120,0.18)",
   accessories:   "rgba(247,215,116,0.22)",
@@ -265,7 +264,6 @@ export default function StoreClient() {
         </div>
       </section>
 
-      <SectionDivider from="#f9f4ee" to="rgba(246,213,223,0.26)" variant="scallop" />
 
       {/* ── Bottom info strip ────────────────────────────────── */}
       <section className="blush-bg px-4 py-10 sm:px-6 lg:px-8">
@@ -294,7 +292,6 @@ export default function StoreClient() {
         </div>
       </section>
 
-      <SectionDivider from="rgba(246,213,223,0.26)" to="#fdf6f0" variant="wave" />
     </>
   );
 }

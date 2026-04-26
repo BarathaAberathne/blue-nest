@@ -12,10 +12,10 @@ import {
   Users,
 } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
-import SectionDivider from "@/components/ui/SectionDivider";
 import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
+import ZigzagBand from "@/components/ui/ZigzagBand";
 
 export const metadata: Metadata = {
   title: "Our Team — Blue Nest Montessori School",
@@ -43,7 +43,7 @@ interface TeamMember {
 const AVATAR: Record<AvatarColour, { bg: string; border: string; text: string }> = {
   pink:     { bg: "rgba(244,170,200,0.18)", border: "#f4aac8", text: "#cf7d9c"  },
   teal:     { bg: "rgba(127,216,210,0.18)", border: "#7fd8d2", text: "#3aada9"  },
-  lavender: { bg: "rgba(185,159,224,0.18)", border: "#b99fe0", text: "#9a7ec8"  },
+  lavender: { bg: "rgba(127,216,210,0.18)", border: "#7fd8d2", text: "#5fc8c7"  },
   gold:     { bg: "rgba(247,215,116,0.22)", border: "#f7d774", text: "#a07a00"  },
   sage:     { bg: "rgba(142,203,155,0.18)", border: "#8ecb9b", text: "#3d8a52"  },
   peach:    { bg: "rgba(249,160,120,0.18)", border: "#f9a078", text: "#c45820"  },
@@ -51,7 +51,7 @@ const AVATAR: Record<AvatarColour, { bg: string; border: string; text: string }>
 
 const BRANCH_COLOUR: Record<string, string> = {
   Harrow:         "#7fd8d2",
-  Borehamwood:    "#b99fe0",
+  Borehamwood:    "#7fd8d2",
   Pinner:         "#f4aac8",
   "All Branches": "#8ecb9b",
 };
@@ -185,8 +185,8 @@ const TRUST_ITEMS = [
   },
   {
     icon:   BookOpen,
-    colour: "#9a7ec8",
-    bg:     "rgba(191,166,232,0.28)",
+    colour: "#5fc8c7",
+    bg:     "rgba(127,216,210,0.28)",
     label:  "Montessori Trained",
     sub:    "Core team holds AMI / AMS Montessori certification.",
   },
@@ -226,7 +226,7 @@ export default function OurTeamPage() {
             sizes="100vw"
           />
           <div className="absolute inset-0 bg-[#fff8f2]/68" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_16%_60%,rgba(246,213,223,0.50),transparent_46%),radial-gradient(ellipse_at_82%_18%,rgba(191,166,232,0.22),transparent_40%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_16%_60%,rgba(246,213,223,0.50),transparent_46%),radial-gradient(ellipse_at_82%_18%,rgba(127,216,210,0.22),transparent_40%)]" />
           <div
             className="absolute inset-0 opacity-28"
             style={{
@@ -265,7 +265,6 @@ export default function OurTeamPage() {
         </div>
       </section>
 
-      <SectionDivider from="transparent" to="#f9f4ee" variant="wave" />
 
       {/* ══════════════════════════════════════════════════════
           LEADERSHIP TEAM
@@ -295,7 +294,6 @@ export default function OurTeamPage() {
         </div>
       </section>
 
-      <SectionDivider from="#f9f4ee" to="rgba(246,213,223,0.26)" variant="scallop" />
 
       {/* ══════════════════════════════════════════════════════
           TRUST / CREDENTIALS STRIP
@@ -333,7 +331,6 @@ export default function OurTeamPage() {
         </div>
       </section>
 
-      <SectionDivider from="rgba(246,213,223,0.26)" to="#f9f4ee" variant="scallop" flip />
 
       {/* ══════════════════════════════════════════════════════
           PRACTITIONERS & SUPPORT
@@ -400,24 +397,22 @@ export default function OurTeamPage() {
         </div>
       </section>
 
-      <SectionDivider from="#f9f4ee" to="#7fd8d2" variant="wave" />
-
       {/* ══════════════════════════════════════════════════════
           CTA
       ══════════════════════════════════════════════════════ */}
-      <section className="chalk-bg relative overflow-hidden px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
+      <ZigzagBand className="px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
         <Doodle kind="solidstar" className="left-[6%]   top-10   h-9  w-9  text-[#f7d774]/70" />
-        <Doodle kind="bird"      className="right-[5%]  top-10   h-10 w-10 text-white/50 hidden sm:block" />
+        <Doodle kind="bird"      className="right-[5%]  top-10   h-10 w-10 text-[rgba(90,74,66,0.45)] hidden sm:block" />
         <Doodle kind="heart"     className="right-[18%] bottom-6 h-8  w-8  text-[#f4aac8]/55 hidden lg:block" />
-        <Doodle kind="cloud"     className="left-[20%]  bottom-6 h-10 w-10 text-white/40  hidden md:block" />
+        <Doodle kind="cloud"     className="left-[20%]  bottom-6 h-10 w-10 text-[rgba(90,74,66,0.38)] hidden md:block" />
 
         <div className="container-site">
           <Reveal>
             <div className="mx-auto max-w-xl text-center">
-              <h2 className="font-heading text-[2.6rem] leading-[1.15] text-white sm:text-[2.9rem]">
+              <h2 className="font-heading text-[2.6rem] leading-[1.15] text-[var(--ink)] sm:text-[2.9rem]">
                 Come and meet us
               </h2>
-              <p className="body-text mt-3 text-white/85">
+              <p className="body-text mt-3 text-[rgba(90,74,66,0.68)]">
                 The best way to understand Blue Nest is to visit. Come and see our team in action
                 and discover our Montessori environments for yourself.
               </p>
@@ -432,9 +427,7 @@ export default function OurTeamPage() {
             </div>
           </Reveal>
         </div>
-      </section>
-
-      <SectionDivider from="#7fd8d2" to="#fdf6f0" variant="torn" />
+      </ZigzagBand>
 
     </PublicLayout>
   );

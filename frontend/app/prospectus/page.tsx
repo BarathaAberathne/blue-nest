@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { ArrowRight, Bird, BookOpen, Leaf, Shield, Sun, TreePine, Users } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
-import SectionDivider from "@/components/ui/SectionDivider";
 import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
@@ -30,8 +29,8 @@ const offerings = [
     icon: Shield,
     title: "Safe and inspiring classrooms",
     desc: "Thoughtfully designed spaces where beautiful Montessori materials invite children to explore at their own pace.",
-    color: "#9a7ec8",
-    bg: "rgba(191,166,232,0.25)",
+    color: "#5fc8c7",
+    bg: "rgba(127,216,210,0.25)",
   },
   {
     icon: TreePine,
@@ -91,7 +90,7 @@ export default function ProspectusPage() {
             sizes="100vw"
           />
           <div className="absolute inset-0 bg-[#fff8f2]/70" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_18%_60%,rgba(246,213,223,0.50),transparent_48%),radial-gradient(ellipse_at_80%_20%,rgba(191,166,232,0.22),transparent_40%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_18%_60%,rgba(246,213,223,0.50),transparent_48%),radial-gradient(ellipse_at_80%_20%,rgba(127,216,210,0.22),transparent_40%)]" />
           <div
             className="absolute inset-0 opacity-30"
             style={{
@@ -127,7 +126,6 @@ export default function ProspectusPage() {
         </div>
       </section>
 
-      <SectionDivider from="transparent" to="#f9f4ee" variant="wave" />
 
       {/* ══════════════════════════════════════════════════════
           INTRODUCTION
@@ -154,7 +152,6 @@ export default function ProspectusPage() {
         </div>
       </section>
 
-      <SectionDivider from="#f9f4ee" to="rgba(246,213,223,0.26)" variant="scallop" />
 
       {/* ══════════════════════════════════════════════════════
           WHAT WE OFFER
@@ -197,7 +194,6 @@ export default function ProspectusPage() {
         </div>
       </section>
 
-      <SectionDivider from="rgba(246,213,223,0.26)" to="#f9f4ee" variant="scallop" flip />
 
       {/* ══════════════════════════════════════════════════════
           DAILY ROUTINE
@@ -241,7 +237,6 @@ export default function ProspectusPage() {
         </div>
       </section>
 
-      <SectionDivider from="#f9f4ee" to="#7fd8d2" variant="torn" />
 
       {/* ══════════════════════════════════════════════════════
           CTA
@@ -270,7 +265,6 @@ export default function ProspectusPage() {
         </div>
       </section>
 
-      <SectionDivider from="#7fd8d2" to="#fdf6f0" variant="torn" />
 
     </PublicLayout>
   );

@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import Doodle from "@/components/ui/Doodle";
 import PastelButton from "@/components/ui/PastelButton";
-import SectionDivider from "@/components/ui/SectionDivider";
 import { Reveal } from "@/components/ui/Motion";
 import {
   GALLERY_ITEMS,
@@ -30,7 +29,7 @@ import {
 const TAB_CONFIG: { type: ContentType; label: string; activeClass: string }[] = [
   { type: "photo",  label: "Photos",  activeClass: "bg-[#f4aac8] text-white shadow-md" },
   { type: "video",  label: "Videos",  activeClass: "bg-[#5fc8c7] text-white shadow-md" },
-  { type: "update", label: "Updates", activeClass: "bg-[#b99fe0] text-white shadow-md" },
+  { type: "update", label: "Updates", activeClass: "bg-[#7fd8d2] text-white shadow-md" },
 ];
 
 const BRANCHES: { value: BranchFilter; label: string }[] = [
@@ -117,7 +116,7 @@ export default function GalleryPageClient() {
   const accentColour =
     activeTab === "photo"  ? "#f4aac8" :
     activeTab === "video"  ? "#5fc8c7" :
-    "#b99fe0";
+    "#7fd8d2";
 
   const clearFilters = () => { setActiveBranch("all"); setActiveCategory("all"); };
 
@@ -276,7 +275,6 @@ export default function GalleryPageClient() {
       {/* ════════════════════════════════════════════════════
           CTA
       ════════════════════════════════════════════════════ */}
-      <SectionDivider from="#f9f4ee" to="#7fd8d2" variant="wave" />
 
       <section className="chalk-bg relative overflow-hidden px-4 py-14 sm:px-6 lg:px-8 lg:py-18">
         <Doodle kind="solidstar" className="left-[6%]   top-10   h-9  w-9  text-[#f7d774]/70" />
@@ -307,7 +305,6 @@ export default function GalleryPageClient() {
         </div>
       </section>
 
-      <SectionDivider from="#7fd8d2" to="#fdf6f0" variant="torn" />
 
       {/* ════════════════════════════════════════════════════
           LIGHTBOX MODAL
@@ -490,7 +487,7 @@ function VideoGrid({ items, onOpen }: { items: GalleryItem[]; onOpen: (item: Gal
 const UPDATE_BORDER_COLOURS: Record<Exclude<BranchFilter, "all">, string> = {
   harrow:      "#f4aac8",
   pinner:      "#7fd8d2",
-  borehamwood: "#b99fe0",
+  borehamwood: "#7fd8d2",
 };
 
 function UpdatesGrid({ items }: { items: GalleryItem[] }) {

@@ -85,7 +85,7 @@ export default function HeroSection() {
         {/* Warm cream overlay */}
         <div className="absolute inset-0 bg-[#fff8f2]/65" />
         {/* Pastel colour blooms */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_30%,rgba(246,213,223,0.45),transparent_25%),radial-gradient(circle_at_82%_18%,rgba(127,216,210,0.28),transparent_20%),radial-gradient(circle_at_50%_90%,rgba(191,166,232,0.2),transparent_22%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_30%,rgba(246,213,223,0.45),transparent_25%),radial-gradient(circle_at_82%_18%,rgba(127,216,210,0.28),transparent_20%),radial-gradient(circle_at_50%_90%,rgba(127,216,210,0.2),transparent_22%)]" />
         {/* Paper dot-texture */}
         <div
           className="absolute inset-0 opacity-40"
@@ -106,7 +106,7 @@ export default function HeroSection() {
         <Doodle kind="heart"     className="right-[10%] top-20    h-9  w-9  text-[#f49cb5]  hidden lg:block" />
         <Doodle kind="leaf"      className="left-[4%]   bottom-8  h-10 w-10 text-[#7fd8d2]  hidden lg:block" />
         <Doodle kind="rainbow"   className="right-[3%]  bottom-16 h-18 w-18                 hidden lg:block" />
-        <Doodle kind="bird"      className="left-[18%]  bottom-12 h-9  w-9  text-[#b99fe0]  hidden lg:block" />
+        <Doodle kind="bird"      className="left-[18%]  bottom-12 h-9  w-9  text-[#7fd8d2]  hidden lg:block" />
         <Doodle kind="solidstar" className="left-[46%]  top-10    h-8  w-8  text-[#f7d774]  hidden lg:block" />
         <Doodle kind="sun"       className="right-[22%] top-8     h-12 w-12 text-[#f7d774]  hidden lg:block" />
         <Doodle kind="flower"    className="right-[32%] bottom-10 h-9  w-9  text-[#f49cb5]  hidden lg:block" />

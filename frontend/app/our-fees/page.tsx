@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { ArrowRight, Clock, Mail, Phone } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
-import SectionDivider from "@/components/ui/SectionDivider";
 import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
+import ZigzagBand from "@/components/ui/ZigzagBand";
 
 export const metadata: Metadata = {
   title: "Our Fees — Blue Nest Montessori School",
@@ -34,8 +34,8 @@ const extras = [
   {
     title: "Flexible arrangements",
     desc: "We understand every family is different. Speak to our team to discuss a tailored session plan that works for you.",
-    color: "#9a7ec8",
-    bg: "rgba(191,166,232,0.22)",
+    color: "#5fc8c7",
+    bg: "rgba(127,216,210,0.22)",
   },
 ];
 
@@ -57,7 +57,7 @@ export default function OurFeesPage() {
             sizes="100vw"
           />
           <div className="absolute inset-0 bg-[#fff8f2]/72" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_55%,rgba(127,216,210,0.38),transparent_46%),radial-gradient(ellipse_at_78%_22%,rgba(191,166,232,0.22),transparent_40%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_55%,rgba(127,216,210,0.38),transparent_46%),radial-gradient(ellipse_at_78%_22%,rgba(127,216,210,0.22),transparent_40%)]" />
           <div
             className="absolute inset-0 opacity-28"
             style={{
@@ -87,7 +87,6 @@ export default function OurFeesPage() {
         </div>
       </section>
 
-      <SectionDivider from="transparent" to="#f9f4ee" variant="wave" />
 
       {/* ══════════════════════════════════════════════════════
           FLEXIBLE SESSIONS
@@ -113,7 +112,6 @@ export default function OurFeesPage() {
         </div>
       </section>
 
-      <SectionDivider from="#f9f4ee" to="rgba(174,230,221,0.18)" variant="scallop" />
 
       {/* ══════════════════════════════════════════════════════
           FEES TABLE
@@ -129,7 +127,7 @@ export default function OurFeesPage() {
           <Reveal>
             <div className="mb-8 text-center">
               <span className="section-kicker">Session pricing</span>
-              <h2 className="section-title mt-4 text-[var(--ink)]">
+              <h2 className="section-title mt-4 text-[#cf7d9c]">
                 Session types &amp; times
               </h2>
             </div>
@@ -176,7 +174,6 @@ export default function OurFeesPage() {
         </div>
       </section>
 
-      <SectionDivider from="rgba(174,230,221,0.18)" to="#f9f4ee" variant="scallop" flip />
 
       {/* ══════════════════════════════════════════════════════
           ADDITIONAL INFO
@@ -190,7 +187,7 @@ export default function OurFeesPage() {
           <Reveal>
             <div className="mb-10 text-center">
               <span className="section-kicker">Funding &amp; support</span>
-              <h2 className="section-title mt-4 text-[#cf7d9c]">
+              <h2 className="section-title mt-4 text-[#7fd8d2]">
                 Making childcare accessible
               </h2>
             </div>
@@ -214,14 +211,12 @@ export default function OurFeesPage() {
         </div>
       </section>
 
-      <SectionDivider from="#f9f4ee" to="#7fd8d2" variant="torn" />
-
       {/* ══════════════════════════════════════════════════════
           CTA
       ══════════════════════════════════════════════════════ */}
-      <section className="chalk-bg relative overflow-hidden px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+      <ZigzagBand className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <Doodle kind="solidstar" className="left-[6%]   top-10   h-8  w-8  text-[#f7d774]/70" />
-        <Doodle kind="leaf"      className="right-[5%]  top-10   h-10 w-10 text-white/40   hidden sm:block" />
+        <Doodle kind="leaf"      className="right-[5%]  top-10   h-10 w-10 text-[rgba(90,74,66,0.38)] hidden sm:block" />
         <Doodle kind="flower"    className="right-[16%] bottom-6 h-9  w-9  text-[#f4aac8]/55 hidden lg:block" />
 
         <div className="container-site">
@@ -229,26 +224,26 @@ export default function OurFeesPage() {
 
             {/* Left */}
             <Reveal>
-              <h2 className="font-heading text-[2.2rem] leading-[1.2] text-white sm:text-[2.6rem]">
+              <h2 className="font-heading text-[2.2rem] leading-[1.2] text-[var(--ink)] sm:text-[2.6rem]">
                 Speak to our team about fees and availability
               </h2>
               <div className="mt-8 space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
-                    <Phone className="h-4 w-4 text-white" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.08)]">
+                    <Phone className="h-4 w-4 text-[#5fc8c7]" />
                   </div>
-                  <div className="text-sm font-semibold leading-relaxed text-white/90">
+                  <div className="text-sm font-semibold leading-relaxed text-[rgba(90,74,66,0.72)]">
                     <div>020 8863 2076</div>
                     <div>020 8429 5411</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
-                    <Mail className="h-4 w-4 text-white" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.08)]">
+                    <Mail className="h-4 w-4 text-[#5fc8c7]" />
                   </div>
                   <a
                     href="mailto:info@bluenest.uk"
-                    className="text-sm font-semibold text-white/90 transition hover:text-white"
+                    className="text-sm font-semibold text-[rgba(90,74,66,0.72)] transition hover:text-[var(--ink)]"
                   >
                     info@bluenest.uk
                   </a>
@@ -266,21 +261,21 @@ export default function OurFeesPage() {
 
             {/* Right — quick info panel */}
             <Reveal delay={0.1}>
-              <div className="rounded-[2rem] bg-white/12 px-6 py-7 ring-1 ring-white/20 backdrop-blur-sm sm:px-8">
-                <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/60">Opening hours</p>
+              <div className="rounded-[2rem] bg-white px-6 py-7 ring-1 ring-[rgba(90,74,66,0.08)] shadow-[0_4px_16px_rgba(90,74,66,0.07)] sm:px-8">
+                <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[rgba(90,74,66,0.50)]">Opening hours</p>
                 <div className="mt-4 space-y-3">
                   {[
                     { label: "Monday – Friday", value: "8:00 am – 6:00 pm" },
                     { label: "Saturday",        value: "Closed" },
                     { label: "Sunday",          value: "Closed" },
                   ].map((r) => (
-                    <div key={r.label} className="flex items-center justify-between border-b border-white/15 pb-3 last:border-0 last:pb-0">
-                      <span className="text-sm font-semibold text-white/80">{r.label}</span>
-                      <span className="text-sm font-bold text-white">{r.value}</span>
+                    <div key={r.label} className="flex items-center justify-between border-b border-[rgba(90,74,66,0.08)] pb-3 last:border-0 last:pb-0">
+                      <span className="text-sm font-semibold text-[rgba(90,74,66,0.65)]">{r.label}</span>
+                      <span className="text-sm font-bold text-[var(--ink)]">{r.value}</span>
                     </div>
                   ))}
                 </div>
-                <p className="mt-6 text-xs leading-relaxed text-white/65">
+                <p className="mt-6 text-xs leading-relaxed text-[rgba(90,74,66,0.55)]">
                   We are closed on UK bank holidays. Please check with your branch for term-time
                   and holiday opening arrangements.
                 </p>
@@ -289,9 +284,7 @@ export default function OurFeesPage() {
 
           </div>
         </div>
-      </section>
-
-      <SectionDivider from="#7fd8d2" to="#fdf6f0" variant="torn" />
+      </ZigzagBand>
 
     </PublicLayout>
   );

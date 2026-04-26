@@ -11,7 +11,7 @@ export default function IntroSection() {
       <Doodle kind="flower"    className="left-[1%]   top-10   h-14 w-14 text-[#f49cb5]" />
       <Doodle kind="star"      className="right-[5%]  top-8    h-11 w-11 text-[#f3bf62]" />
       <Doodle kind="leaf"      className="right-[9%]  bottom-8 h-13 w-13 text-[#8bdde0]" />
-      <Doodle kind="solidstar" className="left-[42%]  top-6    h-7  w-7  text-[#b99fe0]" />
+      <Doodle kind="solidstar" className="left-[42%]  top-6    h-7  w-7  text-[#7fd8d2]" />
       <Doodle kind="cloud"     className="left-[10%]  bottom-6 h-10 w-10 text-[#85d6f1]" />
 
       <div className="container-site grid gap-8 lg:grid-cols-[1fr_1.05fr] lg:items-center">

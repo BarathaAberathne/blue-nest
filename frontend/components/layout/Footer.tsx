@@ -141,15 +141,15 @@ export default function Footer() {
               {badges.map((badge) => (
                 <div
                   key={badge.label}
-                  className="flex h-[82px] items-center justify-center rounded-[1.2rem] bg-white p-3 shadow-[0_3px_12px_rgba(90,74,66,0.07)]"
+                  className="relative h-[82px] overflow-hidden rounded-[1.2rem] shadow-[0_3px_12px_rgba(90,74,66,0.07)]"
                   title={badge.alt}
                 >
                   <Image
                     src={badge.src}
                     alt={badge.alt}
-                    width={70}
-                    height={62}
-                    className="object-contain"
+                    fill
+                    className="object-cover"
+                    sizes="110px"
                   />
                 </div>
               ))}
@@ -178,7 +178,7 @@ export default function Footer() {
               </li>
             </ul>
 
-            <ColLabel color="#a48cdc">Our Branches</ColLabel>
+            <ColLabel color="#7fd8d2">Our Branches</ColLabel>
             <ul className="space-y-1.5 text-[0.88rem]">
               {branches.map((b) => (
                 <li key={b.href}>

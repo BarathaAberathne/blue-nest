@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { ArrowRight, Mail, Phone } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
-import SectionDivider from "@/components/ui/SectionDivider";
 import PastelButton from "@/components/ui/PastelButton";
 import StickerCard from "@/components/ui/StickerCard";
 import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
+import ZigzagBand from "@/components/ui/ZigzagBand";
 
 export const metadata: Metadata = {
   title: "Why Montessori — Blue Nest Montessori School",
@@ -71,7 +71,6 @@ export default function WhyMontessoriPage() {
         </div>
       </section>
 
-      <SectionDivider from="transparent" to="#f9f4ee" variant="wave" />
 
       {/* ══════════════════════════════════════════════════════
           MARIA MONTESSORI
@@ -88,7 +87,7 @@ export default function WhyMontessoriPage() {
             <Reveal>
               <div className="relative mx-auto flex w-full max-w-[360px] items-center justify-center">
                 <div
-                  className="absolute h-[88%] w-[88%] bg-[rgba(191,166,232,0.22)]"
+                  className="absolute h-[88%] w-[88%] bg-[rgba(127,216,210,0.22)]"
                   style={{ borderRadius: "42% 58% 54% 46% / 46% 54% 58% 42%" }}
                 />
                 <StickerCard
@@ -130,7 +129,6 @@ export default function WhyMontessoriPage() {
         </div>
       </section>
 
-      <SectionDivider from="#f9f4ee" to="rgba(246,213,223,0.26)" variant="scallop" />
 
       {/* ══════════════════════════════════════════════════════
           GREAT START TO SCHOOL LIFE
@@ -145,7 +143,7 @@ export default function WhyMontessoriPage() {
 
             {/* Text — left */}
             <Reveal>
-              <h2 className="section-title text-[var(--ink)]">
+              <h2 className="section-title text-[#7fd8d2]">
                 Give your child a great start to school life
               </h2>
               <div className="body-text mt-5 space-y-5">
@@ -186,7 +184,6 @@ export default function WhyMontessoriPage() {
         </div>
       </section>
 
-      <SectionDivider from="rgba(246,213,223,0.26)" to="#f9f4ee" variant="scallop" flip />
 
       {/* ══════════════════════════════════════════════════════
           TESTIMONIAL
@@ -237,14 +234,12 @@ export default function WhyMontessoriPage() {
         </div>
       </section>
 
-      <SectionDivider from="#f9f4ee" to="#7fd8d2" variant="torn" />
-
       {/* ══════════════════════════════════════════════════════
           CTA / CONTACT
       ══════════════════════════════════════════════════════ */}
-      <section className="chalk-bg relative overflow-hidden px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+      <ZigzagBand className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <Doodle kind="rainbow"   className="left-[2%]   bottom-8 h-14 w-14           opacity-35 hidden sm:block" />
-        <Doodle kind="leaf"      className="right-[3%]  top-12   h-10 w-10 text-white/50          hidden sm:block" />
+        <Doodle kind="leaf"      className="right-[3%]  top-12   h-10 w-10 text-[rgba(90,74,66,0.45)] hidden sm:block" />
         <Doodle kind="solidstar" className="left-[8%]   top-10   h-8  w-8  text-[#f7d774]/70" />
         <Doodle kind="flower"    className="right-[18%] bottom-6 h-9  w-9  text-[#f4aac8]/60 hidden lg:block" />
 
@@ -253,34 +248,34 @@ export default function WhyMontessoriPage() {
 
             {/* Left — heading + contact details */}
             <Reveal>
-              <h2 className="font-heading text-[2.2rem] leading-[1.2] text-white sm:text-[2.6rem]">
+              <h2 className="font-heading text-[2.2rem] leading-[1.2] text-[var(--ink)] sm:text-[2.6rem]">
                 We provide a wonderful environment where children can learn and grow
               </h2>
 
               <div className="mt-8 space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
-                    <Phone className="h-4 w-4 text-white" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.08)]">
+                    <Phone className="h-4 w-4 text-[#5fc8c7]" />
                   </div>
-                  <div className="text-sm font-semibold leading-relaxed text-white/90">
+                  <div className="text-sm font-semibold leading-relaxed text-[rgba(90,74,66,0.72)]">
                     <div>020 8863 2076</div>
                     <div>020 8429 5411</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
-                    <Mail className="h-4 w-4 text-white" />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.08)]">
+                    <Mail className="h-4 w-4 text-[#5fc8c7]" />
                   </div>
                   <a
                     href="mailto:info@bluenest.uk"
-                    className="text-sm font-semibold text-white/90 transition hover:text-white"
+                    className="text-sm font-semibold text-[rgba(90,74,66,0.72)] transition hover:text-[var(--ink)]"
                   >
                     info@bluenest.uk
                   </a>
                 </div>
               </div>
 
-              <p className="mt-8 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-white/55">
+              <p className="mt-8 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[rgba(90,74,66,0.48)]">
                 Follow us
               </p>
               <div className="mt-3 flex gap-3">
@@ -289,7 +284,7 @@ export default function WhyMontessoriPage() {
                     key={name}
                     href="#"
                     aria-label={name}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 text-[0.6rem] font-bold text-white transition hover:bg-white/30"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[rgba(90,74,66,0.08)] text-[0.6rem] font-bold text-[var(--ink)] transition hover:bg-[rgba(90,74,66,0.12)]"
                   >
                     {name[0]}
                   </a>
@@ -299,7 +294,7 @@ export default function WhyMontessoriPage() {
 
             {/* Right — contact form */}
             <Reveal delay={0.1}>
-              <div className="rounded-[2rem] bg-white/12 px-6 py-7 ring-1 ring-white/20 backdrop-blur-sm sm:px-8">
+              <div className="rounded-[2rem] bg-white px-6 py-7 ring-1 ring-[rgba(90,74,66,0.08)] shadow-[0_4px_16px_rgba(90,74,66,0.07)] sm:px-8">
                 <form className="space-y-3">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <input
@@ -332,9 +327,7 @@ export default function WhyMontessoriPage() {
 
           </div>
         </div>
-      </section>
-
-      <SectionDivider from="#7fd8d2" to="#fdf6f0" variant="torn" />
+      </ZigzagBand>
 
     </PublicLayout>
   );

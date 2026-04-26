@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, CheckCircle2, ChevronDown, MapPin, Sparkles } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
-import SectionDivider from "@/components/ui/SectionDivider";
 import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
 
@@ -390,7 +389,7 @@ export default function ApplicationFormPage() {
                               <label key={g} className="flex cursor-pointer items-center gap-1.5">
                                 <input type="radio" name="gender" value={g}
                                   checked={gender === g} onChange={() => setGender(g)}
-                                  className="h-3.5 w-3.5 accent-[#b99fe0]" />
+                                  className="h-3.5 w-3.5 accent-[#7fd8d2]" />
                                 <span className="text-xs font-semibold text-[var(--ink)]">{g}</span>
                               </label>
                             ))}
@@ -427,7 +426,7 @@ export default function ApplicationFormPage() {
                   <div className="space-y-5">
 
                     <div>
-                      <GroupLabel color="#b99fe0">Sessions Required</GroupLabel>
+                      <GroupLabel color="#7fd8d2">Sessions Required</GroupLabel>
                       <SessionsGrid sessions={sessions} toggle={toggleSession} />
                     </div>
 
@@ -491,7 +490,6 @@ export default function ApplicationFormPage() {
         </div>
       </section>
 
-      <SectionDivider from="rgba(246,213,223,0.26)" to="#fdf6f0" variant="torn" />
 
     </PublicLayout>
   );

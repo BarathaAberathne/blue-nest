@@ -64,7 +64,7 @@ const trustBadges = [
   { line1: "#1 Preschool",   line2: "in London",      color: "#f0bd55", icon: "trophy"  as const },
   { line1: "ISO 45001:2018", line2: "Accredited",     color: "#f4aac8", icon: "shield"  as const },
   { line1: "Halal Food",     line2: "Protected",      color: "#52b26b", icon: "halal"   as const },
-  { line1: "Enhanced DBS",   line2: "Checked",        color: "#b99fe0", icon: "shield"  as const },
+  { line1: "Enhanced DBS",   line2: "Checked",        color: "#7fd8d2", icon: "shield"  as const },
   { line1: "5-Star Hygiene", line2: "Rated Kitchen",  color: "#6ecfc9", icon: "shield"  as const },
 ];
 

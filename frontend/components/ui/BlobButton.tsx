@@ -7,7 +7,7 @@ export type BlobVariant = "blush" | "mint" | "lavender" | "butter" | "peach";
 const styles: Record<BlobVariant, { bg: string; text: string; shadow: string }> = {
   blush:   { bg: "#f4aac8", text: "#fff",       shadow: "rgba(244,170,200,0.45)" },
   mint:    { bg: "#6ecfc9", text: "#fff",       shadow: "rgba(110,207,201,0.45)" },
-  lavender:{ bg: "#b99fe0", text: "#fff",       shadow: "rgba(185,159,224,0.45)" },
+  lavender:{ bg: "#7fd8d2", text: "#fff",       shadow: "rgba(127,216,210,0.45)" },
   butter:  { bg: "#f5c842", text: "#5a4a42",   shadow: "rgba(245,200,66,0.45)"  },
   peach:   { bg: "#f9a078", text: "#fff",       shadow: "rgba(249,160,120,0.45)" },
 };

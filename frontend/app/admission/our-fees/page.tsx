@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { ArrowRight, CalendarDays, Clock, Download, Info, Phone, Star, Sun, Sunset } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
-import SectionDivider from "@/components/ui/SectionDivider";
 import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
@@ -21,7 +20,7 @@ const sessions = [
   { icon: Sun,        color: "#f0bd55", label: "Morning Session",    time: "8:00 AM – 12:30 PM" },
   { icon: Sunset,     color: "#ef8cab", label: "Afternoon Session",  time: "12:30 PM – 5:00 PM" },
   { icon: Clock,      color: "#7fd8d2", label: "Full Day",           time: "8:00 AM – 5:00 PM"  },
-  { icon: Star,       color: "#b99fe0", label: "Full Week (Full Day)", time: "Monday – Friday"   },
+  { icon: Star,       color: "#7fd8d2", label: "Full Week (Full Day)", time: "Monday – Friday"   },
 ];
 
 const notes = [
@@ -33,7 +32,7 @@ const notes = [
 const highlights = [
   { label: "Flexible sessions available",       color: "#7fd8d2" },
   { label: "Full-time and part-time options",   color: "#ef8cab" },
-  { label: "Childcare vouchers accepted",       color: "#b99fe0" },
+  { label: "Childcare vouchers accepted",       color: "#7fd8d2" },
   { label: "Government funding support",        color: "#f0bd55" },
 ];
 
@@ -117,7 +116,6 @@ export default function OurFeesPage() {
         </div>
       </section>
 
-      <SectionDivider from="var(--paper)" to="#f9f4ee" variant="wave" />
 
       {/* ══════════════════════════════════════════════════════
           KEY INFO STRIP — 4 highlights
@@ -143,7 +141,6 @@ export default function OurFeesPage() {
         </div>
       </section>
 
-      <SectionDivider from="#f9f4ee" to="rgba(246,213,223,0.22)" variant="scallop" />
 
       {/* ══════════════════════════════════════════════════════
           DOWNLOAD FEES BY BRANCH
@@ -194,7 +191,6 @@ export default function OurFeesPage() {
         </div>
       </section>
 
-      <SectionDivider from="rgba(246,213,223,0.22)" to="#f9f4ee" variant="scallop" flip />
 
       {/* ══════════════════════════════════════════════════════
           SESSIONS TABLE
@@ -270,7 +266,6 @@ export default function OurFeesPage() {
         </div>
       </section>
 
-      <SectionDivider from="#f9f4ee" to="var(--paper)" variant="torn" />
 
       {/* ══════════════════════════════════════════════════════
           CTA
@@ -309,7 +304,6 @@ export default function OurFeesPage() {
         </div>
       </section>
 
-      <SectionDivider from="var(--paper)" to="#fdf6f0" variant="wave" />
 
     </PublicLayout>
   );

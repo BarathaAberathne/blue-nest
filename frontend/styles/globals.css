@@ -9,7 +9,7 @@
     --blush:      #f6d5df;
     --mint:       #aee6dd;
     --aqua:       #7fd8d2;
-    --lavender:   #bfa6e8;
+    --lavender:   #7fd8d2;
     --butter:     #f7d774;
     --peach:      #f6d1b3;
     --ink:        #5a4a42;
@@ -57,7 +57,7 @@
       radial-gradient(circle, rgba(90,74,66,0.06) 1px, transparent 1px),
       radial-gradient(ellipse at 14% 62%, rgba(246,213,223,0.35) 0%, transparent 52%),
       radial-gradient(ellipse at 88% 22%, rgba(174,230,221,0.22) 0%, transparent 46%),
-      radial-gradient(ellipse at 52% 94%, rgba(191,166,232,0.14) 0%, transparent 38%);
+      radial-gradient(ellipse at 52% 94%, rgba(127,216,210,0.14) 0%, transparent 38%);
     background-size: 20px 20px, 100% 100%, 100% 100%, 100% 100%;
   }
 
@@ -76,7 +76,7 @@
     background-color: rgba(246, 213, 223, 0.26);
     background-image:
       radial-gradient(circle, rgba(90,74,66,0.04) 1px, transparent 1px),
-      radial-gradient(ellipse at 75% 38%, rgba(185,159,224,0.14) 0%, transparent 44%),
+      radial-gradient(ellipse at 75% 38%, rgba(127,216,210,0.14) 0%, transparent 44%),
       radial-gradient(ellipse at 20% 80%, rgba(246,213,223,0.4) 0%, transparent 38%);
     background-size: 22px 22px, 100% 100%, 100% 100%;
   }
@@ -164,7 +164,7 @@
       linear-gradient(90deg,
         rgba(246,213,223,0.8),
         rgba(174,230,221,0.65),
-        rgba(191,166,232,0.75));
+        rgba(127,216,210,0.75));
   }
 
   /* ── Misc ────────────────────────────────────────────────── */

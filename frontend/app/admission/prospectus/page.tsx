@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { ArrowRight, BookOpen, Download, Leaf, Shield, TreePine, Users } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
-import SectionDivider from "@/components/ui/SectionDivider";
 import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
+import ZigzagBand from "@/components/ui/ZigzagBand";
 
 export const metadata: Metadata = {
   title: "Prospectus — Blue Nest Montessori School",
@@ -21,8 +21,8 @@ const highlights = [
   },
   {
     icon: Shield,
-    color: "#9a7ec8",
-    bg: "rgba(191,166,232,0.28)",
+    color: "#5fc8c7",
+    bg: "rgba(127,216,210,0.28)",
     label: "Safe and nurturing environment",
     blurb: "A warm space where every child feels secure and ready to grow.",
   },
@@ -45,7 +45,7 @@ const highlights = [
 const insideItems = [
   { icon: Leaf,     color: "#8ecb9b", text: "Daily routines and session timetables" },
   { icon: BookOpen, color: "#cf7d9c", text: "Our curriculum and Montessori approach" },
-  { icon: Shield,   color: "#9a7ec8", text: "Facilities, meals, and safeguarding" },
+  { icon: Shield,   color: "#5fc8c7", text: "Facilities, meals, and safeguarding" },
   { icon: Users,    color: "#5a8c9c", text: "Admissions process and fee structure" },
 ];
 
@@ -67,7 +67,7 @@ export default function ProspectusPage() {
             sizes="100vw"
           />
           <div className="absolute inset-0 bg-[#fff8f2]/72" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_16%_62%,rgba(246,213,223,0.52),transparent_48%),radial-gradient(ellipse_at_82%_18%,rgba(191,166,232,0.20),transparent_40%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_16%_62%,rgba(246,213,223,0.52),transparent_48%),radial-gradient(ellipse_at_82%_18%,rgba(127,216,210,0.20),transparent_40%)]" />
           <div
             className="absolute inset-0 opacity-28"
             style={{
@@ -112,7 +112,6 @@ export default function ProspectusPage() {
         </div>
       </section>
 
-      <SectionDivider from="transparent" to="#f9f4ee" variant="wave" />
 
       {/* ══════════════════════════════════════════════════════
           QUICK HIGHLIGHTS — 4 items, scan in 10 seconds
@@ -148,7 +147,6 @@ export default function ProspectusPage() {
         </div>
       </section>
 
-      <SectionDivider from="#f9f4ee" to="rgba(246,213,223,0.26)" variant="scallop" />
 
       {/* ══════════════════════════════════════════════════════
           WHAT'S INSIDE — short paragraph + 4 bullet items
@@ -187,20 +185,18 @@ export default function ProspectusPage() {
         </div>
       </section>
 
-      <SectionDivider from="rgba(246,213,223,0.26)" to="#7fd8d2" variant="torn" />
-
       {/* ══════════════════════════════════════════════════════
           BOTTOM CTA — reinforce the download
       ══════════════════════════════════════════════════════ */}
-      <section className="chalk-bg relative overflow-hidden px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+      <ZigzagBand className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <Doodle kind="solidstar" className="left-[6%]   top-10   h-8  w-8  text-[#f7d774]/70" />
-        <Doodle kind="leaf"      className="right-[5%]  top-10   h-10 w-10 text-white/40   hidden sm:block" />
+        <Doodle kind="leaf"      className="right-[5%]  top-10   h-10 w-10 text-[rgba(90,74,66,0.38)] hidden sm:block" />
         <Doodle kind="flower"    className="right-[16%] bottom-6 h-9  w-9  text-[#f4aac8]/55 hidden lg:block" />
 
         <div className="container-site">
           <Reveal>
             <div className="mx-auto max-w-xl text-center">
-              <h2 className="font-heading text-[2.2rem] leading-[1.2] text-white sm:text-[2.6rem]">
+              <h2 className="font-heading text-[2.2rem] leading-[1.2] text-[var(--ink)] sm:text-[2.6rem]">
                 Download our prospectus or get in touch
               </h2>
               <div className="mt-7 flex flex-wrap justify-center gap-4">
@@ -219,9 +215,7 @@ export default function ProspectusPage() {
             </div>
           </Reveal>
         </div>
-      </section>
-
-      <SectionDivider from="#7fd8d2" to="#fdf6f0" variant="torn" />
+      </ZigzagBand>
 
     </PublicLayout>
   );

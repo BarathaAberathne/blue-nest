@@ -52,7 +52,7 @@ const PINS: BranchPin[] = [
     hours:   "Mon–Fri, 07:30–18:30",
     lat:     51.6594,
     lng:     -0.2724,
-    colour:  "#9a7ec8",
+    colour:  "#5fc8c7",
     letter:  "B",
     mapUrl:  "https://www.google.com/maps/search/?api=1&query=Borehamwood+WD6",
   },

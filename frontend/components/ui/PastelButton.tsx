@@ -14,7 +14,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 export type PastelVariant =
   | "blush"    // soft pink      #f4aac8
   | "mint"     // teal           #6ecfc9
-  | "lavender" // soft purple    #b99fe0
+  | "lavender" // soft purple    #7fd8d2
   | "peach"    // coral orange   #f9a078
   | "butter"   // sunny yellow   #f5c842  (ink text)
   | "sky"      // powder blue    #79c9ea
@@ -30,8 +30,8 @@ const styles: Record<PastelVariant, string> = {
     "bg-[#6ecfc9]   border-2 border-transparent text-white      " +
     "hover:bg-transparent hover:border-[#6ecfc9]   hover:text-[#6ecfc9]",
   lavender:
-    "bg-[#b99fe0]   border-2 border-transparent text-white      " +
-    "hover:bg-transparent hover:border-[#b99fe0]   hover:text-[#b99fe0]",
+    "bg-[#7fd8d2]   border-2 border-transparent text-white      " +
+    "hover:bg-transparent hover:border-[#7fd8d2]   hover:text-[#7fd8d2]",
   peach:
     "bg-[#f9a078]   border-2 border-transparent text-white      " +
     "hover:bg-transparent hover:border-[#f9a078]   hover:text-[#f9a078]",

@@ -28,7 +28,7 @@ const principles = [
     title: "Freedom to Learn",
     description:
       "Each child is empowered to choose materials and activities, promoting confidence and responsibility. We trust children to guide their own learning journey.",
-    color: "#b99fe0",
+    color: "#7fd8d2",
   },
   {
     number: 4,
@@ -249,7 +249,7 @@ export default function LearningPathSection() {
         <Reveal>
           <div className="mb-10 text-center">
             <span className="section-kicker">Our Natural Approach</span>
-            <h2 className="section-title mt-4 text-[#58c5c7]">Learning Through Play</h2>
+            <h2 className="section-title mt-4 text-[#cf7d9c]">Learning Through Play</h2>
             <p className="section-subtitle mx-auto max-w-2xl">
               Our day nursery&apos;s natural learning system is designed to help children develop and
               excel. These are the seven principles at the heart of everything we do.
@@ -337,7 +337,7 @@ export default function LearningPathSection() {
             {([
               [90,  38, "#ef8cab"],
               [130, 34, "#f7d774"],
-              [170, 40, "#b99fe0"],
+              [170, 40, "#7fd8d2"],
               [210, 36, "#6ecfc9"],
             ] as [number, number, string][]).map(([x, y, c]) => (
               <g key={x}>
@@ -362,7 +362,7 @@ export default function LearningPathSection() {
             {/* Small stars / sparkles */}
             <circle cx="400" cy="28" r="3"   fill="#f7d774" opacity="0.6" />
             <circle cx="490" cy="22" r="2.5" fill="#ef8cab" opacity="0.5" />
-            <circle cx="350" cy="18" r="2"   fill="#b99fe0" opacity="0.55" />
+            <circle cx="350" cy="18" r="2"   fill="#7fd8d2" opacity="0.55" />
           </svg>
         </div>
 
