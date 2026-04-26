@@ -68,11 +68,25 @@ const trustBadges = [
   { line1: "5-Star Hygiene", line2: "Rated Kitchen",  color: "#6ecfc9", icon: "shield"  as const },
 ];
 
-const navLinks = [
+type NavLink = {
+  label: string;
+  href: string;
+  children?: { label: string; href: string }[];
+};
+
+const navLinks: NavLink[] = [
   { label: "Home",          href: "/"              },
   { label: "Why Montessori",href: "/why-montessori"},
   { label: "Forest School", href: "/forest-school" },
-  { label: "Admission",     href: "/admission"     },
+  {
+    label: "Admission",
+    href: "/admission",
+    children: [
+      { label: "Prospectus",        href: "/admission/prospectus"        },
+      { label: "Our Fees",          href: "/admission/our-fees"          },
+      { label: "Application Form",  href: "/admission/application-form"  },
+    ],
+  },
   { label: "Gallery",       href: "/gallery"       },
   { label: "Our Team",      href: "/our-team"      },
   { label: "Our Charities", href: "/our-charities" },
@@ -365,13 +379,37 @@ export default function Header() {
               <nav className="relative z-10 mt-2 flex min-h-0 flex-1 flex-col" aria-label="Main navigation">
                 {navLinks.map((link) => (
                   <div key={link.href} className="flex min-h-0 flex-1 flex-col justify-center">
-                    <Link
-                      href={link.href}
-                      onClick={() => setMenuOpen(false)}
-                      className="block text-[0.9rem] font-extrabold uppercase tracking-[0.04em] text-[var(--ink)] transition hover:text-[#4ec0c3]"
-                    >
-                      {link.label}
-                    </Link>
+                    {link.children ? (
+                      <>
+                        <Link
+                          href={link.href}
+                          onClick={() => setMenuOpen(false)}
+                          className="block text-[0.9rem] font-extrabold uppercase tracking-[0.04em] text-[var(--ink)] transition hover:text-[#4ec0c3]"
+                        >
+                          {link.label}
+                        </Link>
+                        <div className="mt-0.5 flex gap-4 pl-3">
+                          {link.children.map((child) => (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              onClick={() => setMenuOpen(false)}
+                              className="text-[0.68rem] font-bold uppercase tracking-[0.06em] text-[#cf7d9c] transition hover:text-[#4ec0c3]"
+                            >
+                              {child.label}
+                            </Link>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <Link
+                        href={link.href}
+                        onClick={() => setMenuOpen(false)}
+                        className="block text-[0.9rem] font-extrabold uppercase tracking-[0.04em] text-[var(--ink)] transition hover:text-[#4ec0c3]"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                     <div className="h-px bg-[#f1a8ca]" />
                   </div>
                 ))}

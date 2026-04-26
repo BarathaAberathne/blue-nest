@@ -235,7 +235,7 @@ export default function Footer() {
             <span aria-hidden="true" className="text-[rgba(90,74,66,0.2)]">·</span>
             <Link href="/trading-terms" className="transition hover:text-[var(--ink)]">Trading Terms</Link>
             <span aria-hidden="true" className="text-[rgba(90,74,66,0.2)]">·</span>
-            <span>Powered by Yell Business &copy; 2023</span>
+            <span>Powered by Blue Nest Montessori School &copy; 2026</span>
           </div>
         </div>
 
