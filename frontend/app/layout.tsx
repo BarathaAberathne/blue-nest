@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   description:
     "Blue Nest Montessori School — nurturing curious minds in Harrow, Borehamwood, and Pinner through child-led Montessori education.",
   keywords: ["montessori", "nursery", "harrow", "borehamwood", "pinner", "early years", "childcare"],
+  icons: {
+    icon: "/home/favicon.png",
+    apple: "/home/favicon.png",
+  },
   openGraph: {
     type: "website",
     locale: "en_GB",
