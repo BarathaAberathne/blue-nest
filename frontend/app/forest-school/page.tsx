@@ -23,7 +23,7 @@ export default function ForestSchoolPage() {
         {/* Background image + layered overlays */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <Image
-            src="/home/outdoor-play-for-children-new.jpg"
+            src="/home/forest-school.jpg"
             alt="Children exploring the outdoors at Blue Nest Forest School"
             fill
             priority
@@ -41,30 +41,26 @@ export default function ForestSchoolPage() {
           />
         </div>
 
-        <Doodle kind="bird"      className="left-[5%]   top-8    h-9  w-9  text-[#7fd8d2]  opacity-65" />
-        <Doodle kind="leaf"      className="right-[6%]  top-12   h-10 w-10 text-[#8ecb9b]  opacity-55 hidden sm:block" />
-        <Doodle kind="cloud"     className="right-[18%] top-8    h-12 w-12 text-[#aee6dd]  opacity-40 hidden lg:block" />
-        <Doodle kind="solidstar" className="right-[5%]  bottom-8 h-8  w-8  text-[#f7d774]  opacity-55 hidden sm:block" />
-        <Doodle kind="flower"    className="left-[40%]  bottom-6 h-9  w-9  text-[#ef8cab]  opacity-40 hidden lg:block" />
+        <Doodle kind="blue-bird"      className="left-[5%]   top-8    h-9  w-9   opacity-65" />
+        <Doodle kind="leaf"      className="right-[6%]  top-12   h-10 w-10  opacity-55 hidden sm:block" />
+        <Doodle kind="pink-flower"    className="left-[40%]  bottom-6 h-9  w-9   opacity-40 hidden lg:block" />
 
-        <div className="container-site relative z-10 py-16 sm:py-20 lg:py-24">
+        <div className="relative z-10 w-full px-6 sm:px-10 lg:px-16 xl:px-20 py-16 sm:py-20 lg:py-24">
           <Reveal>
-            <div className="max-w-xl">
-              <span className="section-kicker">Blue Nest Montessori School</span>
-              <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-white sm:text-[3rem] lg:text-[3.4rem]">
-                A Forest School that fosters creativity and independence
-              </h1>
-              <p className="mt-5 max-w-lg !text-white/90 body-text">
-                At Blue Nest Montessori School, we are delighted to bring you the Forest School.
-                Children of all ages can benefit from the &lsquo;hands-on learning&rsquo;
-                opportunities presented in a wonderful woodland environment. Contact our nurseries
-                in Harrow and Pinner for more information.
-              </p>
-              <div className="mt-7">
-                <PastelButton href="/contact" variant="sage">
-                  Contact Us <ArrowRight className="h-4 w-4" />
-                </PastelButton>
-              </div>
+            <span className="section-kicker">Blue Nest Montessori School</span>
+            <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-white sm:text-[3rem] lg:text-[3.4rem] max-w-3xl">
+              A Forest School that fosters creativity and independence
+            </h1>
+            <p className="mt-5 max-w-xl !text-white/90 body-text">
+              At Blue Nest Montessori School, we are delighted to bring you the Forest School.
+              Children of all ages can benefit from the &lsquo;hands-on learning&rsquo;
+              opportunities presented in a wonderful woodland environment. Contact our nurseries
+              in Harrow and Pinner for more information.
+            </p>
+            <div className="mt-7">
+              <PastelButton href="/contact" variant="sage">
+                Contact Us <ArrowRight className="h-4 w-4" />
+              </PastelButton>
             </div>
           </Reveal>
         </div>
@@ -75,9 +71,9 @@ export default function ForestSchoolPage() {
           OUTDOOR LEARNING
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="leaf"   className="left-[2%]   top-10    h-10 w-10 text-[#8ecb9b]  opacity-50" />
-        <Doodle kind="bird"   className="right-[5%]  top-8     h-9  w-9  text-[#7fd8d2]  opacity-55 hidden sm:block" />
-        <Doodle kind="flower" className="right-[8%]  bottom-10 h-10 w-10 text-[#ef8cab]  opacity-45 hidden sm:block" />
+        <Doodle kind="leaf"   className="left-[2%]   top-10    h-10 w-10  opacity-50" />
+        <Doodle kind="blue-bird"   className="right-[5%]  top-8     h-9  w-9   opacity-55 hidden sm:block" />
+        <Doodle kind="pink-flower" className="right-[8%]  bottom-10 h-10 w-10  opacity-45 hidden sm:block" />
 
         <div className="container-site">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
@@ -90,8 +86,8 @@ export default function ForestSchoolPage() {
                   style={{ borderRadius: "54% 46% 42% 58% / 48% 56% 44% 52%" }}
                 />
                 <StickerCard
-                  src="/home/outdoor-learning-and-play-area.jpg"
-                  alt="Children learning outdoors"
+                  src="/home/forest-school-2.jpg"
+                  alt="Children in the forest school"
                   rotate={-2}
                   sizes="(max-width: 1024px) 80vw, 38vw"
                   className="relative z-10 w-[88%]"
@@ -145,9 +141,7 @@ export default function ForestSchoolPage() {
         className="relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16"
         style={{ backgroundColor: "rgba(174,230,221,0.22)" }}
       >
-        <Doodle kind="solidstar" className="right-[4%]  top-10    h-8  w-8  text-[#f7d774]  opacity-55" />
-        <Doodle kind="leaf"      className="left-[3%]   bottom-10 h-10 w-10 text-[#8ecb9b]  opacity-50 hidden sm:block" />
-        <Doodle kind="cloud"     className="right-[14%] bottom-8  h-12 w-12 text-[#aee6dd]  opacity-45 hidden lg:block" />
+        <Doodle kind="leaf"      className="left-[3%]   bottom-10 h-10 w-10  opacity-50 hidden sm:block" />
 
         <div className="container-site">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
@@ -196,11 +190,9 @@ export default function ForestSchoolPage() {
           VISUAL / VALUES — dedicated to helping minds grow
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-        <Doodle kind="rainbow"   className="left-[1%]   bottom-10 h-14 w-14              opacity-35 hidden sm:block" />
-        <Doodle kind="bird"      className="right-[4%]  top-10    h-9  w-9  text-[#7fd8d2]  opacity-55" />
-        <Doodle kind="flower"    className="left-[5%]   top-12    h-10 w-10 text-[#ef8cab]  opacity-45 hidden sm:block" />
-        <Doodle kind="leaf"      className="right-[10%] bottom-8  h-10 w-10 text-[#8ecb9b]  opacity-50 hidden lg:block" />
-        <Doodle kind="solidstar" className="left-[44%]  top-8     h-7  w-7  text-[#f7d774]  opacity-45" />
+        <Doodle kind="blue-bird"      className="right-[4%]  top-10    h-9  w-9   opacity-55" />
+        <Doodle kind="pink-flower"    className="left-[5%]   top-12    h-10 w-10  opacity-45 hidden sm:block" />
+        <Doodle kind="leaf"      className="right-[10%] bottom-8  h-10 w-10  opacity-50 hidden lg:block" />
 
         <div className="container-site">
           <Reveal>
@@ -254,10 +246,8 @@ export default function ForestSchoolPage() {
           CTA / CONTACT
       ══════════════════════════════════════════════════════ */}
       <ZigzagBand className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="rainbow"   className="left-[2%]   bottom-8 h-14 w-14              opacity-35 hidden sm:block" />
-        <Doodle kind="leaf"      className="right-[3%]  top-12   h-10 w-10 text-[rgba(90,74,66,0.45)] hidden sm:block" />
-        <Doodle kind="solidstar" className="left-[8%]   top-10   h-8  w-8  text-[#f7d774]/70" />
-        <Doodle kind="flower"    className="right-[18%] bottom-6 h-9  w-9  text-[#f4aac8]/60 hidden lg:block" />
+        <Doodle kind="leaf"      className="right-[3%]  top-12   h-10 w-10 hidden sm:block opacity-40" />
+        <Doodle kind="pink-flower"    className="right-[18%] bottom-6 h-9  w-9  hidden lg:block opacity-40" />
 
         <div className="container-site">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-16">

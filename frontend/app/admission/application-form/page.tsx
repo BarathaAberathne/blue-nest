@@ -277,9 +277,7 @@ export default function ApplicationFormPage() {
           SINGLE SECTION — intro sidebar left, form right
       ══════════════════════════════════════════════════════ */}
       <section className="blush-bg relative px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-        <Doodle kind="bird"      className="left-[1%]  top-4    h-8 w-8 text-[#7fd8d2] opacity-45 hidden lg:block" />
-        <Doodle kind="solidstar" className="left-[1%]  bottom-8 h-6 w-6 text-[#f7d774] opacity-38 hidden lg:block" />
-        <Doodle kind="rainbow"   className="right-[0%] bottom-4 h-12 w-12 opacity-18  hidden xl:block" />
+        <Doodle kind="blue-bird"      className="left-[1%]  top-4    h-8 w-8 opacity-45 hidden lg:block" />
 
         <div className="container-site">
           {submitted ? (

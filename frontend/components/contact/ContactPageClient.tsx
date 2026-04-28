@@ -378,7 +378,7 @@ export default function ContactPageClient() {
                       <FieldLabel htmlFor="message">Message</FieldLabel>
                       <textarea
                         id="message" name="message" rows={4}
-                        placeholder="Tell us about your child and any questions you have…"
+                        placeholder="Tell us how we can help — whether you'd like to arrange a visit, ask about availability, fees, admissions, or anything else about Blue Nest Montessori."
                         value={form.message} onChange={set("message")}
                         className={`${TEXTAREA_BASE} ${INPUT_NORMAL}`}
                       />

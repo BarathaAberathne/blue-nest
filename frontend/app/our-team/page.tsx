@@ -236,30 +236,26 @@ export default function OurTeamPage() {
           />
         </div>
 
-        <Doodle kind="bird"      className="left-[5%]   top-8    h-9  w-9  text-[#7fd8d2]  opacity-65" />
-        <Doodle kind="heart"     className="right-[6%]  top-10   h-9  w-9  text-[#f4aac8]  opacity-55 hidden sm:block" />
-        <Doodle kind="solidstar" className="right-[5%]  bottom-8 h-8  w-8  text-[#f7d774]  opacity-55 hidden sm:block" />
-        <Doodle kind="leaf"      className="left-[44%]  bottom-6 h-9  w-9  text-[#8ecb9b]  opacity-45 hidden lg:block" />
+        <Doodle kind="blue-bird"      className="left-[5%]   top-8    h-9  w-9   opacity-65" />
+        <Doodle kind="leaf"      className="left-[44%]  bottom-6 h-9  w-9   opacity-45 hidden lg:block" />
 
-        <div className="container-site relative z-10 py-16 sm:py-20 lg:py-24">
+        <div className="relative z-10 w-full px-6 sm:px-10 lg:px-16 xl:px-20 py-16 sm:py-20 lg:py-24">
           <Reveal>
-            <div className="max-w-xl">
-              <span className="section-kicker">Blue Nest Montessori School</span>
-              <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-white sm:text-[3rem] lg:text-[3.4rem]">
-                The people who make Blue Nest special
-              </h1>
-              <p className="body-text mt-5 max-w-lg !text-white/90">
-                Our team of qualified, passionate educators is the heart of Blue Nest. Every member is
-                DBS-checked, first-aid certified, and deeply committed to Montessori principles.
-              </p>
-              <div className="mt-7 flex flex-wrap gap-3">
-                <PastelButton href="/contact" variant="blush">
-                  Get in touch <ArrowRight className="h-4 w-4" />
-                </PastelButton>
-                <PastelButton href="/admission" variant="mint">
-                  Book a visit <ArrowRight className="h-4 w-4" />
-                </PastelButton>
-              </div>
+            <span className="section-kicker">Blue Nest Montessori School</span>
+            <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-white sm:text-[3rem] lg:text-[3.4rem] max-w-3xl">
+              The people who make Blue Nest special
+            </h1>
+            <p className="body-text mt-5 max-w-xl !text-white/90">
+              Our team of qualified, passionate educators is the heart of Blue Nest. Every member is
+              DBS-checked, first-aid certified, and deeply committed to Montessori principles.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <PastelButton href="/contact" variant="blush">
+                Get in touch <ArrowRight className="h-4 w-4" />
+              </PastelButton>
+              <PastelButton href="/admission" variant="mint">
+                Book a visit <ArrowRight className="h-4 w-4" />
+              </PastelButton>
             </div>
           </Reveal>
         </div>
@@ -270,9 +266,7 @@ export default function OurTeamPage() {
           LEADERSHIP TEAM
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="flower"    className="left-[2%]   top-10   h-9  w-9  text-[#f4aac8]  opacity-40" />
-        <Doodle kind="solidstar" className="right-[4%]  top-8    h-8  w-8  text-[#f7d774]  opacity-45 hidden sm:block" />
-        <Doodle kind="cloud"     className="right-[20%] bottom-6 h-10 w-10 text-[#aee6dd]  opacity-35 hidden lg:block" />
+        <Doodle kind="pink-flower"    className="left-[2%]   top-10   h-9  w-9   opacity-40" />
 
         <div className="container-site">
           <Reveal>
@@ -299,8 +293,7 @@ export default function OurTeamPage() {
           TRUST / CREDENTIALS STRIP
       ══════════════════════════════════════════════════════ */}
       <section className="blush-bg relative px-4 py-10 sm:px-6 lg:px-8 lg:py-12">
-        <Doodle kind="heart"  className="right-[4%] top-6    h-8 w-8 text-[#f4aac8] opacity-40" />
-        <Doodle kind="leaf"   className="left-[2%]  bottom-6 h-8 w-8 text-[#8ecb9b] opacity-40 hidden sm:block" />
+        <Doodle kind="leaf"   className="left-[2%]  bottom-6 h-8 w-8 opacity-40 hidden sm:block" />
 
         <div className="container-site">
           <Reveal>
@@ -336,9 +329,7 @@ export default function OurTeamPage() {
           PRACTITIONERS & SUPPORT
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="leaf"      className="left-[2%]   top-10   h-10 w-10 text-[#8ecb9b]  opacity-45" />
-        <Doodle kind="rainbow"   className="right-[5%]  top-8    h-10 w-10                  opacity-40 hidden lg:block" />
-        <Doodle kind="solidstar" className="left-[48%]  bottom-8 h-7  w-7  text-[#f7d774]  opacity-40 hidden md:block" />
+        <Doodle kind="leaf"      className="left-[2%]   top-10   h-10 w-10  opacity-45" />
 
         <div className="container-site">
           <Reveal>
@@ -396,38 +387,6 @@ export default function OurTeamPage() {
           </Reveal>
         </div>
       </section>
-
-      {/* ══════════════════════════════════════════════════════
-          CTA
-      ══════════════════════════════════════════════════════ */}
-      <ZigzagBand className="px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="solidstar" className="left-[6%]   top-10   h-9  w-9  text-[#f7d774]/70" />
-        <Doodle kind="bird"      className="right-[5%]  top-10   h-10 w-10 text-[rgba(90,74,66,0.45)] hidden sm:block" />
-        <Doodle kind="heart"     className="right-[18%] bottom-6 h-8  w-8  text-[#f4aac8]/55 hidden lg:block" />
-        <Doodle kind="cloud"     className="left-[20%]  bottom-6 h-10 w-10 text-[rgba(90,74,66,0.38)] hidden md:block" />
-
-        <div className="container-site">
-          <Reveal>
-            <div className="mx-auto max-w-xl text-center">
-              <h2 className="font-heading text-[2.6rem] leading-[1.15] text-[var(--ink)] sm:text-[2.9rem]">
-                Come and meet us
-              </h2>
-              <p className="body-text mt-3 text-[rgba(90,74,66,0.68)]">
-                The best way to understand Blue Nest is to visit. Come and see our team in action
-                and discover our Montessori environments for yourself.
-              </p>
-              <div className="mt-8 flex flex-wrap justify-center gap-4">
-                <PastelButton href="/admission" variant="butter">
-                  Book a Visit <ArrowRight className="h-4 w-4" />
-                </PastelButton>
-                <PastelButton href="/contact" variant="blush">
-                  Contact Us <ArrowRight className="h-4 w-4" />
-                </PastelButton>
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </ZigzagBand>
 
     </PublicLayout>
   );

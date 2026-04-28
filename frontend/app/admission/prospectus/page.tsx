@@ -77,36 +77,33 @@ export default function ProspectusPage() {
           />
         </div>
 
-        <Doodle kind="bird"      className="left-[5%]   top-8    h-9  w-9  text-[#7fd8d2]  opacity-60" />
-        <Doodle kind="leaf"      className="right-[6%]  top-10   h-10 w-10 text-[#8ecb9b]  opacity-50 hidden sm:block" />
-        <Doodle kind="solidstar" className="right-[5%]  bottom-8 h-8  w-8  text-[#f7d774]  opacity-55 hidden sm:block" />
+        <Doodle kind="blue-bird"      className="left-[5%]   top-8    h-9  w-9   opacity-60" />
+        <Doodle kind="leaf"      className="right-[6%]  top-10   h-10 w-10  opacity-50 hidden sm:block" />
 
-        <div className="container-site relative z-10 py-14 sm:py-18">
+        <div className="relative z-10 w-full px-6 sm:px-10 lg:px-16 xl:px-20 py-14 sm:py-18">
           <Reveal>
-            <div className="max-w-lg">
-              <span className="section-kicker">Admissions</span>
-              <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-white sm:text-[3rem] lg:text-[3.4rem]">
-                Blue Nest Montessori Prospectus
-              </h1>
-              <p className="mt-4 body-text !text-white/90 max-w-md">
-                Learn about our Montessori approach, daily routine, and how we support
-                your child&rsquo;s development.
-              </p>
+            <span className="section-kicker">Admissions</span>
+            <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-white sm:text-[3rem] lg:text-[3.4rem] max-w-3xl">
+              Blue Nest Montessori Prospectus
+            </h1>
+            <p className="mt-4 body-text !text-white/90 max-w-xl">
+              Learn about our Montessori approach, daily routine, and how we support
+              your child&rsquo;s development.
+            </p>
 
-              {/* PRIMARY action — visually strongest */}
-              <div className="mt-7 flex flex-wrap gap-3">
-                <a
-                  href="/prospectus.pdf"
-                  download
-                  className="inline-flex items-center gap-2.5 rounded-full bg-[#f7d774] px-7 py-3.5 font-heading text-[1.35rem] leading-none tracking-[0.04em] text-[var(--ink)] shadow-[0_6px_20px_rgba(247,215,116,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f5c842]"
-                >
-                  <Download className="h-5 w-5" strokeWidth={2} />
-                  Download Prospectus
-                </a>
-                <PastelButton href="/contact" variant="blush">
-                  Contact Us <ArrowRight className="h-4 w-4" />
-                </PastelButton>
-              </div>
+            {/* PRIMARY action — visually strongest */}
+            <div className="mt-7 flex flex-wrap gap-3">
+              <a
+                href="/prospectus.pdf"
+                download
+                className="inline-flex items-center gap-2.5 rounded-full bg-[#f7d774] px-7 py-3.5 font-heading text-[1.35rem] leading-none tracking-[0.04em] text-[var(--ink)] shadow-[0_6px_20px_rgba(247,215,116,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f5c842]"
+              >
+                <Download className="h-5 w-5" strokeWidth={2} />
+                Download Prospectus
+              </a>
+              <PastelButton href="/contact" variant="blush">
+                Contact Us <ArrowRight className="h-4 w-4" />
+              </PastelButton>
             </div>
           </Reveal>
         </div>
@@ -117,8 +114,6 @@ export default function ProspectusPage() {
           QUICK HIGHLIGHTS — 4 items, scan in 10 seconds
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-        <Doodle kind="solidstar" className="left-[3%]  top-8    h-8  w-8  text-[#f7d774]  opacity-50" />
-        <Doodle kind="cloud"     className="right-[4%] bottom-6 h-12 w-12 text-[#aee6dd]  opacity-38 hidden sm:block" />
 
         <div className="container-site">
           <Reveal>
@@ -152,8 +147,7 @@ export default function ProspectusPage() {
           WHAT'S INSIDE — short paragraph + 4 bullet items
       ══════════════════════════════════════════════════════ */}
       <section className="blush-bg relative px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-        <Doodle kind="heart"  className="right-[5%] top-8    h-9 w-9 text-[#f4aac8] opacity-45" />
-        <Doodle kind="leaf"   className="left-[2%]  bottom-8 h-9 w-9 text-[#8ecb9b] opacity-42 hidden sm:block" />
+        <Doodle kind="leaf"   className="left-[2%]  bottom-8 h-9 w-9 opacity-42 hidden sm:block" />
 
         <div className="container-site">
           <div className="mx-auto max-w-2xl">
@@ -184,38 +178,6 @@ export default function ProspectusPage() {
           </div>
         </div>
       </section>
-
-      {/* ══════════════════════════════════════════════════════
-          BOTTOM CTA — reinforce the download
-      ══════════════════════════════════════════════════════ */}
-      <ZigzagBand className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="solidstar" className="left-[6%]   top-10   h-8  w-8  text-[#f7d774]/70" />
-        <Doodle kind="leaf"      className="right-[5%]  top-10   h-10 w-10 text-[rgba(90,74,66,0.38)] hidden sm:block" />
-        <Doodle kind="flower"    className="right-[16%] bottom-6 h-9  w-9  text-[#f4aac8]/55 hidden lg:block" />
-
-        <div className="container-site">
-          <Reveal>
-            <div className="mx-auto max-w-xl text-center">
-              <h2 className="font-heading text-[2.2rem] leading-[1.2] text-[var(--ink)] sm:text-[2.6rem]">
-                Download our prospectus or get in touch
-              </h2>
-              <div className="mt-7 flex flex-wrap justify-center gap-4">
-                <a
-                  href="/prospectus.pdf"
-                  download
-                  className="inline-flex items-center gap-2.5 rounded-full bg-[#f7d774] px-7 py-3.5 font-heading text-[1.35rem] leading-none tracking-[0.04em] text-[var(--ink)] shadow-[0_6px_20px_rgba(247,215,116,0.35)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f5c842]"
-                >
-                  <Download className="h-5 w-5" strokeWidth={2} />
-                  Download Prospectus
-                </a>
-                <PastelButton href="/contact" variant="blush">
-                  Contact Us <ArrowRight className="h-4 w-4" />
-                </PastelButton>
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </ZigzagBand>
 
     </PublicLayout>
   );

@@ -14,6 +14,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import Doodle from "@/components/ui/Doodle";
 
 // ── Inline SVG icons ──────────────────────────────────────────────────────────
@@ -61,7 +62,7 @@ function InstagramIcon({ className }: { className?: string }) {
 // ── Data ──────────────────────────────────────────────────────────────────────
 
 const trustBadges = [
-  { line1: "#1 Preschool",   line2: "in London",      color: "#f0bd55", icon: "trophy"  as const },
+  { line1: "#1 Preschool (2019-2025)",   line2: "in London",      color: "#f0bd55", icon: "trophy"  as const },
   { line1: "ISO 45001:2018", line2: "Accredited",     color: "#f4aac8", icon: "shield"  as const },
   { line1: "Halal Food",     line2: "Protected",      color: "#52b26b", icon: "halal"   as const },
   { line1: "Enhanced DBS",   line2: "Checked",        color: "#7fd8d2", icon: "shield"  as const },
@@ -125,6 +126,7 @@ function BadgeItem({ badge }: { badge: typeof trustBadges[number] }) {
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
@@ -138,9 +140,8 @@ export default function Header() {
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="relative overflow-hidden border-b border-[rgba(90,74,66,0.06)] bg-[#fdf8f5]">
         {/* Edge doodles — desktop only */}
-        <Doodle kind="leaf"   className="left-4  top-1/2 h-7 w-7 -translate-y-1/2 text-[#7fd8d2] hidden sm:block" />
-        <Doodle kind="flower" className="right-4 top-1/2 h-6 w-6 -translate-y-1/2 text-[#f4aac8] hidden sm:block" />
-        <Doodle kind="heart"  className="right-16 bottom-0.5 h-5 w-5 text-[#ef8cab]/60 hidden lg:block" />
+        <Doodle kind="leaf"        className="left-4  top-1/2 h-7 w-7 -translate-y-1/2 hidden sm:block opacity-40" />
+        <Doodle kind="pink-flower" className="right-4 top-1/2 h-6 w-6 -translate-y-1/2 hidden sm:block opacity-40" />
 
         {/* Scrollable badge row */}
         <div className="flex items-center gap-2 overflow-x-auto px-10 py-2.5 scrollbar-none sm:justify-center sm:gap-0 sm:overflow-visible sm:px-16 lg:px-24">
@@ -251,10 +252,10 @@ export default function Header() {
                     <div className="flex items-center gap-1.5 px-3 text-[var(--ink)] first:pl-0">
                       <Phone className="h-3.5 w-3.5 shrink-0 text-[#7fd8d2]" />
                       <div className="leading-tight">
-                        <p className="text-[0.6rem] font-extrabold uppercase tracking-[0.1em] text-[#cf7d9c]">
+                        <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.1em] text-[#cf7d9c]">
                           {branch.label}
                         </p>
-                        <p className="text-[0.72rem] font-medium">{branch.phone}</p>
+                        <p className="text-[0.82rem] font-semibold">{branch.phone}</p>
                       </div>
                     </div>
                     {i < 2 && (
@@ -267,7 +268,7 @@ export default function Header() {
 
                 <div className="flex items-center gap-1.5 text-[var(--ink)]">
                   <Mail className="h-3.5 w-3.5 shrink-0 text-[#7fd8d2]" />
-                  <span className="text-[0.72rem] font-medium">manager@bluenest.uk</span>
+                  <span className="text-[0.82rem] font-semibold">manager@bluenest.uk</span>
                 </div>
               </div>
 
@@ -279,7 +280,7 @@ export default function Header() {
                 aria-label="Open navigation menu"
               >
                 <Menu className="mb-0.5 h-4 w-4" />
-                <span className="text-[0.6rem] font-extrabold leading-none tracking-[0.35em] [writing-mode:vertical-rl]">
+                <span className="text-[0.6rem] font-extrabold leading-none tracking-[0.18em]">
                   MENU
                 </span>
               </button>
@@ -319,7 +320,7 @@ export default function Header() {
                 aria-label="Open navigation menu"
               >
                 <Menu className="mb-0.5 h-4 w-4" />
-                <span className="text-[0.6rem] font-extrabold leading-none tracking-[0.35em] [writing-mode:vertical-rl]">
+                <span className="text-[0.6rem] font-extrabold leading-none tracking-[0.18em]">
                   MENU
                 </span>
               </button>
@@ -364,12 +365,8 @@ export default function Header() {
             </div>
 
             {/* Ambient doodles — left gutter and bottom-right corner */}
-            <Doodle kind="solidstar" className="absolute left-3 top-40   h-6 w-6 text-[#f7d774] opacity-30" />
-            <Doodle kind="heart"     className="absolute left-2 top-[52%] h-5 w-5 text-[#f4aac8] opacity-28" />
-            <Doodle kind="leaf"      className="absolute left-3 top-[72%] h-6 w-6 text-[#7fd8d2] opacity-30" />
-            <Doodle kind="flower"    className="absolute bottom-12 right-5  h-8 w-8 text-[#ef8cab] opacity-30" />
-            <Doodle kind="rainbow"   className="absolute bottom-5  right-14 h-10 w-10           opacity-20 hidden sm:block" />
-            <Doodle kind="cloud"     className="absolute bottom-16 right-2  h-7 w-7 text-[#85d6f1] opacity-22 hidden sm:block" />
+            <Doodle kind="leaf"        className="absolute left-3    top-[72%]  h-6 w-6 opacity-30" />
+            <Doodle kind="pink-flower" className="absolute bottom-12 right-5   h-8 w-8 opacity-30" />
 
             {/* Content — fills remaining height, items stretch evenly */}
             <div className="flex min-h-0 flex-1 flex-col px-10">
@@ -377,42 +374,48 @@ export default function Header() {
 
               {/* Nav items share available height equally via flex-1 */}
               <nav className="relative z-10 mt-2 flex min-h-0 flex-1 flex-col" aria-label="Main navigation">
-                {navLinks.map((link) => (
+                {navLinks.map((link) => {
+                  const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
+                  return (
                   <div key={link.href} className="flex min-h-0 flex-1 flex-col justify-center">
                     {link.children ? (
                       <>
                         <Link
                           href={link.href}
                           onClick={() => setMenuOpen(false)}
-                          className="block text-[0.9rem] font-extrabold uppercase tracking-[0.04em] text-[var(--ink)] transition hover:text-[#4ec0c3]"
+                          className={`block text-[0.9rem] font-extrabold uppercase tracking-[0.04em] transition hover:text-[#4ec0c3] ${isActive ? "text-[#4ec0c3]" : "text-[var(--ink)]"}`}
                         >
                           {link.label}
                         </Link>
                         <div className="mt-0.5 flex gap-4 pl-3">
-                          {link.children.map((child) => (
+                          {link.children.map((child) => {
+                            const isChildActive = pathname === child.href;
+                            return (
                             <Link
                               key={child.href}
                               href={child.href}
                               onClick={() => setMenuOpen(false)}
-                              className="text-[0.68rem] font-bold uppercase tracking-[0.06em] text-[#cf7d9c] transition hover:text-[#4ec0c3]"
+                              className={`text-[0.68rem] font-bold uppercase tracking-[0.06em] transition hover:text-[#4ec0c3] ${isChildActive ? "text-[#4ec0c3] underline underline-offset-2" : "text-[#cf7d9c]"}`}
                             >
                               {child.label}
                             </Link>
-                          ))}
+                            );
+                          })}
                         </div>
                       </>
                     ) : (
                       <Link
                         href={link.href}
                         onClick={() => setMenuOpen(false)}
-                        className="block text-[0.9rem] font-extrabold uppercase tracking-[0.04em] text-[var(--ink)] transition hover:text-[#4ec0c3]"
+                        className={`block text-[0.9rem] font-extrabold uppercase tracking-[0.04em] transition hover:text-[#4ec0c3] ${isActive ? "text-[#4ec0c3]" : "text-[var(--ink)]"}`}
                       >
                         {link.label}
                       </Link>
                     )}
                     <div className="h-px bg-[#f1a8ca]" />
                   </div>
-                ))}
+                  );
+                })}
               </nav>
 
               {/* Branches — pinned to bottom */}

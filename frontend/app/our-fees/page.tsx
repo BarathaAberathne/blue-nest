@@ -67,9 +67,7 @@ export default function OurFeesPage() {
           />
         </div>
 
-        <Doodle kind="solidstar" className="right-[6%]  top-10    h-8  w-8  text-[#f7d774]  opacity-55 hidden sm:block" />
-        <Doodle kind="leaf"      className="left-[4%]   top-8     h-10 w-10 text-[#8ecb9b]  opacity-50" />
-        <Doodle kind="cloud"     className="right-[18%] bottom-6  h-12 w-12 text-[#aee6dd]  opacity-38 hidden lg:block" />
+        <Doodle kind="leaf"      className="left-[4%]   top-8     h-10 w-10  opacity-50" />
 
         <div className="container-site relative z-10 py-16 sm:py-20">
           <Reveal>
@@ -92,8 +90,7 @@ export default function OurFeesPage() {
           FLEXIBLE SESSIONS
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="heart"  className="right-[5%]  top-10    h-9  w-9  text-[#f4aac8]  opacity-48" />
-        <Doodle kind="leaf"   className="left-[2%]   bottom-10 h-10 w-10 text-[#8ecb9b]  opacity-42 hidden sm:block" />
+        <Doodle kind="leaf"   className="left-[2%]   bottom-10 h-10 w-10  opacity-42 hidden sm:block" />
 
         <div className="container-site">
           <Reveal>
@@ -120,8 +117,7 @@ export default function OurFeesPage() {
         className="relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16"
         style={{ backgroundColor: "rgba(174,230,221,0.18)" }}
       >
-        <Doodle kind="solidstar" className="right-[4%]  top-10   h-8  w-8  text-[#f7d774]  opacity-52" />
-        <Doodle kind="bird"      className="left-[3%]   top-10   h-9  w-9  text-[#7fd8d2]  opacity-48 hidden sm:block" />
+        <Doodle kind="blue-bird"      className="left-[3%]   top-10   h-9  w-9   opacity-48 hidden sm:block" />
 
         <div className="container-site">
           <Reveal>
@@ -179,9 +175,7 @@ export default function OurFeesPage() {
           ADDITIONAL INFO
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="rainbow"   className="left-[1%]   bottom-8  h-14 w-14              opacity-30 hidden sm:block" />
-        <Doodle kind="flower"    className="right-[5%]  top-10    h-10 w-10 text-[#ef8cab]  opacity-42 hidden sm:block" />
-        <Doodle kind="solidstar" className="left-[44%]  top-8     h-7  w-7  text-[#f7d774]  opacity-40" />
+        <Doodle kind="pink-flower"    className="right-[5%]  top-10    h-10 w-10  opacity-42 hidden sm:block" />
 
         <div className="container-site">
           <Reveal>
@@ -215,9 +209,8 @@ export default function OurFeesPage() {
           CTA
       ══════════════════════════════════════════════════════ */}
       <ZigzagBand className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="solidstar" className="left-[6%]   top-10   h-8  w-8  text-[#f7d774]/70" />
-        <Doodle kind="leaf"      className="right-[5%]  top-10   h-10 w-10 text-[rgba(90,74,66,0.38)] hidden sm:block" />
-        <Doodle kind="flower"    className="right-[16%] bottom-6 h-9  w-9  text-[#f4aac8]/55 hidden lg:block" />
+        <Doodle kind="leaf"      className="right-[5%]  top-10   h-10 w-10 hidden sm:block opacity-40" />
+        <Doodle kind="pink-flower"    className="right-[16%] bottom-6 h-9  w-9  hidden lg:block opacity-40" />
 
         <div className="container-site">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-16">

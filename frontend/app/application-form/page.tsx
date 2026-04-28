@@ -69,10 +69,8 @@ export default function ApplicationFormPage() {
           />
         </div>
 
-        <Doodle kind="heart"     className="left-[5%]   top-8     h-9  w-9  text-[#f4aac8]  opacity-60" />
-        <Doodle kind="solidstar" className="right-[6%]  top-10    h-8  w-8  text-[#f7d774]  opacity-55 hidden sm:block" />
-        <Doodle kind="bird"      className="right-[18%] top-8     h-9  w-9  text-[#7fd8d2]  opacity-45 hidden lg:block" />
-        <Doodle kind="flower"    className="left-[42%]  bottom-6  h-9  w-9  text-[#ef8cab]  opacity-38 hidden lg:block" />
+        <Doodle kind="blue-bird"      className="right-[18%] top-8     h-9  w-9   opacity-45 hidden lg:block" />
+        <Doodle kind="pink-flower"    className="left-[42%]  bottom-6  h-9  w-9   opacity-38 hidden lg:block" />
 
         <div className="container-site relative z-10 py-16 sm:py-20">
           <Reveal>
@@ -95,8 +93,8 @@ export default function ApplicationFormPage() {
           INTRO — process steps
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="leaf"   className="right-[5%]  top-10    h-10 w-10 text-[#8ecb9b]  opacity-48 hidden sm:block" />
-        <Doodle kind="bird"   className="left-[2%]   bottom-10 h-9  w-9  text-[#7fd8d2]  opacity-45 hidden sm:block" />
+        <Doodle kind="leaf"   className="right-[5%]  top-10    h-10 w-10  opacity-48 hidden sm:block" />
+        <Doodle kind="blue-bird"   className="left-[2%]   bottom-10 h-9  w-9   opacity-45 hidden sm:block" />
 
         <div className="container-site">
           <Reveal>
@@ -138,9 +136,7 @@ export default function ApplicationFormPage() {
           FORM
       ══════════════════════════════════════════════════════ */}
       <section className="blush-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="solidstar" className="left-[3%]   top-10    h-8  w-8  text-[#f7d774]  opacity-52" />
-        <Doodle kind="rainbow"   className="right-[1%]  bottom-8  h-14 w-14              opacity-28 hidden sm:block" />
-        <Doodle kind="flower"    className="left-[44%]  top-8     h-8  w-8  text-[#ef8cab]  opacity-38" />
+        <Doodle kind="pink-flower"    className="left-[44%]  top-8     h-8  w-8   opacity-38" />
 
         <div className="container-site">
           <Reveal>
@@ -261,6 +257,24 @@ export default function ApplicationFormPage() {
                       </div>
                     </div>
 
+                    {/* Funding eligibility */}
+                    <div>
+                      <label className="mb-1.5 block text-[0.7rem] font-extrabold uppercase tracking-[0.14em] text-[rgba(90,74,66,0.6)]">
+                        Funding eligibility
+                      </label>
+                      <select
+                        name="fundingEligibility"
+                        defaultValue=""
+                        className="w-full rounded-[1rem] border border-[rgba(90,74,66,0.12)] bg-[#fdfaf7] px-4 py-3 text-sm text-[var(--ink)] focus:border-[#f4aac8] focus:outline-none focus:ring-2 focus:ring-[rgba(246,213,223,0.45)]"
+                      >
+                        <option value="" disabled>Select funding type…</option>
+                        <option value="15-hours">15 hours funding</option>
+                        <option value="30-hours">30 hours funding</option>
+                        <option value="not-sure">Not sure / need guidance</option>
+                        <option value="not-eligible">Not eligible / not applying</option>
+                      </select>
+                    </div>
+
                     {/* Message */}
                     <div>
                       <label className="mb-1.5 block text-[0.7rem] font-extrabold uppercase tracking-[0.14em] text-[rgba(90,74,66,0.6)]">
@@ -295,9 +309,8 @@ export default function ApplicationFormPage() {
           CTA
       ══════════════════════════════════════════════════════ */}
       <section className="chalk-bg relative overflow-hidden px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="solidstar" className="left-[6%]   top-10   h-8  w-8  text-[#f7d774]/70" />
-        <Doodle kind="leaf"      className="right-[5%]  top-10   h-10 w-10 text-white/40   hidden sm:block" />
-        <Doodle kind="bird"      className="right-[14%] bottom-8 h-9  w-9  text-white/30   hidden lg:block" />
+        <Doodle kind="leaf"      className="right-[5%]  top-10   h-10 w-10 text-white/40   hidden sm:block opacity-40" />
+        <Doodle kind="blue-bird"      className="right-[14%] bottom-8 h-9  w-9  text-white/30   hidden lg:block opacity-40" />
 
         <div className="container-site">
           <Reveal>

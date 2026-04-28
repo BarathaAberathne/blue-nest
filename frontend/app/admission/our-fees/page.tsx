@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { ArrowRight, CalendarDays, Clock, Download, Info, Phone, Star, Sun, Sunset } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
-import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
 
@@ -17,9 +16,10 @@ const downloads = [
 ];
 
 const sessions = [
-  { icon: Sun,        color: "#f0bd55", label: "Morning Session",    time: "8:00 AM – 12:30 PM" },
-  { icon: Sunset,     color: "#ef8cab", label: "Afternoon Session",  time: "12:30 PM – 5:00 PM" },
-  { icon: Clock,      color: "#7fd8d2", label: "Full Day",           time: "8:00 AM – 5:00 PM"  },
+  { icon: Clock,      color: "#f0bd55", label: "Early Bird Session",  time: "7:30 AM – 8:00 AM"  },
+  { icon: Sun,        color: "#ef8cab", label: "Morning Session",     time: "8:00 AM – 12:30 PM" },
+  { icon: Sunset,     color: "#7fd8d2", label: "Afternoon Session",   time: "12:30 PM – 5:00 PM" },
+  { icon: Clock,      color: "#cf7d9c", label: "Full Day",            time: "8:00 AM – 5:00 PM"  },
   { icon: Star,       color: "#7fd8d2", label: "Full Week (Full Day)", time: "Monday – Friday"   },
 ];
 
@@ -44,8 +44,7 @@ export default function OurFeesPage() {
           HERO — 2-column: text left, photo right
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative overflow-hidden">
-        <Doodle kind="bird"  className="left-[2%]  top-6  h-9  w-9  text-[#7fd8d2] opacity-55 hidden sm:block" />
-        <Doodle kind="cloud" className="left-[28%] top-4  h-11 w-11 text-[#aee6dd] opacity-40 hidden lg:block" />
+        <Doodle kind="blue-bird"  className="left-[2%]  top-6  h-9  w-9  opacity-55 hidden sm:block" />
 
         <div className="container-site">
           <div className="grid min-h-[58vh] items-center gap-0 lg:grid-cols-2">
@@ -146,15 +145,13 @@ export default function OurFeesPage() {
           DOWNLOAD FEES BY BRANCH
       ══════════════════════════════════════════════════════ */}
       <section className="relative px-4 py-10 sm:px-6 lg:px-8 lg:py-14" style={{ backgroundColor: "rgba(246,213,223,0.22)" }}>
-        <Doodle kind="solidstar" className="right-[4%] top-8  h-7 w-7 text-[#f7d774] opacity-50" />
-        <Doodle kind="leaf"      className="left-[2%]  bottom-6 h-9 w-9 text-[#8ecb9b] opacity-42 hidden sm:block" />
+        <Doodle kind="leaf"      className="left-[2%]  bottom-6 h-9 w-9 opacity-42 hidden sm:block" />
 
         <div className="container-site">
           <Reveal>
             <div className="mb-7 text-center">
               <h2 className="font-heading text-[2rem] leading-snug text-[var(--ink)] sm:text-[2.4rem]">
                 Download our fees
-                <Doodle kind="heart" className="relative ml-3 inline-block h-6 w-6 translate-y-0.5 text-[#f4aac8] opacity-70" />
               </h2>
               <p className="body-text mx-auto mt-2 max-w-md">
                 You can download our fees for each of our nurseries using the links below.
@@ -196,8 +193,7 @@ export default function OurFeesPage() {
           SESSIONS TABLE
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
-        <Doodle kind="flower"    className="right-[4%] top-8    h-9 w-9 text-[#ef8cab] opacity-42 hidden sm:block" />
-        <Doodle kind="solidstar" className="left-[3%]  bottom-8 h-7 w-7 text-[#f7d774] opacity-45" />
+        <Doodle kind="pink-flower"    className="right-[4%] top-8    h-9 w-9 opacity-42 hidden sm:block" />
 
         <div className="container-site">
           <Reveal>
@@ -261,44 +257,6 @@ export default function OurFeesPage() {
                   </li>
                 ))}
               </ul>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-
-      {/* ══════════════════════════════════════════════════════
-          CTA
-      ══════════════════════════════════════════════════════ */}
-      <section className="paper-bg relative overflow-hidden px-4 py-14 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="bird"      className="left-[4%]   bottom-10 h-9  w-9  text-[#7fd8d2]  opacity-50" />
-        <Doodle kind="bird"      className="left-[14%]  bottom-14 h-7  w-7  text-[#7fd8d2]  opacity-35 hidden sm:block" />
-        <Doodle kind="solidstar" className="left-[44%]  top-8     h-7  w-7  text-[#f7d774]  opacity-45" />
-        <Doodle kind="heart"     className="right-[12%] top-10    h-8  w-8  text-[#f4aac8]  opacity-45 hidden sm:block" />
-        <Doodle kind="rainbow"   className="right-[2%]  bottom-4  h-16 w-16              opacity-28 hidden lg:block" />
-
-        <div className="container-site">
-          <Reveal>
-            <div className="mx-auto max-w-2xl text-center">
-              <h2 className="section-title text-[var(--ink)]">
-                Speak to our team for personalised fee information
-              </h2>
-              <div className="mt-8 flex flex-wrap justify-center gap-4">
-                <a
-                  href="/contact"
-                  className="inline-flex items-center gap-2 rounded-full bg-[#ef8cab] px-8 py-3.5 font-heading text-[1.35rem] leading-none tracking-[0.04em] text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#e8719a]"
-                >
-                  <Phone className="h-4 w-4" strokeWidth={2} />
-                  Contact Us
-                </a>
-                <a
-                  href="/contact"
-                  className="inline-flex items-center gap-2 rounded-full bg-[#7fd8d2] px-8 py-3.5 font-heading text-[1.35rem] leading-none tracking-[0.04em] text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#6ecfc9]"
-                >
-                  <CalendarDays className="h-4 w-4" strokeWidth={2} />
-                  Book a Visit
-                </a>
-              </div>
             </div>
           </Reveal>
         </div>

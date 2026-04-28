@@ -277,10 +277,9 @@ export default function GalleryPageClient() {
       ════════════════════════════════════════════════════ */}
 
       <section className="chalk-bg relative overflow-hidden px-4 py-14 sm:px-6 lg:px-8 lg:py-18">
-        <Doodle kind="solidstar" className="left-[6%]   top-10   h-9  w-9  text-[#f7d774]/70" />
-        <Doodle kind="bird"      className="right-[5%]  top-10   h-10 w-10 text-white/50 hidden sm:block" />
-        <Doodle kind="leaf"      className="right-[16%] bottom-6 h-10 w-10 text-white/40 hidden lg:block" />
-        <Doodle kind="flower"    className="left-[20%]  bottom-8 h-9  w-9  text-[#f4aac8]/55 hidden md:block" />
+        <Doodle kind="blue-bird"   className="right-[5%]  top-10   h-10 w-10 opacity-50 hidden sm:block" />
+        <Doodle kind="leaf"        className="right-[16%] bottom-6 h-10 w-10 opacity-40 hidden lg:block" />
+        <Doodle kind="pink-flower" className="left-[20%]  bottom-8 h-9  w-9  opacity-45 hidden md:block" />
 
         <div className="container-site">
           <Reveal>
@@ -536,7 +535,7 @@ function UpdatesGrid({ items }: { items: GalleryItem[] }) {
 function EmptyState({ onClear }: { onClear: () => void }) {
   return (
     <div className="flex flex-col items-center gap-5 py-20 text-center">
-      <Doodle kind="flower" className="h-16 w-16 text-[#f4aac8] opacity-60" />
+      <Doodle kind="pink-flower" className="h-16 w-16 opacity-60" />
       <h3 className="font-heading text-[1.9rem] text-[var(--ink)]">Nothing here yet</h3>
       <p className="body-text max-w-sm text-sm">
         Check back soon — we&rsquo;re always adding new moments from our nurseries.

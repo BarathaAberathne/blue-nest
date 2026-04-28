@@ -258,3 +258,75 @@
     stroke-dashoffset: 8;
   }
 }
+
+/* ── Doodle interaction animations ───────────────────────────────────────────── */
+
+@keyframes doodle-tap-scale {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.92);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes doodle-hover-rotate {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-3deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes doodle-sparkle {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes button-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes reveal-up {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Utility classes ────────────────────────────────────────────────────────── */
+
+.doodle-interactive {
+  transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.doodle-interactive:hover {
+  animation: doodle-hover-rotate 0.4s ease-in-out forwards;
+}
+
+.doodle-interactive:active {
+  animation: doodle-tap-scale 0.3s ease-out forwards;
+}

@@ -27,47 +27,47 @@ function InstagramIcon({ className }: { className?: string }) {
 
 const badges = [
   {
-    src:   "/site-images/ofsted-good.png",
-    alt:   "Ofsted Good Provider",
+    src: "/site-images/ofsted-good.png",
+    alt: "Ofsted Good Provider",
     label: "Ofsted Good",
   },
   {
-    src:   "/site-images/ocn-early-years.png",
-    alt:   "OCN Early Years Professional Development Award",
+    src: "/site-images/ocn-early-years.png",
+    alt: "OCN Early Years Professional Development Award",
     label: "OCN Early Years",
   },
   {
-    src:   "/site-images/green-tree-school.png",
-    alt:   "Green Tree School – Woodland Trust Platinum Award",
+    src: "/site-images/green-tree-school.png",
+    alt: "Green Tree School – Woodland Trust Platinum Award",
     label: "Green Tree School",
   },
   {
-    src:   "/site-images/food-hygiene-5.png",
-    alt:   "Food Hygiene Rating 5 – Very Good",
+    src: "/site-images/food-hygiene-5.png",
+    alt: "Food Hygiene Rating 5 – Very Good",
     label: "Food Hygiene 5",
   },
 ];
 
 const branches = [
-  { label: "Harrow",                    href: "/branches/harrow"      },
-  { label: "Borehamwood",               href: "/branches/borehamwood" },
-  { label: "Pinner",                    href: "/branches/pinner"      },
-  { label: "Northwood — Coming Soon",   href: "/branches/northwood"   },
+  { label: "Harrow", href: "/branches/harrow" },
+  { label: "Borehamwood", href: "/branches/borehamwood" },
+  { label: "Pinner", href: "/branches/pinner" },
+  { label: "Northwood — Coming Soon", href: "/branches/northwood" },
 ];
 
 const quickLinks = [
-  { label: "Admission",      href: "/admission"      },
+  { label: "Admission", href: "/admission" },
   { label: "Why Montessori", href: "/why-montessori" },
-  { label: "Forest School",  href: "/forest-school"  },
-  { label: "Nursery Store",  href: "/nursery-store"  },
-  { label: "Blog",           href: "/blog"           },
-  { label: "Our Charities",  href: "/our-charities"  },
+  { label: "Forest School", href: "/forest-school" },
+  { label: "Nursery Store", href: "/nursery-store" },
+  { label: "Blog", href: "/blog" },
+  { label: "Our Charities", href: "/our-charities" },
 ];
 
 const socialLinks = [
-  { label: "Facebook",  href: "#", Icon: () => <FacebookIcon  className="h-4 w-4" /> },
+  { label: "Facebook", href: "#", Icon: () => <FacebookIcon className="h-4 w-4" /> },
   { label: "Instagram", href: "#", Icon: () => <InstagramIcon className="h-4 w-4" /> },
-  { label: "WhatsApp",  href: "#", Icon: () => <MessageCircle className="h-4 w-4" /> },
+  { label: "WhatsApp", href: "#", Icon: () => <MessageCircle className="h-4 w-4" /> },
 ];
 
 // ── Column label style ────────────────────────────────────────────────────────
@@ -90,11 +90,8 @@ export default function Footer() {
     <footer className="relative overflow-hidden bg-[#fdf6f0] px-4 pb-0 pt-12 sm:px-6 lg:px-8">
 
       {/* Ambient doodles */}
-      <Doodle kind="solidstar" className="left-[1%]   top-8    h-8  w-8  text-[#f7d774] opacity-45" />
-      <Doodle kind="leaf"      className="right-[3%]  top-10   h-9  w-9  text-[#7fd8d2] opacity-40 hidden sm:block" />
-      <Doodle kind="flower"    className="left-[49%]  top-5    h-7  w-7  text-[#f4aac8] opacity-40 hidden md:block" />
-      <Doodle kind="heart"     className="right-[17%] bottom-20 h-6 w-6  text-[#ef8cab] opacity-35 hidden lg:block" />
-      <Doodle kind="cloud"     className="left-[15%]  bottom-16 h-8 w-8  text-[#85d6f1] opacity-30 hidden lg:block" />
+      <Doodle kind="leaf" className="right-[3%] top-10 h-9 w-9 opacity-40 hidden sm:block" />
+      <Doodle kind="pink-flower" className="left-[49%] top-5 h-7 w-7 opacity-40 hidden md:block" />
 
       <div className="container-site">
 
@@ -136,20 +133,23 @@ export default function Footer() {
 
           {/* Col 2 — Accreditation badges */}
           <div>
-            <ColLabel color="#cf7d9c" top>Accreditations</ColLabel>
+            <ColLabel color="#cf7d9c" top>
+              Accreditations
+            </ColLabel>
+
             <div className="grid grid-cols-2 gap-3">
               {badges.map((badge) => (
                 <div
                   key={badge.label}
-                  className="relative h-[82px] overflow-hidden rounded-[1.2rem] shadow-[0_3px_12px_rgba(90,74,66,0.07)]"
+                  className="relative h-[120px] overflow-hidden rounded-[1.2rem] bg-white p-2 shadow-[0_3px_12px_rgba(90,74,66,0.07)]"
                   title={badge.alt}
                 >
                   <Image
                     src={badge.src}
                     alt={badge.alt}
                     fill
-                    className="object-cover"
-                    sizes="110px"
+                    className="object-contain p-1"
+                    sizes="150px"
                   />
                 </div>
               ))}
@@ -229,9 +229,9 @@ export default function Footer() {
             The content on this website is owned by us and our licensors. Do not copy any content (including images) without our consent.
           </p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[0.68rem] text-[rgba(90,74,66,0.42)]">
-            <Link href="/terms"         className="transition hover:text-[var(--ink)]">Terms of Use</Link>
+            <Link href="/terms" className="transition hover:text-[var(--ink)]">Terms of Use</Link>
             <span aria-hidden="true" className="text-[rgba(90,74,66,0.2)]">·</span>
-            <Link href="/privacy"       className="transition hover:text-[var(--ink)]">Privacy &amp; Cookie Policy</Link>
+            <Link href="/privacy" className="transition hover:text-[var(--ink)]">Privacy &amp; Cookie Policy</Link>
             <span aria-hidden="true" className="text-[rgba(90,74,66,0.2)]">·</span>
             <Link href="/trading-terms" className="transition hover:text-[var(--ink)]">Trading Terms</Link>
             <span aria-hidden="true" className="text-[rgba(90,74,66,0.2)]">·</span>

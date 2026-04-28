@@ -96,20 +96,13 @@ export default function HeroSection() {
         />
 
         {/* Mobile doodles */}
-        <Doodle kind="heart"     className="right-5     top-5     h-7  w-7  text-[#f4aac8]    lg:hidden" />
-        <Doodle kind="solidstar" className="left-[42%]  top-4     h-6  w-6  text-[#f7d774]    lg:hidden" />
-        <Doodle kind="cloud"     className="left-3      top-[52%] h-9  w-9  text-[#85d6f1]/75 lg:hidden" />
+        <Doodle kind="pink-flower" className="right-5    top-5     h-7  w-7  opacity-50 lg:hidden" />
+        <Doodle kind="leaf"        className="left-3     bottom-16 h-8  w-8  opacity-45 lg:hidden" />
 
         {/* Desktop doodles */}
-        <Doodle kind="star"      className="left-[2%]   top-16    h-9  w-9  text-[#f0b55f]  hidden lg:block" />
-        <Doodle kind="cloud"     className="left-[30%]  top-14    h-12 w-12 text-[#85d6f1]  hidden lg:block" />
-        <Doodle kind="heart"     className="right-[10%] top-20    h-9  w-9  text-[#f49cb5]  hidden lg:block" />
-        <Doodle kind="leaf"      className="left-[4%]   bottom-8  h-10 w-10 text-[#7fd8d2]  hidden lg:block" />
-        <Doodle kind="rainbow"   className="right-[3%]  bottom-16 h-18 w-18                 hidden lg:block" />
-        <Doodle kind="bird"      className="left-[18%]  bottom-12 h-9  w-9  text-[#7fd8d2]  hidden lg:block" />
-        <Doodle kind="solidstar" className="left-[46%]  top-10    h-8  w-8  text-[#f7d774]  hidden lg:block" />
-        <Doodle kind="sun"       className="right-[22%] top-8     h-12 w-12 text-[#f7d774]  hidden lg:block" />
-        <Doodle kind="flower"    className="right-[32%] bottom-10 h-9  w-9  text-[#f49cb5]  hidden lg:block" />
+        <Doodle kind="leaf"        className="left-[4%]   bottom-8  h-10 w-10 opacity-50 hidden lg:block" />
+        <Doodle kind="blue-bird"   className="left-[18%]  bottom-12 h-9  w-9  opacity-55 hidden lg:block" />
+        <Doodle kind="pink-flower" className="right-[32%] bottom-10 h-9  w-9  opacity-50 hidden lg:block" />
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════

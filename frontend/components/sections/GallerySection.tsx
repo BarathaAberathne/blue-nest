@@ -1,5 +1,5 @@
-import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
+import Doodle from "@/components/ui/Doodle";
 import PaperSection from "@/components/ui/PaperSection";
 import PastelButton from "@/components/ui/PastelButton";
 import StickerCard from "@/components/ui/StickerCard";
@@ -7,10 +7,9 @@ import StickerCard from "@/components/ui/StickerCard";
 export default function GallerySection() {
   return (
     <PaperSection bgClass="blush-bg" className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-      <Doodle kind="flower"    className="left-[7%]   top-20 h-13 w-13 text-[#ef8cab]" />
-      <Doodle kind="stars"     className="right-[6%]  top-16 h-13 w-13 text-[#8bcfef]" />
-      <Doodle kind="heart"     className="left-[2%]   bottom-10 h-9 w-9 text-[#f4aac8]" />
-      <Doodle kind="solidstar" className="right-[18%] bottom-8  h-8 w-8 text-[#f7d774]" />
+      <Doodle kind="leaf"        className="left-[7%]   top-20    h-12 w-12 opacity-50" />
+      <Doodle kind="blue-flower" animated="pulse"  className="absolute right-[12%] top-10 h-12 w-12 opacity-60" />
+      <Doodle kind="pink-flower" animated="wiggle" className="absolute left-[8%]  bottom-6 h-10 w-10 opacity-55" />
 
       <div className="container-site">
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">

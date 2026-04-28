@@ -100,10 +100,9 @@ export default function ProspectusPage() {
           />
         </div>
 
-        <Doodle kind="bird"      className="left-[5%]   top-8     h-9  w-9  text-[#7fd8d2]  opacity-60" />
-        <Doodle kind="leaf"      className="right-[6%]  top-10    h-10 w-10 text-[#8ecb9b]  opacity-50 hidden sm:block" />
-        <Doodle kind="solidstar" className="right-[5%]  bottom-8  h-8  w-8  text-[#f7d774]  opacity-55 hidden sm:block" />
-        <Doodle kind="flower"    className="left-[42%]  bottom-6  h-9  w-9  text-[#ef8cab]  opacity-40 hidden lg:block" />
+        <Doodle kind="blue-bird"      className="left-[5%]   top-8     h-9  w-9   opacity-60" />
+        <Doodle kind="leaf"      className="right-[6%]  top-10    h-10 w-10  opacity-50 hidden sm:block" />
+        <Doodle kind="pink-flower"    className="left-[42%]  bottom-6  h-9  w-9   opacity-40 hidden lg:block" />
 
         <div className="container-site relative z-10 py-16 sm:py-20">
           <Reveal>
@@ -131,8 +130,7 @@ export default function ProspectusPage() {
           INTRODUCTION
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="heart"  className="right-[5%]  top-10    h-9  w-9  text-[#f4aac8]  opacity-50" />
-        <Doodle kind="leaf"   className="left-[2%]   bottom-10 h-10 w-10 text-[#8ecb9b]  opacity-45 hidden sm:block" />
+        <Doodle kind="leaf"   className="left-[2%]   bottom-10 h-10 w-10  opacity-45 hidden sm:block" />
 
         <div className="container-site">
           <Reveal>
@@ -157,9 +155,7 @@ export default function ProspectusPage() {
           WHAT WE OFFER
       ══════════════════════════════════════════════════════ */}
       <section className="blush-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="solidstar" className="left-[3%]   top-10    h-8  w-8  text-[#f7d774]  opacity-55" />
-        <Doodle kind="cloud"     className="right-[4%]  bottom-8  h-12 w-12 text-[#aee6dd]  opacity-40 hidden sm:block" />
-        <Doodle kind="bird"      className="right-[10%] top-8     h-9  w-9  text-[#7fd8d2]  opacity-50 hidden lg:block" />
+        <Doodle kind="blue-bird"      className="right-[10%] top-8     h-9  w-9   opacity-50 hidden lg:block" />
 
         <div className="container-site">
           <Reveal>
@@ -199,9 +195,7 @@ export default function ProspectusPage() {
           DAILY ROUTINE
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="rainbow"   className="left-[1%]   bottom-8  h-14 w-14              opacity-30 hidden sm:block" />
-        <Doodle kind="flower"    className="right-[4%]  top-10    h-10 w-10 text-[#ef8cab]  opacity-45 hidden sm:block" />
-        <Doodle kind="solidstar" className="left-[45%]  top-8     h-7  w-7  text-[#f7d774]  opacity-40" />
+        <Doodle kind="pink-flower"    className="right-[4%]  top-10    h-10 w-10  opacity-45 hidden sm:block" />
 
         <div className="container-site">
           <Reveal>
@@ -236,35 +230,6 @@ export default function ProspectusPage() {
           </div>
         </div>
       </section>
-
-
-      {/* ══════════════════════════════════════════════════════
-          CTA
-      ══════════════════════════════════════════════════════ */}
-      <section className="chalk-bg relative overflow-hidden px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="solidstar" className="left-[6%]   top-10   h-8  w-8  text-[#f7d774]/70" />
-        <Doodle kind="leaf"      className="right-[5%]  top-10   h-10 w-10 text-white/40   hidden sm:block" />
-        <Doodle kind="flower"    className="right-[16%] bottom-6 h-9  w-9  text-[#f4aac8]/55 hidden lg:block" />
-
-        <div className="container-site">
-          <Reveal>
-            <div className="mx-auto max-w-xl text-center">
-              <h2 className="font-heading text-[2.2rem] leading-[1.2] text-white sm:text-[2.6rem]">
-                Download our prospectus or get in touch
-              </h2>
-              <div className="mt-7 flex flex-wrap justify-center gap-4">
-                <PastelButton href="/contact" variant="blush">
-                  Contact Us <ArrowRight className="h-4 w-4" />
-                </PastelButton>
-                <PastelButton href="/application-form" variant="butter">
-                  Application Form <ArrowRight className="h-4 w-4" />
-                </PastelButton>
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
 
     </PublicLayout>
   );

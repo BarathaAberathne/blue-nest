@@ -1,81 +1,97 @@
-import { Bird, Cloud, Flower2, Heart, Leaf, Sparkles, Stars, Sun } from "lucide-react";
+"use client";
+
+import Image from "next/image";
 import { clsx } from "clsx";
+import { motion } from "framer-motion";
 
-// ── Custom SVG shapes not available in Lucide ─────────────────────────────────
+// ── Approved doodle assets ────────────────────────────────────────────────────
 
-function RainbowSVG() {
-  return (
-    <svg viewBox="0 0 100 58" className="h-full w-full" aria-hidden="true" fill="none">
-      <path d="M5,54 C5,26 18,6 50,6 C82,6 95,26 95,54"
-        stroke="#ef8cab" strokeWidth="7" strokeLinecap="round" />
-      <path d="M13,54 C13,31 23,14 50,14 C77,14 87,31 87,54"
-        stroke="#f7d774" strokeWidth="7" strokeLinecap="round" />
-      <path d="M21,54 C21,36 28,22 50,22 C72,22 79,36 79,54"
-        stroke="#7fd8d2" strokeWidth="7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function StarSVG() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-full w-full" aria-hidden="true">
-      <path
-        d="M12 2L14.09 8.26L21 9.27L16 14.14L17.18 21.02L12 17.77L6.82 21.02L8 14.14L3 9.27L9.91 8.26Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-// ── Doodle map ────────────────────────────────────────────────────────────────
-
-const doodles = {
-  heart:   Heart,
-  star:    Sparkles,
-  stars:   Stars,
-  leaf:    Leaf,
-  cloud:   Cloud,
-  flower:  Flower2,
-  bird:    Bird,
-  sun:     Sun,
-  // custom SVG kinds handled below
-  rainbow: null,
-  solidstar: null,
+const doodleMap = {
+  "blue-bird":   "/doodles/blue-bird.png",
+  "pink-bird":   "/doodles/pink-bird.png",
+  "blue-flower": "/doodles/blue-flower.png",
+  "pink-flower": "/doodles/pink-flower.png",
+  "leaf":        "/doodles/leaf.png",
 } as const;
 
-type DoodleKind = keyof typeof doodles;
+export type DoodleKind = keyof typeof doodleMap;
+
+// ── Animation variants ─────────────────────────────────────────────────────────
+
+const animationVariants = {
+  float: {
+    initial: { y: 0 },
+    animate: { y: [-6, 6, -6] as any },
+    transition: { duration: 4, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
+  },
+  wiggle: {
+    initial: { rotate: 0 },
+    animate: { rotate: [-3, 3, -3, 3, 0] as any },
+    transition: { duration: 3, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
+  },
+  pulse: {
+    initial: { scale: 1, opacity: 0.7 },
+    animate: { scale: [1, 1.08, 1] as any, opacity: [0.7, 1, 0.7] as any },
+    transition: { duration: 2.5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
+  },
+  subtle: {
+    initial: { y: 0, rotate: 0 },
+    animate: { y: [-4, 4, -4] as any, rotate: [-2, 2, -2, 2, 0] as any },
+    transition: { duration: 5, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
+  },
+} as const;
+
+type AnimationVariant = keyof typeof animationVariants;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+// Returns "absolute" when className contains positional Tailwind utilities,
+// "relative" otherwise so next/image fill always has a valid containing block.
+function resolvePosition(className: string | undefined): string {
+  if (/\b(top-|bottom-|left-|right-|inset-)/.test(className ?? "")) return "absolute";
+  return "relative";
+}
+
+function getAnimationVariant(animated: AnimationVariant | boolean | undefined): AnimationVariant | null {
+  if (animated === false || animated === undefined) return null;
+  if (animated === true) return "float";
+  return animated;
+}
+
+// ── Props ─────────────────────────────────────────────────────────────────────
 
 type DoodleProps = {
   kind: DoodleKind;
   className?: string;
-  color?: string;
+  animated?: AnimationVariant | boolean;
+  "aria-hidden"?: boolean;
 };
 
-export default function Doodle({ kind, className, color }: DoodleProps) {
-  const baseClass = clsx("pointer-events-none absolute opacity-80", className);
+// ── Component ─────────────────────────────────────────────────────────────────
 
-  if (kind === "rainbow") {
+export default function Doodle({ kind, className, animated, "aria-hidden": ariaHidden }: DoodleProps) {
+  const src = doodleMap[kind];
+  const posClass = resolvePosition(className);
+  const baseClass = clsx(`pointer-events-none select-none ${posClass}`, className);
+  const animVar = getAnimationVariant(animated);
+
+  if (!animVar) {
     return (
-      <span aria-hidden="true" className={baseClass} style={{ color }}>
-        <RainbowSVG />
-      </span>
+      <div className={baseClass} aria-hidden={ariaHidden ?? true}>
+        <Image src={src} alt="" fill className="object-contain" sizes="80px" priority={false} />
+      </div>
     );
   }
-
-  if (kind === "solidstar") {
-    return (
-      <span aria-hidden="true" className={baseClass} style={{ color }}>
-        <StarSVG />
-      </span>
-    );
-  }
-
-  const Icon = doodles[kind];
-  if (!Icon) return null;
 
   return (
-    <span aria-hidden="true" className={baseClass} style={{ color }}>
-      <Icon className="h-full w-full" strokeWidth={1.7} />
-    </span>
+    <motion.div
+      aria-hidden={ariaHidden ?? true}
+      className={clsx(baseClass, "origin-center")}
+      initial={animationVariants[animVar].initial}
+      animate={animationVariants[animVar].animate}
+      transition={animationVariants[animVar].transition}
+    >
+      <Image src={src} alt="" fill className="object-contain" sizes="80px" priority={false} />
+    </motion.div>
   );
 }

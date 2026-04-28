@@ -3,7 +3,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
-import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
 
 // ── Data ──────────────────────────────────────────────────────────────────────
@@ -234,16 +233,8 @@ export default function LearningPathSection() {
   }
 
   return (
-    <section className="paper-bg relative overflow-hidden px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-      {/* Doodles */}
-      <Doodle kind="solidstar" className="left-[2%]   top-10   h-9  w-9  text-[#f7d774]" />
-      <Doodle kind="flower"    className="right-[3%]  top-8    h-11 w-11 text-[#ef8cab]" />
-      <Doodle kind="heart"     className="left-[46%]  top-6    h-7  w-7  text-[#f4aac8]" />
-      <Doodle kind="cloud"     className="right-[14%] bottom-8 h-12 w-12 text-[#85d6f1]/70" />
-      <Doodle kind="leaf"      className="left-[5%]   bottom-6 h-10 w-10 text-[#7fd8d2]" />
-      <Doodle kind="rainbow"   className="left-[28%]  bottom-4 h-14 w-14" />
-
-      <div className="container-site">
+    <section className="paper-bg relative overflow-hidden px-4 pt-12 pb-0 sm:px-6 lg:px-8 lg:pt-16">
+<div className="container-site">
 
         {/* ── Section header ──────────────────────────────────── */}
         <Reveal>
@@ -326,44 +317,6 @@ export default function LearningPathSection() {
               </div>
             </Reveal>
           ))}
-        </div>
-
-        {/* ── Decorative soft meadow strip ────────────────────── */}
-        <div className="pointer-events-none mt-12 hidden select-none lg:block" aria-hidden="true">
-          <svg viewBox="0 0 900 72" className="mx-auto w-full max-w-3xl opacity-75">
-            {/* Soft hill */}
-            <ellipse cx="450" cy="90" rx="460" ry="80" fill="rgba(127,216,210,0.16)" />
-            {/* Flowers — left cluster */}
-            {([
-              [90,  38, "#ef8cab"],
-              [130, 34, "#f7d774"],
-              [170, 40, "#7fd8d2"],
-              [210, 36, "#6ecfc9"],
-            ] as [number, number, string][]).map(([x, y, c]) => (
-              <g key={x}>
-                <circle cx={x} cy={y}   r={5.5} fill={c}    opacity={0.75} />
-                <circle cx={x} cy={y}   r={2.5} fill="#fff" opacity={0.9}  />
-                <line   x1={x} y1={y+5} x2={x}  y2={y+18} stroke="#7fd8d2" strokeWidth="1.8" strokeLinecap="round" />
-              </g>
-            ))}
-            {/* Flowers — right cluster */}
-            {([
-              [640, 36, "#ef8cab"],
-              [690, 40, "#f0bd55"],
-              [730, 34, "#7fd8d2"],
-              [770, 38, "#f49cb5"],
-            ] as [number, number, string][]).map(([x, y, c]) => (
-              <g key={x}>
-                <circle cx={x} cy={y}   r={5.5} fill={c}    opacity={0.75} />
-                <circle cx={x} cy={y}   r={2.5} fill="#fff" opacity={0.9}  />
-                <line   x1={x} y1={y+5} x2={x}  y2={y+18} stroke="#7fd8d2" strokeWidth="1.8" strokeLinecap="round" />
-              </g>
-            ))}
-            {/* Small stars / sparkles */}
-            <circle cx="400" cy="28" r="3"   fill="#f7d774" opacity="0.6" />
-            <circle cx="490" cy="22" r="2.5" fill="#ef8cab" opacity="0.5" />
-            <circle cx="350" cy="18" r="2"   fill="#7fd8d2" opacity="0.55" />
-          </svg>
         </div>
 
       </div>

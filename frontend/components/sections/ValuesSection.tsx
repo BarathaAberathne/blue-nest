@@ -12,14 +12,11 @@ const pills = [
 
 export default function ValuesSection() {
   return (
-    <section className="relative px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-      {/* Ambient doodles — low opacity, stay out of content zone */}
-      <Doodle kind="solidstar" className="left-[1%]   top-10   h-9  w-9  text-[#f7d774] opacity-60" />
-      <Doodle kind="rainbow"   className="right-[2%]  bottom-8 h-16 w-16 opacity-50" />
-      <Doodle kind="flower"    className="left-[46%]  top-7    h-8  w-8  text-[#f4aac8] opacity-55" />
-      <Doodle kind="leaf"      className="right-[10%] top-12   h-9  w-9  text-[#7fd8d2] opacity-55" />
-      <Doodle kind="cloud"     className="left-[6%]   bottom-10 h-10 w-10 text-[#85d6f1] opacity-40 hidden sm:block" />
-      <Doodle kind="heart"     className="right-[22%] bottom-6  h-7  w-7  text-[#f49cb5] opacity-45 hidden sm:block" />
+    <section className="relative px-4 py-10 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
+      {/* Ambient doodles — edge/corner only, stay out of content zone */}
+      <Doodle kind="pink-bird"   animated="float"   className="absolute right-[5%]  top-10    h-11 w-11 opacity-60 hidden lg:block" />
+      <Doodle kind="leaf"        className="right-[10%] top-10    h-8  w-8  opacity-50 hidden sm:block" />
+      <Doodle kind="blue-flower" animated="wiggle" className="absolute left-[3%]  bottom-10 h-10 w-10 opacity-55 hidden sm:block" />
 
       <div className="container-site">
 

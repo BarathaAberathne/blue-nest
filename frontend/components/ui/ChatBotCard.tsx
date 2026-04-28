@@ -1,6 +1,6 @@
 import { MessageCircle, Send, Sparkles } from "lucide-react";
 
-const quickActions = ["About Our Nurseries", "Book a Virtual Tour", "Fees & Sessions", "Contact Us"];
+const quickActions = ["About Our Nurseries", "View Our Gallery", "Fees & Sessions", "Contact Us"];
 
 export default function ChatBotCard() {
   return (

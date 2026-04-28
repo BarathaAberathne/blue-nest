@@ -41,31 +41,26 @@ export default function WhyMontessoriPage() {
           />
         </div>
 
-        <Doodle kind="bird"      className="left-[6%]   top-8    h-9  w-9  text-[#7fd8d2]   opacity-70" />
-        <Doodle kind="cloud"     className="right-[5%]  top-10   h-12 w-12 text-[#85d6f1]   opacity-45 hidden sm:block" />
-        <Doodle kind="solidstar" className="right-[14%] bottom-8 h-8  w-8  text-[#f7d774]   opacity-55 hidden sm:block" />
-        <Doodle kind="rainbow"   className="left-[46%]  top-6    h-10 w-10                  opacity-40 hidden lg:block" />
+        <Doodle kind="blue-bird"      className="left-[6%]   top-8    h-9  w-9    opacity-70" />
 
-        <div className="container-site relative z-10 py-16 sm:py-20 lg:py-24">
+        <div className="relative z-10 w-full px-6 sm:px-10 lg:px-16 xl:px-20 py-16 sm:py-20 lg:py-24">
           <Reveal>
-            <div className="max-w-xl">
-              <span className="section-kicker">Blue Nest Montessori School</span>
-              <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-white sm:text-[3rem] lg:text-[3.4rem]">
-                Montessori nursery in Harrow, Pinner and Borehamwood
-              </h1>
-              <p className="body-text mt-5 max-w-lg !text-white/90">
-                Blue Nest Montessori School provides a home away from home, where children can
-                learn, develop and grow. If you&rsquo;d like any information about our prospectus
-                or fee structure, contact us today.
-              </p>
-              <div className="mt-7 flex flex-wrap gap-3">
-                <PastelButton href="/contact" variant="rose">
-                  Contact Us <ArrowRight className="h-4 w-4" />
-                </PastelButton>
-                <PastelButton href="/admission" variant="mint">
-                  Application Form <ArrowRight className="h-4 w-4" />
-                </PastelButton>
-              </div>
+            <span className="section-kicker">Blue Nest Montessori School</span>
+            <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-white sm:text-[3rem] lg:text-[3.4rem] max-w-3xl">
+              Montessori nursery in Harrow, Pinner and Borehamwood
+            </h1>
+            <p className="body-text mt-5 max-w-xl !text-white/90">
+              Blue Nest Montessori School provides a home away from home, where children can
+              learn, develop and grow. If you&rsquo;d like any information about our prospectus
+              or fee structure, contact us today.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <PastelButton href="/contact" variant="rose">
+                Contact Us <ArrowRight className="h-4 w-4" />
+              </PastelButton>
+              <PastelButton href="/admission" variant="mint">
+                Application Form <ArrowRight className="h-4 w-4" />
+              </PastelButton>
             </div>
           </Reveal>
         </div>
@@ -76,26 +71,21 @@ export default function WhyMontessoriPage() {
           MARIA MONTESSORI
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="heart"  className="right-[5%]  top-10    h-9  w-9  text-[#f4aac8] opacity-50" />
-        <Doodle kind="leaf"   className="right-[8%]  bottom-10 h-10 w-10 text-[#7fd8d2] opacity-55" />
-        <Doodle kind="flower" className="left-[2%]   bottom-12 h-10 w-10 text-[#ef8cab] opacity-45 hidden sm:block" />
+        <Doodle kind="leaf"   className="right-[8%]  bottom-10 h-10 w-10 opacity-55" />
+        <Doodle kind="pink-flower" className="left-[2%]   bottom-12 h-10 w-10 opacity-45 hidden sm:block" />
 
         <div className="container-site">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
 
             {/* Image — left */}
             <Reveal>
-              <div className="relative mx-auto flex w-full max-w-[360px] items-center justify-center">
-                <div
-                  className="absolute h-[88%] w-[88%] bg-[rgba(127,216,210,0.22)]"
-                  style={{ borderRadius: "42% 58% 54% 46% / 46% 54% 58% 42%" }}
-                />
+              <div className="mx-auto w-full max-w-[360px]">
                 <StickerCard
-                  src="/site-images/why-montessori/maria-moontessori.png"
-                  alt="Maria Montessori"
+                  src="/home/DSC_0151.jpg"
+                  alt="Blue Nest Montessori classroom"
                   rotate={-3}
                   sizes="(max-width: 1024px) 80vw, 36vw"
-                  className="relative z-10 w-[86%]"
+                  className="w-full"
                   aspectRatio="4/5"
                 />
               </div>
@@ -103,8 +93,7 @@ export default function WhyMontessoriPage() {
 
             {/* Text — right */}
             <Reveal delay={0.1}>
-              <span className="section-kicker">The founder</span>
-              <h2 className="section-title mt-4 text-[#cf7d9c]">Maria Montessori</h2>
+              <h2 className="section-title text-[#cf7d9c]">Maria Montessori</h2>
               <div className="mt-3 flex gap-1.5" aria-hidden="true">
                 {Array.from({ length: 7 }).map((_, i) => (
                   <div key={i} className="h-[3px] w-5 rounded-full bg-[#f1a8ca]" />
@@ -134,9 +123,7 @@ export default function WhyMontessoriPage() {
           GREAT START TO SCHOOL LIFE
       ══════════════════════════════════════════════════════ */}
       <section className="blush-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="solidstar" className="left-[4%]   top-10    h-9  w-9  text-[#f7d774] opacity-55" />
-        <Doodle kind="cloud"     className="right-[5%]  bottom-10 h-12 w-12 text-[#85d6f1] opacity-45 hidden sm:block" />
-        <Doodle kind="bird"      className="right-[12%] bottom-8  h-8  w-8  text-[#ef8cab] opacity-50 hidden sm:block" />
+        <Doodle kind="blue-bird"      className="right-[12%] bottom-8  h-8  w-8  opacity-50 hidden sm:block" />
 
         <div className="container-site">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
@@ -189,9 +176,8 @@ export default function WhyMontessoriPage() {
           TESTIMONIAL
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-        <Doodle kind="bird"      className="right-[5%]  top-10   h-9  w-9  text-[#7fd8d2] opacity-55" />
-        <Doodle kind="flower"    className="left-[2%]   bottom-8 h-10 w-10 text-[#f4aac8] opacity-50 hidden sm:block" />
-        <Doodle kind="solidstar" className="left-[46%]  top-8    h-7  w-7  text-[#f7d774] opacity-45" />
+        <Doodle kind="blue-bird"      className="right-[5%]  top-10   h-9  w-9  opacity-55" />
+        <Doodle kind="pink-flower"    className="left-[2%]   bottom-8 h-10 w-10 opacity-50 hidden sm:block" />
 
         <div className="container-site">
           <Reveal>
@@ -238,10 +224,8 @@ export default function WhyMontessoriPage() {
           CTA / CONTACT
       ══════════════════════════════════════════════════════ */}
       <ZigzagBand className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="rainbow"   className="left-[2%]   bottom-8 h-14 w-14           opacity-35 hidden sm:block" />
-        <Doodle kind="leaf"      className="right-[3%]  top-12   h-10 w-10 text-[rgba(90,74,66,0.45)] hidden sm:block" />
-        <Doodle kind="solidstar" className="left-[8%]   top-10   h-8  w-8  text-[#f7d774]/70" />
-        <Doodle kind="flower"    className="right-[18%] bottom-6 h-9  w-9  text-[#f4aac8]/60 hidden lg:block" />
+        <Doodle kind="leaf"      className="right-[3%]  top-12   h-10 w-10 hidden sm:block opacity-40" />
+        <Doodle kind="pink-flower"    className="right-[18%] bottom-6 h-9  w-9  hidden lg:block opacity-40" />
 
         <div className="container-site">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-16">

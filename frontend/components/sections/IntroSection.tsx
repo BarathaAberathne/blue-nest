@@ -8,11 +8,10 @@ import StickerCard from "@/components/ui/StickerCard";
 export default function IntroSection() {
   return (
     <PaperSection className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-      <Doodle kind="flower"    className="left-[1%]   top-10   h-14 w-14 text-[#f49cb5]" />
-      <Doodle kind="star"      className="right-[5%]  top-8    h-11 w-11 text-[#f3bf62]" />
-      <Doodle kind="leaf"      className="right-[9%]  bottom-8 h-13 w-13 text-[#8bdde0]" />
-      <Doodle kind="solidstar" className="left-[42%]  top-6    h-7  w-7  text-[#7fd8d2]" />
-      <Doodle kind="cloud"     className="left-[10%]  bottom-6 h-10 w-10 text-[#85d6f1]" />
+      <Doodle kind="blue-flower" className="left-[1%]   top-10   h-14 w-14 opacity-60" />
+      <Doodle kind="blue-bird"   animated="float" className="absolute right-[18%] top-6 h-12 w-12 opacity-70" />
+      <Doodle kind="leaf"        className="right-[9%]  bottom-8 h-12 w-12 opacity-55" />
+      <Doodle kind="pink-flower" animated="subtle" className="absolute left-[68%] bottom-10 h-10 w-10 opacity-65" />
 
       <div className="container-site grid gap-8 lg:grid-cols-[1fr_1.05fr] lg:items-center">
         <Reveal>
