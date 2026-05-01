@@ -1,12 +1,6 @@
-# Blue Nest Montessori School — Platform
+# Blue Nest Montessori — Platform
 
-A production-ready monorepo for the Blue Nest Montessori School website platform, covering:
-
-- Public nursery marketing site
-- Parent-facing eCommerce store
-- Blog
-- Simple admin dashboard
-- Multi-branch architecture (Harrow, Borehamwood, Pinner, Northwood)
+Production-ready monorepo for the Blue Nest Montessori school website: a pastel-design public marketing site, parent-facing eCommerce store, blog, contact/enquiry system, and admin dashboard. Supports four branches (Harrow, Borehamwood, Pinner, Northwood).
 
 ---
 
@@ -17,63 +11,99 @@ A production-ready monorepo for the Blue Nest Montessori School website platform
 | Frontend | Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, Framer Motion, Lucide React |
 | Backend | Go 1.22, Chi router, REST API |
 | Database | MongoDB 7 |
-| Payments | Stripe (scaffolded) |
-| Auth | JWT (scaffolded via `golang-jwt`) |
+| Payments | Stripe (scaffolded — session + webhook) |
+| Auth | JWT (`golang-jwt`) — backend wired, frontend guards in place |
+| Email | SMTP via `platform/email` (SendGrid-compatible) |
 | Containers | Docker, Docker Compose |
-| CI | GitHub Actions |
 
 ---
 
-## Monorepo Structure
+## Project Structure
 
 ```
 blue-nest-montessori/
-├── backend/                    # Go API
-│   ├── cmd/api/                # Entry point (main.go)
+├── backend/
+│   ├── cmd/api/main.go             # Entry point
 │   ├── internal/
-│   │   ├── config/             # Config loading from env
-│   │   ├── handler/            # HTTP handlers (thin)
-│   │   │   ├── admin/          # Admin-only handlers
-│   │   │   └── webhooks/       # Stripe webhook handler
-│   │   ├── middleware/         # CORS, logger, JWT auth
-│   │   ├── models/             # MongoDB domain models + DTOs
+│   │   ├── config/                 # Env-based config
+│   │   ├── handler/                # HTTP handlers (thin layer)
+│   │   │   ├── admin/              # Admin-only: blog, products, orders, categories, users, enquiries
+│   │   │   └── webhooks/           # Stripe webhook handler
+│   │   ├── middleware/             # CORS, logger, JWT auth
+│   │   ├── models/                 # MongoDB domain models + DTOs
+│   │   │   └── (blog, branch, cart, comment, enquiry, order, payment, product, user)
 │   │   ├── platform/
-│   │   │   ├── logger/         # slog wrapper
-│   │   │   ├── mongo/          # MongoDB connection
-│   │   │   └── stripe/         # Stripe SDK init
-│   │   ├── repository/         # DB queries (interfaces + mongo impls)
-│   │   ├── routes/             # Route registration
-│   │   ├── server/             # Server setup, DI wiring
-│   │   └── service/            # Business logic
+│   │   │   ├── email/              # SMTP email sender
+│   │   │   ├── logger/             # slog wrapper
+│   │   │   ├── mongo/              # MongoDB connection
+│   │   │   └── stripe/             # Stripe SDK init
+│   │   ├── repository/             # DB query interfaces + Mongo implementations
+│   │   ├── routes/                 # Route registration
+│   │   ├── server/                 # Server setup + dependency injection
+│   │   └── service/                # Business logic
 │   ├── pkg/
-│   │   ├── response/           # JSON envelope helpers
-│   │   └── validator/          # JSON decoding
+│   │   ├── response/               # JSON envelope helpers
+│   │   └── validator/              # JSON decode + validation
 │   ├── Dockerfile
 │   └── go.mod
-├── frontend/                   # Next.js app
-│   ├── app/                    # App Router pages
+│
+├── frontend/
+│   ├── app/                        # Next.js App Router pages
+│   │   ├── page.tsx                # Home
+│   │   ├── why-montessori/
+│   │   ├── forest-school/
+│   │   ├── gallery/
+│   │   ├── our-team/
+│   │   ├── our-charities/
+│   │   ├── home-learning/
+│   │   ├── contact/
+│   │   ├── nursery-store/
+│   │   ├── blog/[slug]/
+│   │   ├── branches/               # harrow | borehamwood | pinner | northwood
+│   │   ├── admission/              # admission index + our-fees + prospectus + application-form
+│   │   ├── login/ | register/
+│   │   ├── account/ | account/orders/
+│   │   ├── cart/
+│   │   ├── checkout/success | cancel
+│   │   └── admin/                  # login | dashboard | orders | products | blog | categories | users
+│   │
 │   ├── components/
-│   │   ├── layout/             # Header, Footer, layouts
-│   │   ├── sections/           # Landing-page sections and marketing modules
-│   │   └── ui/                 # Buttons, cards, motion, decorative primitives
-│   ├── features/               # Domain feature components
-│   │   ├── blog/
-│   │   ├── branches/
-│   │   └── store/
-│   ├── hooks/                  # Custom React hooks
-│   ├── lib/api.ts              # Typed API client
-│   ├── public/home/            # Homepage imagery and brand assets
-│   ├── styles/globals.css      # Tailwind + design tokens
-│   ├── types/index.ts          # Shared TypeScript types
+│   │   ├── layout/                 # Header, Footer, PublicLayout, AdminLayout, AccountLayout
+│   │   ├── sections/               # HeroSection, IntroSection, VirtualTourStrip, FeatureCardsSection,
+│   │   │                           #   ValuesSection, GallerySection, LearningPathSection
+│   │   ├── blog/                   # BlogClient
+│   │   ├── contact/                # ContactPageClient, BranchMap, LeafletMap
+│   │   ├── gallery/                # GalleryPageClient
+│   │   ├── store/                  # StoreClient
+│   │   └── ui/                     # Design-system primitives:
+│   │                               #   Button, PastelButton, BlobButton, Badge, Card, StickerCard,
+│   │                               #   PolaroidCard, PaperSection, ZigzagBand, SectionDivider,
+│   │                               #   SectionWrapper, PageWrapper, Motion, Doodle, LightboxGallery,
+│   │                               #   ChatBotCard, ChatBotFAB, BreakIllustration
+│   │
+│   ├── lib/
+│   │   ├── api.ts                  # Typed API client (all backend calls)
+│   │   ├── auth.ts                 # JWT token helpers
+│   │   ├── store-cart.ts           # localStorage cart state + helpers
+│   │   ├── gallery-data.ts         # Static gallery data
+│   │   └── useAuthGuard.ts         # Auth redirect hook
+│   │
+│   ├── types/index.ts              # Shared TypeScript types
+│   ├── public/
+│   │   ├── home/                   # Hero images, logo, brand assets
+│   │   ├── doodles/                # Decorative hand-drawn PNGs
+│   │   └── site-images/            # Badges, accreditations, section breaks
+│   ├── styles/globals.css          # Tailwind + CSS design tokens
+│   ├── tailwind.config.ts
 │   ├── Dockerfile
 │   └── package.json
-├── docs/
-│   └── api.md                  # API reference
-├── .github/workflows/ci.yml    # GitHub Actions CI
+│
+├── docs/api.md                     # API endpoint reference
+├── scripts/                        # Image processing utilities (Python)
 ├── .env.example
 ├── docker-compose.yml
 ├── Makefile
-└── README.md
+└── swagger.yaml
 ```
 
 ---
@@ -83,7 +113,6 @@ blue-nest-montessori/
 - [Go 1.22+](https://go.dev/dl/)
 - [Node.js 20+](https://nodejs.org/)
 - [Docker & Docker Compose](https://docs.docker.com/get-docker/)
-- (Optional) [golangci-lint](https://golangci-lint.run/) for linting
 
 ---
 
@@ -93,102 +122,113 @@ blue-nest-montessori/
 cp .env.example .env
 ```
 
-Edit `.env` and fill in your secrets:
+Edit `.env` with your secrets:
 
 | Variable | Description |
 |---|---|
-| `APP_SECRET` | Application secret (32 chars) |
+| `APP_SECRET` | App secret (32 chars) |
 | `JWT_SECRET` | JWT signing secret (64 chars) |
+| `JWT_EXPIRY_HOURS` | Access token lifetime (default: 24) |
+| `JWT_REFRESH_EXPIRY_DAYS` | Refresh token lifetime (default: 30) |
 | `STRIPE_SECRET_KEY` | Stripe secret key (`sk_test_...`) |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret |
 | `STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (`pk_test_...`) |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Same key for frontend |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Same key for Next.js |
+| `NEXT_PUBLIC_API_URL` | Backend URL seen by the browser (default: `http://localhost:8080`) |
+| `FRONTEND_URL` | Allowed CORS origin (default: `http://localhost:3000`) |
+| `SMTP_HOST` | SMTP host — leave blank to skip sending in local dev |
+| `SMTP_PORT` | SMTP port (default: 587) |
+| `SMTP_USER` / `SMTP_PASS` | SMTP credentials |
+| `SMTP_FROM` | Sender address |
+| `SMTP_ADMIN_TO` | Admin recipient for enquiry emails |
 
-MongoDB and API URLs have sensible defaults for local development.
+MongoDB has sensible defaults (`mongodb://localhost:27017`, DB `blue_nest_montessori`).
 
 ---
 
 ## Local Development
 
-### Option A — Full stack with Docker (recommended for first run)
+### Option A — Docker (recommended for first run)
 
 ```bash
-make setup       # copy .env.example → .env
-make docker-up   # start MongoDB + API + Next.js
+make setup      # install deps + copy .env.example → .env
+make docker-up  # start MongoDB + Go API + Next.js
 ```
 
-Services:
-- **Web** → http://localhost:3000
-- **API** → http://localhost:8080
-- **MongoDB** → localhost:27017
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:3000 |
+| API | http://localhost:8080 |
+| MongoDB | mongodb://localhost:27017 |
 
 ### Option B — Native dev servers (hot-reload)
 
-Requires MongoDB running locally or via `docker compose up mongodb`.
+Requires MongoDB running (run `docker compose up mongodb` if needed).
 
 ```bash
-make install      # install Go modules + Node packages
-make dev          # starts both backend and frontend concurrently
+make install      # download Go modules + npm install
+make dev          # start both backend and frontend concurrently
 ```
 
 Or individually:
 
 ```bash
-make dev-backend  # Go API with go run (hot-reload via air if installed)
-make dev-frontend # Next.js dev server
+make dev-backend   # Go API (go run ./cmd/api)
+make dev-frontend  # Next.js dev server (npm run dev)
 ```
 
 ---
 
-## Docker Usage
-
-```bash
-make docker-up      # start all services in background
-make docker-down    # stop all services
-make docker-build   # rebuild images
-make docker-logs    # stream logs from all containers
-make docker-restart # restart all containers
-make mongo-shell    # open mongosh in the running MongoDB container
-```
-
----
-
-## Makefile Commands
+## Makefile Reference
 
 | Command | Description |
 |---|---|
-| `make setup` | First-time setup: install deps and copy `.env.example` |
-| `make build` | Build Go binary + Next.js production bundle |
+| `make setup` | First-time setup: install deps + create `.env` |
 | `make dev` | Start both dev servers concurrently |
+| `make build` | Build Go binary + Next.js production bundle |
 | `make run` | Build then run both production servers |
-| `make test` | Run Go tests + frontend tests |
-| `make lint` | Run `go vet` + Next.js ESLint |
-| `make install` | Download Go modules + install npm packages |
+| `make test` | Go tests + frontend tests |
+| `make lint` | `go vet` + Next.js ESLint |
+| `make install` | Go `mod download` + `npm install` |
 | `make docker-up` | Start all Docker services |
 | `make docker-down` | Stop all Docker services |
-| `make clean` | Remove build artifacts |
+| `make docker-build` | Rebuild Docker images |
+| `make docker-logs` | Stream logs from all containers |
+| `make docker-restart` | Rebuild images and restart containers |
+| `make mongo-shell` | Open `mongosh` in the running MongoDB container |
+| `make clean` | Remove build artifacts (`backend/bin`, `.next`, `out`) |
 
 ---
 
 ## Frontend Pages
 
 ### Public
+
 | Route | Description |
 |---|---|
-| `/` | Home — pastel scrapbook-style landing page with animated hero, virtual-tour CTA, gallery cards and values strip |
+| `/` | Home — pastel scrapbook landing page with animated hero, virtual-tour CTA, gallery, and values strip |
 | `/why-montessori` | Montessori philosophy and principles |
 | `/forest-school` | Forest School programme |
-| `/admission` | Admissions process and funding info |
-| `/gallery` | Photo gallery |
+| `/gallery` | Photo gallery with lightbox |
 | `/our-team` | Team profiles |
 | `/our-charities` | Charity partnerships |
 | `/home-learning` | Home learning resources |
-| `/nursery-store` | Product listing |
+| `/nursery-store` | Product listing with localStorage cart |
 | `/contact` | Branch contacts + enquiry form |
 | `/blog` | Blog post listing |
 | `/blog/[slug]` | Individual blog post |
 
+### Admission
+
+| Route | Description |
+|---|---|
+| `/admission` | Admissions overview |
+| `/admission/our-fees` | Fee schedule |
+| `/admission/prospectus` | School prospectus |
+| `/admission/application-form` | Online application form |
+
 ### Branch Pages
+
 | Route | Status |
 |---|---|
 | `/branches/harrow` | Active |
@@ -197,6 +237,7 @@ make mongo-shell    # open mongosh in the running MongoDB container
 | `/branches/northwood` | Coming Soon |
 
 ### Auth & Account
+
 | Route | Description |
 |---|---|
 | `/login` | Sign in |
@@ -208,6 +249,7 @@ make mongo-shell    # open mongosh in the running MongoDB container
 | `/checkout/cancel` | Checkout cancelled |
 
 ### Admin
+
 | Route | Description |
 |---|---|
 | `/admin/login` | Admin sign in |
@@ -215,7 +257,9 @@ make mongo-shell    # open mongosh in the running MongoDB container
 | `/admin/orders` | All orders list |
 | `/admin/orders/[id]` | Order detail + status update |
 | `/admin/products` | Product management |
+| `/admin/categories` | Category management |
 | `/admin/blog` | Blog post management |
+| `/admin/users` | User management |
 
 ---
 
@@ -229,13 +273,88 @@ Base URL: `http://localhost:8080`
 | Auth | `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `POST /auth/refresh` |
 | Products | `GET /products`, `GET /products/:id`, `GET /categories` |
 | Cart | `GET /cart`, `POST /cart/items`, `PUT /cart/items/:id`, `DELETE /cart/items/:id` |
-| Checkout | `POST /checkout/session`, `POST /webhooks/stripe` |
+| Checkout | `POST /checkout/session` |
+| Webhooks | `POST /webhooks/stripe` |
 | Orders | `GET /orders/me`, `GET /orders/:id` |
 | Blog | `GET /blog/posts`, `GET /blog/posts/:slug` |
+| Comments | `GET /blog/posts/:slug/comments`, `POST /blog/posts/:slug/comments` |
 | Branches | `GET /branches`, `GET /branches/:slug` |
-| Admin | `GET/PATCH /admin/orders`, `GET/POST/PUT/DELETE /admin/products`, `GET/POST/PUT /admin/blog/posts` |
+| Contact | `POST /contact` |
+| Admin — Orders | `GET /admin/orders`, `PATCH /admin/orders/:id` |
+| Admin — Products | `GET/POST/PUT/DELETE /admin/products/:id` |
+| Admin — Categories | `GET/POST/PUT/DELETE /admin/categories/:id` |
+| Admin — Blog | `GET/POST/PUT/DELETE /admin/blog/posts/:id` |
+| Admin — Users | `GET /admin/users`, `PATCH /admin/users/:id` |
+| Admin — Enquiries | `GET /admin/enquiries` |
 
 See [docs/api.md](docs/api.md) for full request/response contracts.
+
+---
+
+## Design System
+
+The frontend uses a hand-crafted pastel design system defined in `styles/globals.css` and `tailwind.config.ts`.
+
+### Colour Tokens
+
+| Token | Hex | Usage |
+|---|---|---|
+| `--paper` | `#f9f4ee` | Page background |
+| `--soft-white` | `#fffdf9` | Card background |
+| `--blush` | `#f6d5df` | Header strip, pink accent |
+| `--mint` | `#aee6dd` | Button variant, section fills |
+| `--aqua` | `#7fd8d2` | Primary brand teal — icons, CTAs |
+| `--lavender` | `#bfa6e8` | Accent |
+| `--butter` | `#f7d774` | Doodle accent |
+| `--ink` | `#5a4a42` | All body text (never pure black) |
+| `--rose-ink` | `#cf7d9c` | Headings, kicker text |
+
+### Fonts
+
+- **Heading:** Amatic SC 700 (`--font-heading`)
+- **Body:** Roboto 300/400/500/700 (`--font-body`)
+
+### Key UI Components
+
+| Component | Location | Purpose |
+|---|---|---|
+| `PastelButton` | `ui/PastelButton` | Chunky rounded CTA buttons |
+| `ZigzagBand` | `ui/ZigzagBand` | Coloured section dividers |
+| `PolaroidCard` | `ui/PolaroidCard` | Scrapbook-style image cards |
+| `StickerCard` | `ui/StickerCard` | Feature cards with icon badges |
+| `PaperSection` | `ui/PaperSection` | Paper-texture section wrapper |
+| `Doodle` | `ui/Doodle` | Floating hand-drawn decorations |
+| `ChatBotCard` | `ui/ChatBotCard` | Hero chatbot UI panel |
+| `ChatBotFAB` | `ui/ChatBotFAB` | Floating action button for chatbot |
+| `LightboxGallery` | `ui/LightboxGallery` | Full-screen image lightbox |
+
+---
+
+## Homepage Architecture (Conversion-First)
+
+The homepage follows a conversion-first layout optimised for "Book a Visit" conversions and Montessori nursery SEO (Harrow / Pinner / Borehamwood).
+
+**Section order:** Hero → QuickInfoStrip → FeatureCards → About → Nurseries → GalleryPreview → FeesCTA → FinalCTA
+
+**Rules that must be maintained:**
+- The Hero must stay minimal — no calculator, no contact block, no inline chatbot. Exactly **2 CTAs** only.
+- The **H1 must appear exactly once** per page (in `HeroSection`) and contain the target keywords.
+- The chatbot is a **sticky FAB** (`ChatBotFAB` in `PublicLayout`) — never embedded inline in a section.
+- Doodles are **decorative only**: always `absolute` positioned, `hidden lg:block`, max 2 per section. They must never affect layout height or spacing.
+- **Cards must maintain equal height** across all pages — use `flex` on the `Reveal` wrapper and `h-full w-full` on the card element.
+- **Avoid duplicate CTAs** across sections — only one "Book a Visit" is the primary action. Supporting CTAs (fees, gallery, nurseries) are secondary.
+- All headings use `text-[var(--ink)]` — no bright accent colors on section titles.
+- Triangle page-breakers and `ZigzagBand` are **removed** from the homepage.
+
+---
+
+## Cart Architecture
+
+The store cart is currently **localStorage-based** (`lib/store-cart.ts`), decoupled from the Go API cart endpoints. This was done to ship the store UI without requiring auth.
+
+Migration path when ready:
+1. Replace `store-cart.ts` functions with calls to `lib/api.ts` cart endpoints
+2. The API cart endpoints are already implemented and ready
 
 ---
 
@@ -243,41 +362,36 @@ See [docs/api.md](docs/api.md) for full request/response contracts.
 
 Each branch (`harrow`, `borehamwood`, `pinner`, `northwood`) has:
 
-- A dedicated frontend page at `/branches/:slug`
+- A frontend page at `/branches/:slug`
 - A `Branch` MongoDB document with `slug`, `name`, `status`, `contact`, and `admissions` fields
-- `status` is either `active` or `coming_soon` — Northwood ships as `coming_soon`
-- Products, blog posts, and orders can be tagged with `branch_slugs` for future filtering
+- `status` is either `active` or `coming_soon`
 
-To add a new branch: create the branch document, add a frontend page, and add it to the header navigation. No architectural changes required.
+Products, blog posts, and orders carry `branch_slugs` for future per-branch filtering — no schema migration needed to scope content.
 
----
-
-## Next Implementation Steps (Priority Order)
-
-1. **JWT auth end-to-end** — wire login/register into the frontend, store token in httpOnly cookie, add auth guards on account/admin routes
-2. **MongoDB indexes** — add unique indexes on `users.email`, `products.slug`, `blog_posts.slug`, `branches.slug`
-3. **Branch seed script** — populate the `branches` collection with the four starter branches from `models.SeedBranches()`
-4. **Stripe checkout** — implement `POST /checkout/session` to create a Stripe checkout session, handle `checkout.session.completed` webhook to mark orders paid
-5. **Product management** — connect admin products page to the API, add image upload (Cloudinary recommended)
-6. **Blog CMS** — connect admin blog page to the API, add a rich text editor (Tiptap or Slate)
-7. **Cart state** — implement frontend cart state (Zustand or React Context), connect to `/api/v1/cart`
-8. **Email notifications** — send order confirmation emails via Resend or SendGrid on payment success
-9. **SEO metadata** — add per-branch and per-post `generateMetadata` with real content
-10. **Image uploads** — integrate Cloudinary or S3 for product images, gallery, and blog covers
-11. **Analytics** — add PostHog or Plausible for GDPR-compliant analytics
-12. **Refresh tokens** — implement the `/auth/refresh` endpoint and client-side token refresh logic
-13. **Branch manager role** — scope admin access by `branch_slugs` on the JWT claims
+To add a new branch: create the DB document, add the frontend page, and add it to header navigation.
 
 ---
 
-## Scalability Decisions
+## Next Steps (Priority Order)
 
-**Modular monolith** — The Go backend uses a clean layered architecture (handler → service → repository) with interfaces throughout. Each layer can be extracted to a separate service later without rewriting business logic.
+1. **Seed data** — run `SeedBranches()` to populate the branches collection; add product seed from `catalog_products.csv`
+2. **MongoDB indexes** — unique indexes on `users.email`, `products.slug`, `blog_posts.slug`, `branches.slug`
+3. **JWT auth end-to-end** — frontend already has `useAuthGuard`; connect `/login` and `/register` pages to the API and store token in an httpOnly cookie
+4. **Cart migration** — swap `lib/store-cart.ts` for API-backed calls once auth is wired
+5. **Stripe checkout** — implement `POST /checkout/session`, handle `checkout.session.completed` webhook to mark orders paid and send confirmation email
+6. **Product image upload** — integrate Cloudinary or S3; hook into admin products page
+7. **Blog rich text editor** — connect admin blog to API; add Tiptap or Slate
+8. **ChatBot** — connect `ChatBotCard` / `ChatBotFAB` to a real AI endpoint or third-party (Tidio / Crisp)
+9. **SEO metadata** — add `generateMetadata` per page with real branch/post content
+10. **Analytics** — PostHog or Plausible (GDPR-compliant)
+11. **Refresh tokens** — implement `/auth/refresh` endpoint + client-side token refresh
 
-**Interface-driven** — Auth, Stripe, and all repositories are behind interfaces. Swapping implementations (e.g. Redis cart, S3 storage) requires only a new struct that satisfies the interface.
+---
 
-**Branch-aware data model** — `branch_slugs` on products, blog posts, and users means branch filtering is additive — no schema migration needed to scope content to a specific branch.
+## Scalability Notes
 
-**Decoupled frontend** — The Next.js app communicates with the API exclusively through `lib/api.ts`. No page is bound to mock data structures; all data shapes match the Go DTOs.
-
-**Env-first config** — All secrets and environment-specific values come from environment variables. The same binary runs in development, staging, and production.
+- **Layered architecture** — handler → service → repository with interfaces throughout; each layer can be extracted to a microservice without rewriting business logic
+- **Interface-driven** — auth, Stripe, email, and all repositories are behind interfaces; swap implementations (Redis cart, S3 storage) by satisfying the interface
+- **Branch-aware data model** — `branch_slugs` on products, blog posts, and users is additive; no migrations needed for branch scoping
+- **Decoupled frontend** — all API calls go through `lib/api.ts`; no page is coupled to mock data structures
+- **Env-first config** — the same binary runs in development, staging, and production

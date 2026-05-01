@@ -41,8 +41,15 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), UserIDKey, claims["sub"])
-			ctx = context.WithValue(ctx, UserRoleKey, claims["role"])
+			userID, _ := claims["sub"].(string)
+			role, _ := claims["role"].(string)
+			if userID == "" || role == "" {
+				response.Unauthorized(w, "invalid token claims")
+				return
+			}
+
+			ctx := context.WithValue(r.Context(), UserIDKey, userID)
+			ctx = context.WithValue(ctx, UserRoleKey, role)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -53,6 +60,17 @@ func AdminOnly(next http.Handler) http.Handler {
 		role, _ := r.Context().Value(UserRoleKey).(string)
 		if role != "admin" && role != "branch_manager" {
 			response.Forbidden(w, "admin access required")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func SuperAdminOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		role, _ := r.Context().Value(UserRoleKey).(string)
+		if role != "admin" {
+			response.Forbidden(w, "super admin access required")
 			return
 		}
 		next.ServeHTTP(w, r)

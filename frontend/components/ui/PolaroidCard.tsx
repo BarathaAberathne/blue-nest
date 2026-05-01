@@ -19,8 +19,8 @@ export default function PolaroidCard({
   icon: Icon,
 }: PolaroidCardProps) {
   return (
-    <article className="card p-3 flex flex-col h-full">
-      <div className="relative aspect-[4/5] overflow-hidden rounded-[1.7rem]">
+    <article className="card p-3 flex flex-col h-full w-full transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(90,74,66,0.13)]">
+      <div className="relative aspect-square overflow-hidden rounded-[1.7rem]">
         <Image src={image} alt={alt} fill className="object-cover" sizes="(max-width: 768px) 100vw, 25vw" />
       </div>
       <div className="flex flex-col flex-1 px-3 pb-5 pt-6">
@@ -30,7 +30,7 @@ export default function PolaroidCard({
         >
           <Icon className="h-6 w-6" strokeWidth={1.8} />
         </div>
-        <h3 className="card-title" style={{ color: accent }}>
+        <h3 className="card-title text-[var(--ink)]">
           {title}
         </h3>
         <p className="body-text mt-4">{description}</p>

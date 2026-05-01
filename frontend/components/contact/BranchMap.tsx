@@ -11,6 +11,6 @@ const LeafletMap = dynamic(() => import("./LeafletMap"), {
   ),
 });
 
-export default function BranchMap() {
-  return <LeafletMap />;
+export default function BranchMap({ branchId }: { branchId?: string }) {
+  return <LeafletMap focusBranch={branchId} />;
 }

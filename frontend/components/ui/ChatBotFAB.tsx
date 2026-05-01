@@ -15,7 +15,7 @@ export default function ChatBotFAB() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open chat assistant"
-        className="fixed bottom-6 right-6 z-[45] flex h-14 w-14 items-center justify-center rounded-full bg-[#6ecfc9] text-white shadow-[0_8px_24px_rgba(110,207,201,0.5)] transition-transform duration-200 hover:scale-110 active:scale-95 lg:hidden"
+        className="fixed bottom-6 right-6 z-[45] flex h-14 w-14 items-center justify-center rounded-full bg-[#6ecfc9] text-white shadow-[0_8px_24px_rgba(110,207,201,0.5)] transition-transform duration-200 hover:scale-110 active:scale-95"
       >
         <MessageCircle className="h-7 w-7" />
       </button>
@@ -26,7 +26,7 @@ export default function ChatBotFAB() {
             {/* Backdrop */}
             <motion.div
               key="fab-backdrop"
-              className="fixed inset-0 z-[46] bg-[rgba(90,74,66,0.35)] backdrop-blur-[2px] lg:hidden"
+              className="fixed inset-0 z-[46] bg-[rgba(90,74,66,0.35)] backdrop-blur-[2px]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -37,7 +37,7 @@ export default function ChatBotFAB() {
             {/* Slide-up panel */}
             <motion.div
               key="fab-panel"
-              className="fixed bottom-0 left-0 right-0 z-[47] flex flex-col items-center rounded-t-[2rem] bg-[var(--paper)] px-4 pb-8 pt-4 shadow-[0_-16px_50px_rgba(90,74,66,0.18)] lg:hidden"
+              className="fixed bottom-0 left-0 right-0 z-[47] flex flex-col items-center rounded-t-[2rem] bg-[var(--paper)] px-4 pb-8 pt-4 shadow-[0_-16px_50px_rgba(90,74,66,0.18)]"
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}

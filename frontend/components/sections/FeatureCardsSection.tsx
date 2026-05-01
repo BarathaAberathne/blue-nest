@@ -5,10 +5,10 @@ import Doodle from "@/components/ui/Doodle";
 
 const cards = [
   {
-    title: "Montessori",
-    description: "Child-led learning with beautiful Montessori materials that build independence, focus and a lifelong love of discovery.",
+    title: "Montessori Learning",
+    description: "Child-led discovery with beautiful Montessori materials that build independence, focus and a genuine love of learning.",
     image: "/home/collage-2.png",
-    alt: "Child working with Montessori materials",
+    alt: "Child working with Montessori materials at Blue Nest nursery",
     accent: "#ef8cab",
     icon: Sparkles,
   },
@@ -16,23 +16,23 @@ const cards = [
     title: "Forest School",
     description: "Outdoor learning adventures that connect children with nature, build resilience and spark curiosity beyond the classroom.",
     image: "/home/collage-1.png",
-    alt: "Children exploring outdoors at Forest School",
+    alt: "Children exploring outdoors at Blue Nest Forest School",
     accent: "#82cfc4",
     icon: Leaf,
   },
   {
     title: "Healthy Food",
-    description: "Nutritious, freshly prepared halal meal plans and menus designed to fuel growing minds and bodies every day.",
+    description: "Freshly prepared, nutritious halal meals and menus carefully designed to fuel growing minds and bodies every day.",
     image: "/home/collage-3.png",
-    alt: "Healthy meals and menus at Blue Nest",
+    alt: "Healthy halal meals served at Blue Nest Montessori",
     accent: "#b89bdd",
     icon: Utensils,
   },
   {
-    title: "Safe Environments",
-    description: "A warm, home-away-from-home where every child feels valued, secure and gently supported to thrive.",
+    title: "Safe Environment",
+    description: "A warm, home-away-from-home where every child feels valued, secure and gently supported to grow and thrive.",
     image: "/home/collage-4.png",
-    alt: "Safe and nurturing nursery environment",
+    alt: "Safe and nurturing nursery environment at Blue Nest",
     accent: "#f0bd55",
     icon: Heart,
   },
@@ -40,20 +40,20 @@ const cards = [
 
 export default function FeatureCardsSection() {
   return (
-    <section className="relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+    <section className="relative px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
       <Doodle kind="pink-bird" animated="wiggle" className="absolute left-[3%] top-12 h-11 w-11 opacity-60" />
       <Doodle kind="leaf"      animated="float"  className="absolute right-[4%] bottom-8 h-10 w-10 opacity-55" />
       <div className="container-site">
         <Reveal>
           <div className="mb-10 text-center">
             <span className="section-kicker">What families notice first</span>
-            <h2 className="section-title mt-4 text-[#cf7d9c]">Everything that makes Blue Nest special</h2>
+            <h2 className="section-title mt-4">Everything that makes Blue Nest special</h2>
           </div>
         </Reveal>
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4 items-stretch">
           {cards.map((card, index) => (
-            <Reveal key={card.title} delay={0.08 * index} className="h-full">
+            <Reveal key={card.title} delay={0.08 * index} className="flex">
               <PolaroidCard {...card} />
             </Reveal>
           ))}

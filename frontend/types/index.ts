@@ -35,11 +35,14 @@ export interface Category {
 
 export interface Product {
   id: string;
+  external_id?: string;
+  sku?: string;
   slug: string;
   name: string;
   description: string;
   price: number; // pence
   currency: string;
+  category?: string;
   category_id: string;
   image_url?: string;
   stock_qty: number;
@@ -94,10 +97,22 @@ export interface BlogPost {
   title: string;
   excerpt: string;
   body: string;
+  author_id?: string;
   author_name: string;
   cover_image?: string;
+  gallery_images?: string[];
   tags?: string[];
+  like_count?: number;
+  published?: boolean;
   published_at?: string;
+}
+
+export interface Comment {
+  id: string;
+  post_slug: string;
+  name: string;
+  body: string;
+  created_at: string;
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────────────

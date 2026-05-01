@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type BlogRepository interface {
@@ -16,6 +17,8 @@ type BlogRepository interface {
 	FindBySlug(ctx context.Context, slug string) (*models.BlogPost, error)
 	Create(ctx context.Context, post models.BlogPost) (*models.BlogPost, error)
 	Update(ctx context.Context, id string, post models.BlogPost) (*models.BlogPost, error)
+	Delete(ctx context.Context, id string) error
+	IncrementLike(ctx context.Context, slug string) (int64, error)
 }
 
 type blogRepository struct {
@@ -31,7 +34,7 @@ func (r *blogRepository) FindPublished(ctx context.Context) ([]models.BlogPost, 
 	if err != nil {
 		return nil, err
 	}
-	var results []models.BlogPost
+	results := make([]models.BlogPost, 0)
 	return results, cursor.All(ctx, &results)
 }
 
@@ -40,7 +43,7 @@ func (r *blogRepository) FindAll(ctx context.Context) ([]models.BlogPost, error)
 	if err != nil {
 		return nil, err
 	}
-	var results []models.BlogPost
+	results := make([]models.BlogPost, 0)
 	return results, cursor.All(ctx, &results)
 }
 
@@ -65,7 +68,53 @@ func (r *blogRepository) Update(ctx context.Context, id string, post models.Blog
 	if err != nil {
 		return nil, err
 	}
-	post.UpdatedAt = time.Now()
-	_, err = r.col.ReplaceOne(ctx, bson.M{"_id": oid}, post)
-	return &post, err
+
+	update := bson.M{
+		"$set": bson.M{
+			"slug":          post.Slug,
+			"title":         post.Title,
+			"excerpt":       post.Excerpt,
+			"body":          post.Body,
+			"author_id":     post.AuthorID,
+			"author_name":   post.AuthorName,
+			"cover_image":   post.CoverImage,
+			"gallery_images": post.GalleryImages,
+			"tags":          post.Tags,
+			"branch_slugs":  post.BranchSlugs,
+			"published":     post.Published,
+			"published_at":  post.PublishedAt,
+			"updated_at":    time.Now(),
+		},
+	}
+
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	var out models.BlogPost
+	if err := r.col.FindOneAndUpdate(ctx, bson.M{"_id": oid}, update, opts).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (r *blogRepository) Delete(ctx context.Context, id string) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	_, err = r.col.DeleteOne(ctx, bson.M{"_id": oid})
+	return err
+}
+
+func (r *blogRepository) IncrementLike(ctx context.Context, slug string) (int64, error) {
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	var post models.BlogPost
+	err := r.col.FindOneAndUpdate(
+		ctx,
+		bson.M{"slug": slug, "published": true},
+		bson.M{"$inc": bson.M{"like_count": 1}},
+		opts,
+	).Decode(&post)
+	if err != nil {
+		return 0, err
+	}
+	return post.LikeCount, nil
 }

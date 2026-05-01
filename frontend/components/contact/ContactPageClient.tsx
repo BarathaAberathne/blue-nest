@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { api } from "@/lib/api";
 import {
   Check,
   CheckCircle2,
@@ -9,9 +11,7 @@ import {
   Clock,
   ExternalLink,
   Mail,
-  MapPin,
   Phone,
-  User,
 } from "lucide-react";
 import BranchMap from "./BranchMap";
 
@@ -189,11 +189,34 @@ function SuccessMessage({ onReset }: { onReset: () => void }) {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
+// Map URL param values to the form's enquiry type strings
+const ENQUIRY_PARAM_MAP: Record<string, string> = {
+  "arrange-a-visit":  "Arrange a visit",
+  "fees":             "Fees and availability",
+  "application-form": "Application form",
+  "general-enquiry":  "General enquiry",
+};
+
 export default function ContactPageClient() {
-  const [form,   setForm]   = useState<FormValues>(EMPTY_FORM);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
+  const [form,      setForm]      = useState<FormValues>(EMPTY_FORM);
+  const [errors,    setErrors]    = useState<Record<string, string>>({});
+  const [status,    setStatus]    = useState<"idle" | "submitting" | "success">("idle");
+  const [submitErr, setSubmitErr] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const searchParams = useSearchParams();
+
+  // Pre-fill from URL params: ?enquiry=arrange-a-visit&branch=harrow
+  useEffect(() => {
+    const enquiry = searchParams.get("enquiry");
+    const branch  = searchParams.get("branch");
+    if (enquiry || branch) {
+      setForm((f) => ({
+        ...f,
+        ...(enquiry && ENQUIRY_PARAM_MAP[enquiry] ? { enquiryType: ENQUIRY_PARAM_MAP[enquiry] } : {}),
+        ...(branch ? { branch } : {}),
+      }));
+    }
+  }, [searchParams]);
 
   const set = (field: keyof FormValues) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -216,8 +239,23 @@ export default function ContactPageClient() {
       return;
     }
     setStatus("submitting");
-    await new Promise((r) => setTimeout(r, 1400));
-    setStatus("success");
+    setSubmitErr(null);
+    try {
+      await api.submitEnquiry({
+        name:         form.name,
+        email:        form.email,
+        phone:        form.phone,
+        branch:       form.branch,
+        child_age:    form.childAge,
+        enquiry_type: form.enquiryType,
+        message:      form.message,
+        consent:      form.consent,
+      });
+      setStatus("success");
+    } catch (err) {
+      setSubmitErr(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setStatus("idle");
+    }
   };
 
   return (
@@ -260,7 +298,7 @@ export default function ContactPageClient() {
             <div className="rounded-[1.8rem] bg-white p-6 shadow-[0_4px_20px_rgba(90,74,66,0.08)] ring-1 ring-[rgba(90,74,66,0.04)] lg:p-8">
 
               {status === "success" ? (
-                <SuccessMessage onReset={() => { setForm(EMPTY_FORM); setStatus("idle"); }} />
+                <SuccessMessage onReset={() => { setForm(EMPTY_FORM); setStatus("idle"); setSubmitErr(null); }} />
               ) : (
                 <>
                   <div className="mb-6">
@@ -421,6 +459,12 @@ export default function ContactPageClient() {
                     <p className="text-[0.65rem] text-[rgba(90,74,66,0.38)]">
                       <span className="text-[#ef8cab]">*</span> Required fields
                     </p>
+
+                    {submitErr && (
+                      <p role="alert" className="rounded-xl bg-[#fff0f3] px-4 py-2.5 text-[0.8rem] font-semibold text-[#c45820]">
+                        {submitErr}
+                      </p>
+                    )}
 
                     {/* Submit */}
                     <button

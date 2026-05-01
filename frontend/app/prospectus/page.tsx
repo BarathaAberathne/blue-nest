@@ -231,6 +231,34 @@ export default function ProspectusPage() {
         </div>
       </section>
 
+
+      {/* ══════════════════════════════════════════════════════
+          CTA
+      ══════════════════════════════════════════════════════ */}
+      <section className="chalk-bg relative overflow-hidden px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <Doodle kind="leaf"      className="right-[5%]  top-10   h-10 w-10 text-white/40   hidden sm:block opacity-40" />
+        <Doodle kind="pink-flower"    className="right-[16%] bottom-6 h-9  w-9  hidden lg:block opacity-40" />
+
+        <div className="container-site">
+          <Reveal>
+            <div className="mx-auto max-w-xl text-center">
+              <h2 className="font-heading text-[2.2rem] leading-[1.2] text-white sm:text-[2.6rem]">
+                Download our prospectus or get in touchss
+              </h2>
+              <div className="mt-7 flex flex-wrap justify-center gap-4">
+                <PastelButton href="/contact" variant="blush">
+                  Contact Us <ArrowRight className="h-4 w-4" />
+                </PastelButton>
+                <PastelButton href="/application-form" variant="butter">
+                  Application Form <ArrowRight className="h-4 w-4" />
+                </PastelButton>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+
     </PublicLayout>
   );
 }

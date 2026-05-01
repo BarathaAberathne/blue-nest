@@ -26,7 +26,7 @@ func (r *branchRepository) FindAll(ctx context.Context) ([]models.Branch, error)
 	if err != nil {
 		return nil, err
 	}
-	var results []models.Branch
+	results := make([]models.Branch, 0)
 	return results, cursor.All(ctx, &results)
 }
 

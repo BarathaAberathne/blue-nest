@@ -45,6 +45,22 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, res)
 }
 
+func (h *AuthHandler) AdminLogin(w http.ResponseWriter, r *http.Request) {
+	var req models.LoginRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+
+	res, err := h.svc.AdminLogin(r.Context(), req)
+	if err != nil {
+		response.Unauthorized(w, err.Error())
+		return
+	}
+
+	response.OK(w, res)
+}
+
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, map[string]string{"message": "logged out"})
 }

@@ -9,8 +9,8 @@ import (
 type Role string
 
 const (
-	RoleCustomer     Role = "customer"
-	RoleAdmin        Role = "admin"
+	RoleCustomer      Role = "customer"
+	RoleAdmin         Role = "admin"
 	RoleBranchManager Role = "branch_manager"
 )
 
@@ -36,6 +36,15 @@ type RegisterRequest struct {
 type LoginRequest struct {
 	Email    string `json:"email"    validate:"required,email"`
 	Password string `json:"password" validate:"required"`
+}
+
+type AdminCreateUserRequest struct {
+	Email       string   `json:"email"        validate:"required,email"`
+	Password    string   `json:"password"     validate:"required,min=8"`
+	FirstName   string   `json:"first_name"   validate:"required"`
+	LastName    string   `json:"last_name"    validate:"required"`
+	Role        Role     `json:"role"`
+	BranchSlugs []string `json:"branch_slugs,omitempty"`
 }
 
 type AuthResponse struct {

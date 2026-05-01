@@ -3,9 +3,11 @@ package handler
 import (
 	"net/http"
 
+	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
+	"github.com/blue-nest-montessori/api/pkg/validator"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -28,15 +30,45 @@ func (h *CartHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *CartHandler) AddItem(w http.ResponseWriter, r *http.Request) {
-	response.OK(w, map[string]string{"message": "add item – not yet implemented"})
+	var req models.AddCartItemRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+
+	userID, _ := r.Context().Value(middleware.UserIDKey).(string)
+	cart, err := h.svc.AddItem(r.Context(), userID, req)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	response.OK(w, cart)
 }
 
 func (h *CartHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
-	_ = chi.URLParam(r, "id")
-	response.OK(w, map[string]string{"message": "update item – not yet implemented"})
+	var req models.UpdateCartItemRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+
+	userID, _ := r.Context().Value(middleware.UserIDKey).(string)
+	productID := chi.URLParam(r, "id")
+	cart, err := h.svc.UpdateItem(r.Context(), userID, productID, req)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	response.OK(w, cart)
 }
 
 func (h *CartHandler) RemoveItem(w http.ResponseWriter, r *http.Request) {
-	_ = chi.URLParam(r, "id")
-	response.NoContent(w)
+	userID, _ := r.Context().Value(middleware.UserIDKey).(string)
+	productID := chi.URLParam(r, "id")
+	cart, err := h.svc.RemoveItem(r.Context(), userID, productID)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	response.OK(w, cart)
 }

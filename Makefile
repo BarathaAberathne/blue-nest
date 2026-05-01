@@ -43,7 +43,8 @@ run-frontend:
 # ── Tests ─────────────────────────────────────────────────────────────────────
 test:
 	@echo "→ Running Go tests..."
-	cd backend && go test -race ./...
+	cd backend && go test ./cmd/api
+	cd backend && go test -race ./internal/... ./pkg/...
 	@echo "→ Running frontend tests..."
 	cd frontend && npm run test --if-present
 

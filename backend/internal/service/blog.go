@@ -13,6 +13,8 @@ type BlogService interface {
 	GetBySlug(ctx context.Context, slug string) (*models.BlogPost, error)
 	Create(ctx context.Context, post models.BlogPost) (*models.BlogPost, error)
 	Update(ctx context.Context, id string, post models.BlogPost) (*models.BlogPost, error)
+	Delete(ctx context.Context, id string) error
+	LikePost(ctx context.Context, slug string) (int64, error)
 }
 
 type blogService struct {
@@ -41,4 +43,12 @@ func (s *blogService) Create(ctx context.Context, post models.BlogPost) (*models
 
 func (s *blogService) Update(ctx context.Context, id string, post models.BlogPost) (*models.BlogPost, error) {
 	return s.repo.Update(ctx, id, post)
+}
+
+func (s *blogService) Delete(ctx context.Context, id string) error {
+	return s.repo.Delete(ctx, id)
+}
+
+func (s *blogService) LikePost(ctx context.Context, slug string) (int64, error) {
+	return s.repo.IncrementLike(ctx, slug)
 }

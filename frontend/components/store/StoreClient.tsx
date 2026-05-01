@@ -1,32 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, ShoppingCart, X } from "lucide-react";
-import Doodle from "@/components/ui/Doodle";
 import PastelButton from "@/components/ui/PastelButton";
-
-// ── Types & data ──────────────────────────────────────────────────────────────
-
-type CategorySlug =
-  | "all"
-  | "sensory"
-  | "outdoor"
-  | "maths"
-  | "literacy"
-  | "life-skills"
-  | "accessories"
-  | "art";
-
-interface StoreProduct {
-  id:       string;
-  name:     string;
-  price:    number;   // pence
-  category: Exclude<CategorySlug, "all">;
-  tag:      string;
-  emoji:    string;
-  badge?:   string;   // "New" | "Popular"
-}
+import { addToCart, type CategorySlug, type StoreProduct } from "@/lib/store-cart";
+import type { Product } from "@/types";
+import { api } from "@/lib/api";
+import { getAccessToken } from "@/lib/auth";
 
 const CATEGORIES: { value: CategorySlug; label: string; colour: string }[] = [
   { value: "all",          label: "All",         colour: "#5a4a42" },
@@ -49,55 +30,60 @@ const CAT_BG: Record<Exclude<CategorySlug, "all">, string> = {
   art:           "rgba(232,113,154,0.14)",
 };
 
-const PRODUCTS: StoreProduct[] = [
-  // Sensory
-  { id: "p1",  name: "Montessori Sensory Kit",      price: 2499, category: "sensory",      tag: "Sensory",      emoji: "🌈", badge: "Popular" },
-  { id: "p2",  name: "Tactile Texture Tiles",        price: 1299, category: "sensory",      tag: "Sensory",      emoji: "🟫" },
-  { id: "p3",  name: "Scented Dough Set",            price: 899,  category: "sensory",      tag: "Sensory",      emoji: "🫧", badge: "New" },
-  // Outdoor
-  { id: "p4",  name: "Nature Explorer Pack",         price: 1850, category: "outdoor",      tag: "Outdoor",      emoji: "🌿", badge: "Popular" },
-  { id: "p5",  name: "Bug Hunting Kit",              price: 1450, category: "outdoor",      tag: "Outdoor",      emoji: "🐛" },
-  { id: "p6",  name: "Magnifying Glass Set",         price: 999,  category: "outdoor",      tag: "Outdoor",      emoji: "🔍" },
-  // Maths
-  { id: "p7",  name: "Wooden Counting Beads",        price: 1299, category: "maths",        tag: "Maths",        emoji: "🔢" },
-  { id: "p8",  name: "Sorting & Stacking Blocks",    price: 1799, category: "maths",        tag: "Maths",        emoji: "🧱" },
-  { id: "p9",  name: "Number Puzzle Tray",           price: 1099, category: "maths",        tag: "Maths",        emoji: "🔣" },
-  // Literacy
-  { id: "p10", name: "Story & Song Book Set",        price: 1599, category: "literacy",     tag: "Literacy",     emoji: "📚", badge: "Popular" },
-  { id: "p11", name: "Alphabet Puzzle Tray",         price: 2199, category: "literacy",     tag: "Literacy",     emoji: "🔤" },
-  { id: "p12", name: "Phonics Flash Cards",          price: 749,  category: "literacy",     tag: "Literacy",     emoji: "📋", badge: "New" },
-  // Life Skills
-  { id: "p13", name: "Mini Practical Life Set",      price: 2999, category: "life-skills",  tag: "Life Skills",  emoji: "🏠" },
-  { id: "p14", name: "Child Apron & Tool Set",       price: 1699, category: "life-skills",  tag: "Life Skills",  emoji: "🧑‍🍳" },
-  // Accessories
-  { id: "p15", name: "Blue Nest Tote Bag",           price: 999,  category: "accessories",  tag: "Accessories",  emoji: "👜" },
-  { id: "p16", name: "Blue Nest Water Bottle",       price: 1199, category: "accessories",  tag: "Accessories",  emoji: "💧" },
-  { id: "p17", name: "Montessori Activity Journal",  price: 849,  category: "accessories",  tag: "Accessories",  emoji: "📓", badge: "New" },
-  // Art & Craft
-  { id: "p18", name: "Beeswax Crayon Set",           price: 1099, category: "art",          tag: "Art & Craft",  emoji: "🖍️" },
-  { id: "p19", name: "Natural Paint Palette",        price: 1449, category: "art",          tag: "Art & Craft",  emoji: "🎨", badge: "Popular" },
-  { id: "p20", name: "Collage & Texture Kit",        price: 1250, category: "art",          tag: "Art & Craft",  emoji: "✂️" },
-];
-
 function fmt(pence: number) {
   return `£${(pence / 100).toFixed(2)}`;
+}
+
+function categoryFromText(text: string): Exclude<CategorySlug, "all"> {
+  const normalized = text.toLowerCase();
+  if (normalized.includes("outdoor") || normalized.includes("holiday")) return "outdoor";
+  if (normalized.includes("math")) return "maths";
+  if (normalized.includes("literacy") || normalized.includes("book")) return "literacy";
+  if (normalized.includes("life")) return "life-skills";
+  if (normalized.includes("art") || normalized.includes("craft")) return "art";
+  if (normalized.includes("sensory")) return "sensory";
+  return "accessories";
+}
+
+function mapProduct(product: Product): StoreProduct {
+  const tag = product.category?.trim() || "Store";
+  const category = categoryFromText(`${product.category ?? ""} ${product.name}`);
+  return {
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    category,
+    tag,
+    emoji: "🛍️",
+  };
 }
 
 // ── Add-to-cart button ────────────────────────────────────────────────────────
 // Self-contained: manages its own "added" flash state.
 
-function AddButton({ productId }: { productId: string }) {
+function AddButton({ product }: { product: StoreProduct }) {
   const [added, setAdded] = useState(false);
 
-  const handleAdd = useCallback(() => {
-    if (added) return;
+  const handleAdd = async () => {
+  const token = getAccessToken();
+
+  try {
+    if (token) {
+      await api.addCartItem(token, { product_id: product.id, qty: 1 });
+    }
+
+    addToCart(product);
+
     setAdded(true);
     setTimeout(() => setAdded(false), 1600);
-  }, [added]);
+  } catch (err) {
+    console.error("Failed to add item to cart", err);
+  }
+};
 
   return (
     <button
-      onClick={handleAdd}
+      onClick={() => void handleAdd()}
       aria-label="Add to cart"
       className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[0.7rem] font-bold transition-all duration-200 ${
         added
@@ -154,7 +140,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
 
         <div className="mt-auto flex items-center justify-between pt-1">
           <span className="font-heading text-[1rem] text-[var(--ink)]">{fmt(product.price)}</span>
-          <AddButton productId={product.id} />
+          <AddButton product={product} />
         </div>
       </div>
     </article>
@@ -165,13 +151,36 @@ function ProductCard({ product }: { product: StoreProduct }) {
 
 export default function StoreClient() {
   const [activeCategory, setActiveCategory] = useState<CategorySlug>("all");
+  const [products, setProducts] = useState<StoreProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    const run = async () => {
+      try {
+        const list = await api.getProducts();
+        if (!alive) return;
+        const safeList = Array.isArray(list) ? (list as Product[]) : [];
+        setProducts(safeList.map(mapProduct));
+      } catch (err) {
+        if (!alive) return;
+        setError(err instanceof Error ? err.message : "Failed to load products");
+      } finally {
+        if (!alive) return;
+        setLoading(false);
+      }
+    };
+    void run();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const filtered =
     activeCategory === "all"
-      ? PRODUCTS
-      : PRODUCTS.filter((p) => p.category === activeCategory);
-
-  const activeCat = CATEGORIES.find((c) => c.value === activeCategory)!;
+      ? products
+      : products.filter((p) => p.category === activeCategory);
 
   return (
     <>
@@ -243,7 +252,11 @@ export default function StoreClient() {
       {/* ── Product grid ─────────────────────────────────────── */}
       <section className="paper-bg px-4 pb-14 pt-8 sm:px-6 lg:px-8">
         <div className="container-site">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="py-10 text-center text-sm text-[rgba(90,74,66,0.52)]">Loading products...</div>
+          ) : error ? (
+            <div className="py-10 text-center text-sm text-red-500">{error}</div>
+          ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center gap-4 py-20 text-center">
               <span className="text-5xl" aria-hidden="true">🌿</span>
               <p className="font-heading text-[1.5rem] text-[var(--ink)]">Nothing here yet</p>

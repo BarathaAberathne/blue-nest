@@ -58,7 +58,7 @@ export default function ForestSchoolPage() {
               in Harrow and Pinner for more information.
             </p>
             <div className="mt-7">
-              <PastelButton href="/contact" variant="sage">
+              <PastelButton href="/contact?enquiry=arrange-a-visit" variant="sage">
                 Contact Us <ArrowRight className="h-4 w-4" />
               </PastelButton>
             </div>

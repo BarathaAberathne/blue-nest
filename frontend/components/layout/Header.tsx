@@ -16,6 +16,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Doodle from "@/components/ui/Doodle";
+import { getCartUpdatedEventName, loadCart } from "@/lib/store-cart";
+import { getAuthUpdatedEventName, getAuthUser } from "@/lib/auth";
+import type { User } from "@/types";
 
 // ── Inline SVG icons ──────────────────────────────────────────────────────────
 
@@ -62,11 +65,11 @@ function InstagramIcon({ className }: { className?: string }) {
 // ── Data ──────────────────────────────────────────────────────────────────────
 
 const trustBadges = [
-  { line1: "#1 Preschool (2019-2025)",   line2: "in London",      color: "#f0bd55", icon: "trophy"  as const },
-  { line1: "ISO 45001:2018", line2: "Accredited",     color: "#f4aac8", icon: "shield"  as const },
-  { line1: "Halal Food",     line2: "Protected",      color: "#52b26b", icon: "halal"   as const },
-  { line1: "Enhanced DBS",   line2: "Checked",        color: "#7fd8d2", icon: "shield"  as const },
-  { line1: "5-Star Hygiene", line2: "Rated Kitchen",  color: "#6ecfc9", icon: "shield"  as const },
+  { line1: "#1 Montessori School (2019-2025)", line2: "in London", color: "#f0bd55", icon: "trophy" as const },
+  { line1: "ISO 45001:2018", line2: "Accredited", color: "#f4aac8", icon: "shield" as const },
+  { line1: "Halal Food", line2: "Protected", color: "#52b26b", icon: "halal" as const },
+  { line1: "Enhanced DBS", line2: "Checked", color: "#7fd8d2", icon: "shield" as const },
+  { line1: "5-Star Hygiene", line2: "Rated Kitchen", color: "#6ecfc9", icon: "shield" as const },
 ];
 
 type NavLink = {
@@ -75,33 +78,33 @@ type NavLink = {
   children?: { label: string; href: string }[];
 };
 
-const navLinks: NavLink[] = [
-  { label: "Home",          href: "/"              },
-  { label: "Why Montessori",href: "/why-montessori"},
+const slideOverLinks: NavLink[] = [
+  { label: "Home", href: "/" },
+  { label: "Why Montessori", href: "/why-montessori" },
   { label: "Forest School", href: "/forest-school" },
   {
     label: "Admission",
     href: "/admission",
     children: [
-      { label: "Prospectus",        href: "/admission/prospectus"        },
-      { label: "Our Fees",          href: "/admission/our-fees"          },
-      { label: "Application Form",  href: "/admission/application-form"  },
+      { label: "Prospectus", href: "/admission/prospectus" },
+      { label: "Our Fees", href: "/admission/our-fees" },
+      { label: "Application Form", href: "/admission/application-form" },
     ],
   },
-  { label: "Gallery",       href: "/gallery"       },
-  { label: "Our Team",      href: "/our-team"      },
+  { label: "Gallery", href: "/gallery" },
+  { label: "Our Team", href: "/our-team" },
   { label: "Our Charities", href: "/our-charities" },
   { label: "Home Learning", href: "/home-learning" },
   { label: "Nursery Store", href: "/nursery-store" },
-  { label: "Blog",          href: "/blog"          },
-  { label: "Contact",       href: "/contact"       },
+  { label: "Blog", href: "/blog" },
+  { label: "Contact", href: "/contact" },
 ];
 
 const branches = [
-  { label: "Harrow",      href: "/branches/harrow",      phone: "020 8861 5574"  },
-  { label: "Borehamwood", href: "/branches/borehamwood", phone: "020 8953 1718"  },
-  { label: "Pinner",      href: "/branches/pinner",      phone: "07400 430630"   },
-  { label: "Northwood",   href: "/branches/northwood",   comingSoon: true        },
+  { label: "Harrow", href: "/branches/harrow", phone: "020 8861 5574" },
+  { label: "Borehamwood", href: "/branches/borehamwood", phone: "020 8953 1718" },
+  { label: "Pinner", href: "/branches/pinner", phone: "07400 430630" },
+  { label: "Northwood", href: "/branches/northwood", comingSoon: true },
 ];
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -111,7 +114,7 @@ function BadgeItem({ badge }: { badge: typeof trustBadges[number] }) {
     <div className="flex shrink-0 items-center gap-2">
       <span style={{ color: badge.color }}>
         {badge.icon === "trophy" && <TrophyIcon className="h-6 w-6" />}
-        {badge.icon === "halal"  && <HalalIcon  className="h-6 w-6" />}
+        {badge.icon === "halal" && <HalalIcon className="h-6 w-6" />}
         {badge.icon === "shield" && <ShieldCheck className="h-6 w-6" />}
       </span>
       <div className="leading-tight">
@@ -126,12 +129,49 @@ function BadgeItem({ badge }: { badge: typeof trustBadges[number] }) {
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const pathname = usePathname();
+  const isAdminLike = authUser?.role === "admin" || authUser?.role === "branch_manager";
+  const navLinks: NavLink[] = isAdminLike
+  ? [{ label: "Admin Dashboard", href: "/admin/dashboard" }, ...slideOverLinks]
+  : slideOverLinks;
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [menuOpen]);
+
+  useEffect(() => {
+    const updateCartCount = () => {
+      const items = loadCart();
+      setCartCount(items.reduce((sum, item) => sum + item.quantity, 0));
+    };
+
+    updateCartCount();
+
+    const eventName = getCartUpdatedEventName();
+    window.addEventListener(eventName, updateCartCount);
+    window.addEventListener("storage", updateCartCount);
+
+    return () => {
+      window.removeEventListener(eventName, updateCartCount);
+      window.removeEventListener("storage", updateCartCount);
+    };
+  }, []);
+
+  useEffect(() => {
+    const syncAuth = () => setAuthUser(getAuthUser());
+    syncAuth();
+
+    const eventName = getAuthUpdatedEventName();
+    window.addEventListener(eventName, syncAuth);
+    window.addEventListener("storage", syncAuth);
+    return () => {
+      window.removeEventListener(eventName, syncAuth);
+      window.removeEventListener("storage", syncAuth);
+    };
+  }, []);
 
   return (
     <>
@@ -140,7 +180,7 @@ export default function Header() {
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="relative overflow-hidden border-b border-[rgba(90,74,66,0.06)] bg-[#fdf8f5]">
         {/* Edge doodles — desktop only */}
-        <Doodle kind="leaf"        className="left-4  top-1/2 h-7 w-7 -translate-y-1/2 hidden sm:block opacity-40" />
+        <Doodle kind="leaf" className="left-4  top-1/2 h-7 w-7 -translate-y-1/2 hidden sm:block opacity-40" />
         <Doodle kind="pink-flower" className="right-4 top-1/2 h-6 w-6 -translate-y-1/2 hidden sm:block opacity-40" />
 
         {/* Scrollable badge row */}
@@ -164,20 +204,20 @@ export default function Header() {
       ══════════════════════════════════════════════════════════════════════ */}
       <header className="sticky top-0 z-50 overflow-visible border-b border-[rgba(207,125,156,0.15)] bg-[#fde8f0] shadow-[0_2px_12px_rgba(207,125,156,0.1)] backdrop-blur-sm">
         <div className="container-site">
-          
+
           {/* DESKTOP LAYOUT — 2-row grid */}
           <div className="hidden sm:grid grid-cols-[auto_1fr_auto] grid-rows-2 gap-0 py-2.5">
-            
+
             {/* LEFT: Logo (spans 2 rows, bleeds to fill full header height) */}
             <div className="row-span-2 flex items-center pr-2">
               <Link href="/" className="flex shrink-0 items-center">
-                <div className="relative -my-6 h-[168px] w-[320px]">
+                <div className="relative -my-8 h-[200px] w-[380px]">
                   <Image
                     src="/home/logo_new.png"
                     alt="Blue Nest Montessori logo"
                     fill
                     className="object-contain drop-shadow-[0_4px_10px_rgba(90,74,66,0.14)]"
-                    sizes="320px"
+                    sizes="380px"
                     priority
                   />
                 </div>
@@ -202,9 +242,9 @@ export default function Header() {
               {/* Social + Action icons */}
               <div className="flex items-center gap-0.5">
                 {[
-                  { label: "Facebook",  Icon: () => <FacebookIcon  className="h-[18px] w-[18px]" /> },
+                  { label: "Facebook", Icon: () => <FacebookIcon className="h-[18px] w-[18px]" /> },
                   { label: "Instagram", Icon: () => <InstagramIcon className="h-[18px] w-[18px]" /> },
-                  { label: "WhatsApp",  Icon: () => <MessageCircle className="h-[18px] w-[18px]" /> },
+                  { label: "WhatsApp", Icon: () => <MessageCircle className="h-[18px] w-[18px]" /> },
                 ].map(({ label, Icon }) => (
                   <button
                     key={label}
@@ -219,27 +259,32 @@ export default function Header() {
                 <span className="mx-2.5 h-5 w-px bg-[rgba(90,74,66,0.18)]" aria-hidden="true" />
 
                 {/* Parents Login */}
-                <button
-                  type="button"
+                <Link
+                  href={authUser ? "/account" : "/login?next=/account"}
                   className="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[var(--ink)] transition hover:bg-white/60 md:flex"
                 >
                   <CircleUserRound className="h-4 w-4 text-[#cf7d9c]" />
-                  <span className="text-xs font-semibold">Parents Log In</span>
-                </button>
+                  <span className="text-xs font-semibold">{authUser ? (authUser.first_name || "My Account") : "Parents Log In"}</span>
+                </Link>
+                <Link
+                  href={isAdminLike ? "/admin/dashboard" : "/admin/login"}
+                  className="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[var(--ink)] transition hover:bg-white/60 md:flex"
+                >
+                  <ShieldCheck className="h-4 w-4 text-[#7fd8d2]" />
+                  <span className="text-xs font-semibold">{isAdminLike ? "Admin Dashboard" : "Admin Log In"}</span>
+                </Link>
 
                 {/* Cart */}
-                <div className="relative ml-1">
-                  <button
-                    type="button"
-                    aria-label="Shopping bag"
-                    className="flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-white/60"
-                  >
-                    <Handbag className="h-5 w-5 text-[#7fd8d2]" />
-                  </button>
-                  <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-[#7fd8d2]">
-                    0
+                <Link
+                  href="/cart"
+                  aria-label="Open cart"
+                  className="relative ml-1 flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-white/60"
+                >
+                  <Handbag className="h-5 w-5 text-[#7fd8d2]" />
+                  <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[#7fd8d2]">
+                    {cartCount}
                   </span>
-                </div>
+                </Link>
               </div>
             </div>
 
@@ -288,30 +333,40 @@ export default function Header() {
           </div>
 
           {/* MOBILE LAYOUT — Single row */}
-          <div className="sm:hidden flex items-center justify-between py-2 px-1">
+          <div className="sm:hidden flex items-center justify-between py-2 px-3">
             <Link href="/" className="flex shrink-0 items-center">
-              <div className="relative -my-4 h-[100px] w-[190px]">
+              {/* Larger logo, negative margin keeps header height unchanged */}
+              <div className="relative -my-[22px] h-[84px] w-[158px]">
                 <Image
                   src="/home/logo_new.png"
                   alt="Blue Nest Montessori logo"
                   fill
                   className="object-contain drop-shadow-[0_4px_10px_rgba(90,74,66,0.14)]"
-                  sizes="190px"
+                  sizes="158px"
                   priority
                 />
               </div>
             </Link>
 
+            {/* Search + admin hidden on mobile — both accessible via MENU */}
             <div className="flex items-center gap-3 ml-auto">
-              {/* Search icon */}
-              <button
-                type="button"
-                aria-label="Search"
-                className="flex h-9 w-9 items-center justify-center text-[#7fd8d2] transition hover:text-[#6ab5ad]"
+              <Link
+                href={authUser ? "/account" : "/login?next=/account"}
+                aria-label="Open account"
+                className="flex h-9 w-9 items-center justify-center text-[#cf7d9c] transition hover:text-[#ba6d8a]"
               >
-                <Search className="h-5 w-5" />
-              </button>
-
+                <CircleUserRound className="h-5 w-5" />
+              </Link>
+              <Link
+                href="/cart"
+                aria-label="Open cart"
+                className="relative flex h-9 w-9 items-center justify-center text-[#7fd8d2] transition hover:text-[#6ab5ad]"
+              >
+                <Handbag className="h-5 w-5" />
+                <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[#7fd8d2]">
+                  {cartCount}
+                </span>
+              </Link>
               {/* Menu button */}
               <button
                 type="button"
@@ -330,75 +385,143 @@ export default function Header() {
       </header>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          SLIDE-OVER NAV (unchanged)
+          FULL-SCREEN TWO-COLUMN NAV MENU
       ══════════════════════════════════════════════════════════════════════ */}
       {menuOpen && (
-        <div className="fixed inset-0 z-[90]">
-          <button
-            type="button"
-            className="absolute inset-0 bg-[#7fd8d2]/78 backdrop-blur-[2px]"
-            aria-label="Close navigation menu"
+        <div className="fixed inset-0 z-[90] flex">
+
+          {/* LEFT — teal brand panel (click anywhere to close) */}
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => setMenuOpen(false)}
-          />
-
-          <aside className="absolute right-0 top-0 flex h-full w-full max-w-[42rem] flex-col overflow-hidden rounded-l-[2rem] bg-white shadow-[-20px_0_60px_rgba(90,74,66,0.18)]">
-
-            {/* Header row */}
-            <div className="flex shrink-0 items-center justify-between px-8 py-3">
-              <div className="relative h-[72px] w-[136px]">
-                <Image
-                  src="/home/logo_new.png"
-                  alt="Blue Nest Montessori logo"
-                  fill
-                  className="object-contain object-left"
-                  sizes="136px"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                aria-label="Close navigation menu"
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-[#7fd8d2] text-white transition hover:bg-[#6ab5ad]"
-              >
-                <X className="h-5 w-5" />
-              </button>
+            onKeyDown={(e) => e.key === "Escape" && setMenuOpen(false)}
+            aria-label="Close navigation menu"
+            className="relative flex w-[38%] shrink-0 flex-col overflow-hidden bg-gradient-to-b from-[#7fd8d2] to-[#4db8b2] px-5 py-7 text-white sm:px-7 sm:py-9"
+          >
+            {/* Logo */}
+            <div className="relative h-[90px] w-[170px] shrink-0 sm:h-[110px] sm:w-[210px]">
+              <Image
+                src="/home/logo_new.png"
+                alt="Blue Nest Montessori"
+                fill
+                className="object-contain object-left drop-shadow-[0_4px_12px_rgba(0,0,0,0.18)]"
+                sizes="210px"
+              />
             </div>
 
-            {/* Ambient doodles — left gutter and bottom-right corner */}
-            <Doodle kind="leaf"        className="absolute left-3    top-[72%]  h-6 w-6 opacity-30" />
-            <Doodle kind="pink-flower" className="absolute bottom-12 right-5   h-8 w-8 opacity-30" />
+            <div className="mt-5 h-px bg-white/20" />
 
-            {/* Content — fills remaining height, items stretch evenly */}
-            <div className="flex min-h-0 flex-1 flex-col px-10">
-              <div className="h-px shrink-0 bg-[#f1a8ca]" />
+            {/* Branches */}
+            <p className="mt-5 text-[0.58rem] font-bold uppercase tracking-[0.22em] text-white/65">
+              Our Branches
+            </p>
+            <div className="mt-3 flex flex-1 flex-col gap-2.5">
+              {branches.map((branch) => (
+                <Link
+                  key={branch.href}
+                  href={branch.href}
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
+                  className="flex flex-col rounded-xl bg-white/10 px-3 py-2.5 transition hover:bg-white/22"
+                >
+                  <span className="text-[0.78rem] font-extrabold leading-tight">
+                    {branch.label}
+                    {branch.comingSoon && (
+                      <span className="ml-2 text-[0.6rem] font-bold text-white/55">Soon</span>
+                    )}
+                  </span>
+                  {branch.phone && (
+                    <span className="mt-0.5 flex items-center gap-1 text-[0.65rem] text-white/65">
+                      <Phone className="h-3 w-3 shrink-0" />
+                      {branch.phone}
+                    </span>
+                  )}
+                </Link>
+              ))}
+            </div>
 
-              {/* Nav items share available height equally via flex-1 */}
-              <nav className="relative z-10 mt-2 flex min-h-0 flex-1 flex-col" aria-label="Main navigation">
-                {navLinks.map((link) => {
-                  const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
-                  return (
-                  <div key={link.href} className="flex min-h-0 flex-1 flex-col justify-center">
+            <div className="mt-5 h-px bg-white/20" />
+
+            {/* Email */}
+            <div className="mt-4 flex items-center gap-2 text-[0.7rem] text-white/75">
+              <Mail className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline">manager@bluenest.uk</span>
+              <span className="sm:hidden">manager@<br />bluenest.uk</span>
+            </div>
+
+            {/* Social icons */}
+            <div className="mt-3 flex items-center gap-2">
+              {[
+                { label: "Facebook", Icon: () => <FacebookIcon className="h-4 w-4" /> },
+                { label: "Instagram", Icon: () => <InstagramIcon className="h-4 w-4" /> },
+                { label: "WhatsApp", Icon: () => <MessageCircle className="h-4 w-4" /> },
+              ].map(({ label, Icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  aria-label={label}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/30"
+                >
+                  <Icon />
+                </button>
+              ))}
+            </div>
+
+            {/* Decorative doodles */}
+            <Doodle kind="leaf" className="absolute bottom-16 left-2 h-8 w-8 opacity-20 pointer-events-none" />
+            <Doodle kind="pink-flower" className="absolute bottom-5 right-3 h-7 w-7 opacity-20 pointer-events-none" />
+          </div>
+
+          {/* RIGHT — nav links panel */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative flex flex-1 flex-col overflow-y-auto bg-white"
+          >
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              aria-label="Close navigation menu"
+              className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-[#7fd8d2] text-white transition hover:bg-[#6ab5ad] sm:right-6 sm:top-6"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Nav links — vertically centred */}
+            <nav
+              className="flex flex-1 flex-col justify-center px-6 py-6 sm:px-10"
+              aria-label="Main navigation"
+            >
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
+                return (
+                  <div key={link.href} className="flex flex-col">
                     {link.children ? (
                       <>
                         <Link
                           href={link.href}
                           onClick={() => setMenuOpen(false)}
-                          className={`block text-[0.9rem] font-extrabold uppercase tracking-[0.04em] transition hover:text-[#4ec0c3] ${isActive ? "text-[#4ec0c3]" : "text-[var(--ink)]"}`}
+                          className={`block py-1.5 text-[0.8rem] font-extrabold uppercase tracking-[0.04em] transition hover:text-[#4ec0c3] sm:text-[0.85rem] ${
+                            isActive ? "text-[#4ec0c3]" : "text-[var(--ink)]"
+                          }`}
                         >
                           {link.label}
                         </Link>
-                        <div className="mt-0.5 flex gap-4 pl-3">
+                        <div className="mb-1 flex flex-wrap gap-x-4 gap-y-1 pl-3">
                           {link.children.map((child) => {
                             const isChildActive = pathname === child.href;
                             return (
-                            <Link
-                              key={child.href}
-                              href={child.href}
-                              onClick={() => setMenuOpen(false)}
-                              className={`text-[0.68rem] font-bold uppercase tracking-[0.06em] transition hover:text-[#4ec0c3] ${isChildActive ? "text-[#4ec0c3] underline underline-offset-2" : "text-[#cf7d9c]"}`}
-                            >
-                              {child.label}
-                            </Link>
+                              <Link
+                                key={child.href}
+                                href={child.href}
+                                onClick={() => setMenuOpen(false)}
+                                className={`text-[0.63rem] font-bold uppercase tracking-[0.06em] transition hover:text-[#4ec0c3] sm:text-[0.68rem] ${
+                                  isChildActive ? "text-[#4ec0c3] underline underline-offset-2" : "text-[#cf7d9c]"
+                                }`}
+                              >
+                                {child.label}
+                              </Link>
                             );
                           })}
                         </div>
@@ -407,38 +530,20 @@ export default function Header() {
                       <Link
                         href={link.href}
                         onClick={() => setMenuOpen(false)}
-                        className={`block text-[0.9rem] font-extrabold uppercase tracking-[0.04em] transition hover:text-[#4ec0c3] ${isActive ? "text-[#4ec0c3]" : "text-[var(--ink)]"}`}
+                        className={`block py-1.5 text-[0.8rem] font-extrabold uppercase tracking-[0.04em] transition hover:text-[#4ec0c3] sm:text-[0.85rem] ${
+                          isActive ? "text-[#4ec0c3]" : "text-[var(--ink)]"
+                        }`}
                       >
                         {link.label}
                       </Link>
                     )}
-                    <div className="h-px bg-[#f1a8ca]" />
+                    <div className="h-px bg-[#f9d4e4]" />
                   </div>
-                  );
-                })}
-              </nav>
+                );
+              })}
+            </nav>
+          </div>
 
-              {/* Branches — pinned to bottom */}
-              <div className="shrink-0 pb-4 pt-3">
-                <p className="text-[0.65rem] font-bold uppercase tracking-[0.22em] text-[#a97ecf]">Our Branches</p>
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  {branches.map((branch) => (
-                    <Link
-                      key={branch.href}
-                      href={branch.href}
-                      onClick={() => setMenuOpen(false)}
-                      className="rounded-[1rem] border border-[rgba(90,74,66,0.08)] px-3 py-2 text-xs font-bold text-[var(--ink)] transition hover:border-[#7fd8d2] hover:bg-[#f8fffe]"
-                    >
-                      <span>{branch.label}</span>
-                      {branch.comingSoon && (
-                        <span className="ml-2 text-[#cf7d9c]">Soon</span>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </aside>
         </div>
       )}
     </>

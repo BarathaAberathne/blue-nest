@@ -33,6 +33,8 @@ services:
       MONGODB_URI: mongodb://mongodb:27017
       MONGODB_DATABASE: blue_nest_montessori
       FRONTEND_URL: http://localhost:3000
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       mongodb:
         condition: service_healthy
@@ -64,3 +66,4 @@ services:
 
 volumes:
   mongo_data:
+  uploads_data:

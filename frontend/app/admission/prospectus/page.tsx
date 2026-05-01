@@ -101,7 +101,7 @@ export default function ProspectusPage() {
                 <Download className="h-5 w-5" strokeWidth={2} />
                 Download Prospectus
               </a>
-              <PastelButton href="/contact" variant="blush">
+              <PastelButton href="/contact?enquiry=application-form" variant="blush">
                 Contact Us <ArrowRight className="h-4 w-4" />
               </PastelButton>
             </div>

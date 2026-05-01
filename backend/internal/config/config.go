@@ -10,11 +10,12 @@ import (
 )
 
 type Config struct {
-	App   AppConfig
-	Mongo MongoConfig
-	JWT   JWTConfig
+	App    AppConfig
+	Mongo  MongoConfig
+	JWT    JWTConfig
 	Stripe StripeConfig
-	CORS  CORSConfig
+	CORS   CORSConfig
+	SMTP   SMTPConfig
 }
 
 type AppConfig struct {
@@ -42,6 +43,15 @@ type StripeConfig struct {
 
 type CORSConfig struct {
 	FrontendURL string
+}
+
+type SMTPConfig struct {
+	Host    string
+	Port    int
+	User    string
+	Pass    string
+	From    string
+	AdminTo string
 }
 
 func Load() *Config {
@@ -74,6 +84,14 @@ func Load() *Config {
 		},
 		CORS: CORSConfig{
 			FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
+		},
+		SMTP: SMTPConfig{
+			Host:    getEnv("SMTP_HOST", ""),
+			Port:    func() int { p, _ := strconv.Atoi(getEnv("SMTP_PORT", "587")); return p }(),
+			User:    getEnv("SMTP_USER", ""),
+			Pass:    getEnv("SMTP_PASS", ""),
+			From:    getEnv("SMTP_FROM", "noreply@bluenest.uk"),
+			AdminTo: getEnv("SMTP_ADMIN_TO", "ba@bluenest.com"),
 		},
 	}
 }

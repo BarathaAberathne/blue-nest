@@ -18,8 +18,10 @@ import PastelButton from "@/components/ui/PastelButton";
 import StickerCard from "@/components/ui/StickerCard";
 import ZigzagBand from "@/components/ui/ZigzagBand";
 import Doodle from "@/components/ui/Doodle";
-import { Reveal } from "@/components/ui/Motion";
+import { Float, Reveal } from "@/components/ui/Motion";
 import { LightboxGallery } from "@/components/ui/LightboxGallery";
+import FeeCalculatorCard from "@/components/ui/FeeCalculatorCard";
+import BranchMap from "@/components/contact/BranchMap";
 
 export const metadata: Metadata = {
   title: "Harrow Nursery — Blue Nest Montessori School",
@@ -120,7 +122,7 @@ export default function HarrowBranchPage() {
       {/* ══════════════════════════════════════════════════════
           1 — HERO
       ══════════════════════════════════════════════════════ */}
-      <section className="paper-bg relative flex min-h-[62vh] items-center">
+      <section className="paper-bg relative overflow-hidden h-[calc(100dvh-8.5rem)] sm:h-[calc(100dvh-11rem)]">
 
         {/* Background image + soft overlays */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -145,29 +147,47 @@ export default function HarrowBranchPage() {
 
         {/* Doodles */}
         <Doodle kind="blue-bird"   animated="float" className="absolute right-[5%]  top-8     h-11 w-11 opacity-55 hidden lg:block" />
-        <Doodle kind="pink-flower"                  className="absolute left-[3%]   bottom-10 h-10 w-10 opacity-50 hidden sm:block" />
+        <Doodle kind="pink-flower"                  className="absolute left-[3%]   bottom-10 h-10 w-10 opacity-50 hidden lg:block" />
 
-        <div className="relative z-10 w-full px-6 sm:px-10 lg:px-16 xl:px-20 py-16 sm:py-20 lg:py-24">
-          <Reveal>
-            <span className="section-kicker">Harrow, London</span>
-            <h1 className="mt-4 font-heading text-[2.4rem] leading-[1.15] text-[var(--ink)] sm:text-[2.9rem] lg:text-[3.2rem] max-w-3xl">
-              Montessori Nursery in Harrow
-            </h1>
-            <p className="body-text mt-5 max-w-xl">
-              At Blue Nest Montessori School Harrow, we provide a warm, nurturing and stimulating
-              environment where children can learn, develop and grow with confidence. Our Harrow
-              nursery is designed to feel like a home away from home, supporting every child&rsquo;s
-              early years journey.
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <PastelButton href="/contact" variant="rose">
-                Contact Us <ArrowRight className="h-4 w-4" />
-              </PastelButton>
-              <PastelButton href="#visit" variant="mint">
-                Book a Visit <ArrowRight className="h-4 w-4" />
-              </PastelButton>
-            </div>
-          </Reveal>
+        <div className="container-site relative z-10 flex h-full items-center py-6 sm:py-8">
+          <div className="grid w-full items-center gap-8 lg:grid-cols-2 lg:gap-12">
+
+            {/* Text */}
+            <Reveal className="flex flex-col gap-4">
+              <span className="section-kicker">Harrow, London</span>
+              <h1 className="font-heading text-[2rem] leading-[1.15] text-[var(--ink)] sm:text-[2.6rem] lg:text-[3rem] max-w-3xl">
+                Montessori Nursery in Harrow
+              </h1>
+              <p className="body-text max-w-xl hidden sm:block">
+                At Blue Nest Montessori School Harrow, we provide a warm, nurturing and stimulating
+                environment where children can learn, develop and grow with confidence. Our Harrow
+                nursery is designed to feel like a home away from home, supporting every child&rsquo;s
+                early years journey.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <PastelButton href="/contact?enquiry=book-visit&branch=harrow" variant="rose">
+                  Book a Visit <ArrowRight className="h-4 w-4" />
+                </PastelButton>
+                <PastelButton href="#visit" variant="mint">
+                  Contact Us <ArrowRight className="h-4 w-4" />
+                </PastelButton>
+              </div>
+
+              {/* Fee calculator — mobile */}
+              <div className="lg:hidden">
+                <p className="mb-2 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[var(--muted)]">Quick fee estimate</p>
+                <FeeCalculatorCard compact />
+              </div>
+            </Reveal>
+
+            {/* Fee calculator — desktop */}
+            <Reveal delay={0.12} className="hidden lg:block">
+              <Float delay={0.2}>
+                <FeeCalculatorCard />
+              </Float>
+            </Reveal>
+
+          </div>
         </div>
       </section>
 
@@ -392,48 +412,16 @@ export default function HarrowBranchPage() {
                 </div>
 
                 <div className="mt-8">
-                  <PastelButton href="/contact" variant="rose">
+                  <PastelButton href="/contact?enquiry=arrange-a-visit&branch=harrow" variant="rose">
                     Book a Visit <ArrowRight className="h-4 w-4" />
                   </PastelButton>
                 </div>
               </div>
             </Reveal>
 
-            {/* Map placeholder */}
             <Reveal delay={0.1}>
-              <div
-                className="relative overflow-hidden rounded-[2rem] shadow-[0_10px_24px_rgba(90,74,66,0.08)]"
-                style={{ minHeight: "320px" }}
-              >
-                <div className="absolute inset-0 bg-[#5fc8c7]">
-                  {/* Grid lines */}
-                  <svg className="absolute inset-0 h-full w-full opacity-20" aria-hidden="true">
-                    <defs>
-                      <pattern id="map-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#5a4a42" strokeWidth="0.5" />
-                      </pattern>
-                    </defs>
-                    <rect width="100%" height="100%" fill="url(#map-grid)" />
-                  </svg>
-                  {/* Stylised roads */}
-                  <svg className="absolute inset-0 h-full w-full" aria-hidden="true">
-                    <rect x="0" y="42%" width="100%" height="11%" fill="rgba(255,255,255,0.55)" />
-                    <rect x="38%" y="0" width="9%" height="100%" fill="rgba(255,255,255,0.55)" />
-                    <rect x="66%" y="18%" width="6%" height="55%" fill="rgba(255,255,255,0.35)" />
-                  </svg>
-                  {/* Location pin */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ef8cab] shadow-[0_6px_18px_rgba(239,140,171,0.45)]">
-                        <div className="h-3 w-3 rounded-full bg-white" />
-                      </div>
-                      <div className="h-3 w-0.5 bg-[#ef8cab]" />
-                      <p className="rounded-full bg-white px-3 py-1 text-xs font-bold shadow-sm" style={{ color: "var(--ink)" }}>
-                        Blue Nest Harrow
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              <div className="h-[320px] overflow-hidden rounded-[1.8rem] shadow-[0_4px_20px_rgba(90,74,66,0.10)] sm:h-[400px]">
+                <BranchMap branchId="harrow" />
               </div>
             </Reveal>
 
@@ -460,7 +448,7 @@ export default function HarrowBranchPage() {
                 Get in touch today to arrange a visit and experience our nurturing environment.
               </p>
               <div className="mt-8">
-                <PastelButton href="/contact" variant="rose">
+                <PastelButton href="/contact?enquiry=arrange-a-visit&branch=harrow" variant="rose">
                   Contact Us <ArrowRight className="h-4 w-4" />
                 </PastelButton>
               </div>

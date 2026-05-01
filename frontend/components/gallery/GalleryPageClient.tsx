@@ -295,7 +295,7 @@ export default function GalleryPageClient() {
                 <PastelButton href="/contact" variant="butter">
                   Contact Us <ArrowRight className="h-4 w-4" />
                 </PastelButton>
-                <PastelButton href="/admission" variant="blush">
+                <PastelButton href="/contact?enquiry=arrange-a-visit" variant="blush">
                   Book a Tour <ArrowRight className="h-4 w-4" />
                 </PastelButton>
               </div>

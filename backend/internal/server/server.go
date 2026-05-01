@@ -5,21 +5,23 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/config"
 	"github.com/blue-nest-montessori/api/internal/middleware"
+	"github.com/blue-nest-montessori/api/internal/platform/email"
+	mongoPlatform "github.com/blue-nest-montessori/api/internal/platform/mongo"
 	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/internal/routes"
 	"github.com/blue-nest-montessori/api/internal/service"
-	mongoPlatform "github.com/blue-nest-montessori/api/internal/platform/mongo"
 	"github.com/go-chi/chi/v5"
 )
 
 type Server struct {
-	http   *http.Server
-	log    *slog.Logger
-	mongo  *mongoPlatform.Client
+	http  *http.Server
+	log   *slog.Logger
+	mongo *mongoPlatform.Client
 }
 
 func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
@@ -30,23 +32,41 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 
 	db := mongoClient.DB
 
+	// Ensure uploads directory exists for image uploads
+	if err := os.MkdirAll("uploads", 0755); err != nil {
+		log.Warn("could not create uploads dir", "err", err)
+	}
+
 	// Repositories
-	userRepo    := repository.NewUserRepository(db)
+	userRepo := repository.NewUserRepository(db)
 	productRepo := repository.NewProductRepository(db)
-	cartRepo    := repository.NewCartRepository(db)
-	orderRepo   := repository.NewOrderRepository(db)
-	blogRepo    := repository.NewBlogRepository(db)
-	branchRepo  := repository.NewBranchRepository(db)
+	cartRepo := repository.NewCartRepository(db)
+	orderRepo := repository.NewOrderRepository(db)
+	blogRepo := repository.NewBlogRepository(db)
+	branchRepo := repository.NewBranchRepository(db)
+	commentRepo := repository.NewCommentRepository(db)
+
+	enquiryRepo := repository.NewEnquiryRepository(db)
+	mailer := email.New(email.Config{
+		Host:    cfg.SMTP.Host,
+		Port:    cfg.SMTP.Port,
+		User:    cfg.SMTP.User,
+		Pass:    cfg.SMTP.Pass,
+		From:    cfg.SMTP.From,
+		AdminTo: cfg.SMTP.AdminTo,
+	})
 
 	// Services
 	svc := routes.Services{
-		Auth:     service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours),
-		Products: service.NewProductService(productRepo),
-		Cart:     service.NewCartService(cartRepo),
-		Checkout: service.NewCheckoutService(),
-		Orders:   service.NewOrderService(orderRepo),
-		Blog:     service.NewBlogService(blogRepo),
-		Branches: service.NewBranchService(branchRepo),
+		Auth:      service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours),
+		Products:  service.NewProductService(productRepo),
+		Cart:      service.NewCartService(cartRepo, productRepo),
+		Checkout:  service.NewCheckoutService(orderRepo, cartRepo, productRepo, cfg.Stripe.SecretKey),
+		Orders:    service.NewOrderService(orderRepo),
+		Blog:      service.NewBlogService(blogRepo),
+		Branches:  service.NewBranchService(branchRepo),
+		Enquiries: service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo),
+		Comments:  service.NewCommentService(commentRepo),
 	}
 
 	r := chi.NewRouter()

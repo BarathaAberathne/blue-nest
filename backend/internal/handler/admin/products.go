@@ -1,7 +1,9 @@
 package admin
 
 import (
+	"bytes"
 	"net/http"
+	"strings"
 
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/service"
@@ -19,12 +21,57 @@ func NewAdminProductHandler(svc service.ProductService) *AdminProductHandler {
 }
 
 func (h *AdminProductHandler) List(w http.ResponseWriter, r *http.Request) {
-	products, err := h.svc.List(r.Context())
+	products, err := h.svc.ListAdmin(r.Context())
 	if err != nil {
 		response.InternalError(w, err.Error())
 		return
 	}
 	response.OK(w, products)
+}
+
+func (h *AdminProductHandler) ImportCSV(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		response.BadRequest(w, "invalid multipart form")
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		response.BadRequest(w, "missing file")
+		return
+	}
+	defer file.Close()
+
+	filename := strings.ToLower(header.Filename)
+	if strings.HasSuffix(filename, ".xlsx") {
+		response.BadRequest(w, "xlsx upload is not supported yet; please upload CSV")
+		return
+	}
+	if !strings.HasSuffix(filename, ".csv") {
+		response.BadRequest(w, "unsupported file type; upload a .csv file")
+		return
+	}
+
+	buf := new(bytes.Buffer)
+	if _, err := buf.ReadFrom(file); err != nil {
+		response.BadRequest(w, "failed to read file")
+		return
+	}
+
+	summary, err := h.svc.ImportCSV(r.Context(), buf.Bytes())
+	if err != nil {
+		if summary != nil {
+			response.JSON(w, http.StatusBadRequest, response.Envelope{
+				Error: err.Error(),
+				Data:  summary,
+			})
+			return
+		}
+		response.BadRequest(w, err.Error())
+		return
+	}
+
+	response.OK(w, summary)
 }
 
 func (h *AdminProductHandler) Create(w http.ResponseWriter, r *http.Request) {

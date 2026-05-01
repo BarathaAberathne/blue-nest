@@ -13,13 +13,15 @@ import (
 )
 
 type Services struct {
-	Auth     service.AuthService
-	Products service.ProductService
-	Cart     service.CartService
-	Checkout service.CheckoutService
-	Orders   service.OrderService
-	Blog     service.BlogService
-	Branches service.BranchService
+	Auth      service.AuthService
+	Products  service.ProductService
+	Cart      service.CartService
+	Checkout  service.CheckoutService
+	Orders    service.OrderService
+	Blog      service.BlogService
+	Branches  service.BranchService
+	Enquiries service.EnquiryService
+	Comments  service.CommentService
 }
 
 func Register(r *chi.Mux, svc Services, jwtSecret, stripeWebhookSecret string) {
@@ -39,6 +41,7 @@ func Register(r *chi.Mux, svc Services, jwtSecret, stripeWebhookSecret string) {
 		authH := handler.NewAuthHandler(svc.Auth)
 		r.Post("/auth/register", authH.Register)
 		r.Post("/auth/login", authH.Login)
+		r.Post("/admin/auth/login", authH.AdminLogin)
 		r.Post("/auth/logout", authH.Logout)
 		r.Post("/auth/refresh", authH.Refresh)
 
@@ -52,11 +55,20 @@ func Register(r *chi.Mux, svc Services, jwtSecret, stripeWebhookSecret string) {
 		blogH := handler.NewBlogHandler(svc.Blog)
 		r.Get("/blog/posts", blogH.ListPosts)
 		r.Get("/blog/posts/{slug}", blogH.GetPost)
+		r.Post("/blog/posts/{slug}/like", blogH.LikePost)
+
+		commentH := handler.NewCommentHandler(svc.Comments)
+		r.Get("/blog/posts/{slug}/comments", commentH.List)
+		r.Post("/blog/posts/{slug}/comments", commentH.Add)
 
 		// ── Branches (public) ─────────────────────────────────────────────
 		branchH := handler.NewBranchHandler(svc.Branches)
 		r.Get("/branches", branchH.List)
 		r.Get("/branches/{slug}", branchH.Get)
+
+		// ── Contact / Enquiries (public) ──────────────────────────────────
+		contactH := handler.NewContactHandler(svc.Enquiries)
+		r.Post("/contact", contactH.Submit)
 
 		// ── Authenticated routes ───────────────────────────────────────────
 		r.Group(func(r chi.Router) {
@@ -91,16 +103,39 @@ func Register(r *chi.Mux, svc Services, jwtSecret, stripeWebhookSecret string) {
 
 			adminProductH := adminHandler.NewAdminProductHandler(svc.Products)
 			r.Get("/admin/products", adminProductH.List)
+			r.Post("/admin/products/import", adminProductH.ImportCSV)
 			r.Post("/admin/products", adminProductH.Create)
 			r.Put("/admin/products/{id}", adminProductH.Update)
 			r.Delete("/admin/products/{id}", adminProductH.Delete)
+
+			adminCategoryH := adminHandler.NewAdminCategoryHandler(svc.Products)
+			r.Get("/admin/categories", adminCategoryH.List)
+			r.Post("/admin/categories", adminCategoryH.Create)
+			r.Put("/admin/categories/{id}", adminCategoryH.Update)
+			r.Delete("/admin/categories/{id}", adminCategoryH.Delete)
 
 			adminBlogH := adminHandler.NewAdminBlogHandler(svc.Blog)
 			r.Get("/admin/blog/posts", adminBlogH.List)
 			r.Post("/admin/blog/posts", adminBlogH.Create)
 			r.Put("/admin/blog/posts/{id}", adminBlogH.Update)
+			r.Delete("/admin/blog/posts/{id}", adminBlogH.Delete)
+			r.Post("/admin/uploads/image", adminBlogH.UploadImage)
+
+			adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries)
+			r.Get("/admin/enquiries", adminEnquiryH.List)
+			r.Patch("/admin/enquiries/{id}/status", adminEnquiryH.UpdateStatus)
+
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.SuperAdminOnly)
+				adminUserH := adminHandler.NewAdminUserHandler(svc.Auth)
+				r.Get("/admin/users", adminUserH.List)
+				r.Post("/admin/users", adminUserH.Create)
+			})
 		})
 	})
+
+	// ── Static uploads ────────────────────────────────────────────────────────
+	r.Handle("/uploads/*", http.StripPrefix("/uploads", http.FileServer(http.Dir("uploads"))))
 
 	// ── 404 fallback ────────────────────────────────────────────────────────
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {

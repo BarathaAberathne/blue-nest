@@ -1,48 +1,160 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { ArrowRight, Clock, Mail, MapPin } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
-import PageWrapper from "@/components/ui/PageWrapper";
-import Badge from "@/components/ui/Badge";
+import PastelButton from "@/components/ui/PastelButton";
+import Doodle from "@/components/ui/Doodle";
+import { Reveal } from "@/components/ui/Motion";
 
-export const metadata: Metadata = { title: "Blue Nest Montessori – Northwood (Coming Soon)" };
+export const metadata: Metadata = {
+  title: "Northwood — Blue Nest Montessori School (Coming Soon)",
+  description:
+    "Blue Nest Montessori School is expanding to Northwood, HA6. Register your interest now to be first in line for a place at our newest nursery.",
+};
+
+const details = [
+  { icon: MapPin, label: "Location", value: "Northwood, London, HA6"  },
+  { icon: Clock,  label: "Hours",   value: "Mon–Fri, 7:30am–6:00pm"  },
+  { icon: Mail,   label: "Email",   value: "manager@bluenest.uk"       },
+];
 
 export default function NorthwoodBranchPage() {
   return (
     <PublicLayout>
-      <PageWrapper>
-        <div className="max-w-2xl">
-          <div className="flex items-center gap-3 mb-4 flex-wrap">
-            <h1 className="section-title">Blue Nest Montessori – Northwood</h1>
-            <Badge label="Coming Soon" variant="amber" />
-          </div>
-          <p className="section-subtitle mb-10">
-            We are excited to be expanding to Northwood. Our newest branch will bring the same outstanding
-            Montessori experience to HA6.
-          </p>
 
-          <div className="card p-8 text-center mb-8">
-            <div className="text-5xl mb-4">🌿</div>
-            <h2 className="text-xl font-heading font-semibold text-gray-900 mb-3">
-              Opening Soon
-            </h2>
-            <p className="text-gray-500 mb-6 max-w-md mx-auto">
-              Register your interest now to be first in line for a place and receive updates as we get closer to opening.
+      {/* ══════════════════════════════════════════════════════
+          HERO — Coming Soon
+      ══════════════════════════════════════════════════════ */}
+      <section className="paper-bg relative overflow-hidden h-[calc(100dvh-8.5rem)] sm:h-[calc(100dvh-11rem)]">
+
+        {/* Dot texture */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ backgroundImage: "radial-gradient(circle, rgba(90,74,66,0.05) 1px, transparent 1px)", backgroundSize: "20px 20px" }}
+          aria-hidden="true"
+        />
+        {/* Colour blooms */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "radial-gradient(ellipse at 12% 60%, rgba(246,213,223,0.32) 0%, transparent 45%), radial-gradient(ellipse at 88% 18%, rgba(127,216,210,0.18) 0%, transparent 40%)" }}
+          aria-hidden="true"
+        />
+
+        <Doodle kind="blue-flower" animated="pulse"  className="absolute left-[3%]  top-16    h-11 w-11 opacity-50 hidden lg:block" />
+        <Doodle kind="pink-bird"   animated="float"  className="absolute right-[4%] bottom-16 h-10 w-10 opacity-55 hidden lg:block" />
+
+        <div className="container-site relative z-10 flex h-full flex-col items-center justify-center py-8 sm:py-10 text-center">
+          <Reveal>
+            {/* Coming soon chip */}
+            <span className="mb-6 inline-flex items-center gap-2 rounded-full bg-[rgba(247,215,116,0.25)] px-5 py-2 text-xs font-bold uppercase tracking-[0.22em] text-[#8a6d00] ring-1 ring-[rgba(247,215,116,0.5)]">
+              Coming Soon
+            </span>
+
+            <span className="section-kicker">Northwood, London · HA6</span>
+
+            <h1 className="section-title mt-4 max-w-2xl">
+              Blue Nest Montessori is Coming to Northwood
+            </h1>
+
+            <p className="section-subtitle mx-auto mt-5 max-w-xl">
+              We&apos;re excited to be expanding to Northwood. Our newest branch will bring the same
+              outstanding Montessori education and warm, nurturing care to HA6 families.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href="/contact" className="btn-primary">Register Interest</Link>
-              <Link href="/admission" className="btn-outline">Learn About Admissions</Link>
-            </div>
-          </div>
 
-          <div className="card p-6">
-            <h2 className="font-heading font-semibold text-gray-900 mb-2">Contact</h2>
-            <p className="text-sm text-gray-500 mb-1">Northwood, London, HA6</p>
-            <a href="mailto:northwood@bluenestmontessori.co.uk" className="text-sm text-brand-600 hover:underline">
-              northwood@bluenestmontessori.co.uk
-            </a>
+            <div className="mt-10 flex flex-wrap justify-center gap-4">
+              <PastelButton href="/contact?enquiry=northwood-interest" variant="blush">
+                Register Your Interest
+                <ArrowRight className="h-4 w-4" />
+              </PastelButton>
+              <PastelButton href="/admission" variant="mint">
+                Learn About Admissions
+              </PastelButton>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════
+          WHAT TO EXPECT
+      ══════════════════════════════════════════════════════ */}
+      <section className="blush-bg relative px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <div className="container-site">
+          <Reveal>
+            <div className="mb-12 text-center">
+              <span className="section-kicker">What to expect</span>
+              <h2 className="section-title mt-4">The Blue Nest Experience</h2>
+              <p className="section-subtitle mx-auto max-w-xl">
+                Every Blue Nest nursery offers the same high standard of Montessori education.
+                Here&apos;s what you can look forward to in Northwood.
+              </p>
+            </div>
+          </Reveal>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { emoji: "🌱", title: "Montessori Learning",    desc: "Child-led discovery with authentic Montessori materials that build independence and a genuine love of learning."  },
+              { emoji: "🌳", title: "Forest School",          desc: "Outdoor adventures and nature exploration that build resilience, confidence and curiosity in every child."        },
+              { emoji: "🍽️", title: "Healthy Halal Food",    desc: "Freshly prepared, nutritious halal meals and snacks carefully designed to fuel growing minds and bodies."         },
+              { emoji: "🏡", title: "Safe Environment",       desc: "A warm, home-away-from-home where every child feels valued, secure and gently supported to thrive."              },
+              { emoji: "📚", title: "EYFS Framework",         desc: "Our Montessori curriculum is delivered within the EYFS framework, ensuring the best of both approaches."         },
+              { emoji: "🏆", title: "Award-winning Team",     desc: "The same dedicated, DBS-checked team behind our Montessori School of the Year (2019–2025) award."              },
+            ].map((item, i) => (
+              <Reveal key={item.title} delay={0.07 * i}>
+                <div className="flex h-full flex-col rounded-[2rem] bg-[var(--soft-white)] px-6 py-7 shadow-[0_10px_24px_rgba(90,74,66,0.07)] ring-1 ring-[rgba(90,74,66,0.05)]">
+                  <span className="mb-4 text-3xl" aria-hidden="true">{item.emoji}</span>
+                  <h3 className="font-heading text-[1.4rem] leading-snug text-[var(--ink)]">{item.title}</h3>
+                  <p className="body-text mt-3 flex-1 text-sm">{item.desc}</p>
+                </div>
+              </Reveal>
+            ))}
           </div>
         </div>
-      </PageWrapper>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════
+          REGISTER INTEREST
+      ══════════════════════════════════════════════════════ */}
+      <section className="paper-bg relative px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <div className="container-site">
+          <div className="mx-auto max-w-3xl">
+            <Reveal>
+              <div className="rounded-[2.5rem] bg-[var(--soft-white)] px-8 py-10 shadow-[0_16px_50px_rgba(90,74,66,0.10)] ring-1 ring-[rgba(90,74,66,0.06)] sm:px-12">
+
+                <div className="mb-8 text-center">
+                  <span className="section-kicker">Be first in line</span>
+                  <h2 className="section-title mt-4">Register Your Interest</h2>
+                  <p className="section-subtitle mx-auto mt-4 max-w-lg">
+                    Places at our new Northwood nursery will be limited. Register now to receive
+                    updates and priority access when we open.
+                  </p>
+                </div>
+
+                {/* Details */}
+                <div className="mb-8 grid gap-4 sm:grid-cols-3">
+                  {details.map(({ icon: Icon, label, value }) => (
+                    <div key={label} className="flex flex-col items-center rounded-[1.5rem] bg-[rgba(127,216,210,0.08)] px-4 py-4 text-center ring-1 ring-[rgba(127,216,210,0.20)]">
+                      <Icon className="mb-2 h-5 w-5 text-[#3aada9]" aria-hidden="true" />
+                      <p className="text-[0.6rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">{label}</p>
+                      <p className="mt-1 text-sm font-semibold text-[var(--ink)]">{value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-4">
+                  <PastelButton href="/contact?enquiry=northwood-interest" variant="blush">
+                    Register Interest
+                    <ArrowRight className="h-4 w-4" />
+                  </PastelButton>
+                  <PastelButton href="/contact" variant="mint">
+                    General Enquiry
+                  </PastelButton>
+                </div>
+
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
     </PublicLayout>
   );
 }

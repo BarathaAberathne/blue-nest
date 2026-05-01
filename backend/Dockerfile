@@ -16,6 +16,7 @@ RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /app
 COPY --from=builder /app/bin/api .
+RUN mkdir -p uploads
 
 EXPOSE 8080
 CMD ["./api"]

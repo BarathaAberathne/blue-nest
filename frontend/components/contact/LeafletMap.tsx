@@ -88,7 +88,7 @@ function makeIcon(colour: string, letter: string) {
   });
 }
 
-export default function LeafletMap() {
+export default function LeafletMap({ focusBranch }: { focusBranch?: string }) {
   useEffect(() => {
     // Fix default icon path broken by webpack
     const proto = L.Icon.Default.prototype as L.Icon.Default & { _getIconUrl?: unknown };
@@ -100,10 +100,15 @@ export default function LeafletMap() {
     });
   }, []);
 
+  const focused = focusBranch ? PINS.find((p) => p.id === focusBranch) : undefined;
+  const visiblePins = focused ? [focused] : PINS;
+  const center: [number, number] = focused ? [focused.lat, focused.lng] : [51.62, -0.35];
+  const zoom = focused ? 15 : 11;
+
   return (
     <MapContainer
-      center={[51.62, -0.35]}
-      zoom={11}
+      center={center}
+      zoom={zoom}
       scrollWheelZoom={false}
       style={{ width: "100%", height: "100%" }}
       className="rounded-[1.4rem]"
@@ -115,7 +120,7 @@ export default function LeafletMap() {
         maxZoom={19}
       />
 
-      {PINS.map((pin) => (
+      {visiblePins.map((pin) => (
         <Marker key={pin.id} position={[pin.lat, pin.lng]} icon={makeIcon(pin.colour, pin.letter)}>
           <Popup className="bn-popup">
             <div style={{ minWidth: 180, fontFamily: "Nunito, sans-serif", padding: "2px 0" }}>

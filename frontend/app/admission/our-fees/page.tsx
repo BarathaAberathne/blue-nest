@@ -70,14 +70,14 @@ export default function OurFeesPage() {
 
                 <div className="mt-7 flex flex-wrap gap-3">
                   <a
-                    href="/contact"
+                    href="/contact?enquiry=fees"
                     className="inline-flex items-center gap-2 rounded-full bg-[#ef8cab] px-6 py-3 font-heading text-[1.3rem] leading-none tracking-[0.04em] text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#e8719a]"
                   >
                     <Phone className="h-4 w-4" strokeWidth={2} />
                     Contact Us
                   </a>
                   <a
-                    href="/contact"
+                    href="/contact?enquiry=arrange-a-visit"
                     className="inline-flex items-center gap-2 rounded-full bg-[#7fd8d2] px-6 py-3 font-heading text-[1.3rem] leading-none tracking-[0.04em] text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#6ecfc9]"
                   >
                     <CalendarDays className="h-4 w-4" strokeWidth={2} />

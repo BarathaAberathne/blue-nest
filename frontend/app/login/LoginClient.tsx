@@ -1,0 +1,83 @@
+"use client";
+
+import Link from "next/link";
+import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import PageWrapper from "@/components/ui/PageWrapper";
+import { api } from "@/lib/api";
+import { setAuthSession } from "@/lib/auth";
+import type { AuthResponse } from "@/types";
+
+export default function LoginClient() {
+  const router = useRouter();
+  const [next, setNext] = useState("/account");
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setNext(params.get("next") || "/account");
+  }, []);
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const auth = await api.login({ email, password }) as AuthResponse;
+      setAuthSession(auth.access_token, auth.user);
+      router.push(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to sign in");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <PageWrapper className="flex justify-center">
+      <form className="card p-8 w-full max-w-md" onSubmit={onSubmit}>
+        <h1 className="text-2xl font-heading font-bold text-gray-900 mb-2">Welcome back</h1>
+        <p className="text-sm text-gray-500 mb-6">Sign in to your Blue Nest account.</p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <button type="submit" className="btn-primary w-full mt-2" disabled={submitting}>
+            {submitting ? "Signing In..." : "Sign In"}
+          </button>
+        </div>
+        <p className="text-center text-sm text-gray-500 mt-6">
+          Don&apos;t have an account?{" "}
+          <Link href={`/register?next=${encodeURIComponent(next)}`} className="text-brand-600 hover:underline font-medium">
+            Register
+          </Link>
+        </p>
+      </form>
+    </PageWrapper>
+  );
+}

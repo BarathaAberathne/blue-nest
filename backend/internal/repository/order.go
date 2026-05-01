@@ -15,6 +15,7 @@ type OrderRepository interface {
 	FindByUserID(ctx context.Context, userID string) ([]models.Order, error)
 	FindByID(ctx context.Context, id string) (*models.Order, error)
 	UpdateStatus(ctx context.Context, id, status string) error
+	Create(ctx context.Context, order models.Order) (*models.Order, error)
 }
 
 type orderRepository struct {
@@ -30,7 +31,7 @@ func (r *orderRepository) FindAll(ctx context.Context) ([]models.Order, error) {
 	if err != nil {
 		return nil, err
 	}
-	var results []models.Order
+	results := make([]models.Order, 0)
 	return results, cursor.All(ctx, &results)
 }
 
@@ -43,7 +44,7 @@ func (r *orderRepository) FindByUserID(ctx context.Context, userID string) ([]mo
 	if err != nil {
 		return nil, err
 	}
-	var results []models.Order
+	results := make([]models.Order, 0)
 	return results, cursor.All(ctx, &results)
 }
 
@@ -69,4 +70,15 @@ func (r *orderRepository) UpdateStatus(ctx context.Context, id, status string) e
 		bson.M{"$set": bson.M{"status": status, "updated_at": time.Now()}},
 	)
 	return err
+}
+
+func (r *orderRepository) Create(ctx context.Context, order models.Order) (*models.Order, error) {
+	order.ID = primitive.NewObjectID()
+	order.CreatedAt = time.Now()
+	order.UpdatedAt = order.CreatedAt
+	_, err := r.col.InsertOne(ctx, order)
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
 }
