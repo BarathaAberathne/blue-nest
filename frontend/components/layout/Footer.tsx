@@ -141,14 +141,14 @@ export default function Footer() {
               {badges.map((badge) => (
                 <div
                   key={badge.label}
-                  className="relative h-[120px] overflow-hidden rounded-[1.2rem] bg-white p-2 shadow-[0_3px_12px_rgba(90,74,66,0.07)]"
+                  className="relative h-[120px] overflow-hidden rounded-[1.2rem] bg-white shadow-[0_3px_12px_rgba(90,74,66,0.07)]"
                   title={badge.alt}
                 >
                   <Image
                     src={badge.src}
                     alt={badge.alt}
                     fill
-                    className="object-contain p-1"
+                    className="object-contain"
                     sizes="150px"
                   />
                 </div>
