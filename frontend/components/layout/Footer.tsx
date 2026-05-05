@@ -52,6 +52,7 @@ const branches = [
   { label: "Harrow", href: "/branches/harrow" },
   { label: "Borehamwood", href: "/branches/borehamwood" },
   { label: "Pinner", href: "/branches/pinner" },
+  { label: "Pinner Green", href: "/branches/pinner-green" },
   { label: "Northwood — Coming Soon", href: "/branches/northwood" },
 ];
 

@@ -16,6 +16,13 @@
     --rose-ink:   #cf7d9c;
     --muted:      rgba(90, 74, 66, 0.55);
     --line:       rgba(90, 74, 66, 0.1);
+
+    /* Branch colour tokens */
+    --branch-harrow:       #E99FC1;
+    --branch-pinner:       #7ECFC8;
+    --branch-borehamwood:  #BFD3A1;
+    --branch-northwood:    #F3C97A;
+    --branch-pinner-green: #9FC6A8;
   }
 
   html {

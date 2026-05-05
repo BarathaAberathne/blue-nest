@@ -26,6 +26,13 @@ const config: Config = {
           700: "#0f766e",
           800: "#115e59",
         },
+        branch: {
+          harrow:      "#E99FC1",
+          pinner:      "#7ECFC8",
+          borehamwood: "#BFD3A1",
+          northwood:   "#F3C97A",
+          pinnerGreen: "#9FC6A8",
+        },
       },
     },
   },

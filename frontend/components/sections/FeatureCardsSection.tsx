@@ -7,7 +7,7 @@ const cards = [
   {
     title: "Montessori Learning",
     description: "Child-led discovery with beautiful Montessori materials that build independence, focus and a genuine love of learning.",
-    image: "/home/collage-2.png",
+    image: "/home/DSC_0151.jpg",
     alt: "Child working with Montessori materials at Blue Nest nursery",
     accent: "#ef8cab",
     icon: Sparkles,
@@ -15,7 +15,7 @@ const cards = [
   {
     title: "Forest School",
     description: "Outdoor learning adventures that connect children with nature, build resilience and spark curiosity beyond the classroom.",
-    image: "/home/collage-1.png",
+    image: "/home/forest-school.jpg",
     alt: "Children exploring outdoors at Blue Nest Forest School",
     accent: "#82cfc4",
     icon: Leaf,
@@ -23,7 +23,7 @@ const cards = [
   {
     title: "Healthy Food",
     description: "Freshly prepared, nutritious halal meals and menus carefully designed to fuel growing minds and bodies every day.",
-    image: "/home/collage-3.png",
+    image: "/home/structured-routine.jpg",
     alt: "Healthy halal meals served at Blue Nest Montessori",
     accent: "#b89bdd",
     icon: Utensils,
@@ -31,7 +31,7 @@ const cards = [
   {
     title: "Safe Environment",
     description: "A warm, home-away-from-home where every child feels valued, secure and gently supported to grow and thrive.",
-    image: "/home/collage-4.png",
+    image: "/home/DSC_0177.jpg",
     alt: "Safe and nurturing nursery environment at Blue Nest",
     accent: "#f0bd55",
     icon: Heart,

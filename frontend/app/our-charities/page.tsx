@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { ArrowRight, BookOpen, Gift, Globe, Heart, Leaf, Users } from "lucide-react";
+import { ArrowRight, BookOpen, Gift, Globe, Users } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
+import { LightboxGallery } from "@/components/ui/LightboxGallery";
 
 export const metadata: Metadata = {
   title: "Our Charities — Blue Nest Montessori School",
@@ -49,7 +50,7 @@ const CHARITIES = [
   {
     name:  "Children in Need",
     desc:  "A cause we care about deeply — helping disadvantaged children across the UK. We organise awareness activities and fundraising moments with our children and families throughout the year.",
-    icon:  Heart,
+    logo:  "/site-images/charity/BBC_Children_in_Need.svg.webp",
     color: "#cf7d9c",
     bg:    "rgba(246,213,223,0.35)",
     href:  "#",
@@ -57,7 +58,7 @@ const CHARITIES = [
   {
     name:  "Woodland Trust",
     desc:  "As a certified Green Tree School, our connection to nature extends beyond our garden. We support the mission to protect and restore woodland for future generations.",
-    icon:  Leaf,
+    logo:  "/site-images/charity/Woodland_Trust.svg.png",
     color: "#3d8a52",
     bg:    "rgba(142,203,155,0.25)",
     href:  "#",
@@ -65,7 +66,7 @@ const CHARITIES = [
   {
     name:  "Magic Breakfast",
     desc:  "Every child deserves a good start to the day. Magic Breakfast ensures children from disadvantaged backgrounds have the nutrition they need to learn, play, and thrive.",
-    icon:  Gift,
+    logo:  "/site-images/charity/magic-breakfast.webp",
     color: "#f0bd55",
     bg:    "rgba(247,215,116,0.22)",
     href:  "#",
@@ -73,11 +74,20 @@ const CHARITIES = [
   {
     name:  "Headstone Green",
     desc:  "A local community initiative close to our Harrow nursery. We work alongside Headstone Green to support community events, green spaces and activities that bring local families together.",
-    icon:  Globe,
+    logo:  "/site-images/charity/headstone-green.jpg",
     color: "#5fc8c7",
     bg:    "rgba(127,216,210,0.18)",
     href:  "#",
   },
+];
+
+const GALLERY = [
+  { src: "/home/children-outdoor-play.jpg",       alt: "Children taking part in a charity fundraising activity", rotate: -2, caption: "Fundraising fun"        },
+  { src: "/home/forest-school.jpg",               alt: "Forest school charity day at Blue Nest",                 rotate:  2, caption: "Forest School day"      },
+  { src: "/home/outdoor-learning-and-play-area.jpg", alt: "Outdoor learning during a community event",           rotate: -1, caption: "Community event"        },
+  { src: "/home/DSC_0151.jpg",                    alt: "Children engaged in a charity craft activity",           rotate:  2, caption: "Charity craft morning"  },
+  { src: "/home/outdoor-childrens-play-area.jpg", alt: "Outdoor charity event at Blue Nest nursery",             rotate: -2, caption: "Outdoor charity day"    },
+  { src: "/home/structured-routine.jpg",          alt: "Blue Nest team at a community initiative",               rotate:  1, caption: "Community initiative"   },
 ];
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -178,11 +188,17 @@ export default function OurCharitiesPage() {
               <Reveal key={charity.name} delay={i * 0.08} className="h-full">
                 <article className="flex h-full flex-col overflow-hidden rounded-[2rem] bg-white shadow-[0_4px_16px_rgba(90,74,66,0.08)] ring-1 ring-[rgba(90,74,66,0.06)]">
                   <div
-                    className="flex h-[110px] w-full items-center justify-center"
+                    className="flex h-[110px] w-full items-center justify-center px-6"
                     style={{ background: charity.bg }}
                   >
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/80 shadow-[0_2px_10px_rgba(90,74,66,0.10)]">
-                      <charity.icon className="h-6 w-6" style={{ color: charity.color }} strokeWidth={1.6} />
+                    <div className="relative h-16 w-full">
+                      <Image
+                        src={charity.logo}
+                        alt={`${charity.name} logo`}
+                        fill
+                        className="object-contain"
+                        sizes="240px"
+                      />
                     </div>
                   </div>
                   <div className="flex flex-1 flex-col px-6 py-5">
@@ -195,6 +211,26 @@ export default function OurCharitiesPage() {
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════
+          GALLERY — charity event photos
+      ══════════════════════════════════════════════════════ */}
+      <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <Doodle kind="leaf"      className="left-[2%]  top-10    h-9 w-9 opacity-42 hidden sm:block" />
+        <Doodle kind="blue-bird" className="right-[3%] bottom-10 h-9 w-9 opacity-45 hidden lg:block" />
+
+        <div className="container-site">
+          <Reveal>
+            <div className="mb-10 text-center">
+              <span className="section-kicker">Our events</span>
+              <h2 className="section-title mt-4 text-[#7fd8d2]">Charity moments &amp; memories</h2>
+            </div>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <LightboxGallery images={GALLERY} columns={3} />
+          </Reveal>
         </div>
       </section>
 
