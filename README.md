@@ -358,6 +358,54 @@ Migration path when ready:
 
 ---
 
+## Fee Data
+
+**Location:** `frontend/lib/fee-data.json`
+
+The fee calculator (`components/ui/FeeCalculatorCard`) reads all prices directly from this file — no hardcoded values anywhere in the component.
+
+### Structure
+
+```
+branches.<branch>.ageGroups.<ageGroup>.<session>.daily   // daily rate £
+branches.<branch>.ageGroups.<ageGroup>.<session>.weekly  // 5-day weekly rate £
+branches.<branch>.earlyBird                              // early bird surcharge £/day
+meta.note                                                // disclaimer shown in calculator
+```
+
+Branches: `harrow`, `pinner`, `borehamwood`, `pinner green`, `northwood`  
+Age groups: `0-2`, `2-3`, `3-5` (pinner has no `0-2` — the UI auto-selects the next group)  
+Sessions: `full_day`, `morning`, `afternoon`, `school`
+
+### How to update prices
+
+Edit the relevant values in `frontend/lib/fee-data.json`. No code changes required — the calculator picks them up automatically.
+
+### Calculation logic
+
+```
+base        = (days === 5) ? rates.weekly : rates.daily × days
+earlyBird   = earlyBirdToggled ? branch.earlyBird × days : 0
+weekly      = base + earlyBird
+monthly     = weekly × 4.33
+```
+
+### Adding a calculator to a page
+
+```tsx
+import FeeCalculatorCard from "@/components/ui/FeeCalculatorCard";
+
+// Full size (hero column)
+<FeeCalculatorCard defaultBranch="harrow" />
+
+// Compact (mobile / inline)
+<FeeCalculatorCard compact defaultBranch="pinner" />
+```
+
+Valid `defaultBranch` values: `"harrow"` | `"pinner"` | `"borehamwood"` | `"pinner-green"` | `"northwood"`
+
+---
+
 ## Branch Architecture
 
 Each branch (`harrow`, `borehamwood`, `pinner`, `northwood`) has:

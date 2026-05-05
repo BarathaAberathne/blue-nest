@@ -1,0 +1,126 @@
+{
+  "branches": {
+    "pinner": {
+      "ageGroups": {
+        "2-3": {
+          "full_day": { "daily": 99, "weekly": 485 },
+          "morning": { "daily": 58, "weekly": 284 },
+          "afternoon": { "daily": 54, "weekly": 264 },
+          "school": { "daily": 89, "weekly": 436 }
+        },
+        "3-5": {
+          "full_day": { "daily": 94, "weekly": 460 },
+          "morning": { "daily": 55, "weekly": 269 },
+          "afternoon": { "daily": 50, "weekly": 245 },
+          "school": { "daily": 80, "weekly": 392 }
+        }
+      },
+      "earlyBird": 8
+    },
+
+    "harrow": {
+      "ageGroups": {
+        "0-2": {
+          "full_day": { "daily": 110, "weekly": 539 },
+          "morning": { "daily": 65, "weekly": 318 },
+          "afternoon": { "daily": 60, "weekly": 294 },
+          "school": { "daily": 101, "weekly": 494 }
+        },
+        "2-3": {
+          "full_day": { "daily": 105, "weekly": 514 },
+          "morning": { "daily": 62, "weekly": 303 },
+          "afternoon": { "daily": 57, "weekly": 279 },
+          "school": { "daily": 95, "weekly": 465 }
+        },
+        "3-5": {
+          "full_day": { "daily": 100, "weekly": 490 },
+          "morning": { "daily": 58, "weekly": 284 },
+          "afternoon": { "daily": 53, "weekly": 259 },
+          "school": { "daily": 85, "weekly": 416 }
+        }
+      },
+      "earlyBird": 8
+    },
+
+    "borehamwood": {
+      "ageGroups": {
+        "0-2": {
+          "full_day": { "daily": 83, "weekly": 407 },
+          "morning": { "daily": 48, "weekly": 236 },
+          "afternoon": { "daily": 46, "weekly": 226 },
+          "school": { "daily": 64, "weekly": 314 }
+        },
+        "2-3": {
+          "full_day": { "daily": 79, "weekly": 387 },
+          "morning": { "daily": 45, "weekly": 220 },
+          "afternoon": { "daily": 41, "weekly": 200 },
+          "school": { "daily": 58, "weekly": 284 }
+        },
+        "3-5": {
+          "full_day": { "daily": 75, "weekly": 368 },
+          "morning": { "daily": 43, "weekly": 211 },
+          "afternoon": { "daily": 37, "weekly": 181 },
+          "school": { "daily": 53, "weekly": 260 }
+        }
+      },
+      "earlyBird": 8
+    },
+
+    "pinner green": {
+      "ageGroups": {
+        "0-2": {
+          "full_day": { "daily": 110, "weekly": 539 },
+          "morning": { "daily": 65, "weekly": 318 },
+          "afternoon": { "daily": 60, "weekly": 294 },
+          "school": { "daily": 101, "weekly": 494 }
+        },
+        "2-3": {
+          "full_day": { "daily": 105, "weekly": 514 },
+          "morning": { "daily": 62, "weekly": 303 },
+          "afternoon": { "daily": 57, "weekly": 279 },
+          "school": { "daily": 95, "weekly": 465 }
+        },
+        "3-5": {
+          "full_day": { "daily": 100, "weekly": 490 },
+          "morning": { "daily": 58, "weekly": 284 },
+          "afternoon": { "daily": 53, "weekly": 259 },
+          "school": { "daily": 85, "weekly": 416 }
+        }
+      },
+      "earlyBird": 8
+    },
+
+    
+    "northwood": {
+      "ageGroups": {
+        "0-2": {
+          "full_day": { "daily": 110, "weekly": 539 },
+          "morning": { "daily": 65, "weekly": 318 },
+          "afternoon": { "daily": 60, "weekly": 294 },
+          "school": { "daily": 101, "weekly": 494 }
+        },
+        "2-3": {
+          "full_day": { "daily": 105, "weekly": 514 },
+          "morning": { "daily": 62, "weekly": 303 },
+          "afternoon": { "daily": 57, "weekly": 279 },
+          "school": { "daily": 95, "weekly": 465 }
+        },
+        "3-5": {
+          "full_day": { "daily": 100, "weekly": 490 },
+          "morning": { "daily": 58, "weekly": 284 },
+          "afternoon": { "daily": 53, "weekly": 259 },
+          "school": { "daily": 85, "weekly": 416 }
+        }
+      },
+      "earlyBird": 8
+    }
+
+  },
+
+  "meta": {
+    "extraHour": 20,
+    "swapSession": 30,
+    "lateFeePerMinute": 2,
+    "note": "Indicative only. Actual fees may vary by branch, session and funding eligibility."
+  }
+}

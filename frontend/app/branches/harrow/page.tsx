@@ -176,14 +176,14 @@ export default function HarrowBranchPage() {
               {/* Fee calculator — mobile */}
               <div className="lg:hidden">
                 <p className="mb-2 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[var(--muted)]">Quick fee estimate</p>
-                <FeeCalculatorCard compact />
+                <FeeCalculatorCard compact defaultBranch="harrow" />
               </div>
             </Reveal>
 
             {/* Fee calculator — desktop */}
             <Reveal delay={0.12} className="hidden lg:block">
               <Float delay={0.2}>
-                <FeeCalculatorCard />
+                <FeeCalculatorCard defaultBranch="harrow" />
               </Float>
             </Reveal>
 

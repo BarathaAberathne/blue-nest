@@ -132,10 +132,7 @@ export default function Header() {
   const [cartCount, setCartCount] = useState(0);
   const [authUser, setAuthUser] = useState<User | null>(null);
   const pathname = usePathname();
-  const isAdminLike = authUser?.role === "admin" || authUser?.role === "branch_manager";
-  const navLinks: NavLink[] = isAdminLike
-  ? [{ label: "Admin Dashboard", href: "/admin/dashboard" }, ...slideOverLinks]
-  : slideOverLinks;
+  const navLinks: NavLink[] = slideOverLinks;
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
@@ -266,14 +263,6 @@ export default function Header() {
                   <CircleUserRound className="h-4 w-4 text-[#cf7d9c]" />
                   <span className="text-xs font-semibold">{authUser ? (authUser.first_name || "My Account") : "Parents Log In"}</span>
                 </Link>
-                <Link
-                  href={isAdminLike ? "/admin/dashboard" : "/admin/login"}
-                  className="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[var(--ink)] transition hover:bg-white/60 md:flex"
-                >
-                  <ShieldCheck className="h-4 w-4 text-[#7fd8d2]" />
-                  <span className="text-xs font-semibold">{isAdminLike ? "Admin Dashboard" : "Admin Log In"}</span>
-                </Link>
-
                 {/* Cart */}
                 <Link
                   href="/cart"
@@ -476,7 +465,7 @@ export default function Header() {
           {/* RIGHT — nav links panel */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative flex flex-1 flex-col overflow-y-auto bg-white"
+            className="relative flex flex-1 flex-col overflow-hidden bg-white"
           >
             {/* Close button */}
             <button
@@ -488,9 +477,9 @@ export default function Header() {
               <X className="h-5 w-5" />
             </button>
 
-            {/* Nav links — vertically centred */}
+            {/* Nav links — spread evenly to fill full panel height */}
             <nav
-              className="flex flex-1 flex-col justify-center px-6 py-6 sm:px-10"
+              className="flex flex-1 flex-col justify-evenly px-6 py-8 sm:px-10"
               aria-label="Main navigation"
             >
               {navLinks.map((link) => {
