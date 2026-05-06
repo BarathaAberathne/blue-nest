@@ -108,12 +108,12 @@ export default function ForestSchoolPage() {
           HERO — split layout
       ══════════════════════════════════════════════════════════ */}
       <section style={{ background: C.bg }} className="overflow-hidden">
-        <div className="mx-auto max-w-7xl px-6 pt-20 pb-0 sm:px-10 lg:px-16 lg:pt-28">
-          <div className="grid items-center gap-12 lg:grid-cols-[55%_45%] lg:gap-8">
+        <div className="mx-auto max-w-7xl px-4 pt-14 pb-0 sm:px-6 lg:px-8 lg:pt-20">
+          <div className="grid items-center gap-10 lg:grid-cols-[55%_45%] lg:gap-8">
 
             {/* ── Left: text ───────────────────────────────────────── */}
             <Reveal>
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3 mb-4">
                 <div className="h-10 w-10 overflow-hidden rounded-xl shadow-md">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -138,14 +138,14 @@ export default function ForestSchoolPage() {
               </h1>
 
               <p
-                className="mt-4 text-lg font-semibold tracking-wide"
+                className="mt-3 text-base font-semibold tracking-wide"
                 style={{ color: C.mid }}
               >
                 Learn. Explore. Grow. Together.
               </p>
 
               <p
-                className="mt-5 max-w-md text-[1rem] leading-[1.75]"
+                className="mt-4 max-w-md text-[0.95rem] leading-[1.75]"
                 style={{ color: C.body }}
               >
                 We bring children and nature together through a Montessori-rooted Forest School
@@ -153,7 +153,7 @@ export default function ForestSchoolPage() {
                 in a safe, nurturing environment.
               </p>
 
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-wrap gap-3">
                 <GreenBtn href="/contact?enquiry=book-a-visit">
                   Book a Visit <ArrowRight className="h-4 w-4" />
                 </GreenBtn>
@@ -164,7 +164,7 @@ export default function ForestSchoolPage() {
 
               {/* 4 icon pillars — bottom of hero left column */}
               <div
-                className="mt-12 grid grid-cols-2 gap-x-6 gap-y-5 border-t pt-8 sm:grid-cols-4"
+                className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 border-t pt-6 sm:grid-cols-4"
                 style={{ borderColor: `${C.deep}22` }}
               >
                 {[
@@ -257,7 +257,7 @@ export default function ForestSchoolPage() {
         </div>
 
         {/* Soft wave transition out of hero */}
-        <div className="mt-16 h-16 w-full" style={{ background: C.bg }}>
+        <div className="mt-10 h-12 w-full" style={{ background: C.bg }}>
           <svg viewBox="0 0 1440 64" className="w-full" preserveAspectRatio="none" style={{ display: "block" }}>
             <path d={`M0 0 C360 64 1080 0 1440 48 L1440 64 L0 64 Z`} fill={C.deep} />
           </svg>
@@ -268,9 +268,9 @@ export default function ForestSchoolPage() {
       {/* ══════════════════════════════════════════════════════════
           WHY FOREST SCHOOL? — dark green section
       ══════════════════════════════════════════════════════════ */}
-      <section style={{ background: C.deep }} className="px-6 py-20 sm:px-10 lg:px-16 lg:py-28">
+      <section style={{ background: C.deep }} className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <div className="mx-auto max-w-7xl">
-          <div className="grid gap-14 lg:grid-cols-2 lg:items-center lg:gap-20">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-14">
 
             {/* Left: text */}
             <Reveal>
@@ -281,20 +281,20 @@ export default function ForestSchoolPage() {
                 The Case for Outdoor Learning
               </span>
               <h2
-                className="mt-4 font-heading text-[2.2rem] leading-[1.15] sm:text-[2.8rem]"
+                className="mt-4 font-heading text-[2rem] leading-[1.15] sm:text-[2.5rem]"
                 style={{ color: C.cream }}
               >
                 Why Forest School?
               </h2>
               <p
-                className="mt-5 text-[0.95rem] leading-[1.8]"
+                className="mt-4 text-[0.9rem] leading-[1.75]"
                 style={{ color: `${C.cream}bb` }}
               >
                 Forest School is a child-led approach to outdoor education rooted in progressive
                 learning theory — from Froebel to Montessori. It gives children time, space and
                 freedom to explore, take managed risks and build genuine self-belief.
               </p>
-              <ul className="mt-8 space-y-4">
+              <ul className="mt-6 space-y-3">
                 {[
                   "Confidence &amp; independence through self-directed learning",
                   "Creativity &amp; problem solving in real-world settings",
@@ -347,10 +347,10 @@ export default function ForestSchoolPage() {
       {/* ══════════════════════════════════════════════════════════
           OUR VALUES IN ACTION — 4-column grid
       ══════════════════════════════════════════════════════════ */}
-      <section style={{ background: C.bgAlt }} className="px-6 py-20 sm:px-10 lg:px-16 lg:py-28">
+      <section style={{ background: C.bgAlt }} className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <div className="mx-auto max-w-7xl">
           <Reveal>
-            <div className="mb-14 text-center">
+            <div className="mb-10 text-center">
               <span
                 className="text-[0.65rem] font-bold uppercase tracking-[0.22em]"
                 style={{ color: C.muted }}
@@ -358,13 +358,13 @@ export default function ForestSchoolPage() {
                 Our Philosophy
               </span>
               <h2
-                className="mt-4 font-heading text-[2rem] sm:text-[2.6rem]"
+                className="mt-4 font-heading text-[1.85rem] sm:text-[2.3rem]"
                 style={{ color: C.text }}
               >
                 Our Values in Action
               </h2>
               <p
-                className="mx-auto mt-4 max-w-xl text-[0.95rem] leading-relaxed"
+                className="mx-auto mt-3 max-w-xl text-[0.9rem] leading-relaxed"
                 style={{ color: C.body }}
               >
                 Every element of our Forest School programme is guided by four natural principles,
@@ -402,7 +402,7 @@ export default function ForestSchoolPage() {
             ].map(({ Icon, label, title, body }, i) => (
               <Reveal key={label} delay={i * 0.08}>
                 <div
-                  className="group flex h-full flex-col rounded-3xl p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                  className="group flex h-full flex-col rounded-3xl p-5 sm:p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
                   style={{
                     background: "white",
                     boxShadow: `0 4px 20px ${C.deep}0d`,
@@ -410,7 +410,7 @@ export default function ForestSchoolPage() {
                   }}
                 >
                   <div
-                    className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl"
+                    className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl"
                     style={{ background: `${C.deep}12` }}
                   >
                     <Icon className="h-7 w-7" style={{ color: C.deep } as React.CSSProperties} />
@@ -422,7 +422,7 @@ export default function ForestSchoolPage() {
                     {label}
                   </p>
                   <h3
-                    className="mb-3 font-heading text-[1.15rem] leading-snug"
+                    className="mb-2 font-heading text-[1.05rem] leading-snug"
                     style={{ color: C.text }}
                   >
                     {title}
@@ -441,10 +441,10 @@ export default function ForestSchoolPage() {
       {/* ══════════════════════════════════════════════════════════
           WHAT CHILDREN DO — 6-activity grid
       ══════════════════════════════════════════════════════════ */}
-      <section style={{ background: C.bg }} className="px-6 py-20 sm:px-10 lg:px-16 lg:py-28">
+      <section style={{ background: C.bg }} className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <div className="mx-auto max-w-7xl">
           <Reveal>
-            <div className="mb-14 text-center">
+            <div className="mb-10 text-center">
               <span
                 className="text-[0.65rem] font-bold uppercase tracking-[0.22em]"
                 style={{ color: C.muted }}
@@ -452,7 +452,7 @@ export default function ForestSchoolPage() {
                 A Day in Forest School
               </span>
               <h2
-                className="mt-4 font-heading text-[2rem] sm:text-[2.6rem]"
+                className="mt-4 font-heading text-[1.85rem] sm:text-[2.3rem]"
                 style={{ color: C.text }}
               >
                 What Children Do
@@ -471,7 +471,7 @@ export default function ForestSchoolPage() {
             ].map(({ Icon, label, desc }, i) => (
               <Reveal key={label} delay={i * 0.07}>
                 <div
-                  className="group flex flex-col items-center rounded-2xl p-5 text-center transition-all duration-200 hover:-translate-y-1"
+                  className="group flex flex-col items-center rounded-2xl p-4 text-center transition-all duration-200 hover:-translate-y-1"
                   style={{
                     background: "white",
                     border: `1px solid ${C.deep}10`,
@@ -479,7 +479,7 @@ export default function ForestSchoolPage() {
                   }}
                 >
                   <div
-                    className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl transition-all duration-200 group-hover:scale-110"
+                    className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl transition-all duration-200 group-hover:scale-110"
                     style={{ background: `${C.deep}10` }}
                   >
                     <Icon className="h-5 w-5" style={{ color: C.deep }} />
@@ -499,7 +499,7 @@ export default function ForestSchoolPage() {
           </div>
 
           {/* Image strip */}
-          <div className="mt-16 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[
               { src: "/home/outdoor-childrens-play-area.jpg",  alt: "Children playing outdoors" },
               { src: "/home/children-outdoor-play.jpg",        alt: "Outdoor play" },
@@ -528,14 +528,14 @@ export default function ForestSchoolPage() {
       {/* ══════════════════════════════════════════════════════════
           CTA — full-width dark green
       ══════════════════════════════════════════════════════════ */}
-      <section style={{ background: C.darker }} className="px-6 py-20 sm:px-10 lg:px-16 lg:py-28">
+      <section style={{ background: C.darker }} className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <div className="mx-auto max-w-7xl">
-          <div className="grid gap-14 lg:grid-cols-2 lg:items-center lg:gap-20">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-14">
 
             {/* Left: heading + buttons */}
             <Reveal>
               {/* Logo mark */}
-              <div className="mb-8 flex items-center gap-3">
+              <div className="mb-5 flex items-center gap-3">
                 <div className="h-12 w-12 overflow-hidden rounded-2xl">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -561,20 +561,20 @@ export default function ForestSchoolPage() {
               </div>
 
               <h2
-                className="font-heading text-[2.2rem] leading-[1.15] sm:text-[2.8rem]"
+                className="font-heading text-[2rem] leading-[1.15] sm:text-[2.5rem]"
                 style={{ color: C.cream }}
               >
                 Come and Experience Forest School
               </h2>
               <p
-                className="mt-5 max-w-md text-[0.95rem] leading-[1.8]"
+                className="mt-4 max-w-md text-[0.9rem] leading-[1.75]"
                 style={{ color: `${C.cream}99` }}
               >
                 Join us for a visit and see how our Forest School programme helps children
                 discover their strengths in the natural world. Places are limited — book early
                 to avoid disappointment.
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   href="/contact?enquiry=book-a-visit"
                   className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold transition-all duration-200 hover:opacity-90 hover:scale-[1.02]"
