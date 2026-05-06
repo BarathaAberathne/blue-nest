@@ -117,12 +117,10 @@ export default function ForestSchoolPage() {
           <div className="w-full px-6 py-10 sm:px-10 lg:px-14 xl:px-20 lg:py-12">
             <Reveal className="flex flex-col gap-4">
 
-              <span
-                className="text-xs font-bold uppercase tracking-[0.2em]"
-                style={{ color: C.muted }}
-              >
-                Blue Nest Forest School
-              </span>
+              {/* Breadcrumb */}
+              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em]" style={{ color: C.muted }}>
+                Home&ensp;/&ensp;Forest School
+              </p>
 
               <h1
                 className="font-heading text-[2.4rem] leading-[1.08] sm:text-[3rem] lg:text-[3.4rem]"
@@ -131,55 +129,48 @@ export default function ForestSchoolPage() {
                 Forest School<br />in Harrow &amp; London
               </h1>
 
-              <p
-                className="text-base font-semibold tracking-wide"
-                style={{ color: C.mid }}
-              >
+              <p className="flex items-center gap-1.5 text-base font-semibold tracking-wide" style={{ color: C.mid }}>
                 Learn. Explore. Grow. Together.
+                <Sprout className="h-4 w-4 shrink-0" />
               </p>
 
               <p
                 className="max-w-md text-[0.95rem] leading-[1.75]"
                 style={{ color: C.body }}
               >
-                We bring children and nature together through a Montessori-rooted Forest School
-                programme — building confidence, curiosity and a lifelong love of the outdoors
-                in a safe, nurturing environment.
+                At Blue Nest Forest School, children connect with nature,
+                build confidence and develop essential life skills through
+                outdoor learning, exploration and play.
               </p>
 
               <div className="flex flex-wrap gap-3 pt-1">
                 <GreenBtn href="/contact?enquiry=book-a-visit">
-                  Book a Visit <ArrowRight className="h-4 w-4" />
+                  Book a Visit
                 </GreenBtn>
                 <GreenBtn href="/admission" outline>
                   Explore Our Nurseries
                 </GreenBtn>
               </div>
 
-              {/* 4 icon pillars */}
+              {/* 4 icon pillars — centered column layout */}
               <div
-                className="mt-2 grid grid-cols-2 gap-x-6 gap-y-3 border-t pt-4 sm:grid-cols-4"
+                className="mt-2 grid grid-cols-4 gap-3 border-t pt-4"
                 style={{ borderColor: `${C.deep}22` }}
               >
                 {[
-                  { Icon: SunIcon,     label: "Sun",     sub: "Curiosity & Energy" },
-                  { Icon: WaterIcon,   label: "Water",   sub: "Adaptability" },
-                  { Icon: PlantIcon,   label: "Plant",   sub: "Growth" },
-                  { Icon: SocietyIcon, label: "Society", sub: "Community" },
-                ].map(({ Icon, label, sub }) => (
-                  <div key={label} className="flex items-center gap-3">
-                    <Icon className="h-6 w-6 shrink-0" style={{ color: C.deep }} />
-                    <div>
-                      <p
-                        className="text-[0.65rem] font-bold uppercase tracking-[0.18em]"
-                        style={{ color: C.deep }}
-                      >
-                        {label}
-                      </p>
-                      <p className="text-[0.7rem]" style={{ color: C.body }}>
-                        {sub}
-                      </p>
-                    </div>
+                  { Icon: SunIcon,     label: "Sun"     },
+                  { Icon: WaterIcon,   label: "Water"   },
+                  { Icon: PlantIcon,   label: "Plant"   },
+                  { Icon: SocietyIcon, label: "Society" },
+                ].map(({ Icon, label }) => (
+                  <div key={label} className="flex flex-col items-center gap-1.5">
+                    <Icon className="h-6 w-6" style={{ color: C.deep }} />
+                    <p
+                      className="text-[0.6rem] font-bold uppercase tracking-[0.18em]"
+                      style={{ color: C.deep }}
+                    >
+                      {label}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -188,16 +179,37 @@ export default function ForestSchoolPage() {
           </div>
         </div>
 
-        {/* ── Right: forest school logo fills the column ───────── */}
+        {/* ── Right: nature photo + floating card ──────────────── */}
         <div className="relative hidden lg:block w-1/2 overflow-hidden">
           <Image
-            src="/site-images/forest-school-logo.jpg"
-            alt="Blue Nest Forest School logo"
+            src="/home/forest-school.jpg"
+            alt="Children learning outdoors at Blue Nest Forest School"
             fill
             priority
             className="object-cover object-center"
             sizes="50vw"
           />
+          {/* Floating card — bottom-right */}
+          <div
+            className="absolute bottom-8 right-8 max-w-[220px] rounded-2xl p-5"
+            style={{ background: C.darker, boxShadow: `0 12px 40px ${C.darker}60` }}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <PlantIcon className="h-4 w-4 shrink-0" style={{ color: C.cream }} />
+              <p className="text-[0.6rem] font-bold uppercase tracking-[0.15em]" style={{ color: `${C.cream}88` }}>
+                Blue Nest Forest School
+              </p>
+            </div>
+            <p className="font-heading text-[1rem] leading-snug mb-1.5" style={{ color: C.cream }}>
+              Nurtured by Nature
+            </p>
+            <p className="font-heading text-[0.85rem] leading-snug mb-2" style={{ color: `${C.cream}cc` }}>
+              Inspired by Values
+            </p>
+            <p className="text-[0.72rem] leading-relaxed" style={{ color: `${C.cream}88` }}>
+              Four principles of growth, wellbeing and community.
+            </p>
+          </div>
         </div>
 
       </section>
@@ -403,7 +415,7 @@ export default function ForestSchoolPage() {
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6">
             {[
               { Icon: Compass,    label: "Explore",  desc: "Map their world with wonder" },
-              { Icon: Hammer,     label: "Build",    desc: "Create with sticks, stones & mud" },
+              { Icon: Hammer,     label: "Build",    desc: "Craft with sticks, stones & mud" },
               { Icon: BookOpen,   label: "Learn",    desc: "Discover through doing" },
               { Icon: Star,       label: "Play",     desc: "Imagination without limits" },
               { Icon: Lightbulb,  label: "Reflect",  desc: "Pause, observe, understand" },
