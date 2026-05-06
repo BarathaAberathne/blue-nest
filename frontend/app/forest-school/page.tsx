@@ -108,7 +108,7 @@ export default function ForestSchoolPage() {
           HERO — split layout
       ══════════════════════════════════════════════════════════ */}
       <section style={{ background: C.bg }} className="overflow-hidden">
-        <div className="mx-auto max-w-7xl px-4 pt-14 pb-0 sm:px-6 lg:px-8 lg:pt-20">
+        <div className="mx-auto max-w-7xl px-4 pt-10 pb-0 sm:px-6 lg:px-8 lg:pt-12">
           <div className="grid items-center gap-10 lg:grid-cols-[55%_45%] lg:gap-8">
 
             {/* ── Left: text ───────────────────────────────────────── */}
@@ -131,7 +131,7 @@ export default function ForestSchoolPage() {
               </div>
 
               <h1
-                className="font-heading text-[2.8rem] leading-[1.08] sm:text-[3.4rem] lg:text-[3.8rem]"
+                className="font-heading text-[2.4rem] leading-[1.08] sm:text-[3rem] lg:text-[3.4rem]"
                 style={{ color: C.text }}
               >
                 Forest School<br />in Harrow &amp; London
@@ -164,7 +164,7 @@ export default function ForestSchoolPage() {
 
               {/* 4 icon pillars — bottom of hero left column */}
               <div
-                className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 border-t pt-6 sm:grid-cols-4"
+                className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 border-t pt-4 sm:grid-cols-4"
                 style={{ borderColor: `${C.deep}22` }}
               >
                 {[
@@ -199,7 +199,7 @@ export default function ForestSchoolPage() {
               <div className="relative mx-auto w-full max-w-[520px] lg:max-w-none">
                 {/* Blob-shaped image */}
                 <div
-                  className="relative aspect-[4/5] w-full overflow-hidden shadow-2xl"
+                  className="relative aspect-[4/3] w-full overflow-hidden shadow-2xl"
                   style={{
                     borderRadius: "62% 38% 46% 54% / 60% 44% 56% 40%",
                     boxShadow: `0 32px 80px ${C.deep}30`,
@@ -257,7 +257,7 @@ export default function ForestSchoolPage() {
         </div>
 
         {/* Soft wave transition out of hero */}
-        <div className="mt-10 h-12 w-full" style={{ background: C.bg }}>
+        <div className="mt-6 h-10 w-full" style={{ background: C.bg }}>
           <svg viewBox="0 0 1440 64" className="w-full" preserveAspectRatio="none" style={{ display: "block" }}>
             <path d={`M0 0 C360 64 1080 0 1440 48 L1440 64 L0 64 Z`} fill={C.deep} />
           </svg>
