@@ -23,6 +23,15 @@ export const metadata: Metadata = {
     "Blue Nest Forest School in Harrow & London. Outdoor learning that nurtures curiosity, creativity and independence in children.",
 };
 
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Home",          item: "https://bluenestmontessori.co.uk/" },
+    { "@type": "ListItem", position: 2, name: "Forest School", item: "https://bluenestmontessori.co.uk/forest-school" },
+  ],
+};
+
 // ── Colour tokens derived directly from the Forest School logo ────────────────
 // Logo background: deep forest green
 // Logo icons/type: warm cream
@@ -103,6 +112,10 @@ function GreenBtn({ href, children, outline = false }: { href: string; children:
 export default function ForestSchoolPage() {
   return (
     <PublicLayout>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
 
       {/* ══════════════════════════════════════════════════════════
           HERO — split layout (matches branch page pattern)
@@ -117,10 +130,18 @@ export default function ForestSchoolPage() {
           <div className="w-full px-6 py-10 sm:px-10 lg:px-14 xl:px-20 lg:py-12">
             <Reveal className="flex flex-col gap-4">
 
-              {/* Breadcrumb */}
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.18em]" style={{ color: C.muted }}>
-                Home&ensp;/&ensp;Forest School
-              </p>
+              {/* Breadcrumb — semantic + linked for SEO */}
+              <nav aria-label="Breadcrumb">
+                <ol className="flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.18em]">
+                  <li>
+                    <Link href="/" style={{ color: C.muted }} className="hover:underline">
+                      Home
+                    </Link>
+                  </li>
+                  <li aria-hidden="true" style={{ color: `${C.muted}55` }}>/</li>
+                  <li aria-current="page" style={{ color: C.muted }}>Forest School</li>
+                </ol>
+              </nav>
 
               <h1
                 className="font-heading text-[2.4rem] leading-[1.08] sm:text-[3rem] lg:text-[3.4rem]"
@@ -241,7 +262,7 @@ export default function ForestSchoolPage() {
                 style={{ color: `${C.cream}bb` }}
               >
                 Forest School is a child-led approach to outdoor education rooted in progressive
-                learning theory — from Froebel to Montessori. It gives children time, space and
+                learning theory from Froebel to Montessori. It gives children time, space and
                 freedom to explore, take managed risks and build genuine self-belief.
               </p>
               <ul className="mt-6 space-y-3">
@@ -303,6 +324,15 @@ export default function ForestSchoolPage() {
         <div className="mx-auto max-w-7xl">
           <Reveal>
             <div className="mb-10 text-center">
+              {/* Forest School logo mark */}
+              <div className="mx-auto mb-4 h-16 w-16 overflow-hidden rounded-2xl shadow-md">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/site-images/forest-school-logo.jpg"
+                  alt="Blue Nest Forest School"
+                  className="h-full w-full object-cover"
+                />
+              </div>
               <span
                 className="text-[0.65rem] font-bold uppercase tracking-[0.22em]"
                 style={{ color: C.muted }}
