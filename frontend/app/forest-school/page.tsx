@@ -105,30 +105,24 @@ export default function ForestSchoolPage() {
     <PublicLayout>
 
       {/* ══════════════════════════════════════════════════════════
-          HERO — split layout
+          HERO — split layout (matches branch page pattern)
       ══════════════════════════════════════════════════════════ */}
-      <section style={{ background: C.bg }} className="overflow-hidden">
-        <div className="mx-auto max-w-7xl px-4 pt-10 pb-0 sm:px-6 lg:px-8 lg:pt-12">
-          <div className="grid items-center gap-10 lg:grid-cols-[55%_45%] lg:gap-8">
+      <section
+        className="flex flex-col lg:flex-row lg:h-[calc(100dvh-11rem)] overflow-hidden"
+        style={{ background: C.bg }}
+      >
 
-            {/* ── Left: text ───────────────────────────────────────── */}
-            <Reveal>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-10 w-10 overflow-hidden rounded-xl shadow-md">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src="/site-images/forest-school-logo.jpg"
-                    alt="Blue Nest Forest School logo"
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <span
-                  className="text-xs font-bold uppercase tracking-[0.2em]"
-                  style={{ color: C.muted }}
-                >
-                  Blue Nest Forest School
-                </span>
-              </div>
+        {/* ── Left: text panel ─────────────────────────────────── */}
+        <div className="relative flex w-full items-center lg:w-1/2" style={{ background: C.bg }}>
+          <div className="w-full px-6 py-10 sm:px-10 lg:px-14 xl:px-20 lg:py-0">
+            <Reveal className="flex flex-col gap-4">
+
+              <span
+                className="text-xs font-bold uppercase tracking-[0.2em]"
+                style={{ color: C.muted }}
+              >
+                Blue Nest Forest School
+              </span>
 
               <h1
                 className="font-heading text-[2.4rem] leading-[1.08] sm:text-[3rem] lg:text-[3.4rem]"
@@ -138,14 +132,14 @@ export default function ForestSchoolPage() {
               </h1>
 
               <p
-                className="mt-3 text-base font-semibold tracking-wide"
+                className="text-base font-semibold tracking-wide"
                 style={{ color: C.mid }}
               >
                 Learn. Explore. Grow. Together.
               </p>
 
               <p
-                className="mt-4 max-w-md text-[0.95rem] leading-[1.75]"
+                className="max-w-md text-[0.95rem] leading-[1.75]"
                 style={{ color: C.body }}
               >
                 We bring children and nature together through a Montessori-rooted Forest School
@@ -153,7 +147,7 @@ export default function ForestSchoolPage() {
                 in a safe, nurturing environment.
               </p>
 
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-3 pt-1">
                 <GreenBtn href="/contact?enquiry=book-a-visit">
                   Book a Visit <ArrowRight className="h-4 w-4" />
                 </GreenBtn>
@@ -162,9 +156,9 @@ export default function ForestSchoolPage() {
                 </GreenBtn>
               </div>
 
-              {/* 4 icon pillars — bottom of hero left column */}
+              {/* 4 icon pillars */}
               <div
-                className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 border-t pt-4 sm:grid-cols-4"
+                className="mt-2 grid grid-cols-2 gap-x-6 gap-y-3 border-t pt-4 sm:grid-cols-4"
                 style={{ borderColor: `${C.deep}22` }}
               >
                 {[
@@ -174,10 +168,7 @@ export default function ForestSchoolPage() {
                   { Icon: SocietyIcon, label: "Society", sub: "Community" },
                 ].map(({ Icon, label, sub }) => (
                   <div key={label} className="flex items-center gap-3">
-                    <Icon
-                      className="h-7 w-7 shrink-0"
-                      style={{ color: C.deep }}
-                    />
+                    <Icon className="h-6 w-6 shrink-0" style={{ color: C.deep }} />
                     <div>
                       <p
                         className="text-[0.65rem] font-bold uppercase tracking-[0.18em]"
@@ -192,76 +183,23 @@ export default function ForestSchoolPage() {
                   </div>
                 ))}
               </div>
+
             </Reveal>
-
-            {/* ── Right: organic image + floating card ─────────────── */}
-            <Reveal delay={0.1}>
-              <div className="relative mx-auto w-full max-w-[520px] lg:max-w-none">
-                {/* Blob-shaped image */}
-                <div
-                  className="relative aspect-[4/3] w-full overflow-hidden shadow-2xl"
-                  style={{
-                    borderRadius: "62% 38% 46% 54% / 60% 44% 56% 40%",
-                    boxShadow: `0 32px 80px ${C.deep}30`,
-                  }}
-                >
-                  <Image
-                    src="/home/forest-school.jpg"
-                    alt="Children learning outdoors at Blue Nest Forest School"
-                    fill
-                    priority
-                    className="object-cover object-center"
-                    sizes="(max-width: 1024px) 80vw, 45vw"
-                  />
-                  {/* Subtle green overlay */}
-                  <div
-                    className="absolute inset-0 opacity-10"
-                    style={{ background: `linear-gradient(160deg, ${C.deep}, transparent 60%)` }}
-                  />
-                </div>
-
-                {/* Floating card: Nurtured by Nature */}
-                <div
-                  className="absolute bottom-8 -left-4 sm:-left-8 max-w-[180px] rounded-2xl p-4 sm:max-w-[200px]"
-                  style={{
-                    background: "white",
-                    boxShadow: `0 12px 40px ${C.deep}20`,
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <PlantIcon className="h-4 w-4" style={{ color: C.deep } as React.CSSProperties} />
-                    <span
-                      className="text-[0.6rem] font-bold uppercase tracking-[0.15em]"
-                      style={{ color: C.deep }}
-                    >
-                      Nurtured by Nature
-                    </span>
-                  </div>
-                  <p className="text-[0.72rem] leading-relaxed" style={{ color: C.body }}>
-                    Authentic outdoor experiences that build lifelong skills
-                  </p>
-                </div>
-
-                {/* Decorative green blob behind image */}
-                <div
-                  className="absolute -top-8 -right-8 -z-10 h-64 w-64 opacity-20"
-                  style={{
-                    background: C.deep,
-                    borderRadius: "50% 50% 35% 65% / 55% 45% 55% 45%",
-                  }}
-                />
-              </div>
-            </Reveal>
-
           </div>
         </div>
 
-        {/* Soft wave transition out of hero */}
-        <div className="mt-6 h-10 w-full" style={{ background: C.bg }}>
-          <svg viewBox="0 0 1440 64" className="w-full" preserveAspectRatio="none" style={{ display: "block" }}>
-            <path d={`M0 0 C360 64 1080 0 1440 48 L1440 64 L0 64 Z`} fill={C.deep} />
-          </svg>
+        {/* ── Right: forest school logo fills the column ───────── */}
+        <div className="relative hidden lg:block w-1/2 overflow-hidden">
+          <Image
+            src="/site-images/forest-school-logo.jpg"
+            alt="Blue Nest Forest School logo"
+            fill
+            priority
+            className="object-cover object-center"
+            sizes="50vw"
+          />
         </div>
+
       </section>
 
 
