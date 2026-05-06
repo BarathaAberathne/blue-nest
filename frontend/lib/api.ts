@@ -54,16 +54,21 @@ export const api = {
   // Products
   getProducts: () => apiFetch("/api/v1/products"),
   getProduct: (id: string) => apiFetch(`/api/v1/products/${id}`),
+  getProductBySlug: (slug: string) => apiFetch(`/api/v1/products/slug/${encodeURIComponent(slug)}`),
   getCategories: () => apiFetch("/api/v1/categories"),
 
   // Cart
   getCart: (token: string) => apiFetch("/api/v1/cart", { token }),
-  addCartItem: (token: string, body: { product_id: string; qty: number }) =>
+  addCartItem: (token: string, body: { product_id: string; qty: number; size?: string }) =>
     apiFetch("/api/v1/cart/items", { method: "POST", body: JSON.stringify(body), token }),
-  updateCartItem: (token: string, id: string, body: { qty: number }) =>
-    apiFetch(`/api/v1/cart/items/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
-  removeCartItem: (token: string, id: string) =>
-    apiFetch(`/api/v1/cart/items/${id}`, { method: "DELETE", token }),
+  updateCartItem: (token: string, id: string, body: { qty: number; size?: string }) => {
+    const sizeParam = body.size ? `?size=${encodeURIComponent(body.size)}` : "";
+    return apiFetch(`/api/v1/cart/items/${id}${sizeParam}`, { method: "PUT", body: JSON.stringify({ qty: body.qty }), token });
+  },
+  removeCartItem: (token: string, id: string, size?: string) => {
+    const sizeParam = size ? `?size=${encodeURIComponent(size)}` : "";
+    return apiFetch(`/api/v1/cart/items/${id}${sizeParam}`, { method: "DELETE", token });
+  },
   createCheckoutSession: (
     token: string,
     body: { success_url: string; cancel_url: string },
@@ -76,6 +81,7 @@ export const api = {
   // Orders
   getMyOrders: (token: string) => apiFetch("/api/v1/orders/me", { token }),
   getOrder: (token: string, id: string) => apiFetch(`/api/v1/orders/${id}`, { token }),
+  adminGetOrder: (token: string, id: string) => apiFetch(`/api/v1/admin/orders/${id}`, { token }),
 
   // Blog
   getBlogPosts: () => apiFetch("/api/v1/blog/posts"),
@@ -142,4 +148,8 @@ export const api = {
   adminGetUsers: (token: string) => apiFetch("/api/v1/admin/users", { token }),
   adminCreateUser: (token: string, body: unknown) =>
     apiFetch("/api/v1/admin/users", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateUser: (token: string, id: string, body: unknown) =>
+    apiFetch(`/api/v1/admin/users/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminDeleteUser: (token: string, id: string) =>
+    apiFetch(`/api/v1/admin/users/${id}`, { method: "DELETE", token }),
 };

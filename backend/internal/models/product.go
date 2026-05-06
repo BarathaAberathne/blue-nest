@@ -18,8 +18,11 @@ type Product struct {
 	Category    string             `bson:"category,omitempty" json:"category,omitempty"`
 	CategoryID  primitive.ObjectID `bson:"category_id"   json:"category_id"`
 	ImageURL    string             `bson:"image_url"     json:"image_url,omitempty"`
-	StockQty    int                `bson:"stock_qty"     json:"stock_qty"`
-	IsActive    bool               `bson:"is_active"     json:"is_active"`
+	ImageURLs   []string           `bson:"image_urls,omitempty" json:"image_urls,omitempty"`
+	StockQty     int                `bson:"stock_qty"      json:"stock_qty"`
+	ReorderPoint int                `bson:"reorder_point"  json:"reorder_point"`
+	IsActive     bool               `bson:"is_active"      json:"is_active"`
+	Sizes       []string           `bson:"sizes,omitempty" json:"sizes,omitempty"`
 	BranchSlugs []string           `bson:"branch_slugs"  json:"branch_slugs,omitempty"`
 	CreatedAt   time.Time          `bson:"created_at"    json:"created_at"`
 	UpdatedAt   time.Time          `bson:"updated_at"    json:"updated_at"`

@@ -19,6 +19,8 @@ function autoSlug(title: string): string {
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+type PublishMode = "draft" | "now" | "schedule";
+
 type BlogForm = {
   slug: string;
   title: string;
@@ -27,10 +29,21 @@ type BlogForm = {
   cover_image: string;
   gallery_images: string[];
   tags: string;
-  published: boolean;
+  publish_mode: PublishMode;
+  scheduled_at: string; // datetime-local input value "YYYY-MM-DDTHH:mm"
 };
 
+function toDatetimeLocal(iso: string): string {
+  // Slice to "YYYY-MM-DDTHH:mm" for datetime-local input
+  return iso.slice(0, 16);
+}
+
 function toForm(post: BlogPost): BlogForm {
+  const mode: PublishMode = post.published
+    ? "now"
+    : post.scheduled_at
+    ? "schedule"
+    : "draft";
   return {
     slug:           post.slug,
     title:          post.title,
@@ -39,13 +52,15 @@ function toForm(post: BlogPost): BlogForm {
     cover_image:    post.cover_image ?? "",
     gallery_images: post.gallery_images ?? [],
     tags:           (post.tags ?? []).join(", "),
-    published:      Boolean(post.published),
+    publish_mode:   mode,
+    scheduled_at:   post.scheduled_at ? toDatetimeLocal(post.scheduled_at) : "",
   };
 }
 
 const BLANK_FORM: BlogForm = {
   slug: "", title: "", excerpt: "", body: "",
-  cover_image: "", gallery_images: [], tags: "", published: false,
+  cover_image: "", gallery_images: [], tags: "",
+  publish_mode: "draft", scheduled_at: "",
 };
 
 // ── Image upload helper ───────────────────────────────────────────────────────
@@ -292,15 +307,37 @@ export default function AdminBlogClient() {
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!token) return;
+
+    if (form.publish_mode === "schedule" && !form.scheduled_at) {
+      setError("Please pick a date and time to schedule the post.");
+      return;
+    }
+    if (form.publish_mode === "schedule" && new Date(form.scheduled_at) <= new Date()) {
+      setError("Scheduled time must be in the future.");
+      return;
+    }
+
     setSaving(true);
     setError(null);
     const authUser = getAuthUser();
+
+    const isPublishNow = form.publish_mode === "now";
+    const isScheduled  = form.publish_mode === "schedule";
+
     const payload = {
-      ...form,
-      tags:         form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-      author_name:  authUser ? `${authUser.first_name} ${authUser.last_name}` : "Admin",
-      published_at: form.published ? new Date().toISOString() : undefined,
+      slug:           form.slug,
+      title:          form.title,
+      excerpt:        form.excerpt,
+      body:           form.body,
+      cover_image:    form.cover_image,
+      gallery_images: form.gallery_images,
+      tags:           form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      author_name:    authUser ? `${authUser.first_name} ${authUser.last_name}` : "Admin",
+      published:      isPublishNow,
+      published_at:   isPublishNow ? new Date().toISOString() : null,
+      scheduled_at:   isScheduled ? new Date(form.scheduled_at).toISOString() : null,
     };
+
     try {
       if (editing) {
         await api.adminUpdateBlogPost(token, editing.id, payload);
@@ -405,15 +442,49 @@ export default function AdminBlogClient() {
 
         <BodyEditor value={form.body} onChange={(v) => set("body", v)} />
 
-        <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={form.published}
-            onChange={(e) => set("published", e.target.checked)}
-            className="rounded"
-          />
-          Publish immediately
-        </label>
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Publication</p>
+          <div className="flex gap-2 flex-wrap">
+            {(["draft", "now", "schedule"] as PublishMode[]).map((mode) => {
+              const labels: Record<PublishMode, string> = {
+                draft:    "Save as draft",
+                now:      "Publish now",
+                schedule: "Schedule",
+              };
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => set("publish_mode", mode)}
+                  className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
+                    form.publish_mode === mode
+                      ? mode === "now"
+                        ? "border-teal-500 bg-teal-50 text-teal-700"
+                        : mode === "schedule"
+                        ? "border-amber-400 bg-amber-50 text-amber-700"
+                        : "border-gray-400 bg-gray-100 text-gray-700"
+                      : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  {labels[mode]}
+                </button>
+              );
+            })}
+          </div>
+          {form.publish_mode === "schedule" && (
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="datetime-local"
+                value={form.scheduled_at}
+                min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                onChange={(e) => set("scheduled_at", e.target.value)}
+                required
+                className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              <span className="text-xs text-amber-600">Post will publish automatically at this time.</span>
+            </div>
+          )}
+        </div>
 
         <div className="flex gap-2 pt-1">
           <button type="submit" className="btn-primary text-sm py-2" disabled={saving}>
@@ -461,12 +532,26 @@ export default function AdminBlogClient() {
                     </div>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
-                    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${post.published ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                      {post.published ? "Published" : "Draft"}
-                    </span>
+                    {post.published ? (
+                      <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold bg-green-50 text-green-700">
+                        Published
+                      </span>
+                    ) : post.scheduled_at ? (
+                      <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold bg-amber-50 text-amber-700">
+                        Scheduled
+                      </span>
+                    ) : (
+                      <span className="inline-block rounded-full px-2 py-0.5 text-xs font-semibold bg-gray-100 text-gray-500">
+                        Draft
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">
-                    {post.published_at ? new Date(post.published_at).toLocaleDateString() : "—"}
+                    {post.published && post.published_at
+                      ? new Date(post.published_at).toLocaleString()
+                      : post.scheduled_at
+                      ? `Scheduled: ${new Date(post.scheduled_at).toLocaleString()}`
+                      : "—"}
                   </td>
                   <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">
                     {post.like_count ?? 0}

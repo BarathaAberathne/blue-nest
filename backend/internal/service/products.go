@@ -30,6 +30,7 @@ type ProductService interface {
 	List(ctx context.Context) ([]models.Product, error)
 	ListAdmin(ctx context.Context) ([]models.Product, error)
 	GetByID(ctx context.Context, id string) (*models.Product, error)
+	GetBySlug(ctx context.Context, slug string) (*models.Product, error)
 	ListCategories(ctx context.Context) ([]models.Category, error)
 	CreateCategory(ctx context.Context, c models.Category) (*models.Category, error)
 	UpdateCategory(ctx context.Context, id string, c models.Category) (*models.Category, error)
@@ -58,6 +59,10 @@ func (s *productService) ListAdmin(ctx context.Context) ([]models.Product, error
 
 func (s *productService) GetByID(ctx context.Context, id string) (*models.Product, error) {
 	return s.repo.FindByID(ctx, id)
+}
+
+func (s *productService) GetBySlug(ctx context.Context, slug string) (*models.Product, error) {
+	return s.repo.FindBySlug(ctx, slug)
 }
 
 func (s *productService) ListCategories(ctx context.Context) ([]models.Category, error) {

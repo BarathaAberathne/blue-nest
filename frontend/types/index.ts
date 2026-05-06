@@ -45,8 +45,11 @@ export interface Product {
   category?: string;
   category_id: string;
   image_url?: string;
+  image_urls?: string[];
   stock_qty: number;
+  reorder_point?: number;
   is_active: boolean;
+  sizes?: string[];
 }
 
 // ── Cart ─────────────────────────────────────────────────────────────────────
@@ -56,6 +59,7 @@ export interface CartItem {
   price: number;
   qty: number;
   image_url?: string;
+  size?: string;
 }
 
 export interface Cart {
@@ -78,6 +82,7 @@ export interface OrderItem {
   name: string;
   price: number;
   qty: number;
+  size?: string;
 }
 
 export interface Order {
@@ -105,6 +110,7 @@ export interface BlogPost {
   like_count?: number;
   published?: boolean;
   published_at?: string;
+  scheduled_at?: string;
 }
 
 export interface Comment {
@@ -124,6 +130,10 @@ export interface User {
   first_name: string;
   last_name: string;
   role: UserRole;
+  oauth_provider?: string;
+  oauth_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface AuthResponse {

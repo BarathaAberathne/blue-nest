@@ -3,10 +3,12 @@ package routes
 import (
 	"net/http"
 
+	"github.com/blue-nest-montessori/api/internal/config"
 	"github.com/blue-nest-montessori/api/internal/handler"
 	adminHandler "github.com/blue-nest-montessori/api/internal/handler/admin"
 	"github.com/blue-nest-montessori/api/internal/handler/webhooks"
 	"github.com/blue-nest-montessori/api/internal/middleware"
+	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -24,7 +26,12 @@ type Services struct {
 	Comments  service.CommentService
 }
 
-func Register(r *chi.Mux, svc Services, jwtSecret, stripeWebhookSecret string) {
+type Repos struct {
+	Orders   repository.OrderRepository
+	Products repository.ProductRepository
+}
+
+func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSecret string, cfg *config.Config) {
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(chiMiddleware.RequestID)
 
@@ -33,21 +40,28 @@ func Register(r *chi.Mux, svc Services, jwtSecret, stripeWebhookSecret string) {
 	r.Get("/api/v1/health", health.Check)
 
 	// ── Stripe webhook (raw body required before JSON middleware) ───────────
-	stripeWH := webhooks.NewStripeWebhookHandler(stripeWebhookSecret)
+	stripeWH := webhooks.NewStripeWebhookHandler(stripeWebhookSecret, repos.Orders, repos.Products)
 	r.Post("/api/v1/webhooks/stripe", stripeWH.Handle)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// ── Auth ──────────────────────────────────────────────────────────
-		authH := handler.NewAuthHandler(svc.Auth)
+		authH := handler.NewAuthHandler(svc.Auth, cfg)
 		r.Post("/auth/register", authH.Register)
 		r.Post("/auth/login", authH.Login)
 		r.Post("/admin/auth/login", authH.AdminLogin)
 		r.Post("/auth/logout", authH.Logout)
 		r.Post("/auth/refresh", authH.Refresh)
 
+		// ── OAuth ──────────────────────────────────────────────────────────
+		r.Get("/auth/google", authH.GoogleLogin)
+		r.Get("/auth/google/callback", authH.GoogleCallback)
+		r.Get("/auth/facebook", authH.FacebookLogin)
+		r.Get("/auth/facebook/callback", authH.FacebookCallback)
+
 		// ── Products & categories (public) ────────────────────────────────
 		productH := handler.NewProductHandler(svc.Products)
 		r.Get("/products", productH.List)
+		r.Get("/products/slug/{slug}", productH.GetBySlug)
 		r.Get("/products/{id}", productH.Get)
 		r.Get("/categories", productH.ListCategories)
 
@@ -119,6 +133,7 @@ func Register(r *chi.Mux, svc Services, jwtSecret, stripeWebhookSecret string) {
 			r.Post("/admin/blog/posts", adminBlogH.Create)
 			r.Put("/admin/blog/posts/{id}", adminBlogH.Update)
 			r.Delete("/admin/blog/posts/{id}", adminBlogH.Delete)
+			r.Post("/admin/blog/publish-scheduled", adminBlogH.TriggerPublishScheduled)
 			r.Post("/admin/uploads/image", adminBlogH.UploadImage)
 
 			adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries)
@@ -130,6 +145,8 @@ func Register(r *chi.Mux, svc Services, jwtSecret, stripeWebhookSecret string) {
 				adminUserH := adminHandler.NewAdminUserHandler(svc.Auth)
 				r.Get("/admin/users", adminUserH.List)
 				r.Post("/admin/users", adminUserH.Create)
+				r.Put("/admin/users/{id}", adminUserH.Update)
+				r.Delete("/admin/users/{id}", adminUserH.Delete)
 			})
 		})
 	})

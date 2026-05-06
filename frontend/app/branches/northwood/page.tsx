@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { ArrowRight, Clock, Mail, MapPin } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import PastelButton from "@/components/ui/PastelButton";
-import FeeCalculatorCard from "@/components/ui/FeeCalculatorCard";
-import Doodle from "@/components/ui/Doodle";
-import { Float, Reveal } from "@/components/ui/Motion";
+import { Reveal } from "@/components/ui/Motion";
+import BranchHero from "@/components/sections/BranchHero";
 
 export const metadata: Metadata = {
   title: "Northwood — Blue Nest Montessori School (Coming Soon)",
@@ -22,70 +21,17 @@ export default function NorthwoodBranchPage() {
   return (
     <PublicLayout>
 
-      {/* ══════════════════════════════════════════════════════
-          HERO — Coming Soon
-      ══════════════════════════════════════════════════════ */}
-      <section className="paper-bg relative overflow-hidden h-[calc(100dvh-8.5rem)] sm:h-[calc(100dvh-11rem)]">
-
-        {/* Dot texture */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{ backgroundImage: "radial-gradient(circle, rgba(90,74,66,0.05) 1px, transparent 1px)", backgroundSize: "20px 20px" }}
-          aria-hidden="true"
-        />
-        {/* Colour blooms */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{ background: "radial-gradient(ellipse at 12% 60%, rgba(246,213,223,0.32) 0%, transparent 45%), radial-gradient(ellipse at 88% 18%, rgba(127,216,210,0.18) 0%, transparent 40%)" }}
-          aria-hidden="true"
-        />
-
-        <Doodle kind="blue-flower" animated="pulse"  className="absolute left-[3%]  top-16    h-11 w-11 opacity-50 hidden lg:block" />
-        <Doodle kind="pink-bird"   animated="float"  className="absolute right-[4%] bottom-16 h-10 w-10 opacity-55 hidden lg:block" />
-
-        <div className="container-site relative z-10 flex h-full items-center py-6 sm:py-8">
-          <div className="grid w-full items-center gap-8 lg:grid-cols-2 lg:gap-12">
-
-            {/* Text */}
-            <Reveal className="flex flex-col gap-4">
-              <span className="mb-2 inline-flex w-fit items-center gap-2 rounded-full bg-[rgba(247,215,116,0.25)] px-5 py-2 text-xs font-bold uppercase tracking-[0.22em] text-[#8a6d00] ring-1 ring-[rgba(247,215,116,0.5)]">
-                Coming Soon
-              </span>
-              <span className="section-kicker">Northwood, London · HA6</span>
-              <h1 className="font-heading text-[2rem] leading-[1.15] text-[var(--ink)] sm:text-[2.6rem] lg:text-[3rem] max-w-3xl">
-                Blue Nest Montessori is Coming to Northwood
-              </h1>
-              <p className="body-text max-w-xl hidden sm:block">
-                We&apos;re excited to be expanding to Northwood. Our newest branch will bring the same
-                outstanding Montessori education and warm, nurturing care to HA6 families. Register
-                your interest to be first in line for a place.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <PastelButton href="/contact?enquiry=northwood-interest" variant="blush">
-                  Register Your Interest <ArrowRight className="h-4 w-4" />
-                </PastelButton>
-                <PastelButton href="/admission" variant="mint">
-                  Learn About Admissions
-                </PastelButton>
-              </div>
-
-              {/* Fee calculator — mobile */}
-              <div className="lg:hidden">
-                <p className="mb-2 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[var(--muted)]">Indicative fee estimate</p>
-                <FeeCalculatorCard compact defaultBranch="northwood" />
-              </div>
-            </Reveal>
-
-            {/* Fee calculator — desktop */}
-            <Reveal delay={0.12} className="hidden lg:block">
-              <Float delay={0.2}>
-                <FeeCalculatorCard defaultBranch="northwood" />
-              </Float>
-            </Reveal>
-
-          </div>
-        </div>
-      </section>
+      <BranchHero
+        branch="northwood"
+        location="Northwood, London · HA6"
+        heading="Blue Nest Montessori is Coming to Northwood"
+        description="We're excited to be expanding to Northwood. Our newest branch will bring the same outstanding Montessori education and warm, nurturing care to HA6 families. Register your interest to be first in line for a place."
+        image="/home/outdoor-play-for-children-new.jpg"
+        imageAlt="Blue Nest Montessori coming to Northwood"
+        badge="Coming Soon"
+        primaryCta={{ label: "Register Your Interest", href: "/contact?enquiry=northwood-interest", variant: "blush" }}
+        secondaryCta={{ label: "Learn About Admissions", href: "/admission", variant: "mint" }}
+      />
 
       {/* ══════════════════════════════════════════════════════
           WHAT TO EXPECT

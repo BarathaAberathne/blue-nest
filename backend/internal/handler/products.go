@@ -35,6 +35,16 @@ func (h *ProductHandler) Get(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, product)
 }
 
+func (h *ProductHandler) GetBySlug(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "slug")
+	product, err := h.svc.GetBySlug(r.Context(), slug)
+	if err != nil {
+		response.NotFound(w, "product not found")
+		return
+	}
+	response.OK(w, product)
+}
+
 func (h *ProductHandler) ListCategories(w http.ResponseWriter, r *http.Request) {
 	cats, err := h.svc.ListCategories(r.Context())
 	if err != nil {

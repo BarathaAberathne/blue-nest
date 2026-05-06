@@ -1,9 +1,11 @@
 package webhooks
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 
+	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	stripe "github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/webhook"
@@ -11,10 +13,12 @@ import (
 
 type StripeWebhookHandler struct {
 	webhookSecret string
+	orders        repository.OrderRepository
+	products      repository.ProductRepository
 }
 
-func NewStripeWebhookHandler(secret string) *StripeWebhookHandler {
-	return &StripeWebhookHandler{webhookSecret: secret}
+func NewStripeWebhookHandler(secret string, orders repository.OrderRepository, products repository.ProductRepository) *StripeWebhookHandler {
+	return &StripeWebhookHandler{webhookSecret: secret, orders: orders, products: products}
 }
 
 func (h *StripeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
@@ -36,9 +40,26 @@ func (h *StripeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	switch event.Type {
 	case stripe.EventTypeCheckoutSessionCompleted:
-		// TODO: fulfill order
+		var session stripe.CheckoutSession
+		if err := json.Unmarshal(event.Data.Raw, &session); err != nil {
+			break
+		}
+		orderID := session.Metadata["order_id"]
+		if orderID == "" {
+			break
+		}
+		ctx := r.Context()
+		_ = h.orders.UpdateStatus(ctx, orderID, "paid")
+		order, err := h.orders.FindByID(ctx, orderID)
+		if err != nil {
+			break
+		}
+		for _, item := range order.Items {
+			_ = h.products.DecrementStock(ctx, item.ProductID.Hex(), item.Qty)
+		}
+
 	case stripe.EventTypePaymentIntentPaymentFailed:
-		// TODO: handle failure
+		// TODO: mark order cancelled, restore stock if pre-reserved
 	}
 
 	response.OK(w, map[string]string{"received": "true"})

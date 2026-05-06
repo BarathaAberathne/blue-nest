@@ -21,6 +21,7 @@ type BlogPost struct {
 	LikeCount     int64              `bson:"like_count"      json:"like_count"`
 	Published     bool               `bson:"published"       json:"published"`
 	PublishedAt   *time.Time         `bson:"published_at"    json:"published_at,omitempty"`
+	ScheduledAt   *time.Time         `bson:"scheduled_at"    json:"scheduled_at,omitempty"`
 	CreatedAt     time.Time          `bson:"created_at"      json:"created_at"`
 	UpdatedAt     time.Time          `bson:"updated_at"      json:"updated_at"`
 }

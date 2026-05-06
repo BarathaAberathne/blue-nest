@@ -10,12 +10,15 @@ import (
 )
 
 type Config struct {
-	App    AppConfig
-	Mongo  MongoConfig
-	JWT    JWTConfig
-	Stripe StripeConfig
-	CORS   CORSConfig
-	SMTP   SMTPConfig
+	App         AppConfig
+	Mongo       MongoConfig
+	JWT         JWTConfig
+	Stripe      StripeConfig
+	CORS        CORSConfig
+	SMTP        SMTPConfig
+	Google      OAuthProviderConfig
+	Facebook    OAuthProviderConfig
+	FrontendURL string
 }
 
 type AppConfig struct {
@@ -54,6 +57,12 @@ type SMTPConfig struct {
 	AdminTo string
 }
 
+type OAuthProviderConfig struct {
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
+}
+
 func Load() *Config {
 	if err := godotenv.Load(); err != nil {
 		log.Println("no .env file found, reading from environment")
@@ -85,6 +94,17 @@ func Load() *Config {
 		CORS: CORSConfig{
 			FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
 		},
+		Google: OAuthProviderConfig{
+			ClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
+			ClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
+			RedirectURL:  getEnv("GOOGLE_REDIRECT_URL", "http://localhost:8080/api/v1/auth/google/callback"),
+		},
+		Facebook: OAuthProviderConfig{
+			ClientID:     getEnv("FACEBOOK_CLIENT_ID", ""),
+			ClientSecret: getEnv("FACEBOOK_CLIENT_SECRET", ""),
+			RedirectURL:  getEnv("FACEBOOK_REDIRECT_URL", "http://localhost:8080/api/v1/auth/facebook/callback"),
+		},
+		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
 		SMTP: SMTPConfig{
 			Host:    getEnv("SMTP_HOST", ""),
 			Port:    func() int { p, _ := strconv.Atoi(getEnv("SMTP_PORT", "587")); return p }(),

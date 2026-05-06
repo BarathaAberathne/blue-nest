@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Check, ShoppingCart, X } from "lucide-react";
 import PastelButton from "@/components/ui/PastelButton";
@@ -9,7 +10,9 @@ import type { Product } from "@/types";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 
-const CATEGORIES: { value: CategorySlug; label: string; colour: string }[] = [
+type ExtendedCategorySlug = CategorySlug | "clothing";
+
+const CATEGORIES: { value: ExtendedCategorySlug; label: string; colour: string }[] = [
   { value: "all",          label: "All",         colour: "#5a4a42" },
   { value: "sensory",      label: "Sensory",      colour: "#cf7d9c" },
   { value: "outdoor",      label: "Outdoor",      colour: "#3d8a52" },
@@ -18,9 +21,10 @@ const CATEGORIES: { value: CategorySlug; label: string; colour: string }[] = [
   { value: "life-skills",  label: "Life Skills",  colour: "#c45820" },
   { value: "accessories",  label: "Accessories",  colour: "#a07a00" },
   { value: "art",          label: "Art & Craft",  colour: "#e8719a" },
+  { value: "clothing",     label: "Clothing",     colour: "#9b59b6" },
 ];
 
-const CAT_BG: Record<Exclude<CategorySlug, "all">, string> = {
+const CAT_BG: Record<Exclude<ExtendedCategorySlug, "all">, string> = {
   sensory:       "rgba(244,170,200,0.18)",
   outdoor:       "rgba(142,203,155,0.20)",
   maths:         "rgba(127,216,210,0.18)",
@@ -28,20 +32,24 @@ const CAT_BG: Record<Exclude<CategorySlug, "all">, string> = {
   "life-skills": "rgba(249,160,120,0.18)",
   accessories:   "rgba(247,215,116,0.22)",
   art:           "rgba(232,113,154,0.14)",
+  clothing:      "rgba(155,89,182,0.12)",
 };
 
 function fmt(pence: number) {
   return `£${(pence / 100).toFixed(2)}`;
 }
 
-function categoryFromText(text: string): Exclude<CategorySlug, "all"> {
-  const normalized = text.toLowerCase();
-  if (normalized.includes("outdoor") || normalized.includes("holiday")) return "outdoor";
-  if (normalized.includes("math")) return "maths";
-  if (normalized.includes("literacy") || normalized.includes("book")) return "literacy";
-  if (normalized.includes("life")) return "life-skills";
-  if (normalized.includes("art") || normalized.includes("craft")) return "art";
-  if (normalized.includes("sensory")) return "sensory";
+function categoryFromText(text: string): Exclude<ExtendedCategorySlug, "all"> {
+  const n = text.toLowerCase();
+  if (n.includes("holiday club")) return "outdoor";
+  if (n.includes("clothing") || n.includes("schoolwear") || n.includes("uniform") ||
+      n.includes("polo") || n.includes("sweatshirt") || n.includes("t-shirt") || n.includes("tshirt")) return "clothing";
+  if (n.includes("outdoor")) return "outdoor";
+  if (n.includes("math")) return "maths";
+  if (n.includes("literacy") || n.includes("book")) return "literacy";
+  if (n.includes("life")) return "life-skills";
+  if (n.includes("art") || n.includes("craft")) return "art";
+  if (n.includes("sensory")) return "sensory";
   return "accessories";
 }
 
@@ -50,48 +58,63 @@ function mapProduct(product: Product): StoreProduct {
   const category = categoryFromText(`${product.category ?? ""} ${product.name}`);
   return {
     id: product.id,
+    slug: product.slug,
     name: product.name,
     price: product.price,
     category,
     tag,
-    emoji: "🛍️",
+    emoji: category === "clothing" ? "👕" : "🛍️",
+    sizes: product.sizes,
+    // /uploads/… paths are served via the Next.js → backend proxy rewrite rule,
+    // so they resolve correctly both in the browser and in the server-side image optimiser.
+    imageUrls: product.image_urls ?? [],
   };
 }
 
 // ── Add-to-cart button ────────────────────────────────────────────────────────
-// Self-contained: manages its own "added" flash state.
 
-function AddButton({ product }: { product: StoreProduct }) {
+function AddButton({
+  product,
+  selectedSize,
+  mustPickSize,
+}: {
+  product: StoreProduct;
+  selectedSize?: string;
+  mustPickSize: boolean;
+}) {
   const [added, setAdded] = useState(false);
 
   const handleAdd = async () => {
-  const token = getAccessToken();
-
-  try {
-    if (token) {
-      await api.addCartItem(token, { product_id: product.id, qty: 1 });
+    if (mustPickSize) return;
+    const token = getAccessToken();
+    try {
+      if (token) {
+        await api.addCartItem(token, { product_id: product.id, qty: 1, size: selectedSize });
+      }
+      addToCart(product, 1, selectedSize);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1600);
+    } catch (err) {
+      console.error("Failed to add item to cart", err);
     }
-
-    addToCart(product);
-
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1600);
-  } catch (err) {
-    console.error("Failed to add item to cart", err);
-  }
-};
+  };
 
   return (
     <button
       onClick={() => void handleAdd()}
-      aria-label="Add to cart"
+      disabled={mustPickSize}
+      aria-label={mustPickSize ? "Pick a size first" : "Add to cart"}
       className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[0.7rem] font-bold transition-all duration-200 ${
-        added
+        mustPickSize
+          ? "cursor-not-allowed bg-[rgba(90,74,66,0.08)] text-[rgba(90,74,66,0.38)]"
+          : added
           ? "bg-[#8ecb9b] text-white"
           : "bg-[var(--ink)] text-white hover:bg-[#3aada9]"
       }`}
     >
-      {added ? (
+      {mustPickSize ? (
+        <>Pick size</>
+      ) : added ? (
         <><Check className="h-3 w-3" /> Added</>
       ) : (
         <><ShoppingCart className="h-3 w-3" /> Add</>
@@ -103,44 +126,85 @@ function AddButton({ product }: { product: StoreProduct }) {
 // ── Product card ──────────────────────────────────────────────────────────────
 
 function ProductCard({ product }: { product: StoreProduct }) {
-  const cat     = CATEGORIES.find((c) => c.value === product.category);
-  const catBg   = CAT_BG[product.category];
+  const [selectedSize, setSelectedSize] = useState<string | undefined>(undefined);
+  const hasSizes = (product.sizes ?? []).length > 0;
+  const mustPickSize = hasSizes && !selectedSize;
+
+  const cat       = CATEGORIES.find((c) => c.value === product.category);
+  const catBg     = CAT_BG[product.category as Exclude<ExtendedCategorySlug, "all">];
   const catColour = cat?.colour ?? "#5a4a42";
+
+  const firstImage = product.imageUrls?.[0];
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-[1.4rem] bg-white shadow-[0_2px_12px_rgba(90,74,66,0.07)] ring-1 ring-[rgba(90,74,66,0.04)] transition-shadow duration-200 hover:shadow-[0_6px_20px_rgba(90,74,66,0.12)]">
-      {/* Image / emoji area */}
-      <div
-        className="relative flex aspect-square items-center justify-center text-4xl"
-        style={{ background: catBg }}
-      >
-        <span role="img" aria-hidden="true">{product.emoji}</span>
-        {product.badge && (
-          <span
-            className="absolute right-2 top-2 rounded-full px-2 py-0.5 text-[0.58rem] font-extrabold uppercase tracking-wide text-white"
-            style={{ backgroundColor: catColour }}
-          >
-            {product.badge}
-          </span>
-        )}
-      </div>
-
-      {/* Body */}
-      <div className="flex flex-1 flex-col gap-2 px-3 py-3">
-        <span
-          className="inline-block self-start rounded-full px-2 py-0.5 text-[0.60rem] font-bold"
-          style={{ background: `${catColour}18`, color: catColour }}
+      {/* Clickable image + name area → detail page */}
+      <Link href={`/nursery-store/${product.slug}`} className="block">
+        {/* Image / emoji area */}
+        <div
+          className="relative flex aspect-square items-center justify-center overflow-hidden text-4xl"
+          style={{ background: firstImage ? undefined : catBg }}
         >
-          {product.tag}
-        </span>
+          {firstImage ? (
+            <Image
+              src={firstImage}
+              alt={product.name}
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <span role="img" aria-hidden="true">{product.emoji}</span>
+          )}
+          {product.badge && (
+            <span
+              className="absolute right-2 top-2 rounded-full px-2 py-0.5 text-[0.58rem] font-extrabold uppercase tracking-wide text-white"
+              style={{ backgroundColor: catColour }}
+            >
+              {product.badge}
+            </span>
+          )}
+        </div>
 
-        <p className="font-heading text-[0.95rem] leading-tight text-[var(--ink)] line-clamp-2">
-          {product.name}
-        </p>
+        {/* Category tag + name */}
+        <div className="px-3 pt-3">
+          <span
+            className="inline-block self-start rounded-full px-2 py-0.5 text-[0.60rem] font-bold"
+            style={{ background: `${catColour}18`, color: catColour }}
+          >
+            {product.tag}
+          </span>
+          <p className="mt-1 font-heading text-[0.95rem] leading-tight text-[var(--ink)] line-clamp-2">
+            {product.name}
+          </p>
+        </div>
+      </Link>
+
+      {/* Controls — outside the link so interactive elements aren't nested inside <a> */}
+      <div className="flex flex-1 flex-col gap-2 px-3 pb-3 pt-2">
+        {/* Age/size selector — only for products with sizes */}
+        {hasSizes && (
+          <div className="flex flex-wrap gap-1">
+            {product.sizes!.map((size) => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => setSelectedSize(size === selectedSize ? undefined : size)}
+                className={`rounded-full border px-2 py-0.5 text-[0.58rem] font-bold transition-colors ${
+                  selectedSize === size
+                    ? "border-[var(--ink)] bg-[var(--ink)] text-white"
+                    : "border-[rgba(90,74,66,0.20)] text-[rgba(90,74,66,0.55)] hover:border-[rgba(90,74,66,0.40)]"
+                }`}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="mt-auto flex items-center justify-between pt-1">
           <span className="font-heading text-[1rem] text-[var(--ink)]">{fmt(product.price)}</span>
-          <AddButton product={product} />
+          <AddButton product={product} selectedSize={selectedSize} mustPickSize={mustPickSize} />
         </div>
       </div>
     </article>
@@ -150,7 +214,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function StoreClient() {
-  const [activeCategory, setActiveCategory] = useState<CategorySlug>("all");
+  const [activeCategory, setActiveCategory] = useState<ExtendedCategorySlug>("all");
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

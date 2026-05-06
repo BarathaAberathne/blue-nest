@@ -15,6 +15,7 @@ type BlogService interface {
 	Update(ctx context.Context, id string, post models.BlogPost) (*models.BlogPost, error)
 	Delete(ctx context.Context, id string) error
 	LikePost(ctx context.Context, slug string) (int64, error)
+	PublishScheduled(ctx context.Context) (int, error)
 }
 
 type blogService struct {
@@ -51,4 +52,18 @@ func (s *blogService) Delete(ctx context.Context, id string) error {
 
 func (s *blogService) LikePost(ctx context.Context, slug string) (int64, error) {
 	return s.repo.IncrementLike(ctx, slug)
+}
+
+func (s *blogService) PublishScheduled(ctx context.Context) (int, error) {
+	due, err := s.repo.FindScheduledDue(ctx)
+	if err != nil {
+		return 0, err
+	}
+	count := 0
+	for _, post := range due {
+		if err := s.repo.Publish(ctx, post.ID.Hex()); err == nil {
+			count++
+		}
+	}
+	return count, nil
 }

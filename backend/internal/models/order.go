@@ -22,6 +22,7 @@ type OrderItem struct {
 	Name      string             `bson:"name"       json:"name"`
 	Price     int64              `bson:"price"      json:"price"`
 	Qty       int                `bson:"qty"        json:"qty"`
+	Size      string             `bson:"size,omitempty" json:"size,omitempty"`
 }
 
 type ShippingAddress struct {

@@ -96,11 +96,16 @@ func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckou
 			return nil, fmt.Errorf("invalid price for %s", product.Name)
 		}
 
+		displayName := product.Name
+		if item.Size != "" {
+			displayName = product.Name + " (" + item.Size + ")"
+		}
+
 		lineItems = append(lineItems, &stripe.CheckoutSessionLineItemParams{
 			PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{
 				Currency: stripe.String("gbp"),
 				ProductData: &stripe.CheckoutSessionLineItemPriceDataProductDataParams{
-					Name: stripe.String(product.Name),
+					Name: stripe.String(displayName),
 				},
 				UnitAmount: stripe.Int64(unitPrice),
 			},
@@ -113,6 +118,7 @@ func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckou
 			Name:      product.Name,
 			Price:     unitPrice,
 			Qty:       item.Qty,
+			Size:      item.Size,
 		})
 	}
 
@@ -132,6 +138,9 @@ func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckou
 
 	if !s.stripeActive {
 		_ = s.orders.UpdateStatus(ctx, order.ID.Hex(), string(models.OrderPaid))
+		for _, item := range orderItems {
+			_ = s.products.DecrementStock(ctx, item.ProductID.Hex(), item.Qty)
+		}
 		return &CreateCheckoutSessionResult{
 			SessionID: "local_" + order.ID.Hex(),
 			URL:       input.SuccessURL + "?order_id=" + order.ID.Hex(),
@@ -153,6 +162,9 @@ func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckou
 	session, err := checkoutsession.New(params)
 	if err != nil {
 		_ = s.orders.UpdateStatus(ctx, order.ID.Hex(), string(models.OrderPaid))
+		for _, item := range orderItems {
+			_ = s.products.DecrementStock(ctx, item.ProductID.Hex(), item.Qty)
+		}
 		return &CreateCheckoutSessionResult{
 			SessionID: "local_" + order.ID.Hex(),
 			URL:       input.SuccessURL + "?order_id=" + order.ID.Hex(),

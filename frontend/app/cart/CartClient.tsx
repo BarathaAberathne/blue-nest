@@ -6,11 +6,13 @@ import PageWrapper from "@/components/ui/PageWrapper";
 import { api } from "@/lib/api";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import {
+  cartItemKey,
   formatPence,
   getCartUpdatedEventName,
   loadCart,
   notifyCartUpdated,
   removeFromCart,
+  syncCartSilently,
   updateCartQuantity,
   type StoreCartItem,
 } from "@/lib/store-cart";
@@ -32,6 +34,7 @@ export default function CartClient() {
         name: item.name,
         price: item.price,
         quantity: item.qty,
+        size: item.size,
       }));
     };
 
@@ -39,10 +42,13 @@ export default function CartClient() {
       if (isAuthenticated && token) {
         try {
           const serverCart = await api.getCart(token) as Cart;
-          setItems(mapServerCart(serverCart));
+          const mapped = mapServerCart(serverCart);
+          setItems(mapped);
+          syncCartSilently(mapped);
           return;
         } catch {
           setItems([]);
+          syncCartSilently([]);
           return;
         }
       }
@@ -67,43 +73,48 @@ export default function CartClient() {
   const shipping = items.length === 0 ? 0 : subtotal >= 3000 ? 0 : SHIPPING_PENCE;
   const total = subtotal + shipping;
 
+  const mapCart = (cart: Cart): StoreCartItem[] =>
+    Array.isArray(cart?.items)
+      ? cart.items.map((entry) => ({
+          id: entry.product_id,
+          name: entry.name,
+          price: entry.price,
+          quantity: entry.qty,
+          size: entry.size,
+        }))
+      : [];
+
   const handleUpdateQty = async (item: StoreCartItem, delta: number) => {
     const nextQty = item.quantity + delta;
     if (nextQty <= 0) {
       if (isAuthenticated && token) {
         try {
-          const cart = await api.removeCartItem(token, item.id) as Cart;
-          setItems(Array.isArray(cart?.items) ? cart.items.map((entry) => ({
-            id: entry.product_id,
-            name: entry.name,
-            price: entry.price,
-            quantity: entry.qty,
-          })) : []);
+          const cart = await api.removeCartItem(token, item.id, item.size) as Cart;
+          const mapped = mapCart(cart);
+          setItems(mapped);
+          syncCartSilently(mapped);
           notifyCartUpdated();
         } catch {
           return;
         }
       } else {
-        setItems(removeFromCart(item.id));
+        setItems(removeFromCart(item.id, item.size));
       }
       return;
     }
 
     if (isAuthenticated && token) {
       try {
-        const cart = await api.updateCartItem(token, item.id, { qty: nextQty }) as Cart;
-        setItems(Array.isArray(cart?.items) ? cart.items.map((entry) => ({
-          id: entry.product_id,
-          name: entry.name,
-          price: entry.price,
-          quantity: entry.qty,
-        })) : []);
+        const cart = await api.updateCartItem(token, item.id, { qty: nextQty, size: item.size }) as Cart;
+        const mapped = mapCart(cart);
+        setItems(mapped);
+        syncCartSilently(mapped);
         notifyCartUpdated();
       } catch {
         return;
       }
     } else {
-      setItems(updateCartQuantity(item.id, nextQty));
+      setItems(updateCartQuantity(item.id, nextQty, item.size));
     }
   };
 
@@ -158,12 +169,15 @@ export default function CartClient() {
             </div>
           ) : (
             items.map((item) => (
-              <div key={item.id} className="card p-4 flex items-center gap-4">
+              <div key={cartItemKey(item.id, item.size)} className="card p-4 flex items-center gap-4">
                 <div className="w-16 h-16 rounded-xl bg-[rgba(127,216,210,0.12)] flex items-center justify-center text-2xl shrink-0">
                   {item.emoji ?? "🛍️"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-[var(--ink)] text-sm truncate">{item.name}</p>
+                  {item.size && (
+                    <p className="text-xs text-[rgba(90,74,66,0.55)]">Age: {item.size}</p>
+                  )}
                   <p className="text-xs text-[var(--muted)]">{formatPence(item.price)} each</p>
                   <div className="mt-2 flex items-center gap-2">
                     <button

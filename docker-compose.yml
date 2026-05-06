@@ -50,8 +50,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        # Baked into the client bundle at build time
+        # Baked into the client bundle at build time (used by the browser)
         NEXT_PUBLIC_API_URL: http://localhost:8080
+        # Used by the Next.js image optimiser server-side inside Docker
+        NEXT_PUBLIC_API_INTERNAL_URL: http://backend:8080
     container_name: blue-nest-web
     restart: unless-stopped
     ports:
@@ -60,6 +62,8 @@ services:
       - .env
     environment:
       NODE_ENV: production
+      # Runtime env for the rewrites() function (read at server startup, not baked)
+      NEXT_PUBLIC_API_INTERNAL_URL: http://backend:8080
     depends_on:
       backend:
         condition: service_healthy

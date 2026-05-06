@@ -13,8 +13,8 @@ import (
 type CartService interface {
 	GetByUserID(ctx context.Context, userID string) (*models.Cart, error)
 	AddItem(ctx context.Context, userID string, req models.AddCartItemRequest) (*models.Cart, error)
-	UpdateItem(ctx context.Context, userID, productID string, req models.UpdateCartItemRequest) (*models.Cart, error)
-	RemoveItem(ctx context.Context, userID, productID string) (*models.Cart, error)
+	UpdateItem(ctx context.Context, userID, productID, size string, req models.UpdateCartItemRequest) (*models.Cart, error)
+	RemoveItem(ctx context.Context, userID, productID, size string) (*models.Cart, error)
 }
 
 type cartService struct {
@@ -71,7 +71,7 @@ func (s *cartService) AddItem(ctx context.Context, userID string, req models.Add
 
 	found := false
 	for i := range cart.Items {
-		if cart.Items[i].ProductID == product.ID {
+		if cart.Items[i].ProductID == product.ID && cart.Items[i].Size == req.Size {
 			nextQty := cart.Items[i].Qty + req.Qty
 			if product.StockQty > 0 && nextQty > product.StockQty {
 				return nil, errors.New("insufficient stock")
@@ -95,13 +95,14 @@ func (s *cartService) AddItem(ctx context.Context, userID string, req models.Add
 			Price:     product.Price,
 			Qty:       req.Qty,
 			ImageURL:  product.ImageURL,
+			Size:      req.Size,
 		})
 	}
 
 	return s.repo.UpsertByUserID(ctx, cart)
 }
 
-func (s *cartService) UpdateItem(ctx context.Context, userID, productID string, req models.UpdateCartItemRequest) (*models.Cart, error) {
+func (s *cartService) UpdateItem(ctx context.Context, userID, productID, size string, req models.UpdateCartItemRequest) (*models.Cart, error) {
 	if req.Qty <= 0 {
 		return nil, errors.New("qty must be greater than zero")
 	}
@@ -124,7 +125,7 @@ func (s *cartService) UpdateItem(ctx context.Context, userID, productID string, 
 
 	updated := false
 	for i := range cart.Items {
-		if cart.Items[i].ProductID == product.ID {
+		if cart.Items[i].ProductID == product.ID && cart.Items[i].Size == size {
 			cart.Items[i].Qty = req.Qty
 			cart.Items[i].Name = product.Name
 			cart.Items[i].Price = product.Price
@@ -140,7 +141,7 @@ func (s *cartService) UpdateItem(ctx context.Context, userID, productID string, 
 	return s.repo.UpsertByUserID(ctx, cart)
 }
 
-func (s *cartService) RemoveItem(ctx context.Context, userID, productID string) (*models.Cart, error) {
+func (s *cartService) RemoveItem(ctx context.Context, userID, productID, size string) (*models.Cart, error) {
 	productOID, err := primitive.ObjectIDFromHex(productID)
 	if err != nil {
 		return nil, errors.New("invalid product id")
@@ -153,7 +154,7 @@ func (s *cartService) RemoveItem(ctx context.Context, userID, productID string) 
 
 	filtered := make([]models.CartItem, 0, len(cart.Items))
 	for _, item := range cart.Items {
-		if item.ProductID != productOID {
+		if !(item.ProductID == productOID && item.Size == size) {
 			filtered = append(filtered, item)
 		}
 	}

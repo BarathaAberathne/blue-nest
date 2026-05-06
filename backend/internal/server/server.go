@@ -18,10 +18,29 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+func runBlogPublisher(ctx context.Context, svc service.BlogService, log *slog.Logger) {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			n, err := svc.PublishScheduled(ctx)
+			if err != nil {
+				log.Error("blog scheduler", "err", err)
+			} else if n > 0 {
+				log.Info("blog scheduler published scheduled posts", "count", n)
+			}
+		}
+	}
+}
+
 type Server struct {
-	http  *http.Server
-	log   *slog.Logger
-	mongo *mongoPlatform.Client
+	http   *http.Server
+	log    *slog.Logger
+	mongo  *mongoPlatform.Client
+	cancel context.CancelFunc
 }
 
 func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
@@ -58,7 +77,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 
 	// Services
 	svc := routes.Services{
-		Auth:      service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours),
+		Auth:      service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays),
 		Products:  service.NewProductService(productRepo),
 		Cart:      service.NewCartService(cartRepo, productRepo),
 		Checkout:  service.NewCheckoutService(orderRepo, cartRepo, productRepo, cfg.Stripe.SecretKey),
@@ -73,7 +92,10 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	r.Use(middleware.CORS(cfg.CORS.FrontendURL))
 	r.Use(middleware.Logger(log))
 
-	routes.Register(r, svc, cfg.JWT.Secret, cfg.Stripe.WebhookSecret)
+	routes.Register(r, svc, routes.Repos{Orders: orderRepo, Products: productRepo}, cfg.JWT.Secret, cfg.Stripe.WebhookSecret, cfg)
+
+	bgCtx, cancel := context.WithCancel(context.Background())
+	go runBlogPublisher(bgCtx, svc.Blog, log)
 
 	return &Server{
 		http: &http.Server{
@@ -83,8 +105,9 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 			WriteTimeout: 15 * time.Second,
 			IdleTimeout:  60 * time.Second,
 		},
-		log:   log,
-		mongo: mongoClient,
+		log:    log,
+		mongo:  mongoClient,
+		cancel: cancel,
 	}, nil
 }
 
@@ -95,6 +118,7 @@ func (s *Server) Start() error {
 
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.log.Info("server shutting down")
+	s.cancel()
 	if err := s.http.Shutdown(ctx); err != nil {
 		return err
 	}

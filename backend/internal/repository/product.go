@@ -15,6 +15,7 @@ type ProductRepository interface {
 	FindAll(ctx context.Context) ([]models.Product, error)
 	FindAllAdmin(ctx context.Context) ([]models.Product, error)
 	FindByID(ctx context.Context, id string) (*models.Product, error)
+	FindBySlug(ctx context.Context, slug string) (*models.Product, error)
 	FindAllCategories(ctx context.Context) ([]models.Category, error)
 	CreateCategory(ctx context.Context, c models.Category) (*models.Category, error)
 	UpdateCategory(ctx context.Context, id string, c models.Category) (*models.Category, error)
@@ -23,6 +24,7 @@ type ProductRepository interface {
 	Update(ctx context.Context, id string, p models.Product) (*models.Product, error)
 	Delete(ctx context.Context, id string) error
 	UpsertByExternalOrSlug(ctx context.Context, p models.Product) (*models.Product, error)
+	DecrementStock(ctx context.Context, productID string, qty int) error
 }
 
 type productRepository struct {
@@ -62,6 +64,14 @@ func (r *productRepository) FindByID(ctx context.Context, id string) (*models.Pr
 	}
 	var p models.Product
 	if err = r.products.FindOne(ctx, bson.M{"_id": oid}).Decode(&p); err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (r *productRepository) FindBySlug(ctx context.Context, slug string) (*models.Product, error) {
+	var p models.Product
+	if err := r.products.FindOne(ctx, bson.M{"slug": slug, "is_active": true}).Decode(&p); err != nil {
 		return nil, err
 	}
 	return &p, nil
@@ -140,10 +150,13 @@ func (r *productRepository) Update(ctx context.Context, id string, p models.Prod
 			"category":     p.Category,
 			"category_id":  p.CategoryID,
 			"image_url":    p.ImageURL,
-			"stock_qty":    p.StockQty,
-			"is_active":    p.IsActive,
-			"branch_slugs": p.BranchSlugs,
-			"updated_at":   time.Now(),
+			"image_urls":   p.ImageURLs,
+			"stock_qty":     p.StockQty,
+			"reorder_point": p.ReorderPoint,
+			"is_active":     p.IsActive,
+			"sizes":         p.Sizes,
+			"branch_slugs":  p.BranchSlugs,
+			"updated_at":    time.Now(),
 		},
 	}
 
@@ -162,6 +175,21 @@ func (r *productRepository) Delete(ctx context.Context, id string) error {
 		return err
 	}
 	_, err = r.products.DeleteOne(ctx, bson.M{"_id": oid})
+	return err
+}
+
+func (r *productRepository) DecrementStock(ctx context.Context, productID string, qty int) error {
+	oid, err := primitive.ObjectIDFromHex(productID)
+	if err != nil {
+		return err
+	}
+	_, err = r.products.UpdateOne(ctx,
+		bson.M{"_id": oid},
+		bson.M{
+			"$inc": bson.M{"stock_qty": -qty},
+			"$set": bson.M{"updated_at": time.Now()},
+		},
+	)
 	return err
 }
 

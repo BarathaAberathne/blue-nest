@@ -71,6 +71,15 @@ func (h *AdminBlogHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	response.NoContent(w)
 }
 
+func (h *AdminBlogHandler) TriggerPublishScheduled(w http.ResponseWriter, r *http.Request) {
+	n, err := h.svc.PublishScheduled(r.Context())
+	if err != nil {
+		response.InternalError(w, err.Error())
+		return
+	}
+	response.OK(w, map[string]int{"published": n})
+}
+
 func (h *AdminBlogHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		response.BadRequest(w, "file too large or invalid form")

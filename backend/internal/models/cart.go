@@ -12,6 +12,7 @@ type CartItem struct {
 	Price     int64              `bson:"price"      json:"price"`
 	Qty       int                `bson:"qty"        json:"qty"`
 	ImageURL  string             `bson:"image_url"  json:"image_url,omitempty"`
+	Size      string             `bson:"size,omitempty" json:"size,omitempty"`
 }
 
 type Cart struct {
@@ -25,6 +26,7 @@ type Cart struct {
 type AddCartItemRequest struct {
 	ProductID string `json:"product_id" validate:"required"`
 	Qty       int    `json:"qty"        validate:"required,min=1"`
+	Size      string `json:"size,omitempty"`
 }
 
 type UpdateCartItemRequest struct {

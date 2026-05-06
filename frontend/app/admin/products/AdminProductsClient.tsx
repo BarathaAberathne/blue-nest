@@ -5,6 +5,8 @@ import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import type { Category, Product } from "@/types";
 
+const AGE_SIZES = ["2 years", "3-4 years", "5-6 years"];
+
 type ProductForm = {
   name: string;
   slug: string;
@@ -12,8 +14,10 @@ type ProductForm = {
   categoryId: string;
   pricePounds: string;
   stockQty: string;
-  imageUrl: string;
+  reorderPoint: string;
+  imageUrls: string[];
   isActive: boolean;
+  sizes: string[];
 };
 
 function formatPrice(pence: number) {
@@ -28,8 +32,14 @@ function toForm(product: Product): ProductForm {
     categoryId: product.category_id ?? "",
     pricePounds: (product.price / 100).toFixed(2),
     stockQty: String(product.stock_qty),
-    imageUrl: product.image_url ?? "",
+    reorderPoint: String(product.reorder_point ?? 100),
+    imageUrls: product.image_urls?.length
+      ? product.image_urls
+      : product.image_url
+      ? [product.image_url]
+      : [],
     isActive: product.is_active,
+    sizes: product.sizes ?? [],
   };
 }
 
@@ -45,8 +55,10 @@ export default function AdminProductsClient() {
     categoryId: "",
     pricePounds: "",
     stockQty: "0",
-    imageUrl: "",
+    reorderPoint: "100",
+    imageUrls: [],
     isActive: true,
+    sizes: [],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -92,8 +104,10 @@ export default function AdminProductsClient() {
       categoryId: "",
       pricePounds: "",
       stockQty: "0",
-      imageUrl: "",
+      reorderPoint: "100",
+      imageUrls: [],
       isActive: true,
+      sizes: [],
     });
   };
 
@@ -103,6 +117,7 @@ export default function AdminProductsClient() {
 
     const price = Math.round(Number.parseFloat(form.pricePounds || "0") * 100);
     const stock = Number.parseInt(form.stockQty || "0", 10);
+    const reorderPoint = Number.parseInt(form.reorderPoint || "100", 10);
     if (!Number.isFinite(price) || price < 0) {
       setError("Price must be a valid number");
       return;
@@ -122,9 +137,12 @@ export default function AdminProductsClient() {
       currency: "gbp",
       category: selectedCategory?.name ?? "",
       category_id: form.categoryId || undefined,
-      image_url: form.imageUrl,
+      image_url: form.imageUrls[0] ?? "",
+      image_urls: form.imageUrls,
       stock_qty: Number.isFinite(stock) ? stock : 0,
+      reorder_point: Number.isFinite(reorderPoint) ? reorderPoint : 100,
       is_active: form.isActive,
+      sizes: form.sizes,
       branch_slugs: [],
     };
 
@@ -155,6 +173,29 @@ export default function AdminProductsClient() {
       setError(err instanceof Error ? err.message : "Failed to delete product");
     }
   };
+
+  const onImageFile = async (event: ChangeEvent<HTMLInputElement>, idx: number) => {
+    const file = event.target.files?.[0];
+    if (!file || !token) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const result = await api.adminUploadImage(token, file) as { url: string };
+      setForm((prev) => {
+        const next = [...prev.imageUrls];
+        next[idx] = result.url;
+        return { ...prev, imageUrls: next };
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Image upload failed");
+    } finally {
+      setUploading(false);
+      if (event.target) event.target.value = "";
+    }
+  };
+
+  const removeImage = (idx: number) =>
+    setForm((prev) => ({ ...prev, imageUrls: prev.imageUrls.filter((_, i) => i !== idx) }));
 
   const onSelectUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -249,11 +290,51 @@ export default function AdminProductsClient() {
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
           />
           <input
-            value={form.imageUrl}
-            onChange={(e) => setForm((prev) => ({ ...prev, imageUrl: e.target.value }))}
-            placeholder="Image URL"
+            value={form.reorderPoint}
+            onChange={(e) => setForm((prev) => ({ ...prev, reorderPoint: e.target.value }))}
+            placeholder="Reorder point (default 100)"
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm"
           />
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-gray-600 mb-2">Product images (up to 3)</p>
+          <div className="flex gap-2 flex-wrap">
+            {[0, 1, 2].map((idx) => {
+              const url = form.imageUrls[idx];
+              const isDisabled = idx > 0 && !form.imageUrls[idx - 1];
+              return (
+                <div
+                  key={idx}
+                  className="relative w-24 h-24 rounded-lg border border-dashed border-gray-300 overflow-hidden bg-gray-50 flex items-center justify-center"
+                >
+                  {url ? (
+                    <>
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="absolute top-0.5 right-0.5 bg-white rounded-full w-5 h-5 text-[0.65rem] flex items-center justify-center text-red-500 shadow border border-gray-100 leading-none"
+                      >
+                        ✕
+                      </button>
+                    </>
+                  ) : (
+                    <label className={`cursor-pointer flex flex-col items-center gap-0.5 text-xs text-gray-400 ${isDisabled ? "pointer-events-none opacity-40" : ""}`}>
+                      <span className="text-xl leading-none">+</span>
+                      <span>Image {idx + 1}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploading || isDisabled}
+                        onChange={(e) => void onImageFile(e, idx)}
+                      />
+                    </label>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
         <textarea
           value={form.description}
@@ -262,6 +343,26 @@ export default function AdminProductsClient() {
           rows={3}
           className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
         />
+        <div>
+          <p className="text-xs font-semibold text-gray-600 mb-1">Age sizes (clothing products)</p>
+          <div className="flex gap-3 flex-wrap">
+            {AGE_SIZES.map((size) => (
+              <label key={size} className="inline-flex items-center gap-1.5 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={form.sizes.includes(size)}
+                  onChange={(e) => setForm((prev) => ({
+                    ...prev,
+                    sizes: e.target.checked
+                      ? [...prev.sizes, size]
+                      : prev.sizes.filter((s) => s !== size),
+                  }))}
+                />
+                {size}
+              </label>
+            ))}
+          </div>
+        </div>
         <label className="inline-flex items-center gap-2 text-sm text-gray-700">
           <input
             type="checkbox"
@@ -286,7 +387,7 @@ export default function AdminProductsClient() {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
             <tr>
-              {["Name", "Category", "Price", "Stock", "Status", "Actions"].map((h) => (
+              {["Name", "Category", "Price", "Stock", "Reorder pt", "Status", "Actions"].map((h) => (
                 <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>
               ))}
             </tr>
@@ -301,40 +402,56 @@ export default function AdminProductsClient() {
                 <td className="px-4 py-6 text-gray-500" colSpan={6}>No products found.</td>
               </tr>
             ) : (
-              products.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{p.name}</td>
-                  <td className="px-4 py-3 text-gray-700">
-                    {categories.find((c) => c.id === p.category_id)?.name ?? p.category ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">{formatPrice(p.price)}</td>
-                  <td className="px-4 py-3 text-gray-700">{p.stock_qty}</td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.is_active ? "bg-brand-100 text-brand-700" : "bg-gray-100 text-gray-500"}`}>
-                      {p.is_active ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 flex gap-3">
-                    <button
-                      type="button"
-                      className="text-brand-600 hover:underline text-xs"
-                      onClick={() => {
-                        setEditing(p);
-                        setForm(toForm(p));
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="text-red-600 hover:underline text-xs"
-                      onClick={() => onDelete(p.id)}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))
+              products.map((p) => {
+                const rp = p.reorder_point ?? 100;
+                const isLowStock = p.stock_qty < rp;
+                return (
+                  <tr
+                    key={p.id}
+                    className={isLowStock ? "bg-red-50 hover:bg-red-100" : "hover:bg-gray-50"}
+                  >
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      {isLowStock && (
+                        <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-red-500 align-middle" />
+                      )}
+                      {p.name}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {categories.find((c) => c.id === p.category_id)?.name ?? p.category ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">{formatPrice(p.price)}</td>
+                    <td className={`px-4 py-3 font-medium ${isLowStock ? "text-red-600" : "text-gray-700"}`}>
+                      {p.stock_qty}
+                      {isLowStock && <span className="ml-1 text-[0.65rem] font-bold text-red-400">LOW</span>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{rp}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${p.is_active ? "bg-brand-100 text-brand-700" : "bg-gray-100 text-gray-500"}`}>
+                        {p.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 flex gap-3">
+                      <button
+                        type="button"
+                        className="text-brand-600 hover:underline text-xs"
+                        onClick={() => {
+                          setEditing(p);
+                          setForm(toForm(p));
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="text-red-600 hover:underline text-xs"
+                        onClick={() => onDelete(p.id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

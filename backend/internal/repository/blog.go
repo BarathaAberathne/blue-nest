@@ -15,6 +15,8 @@ type BlogRepository interface {
 	FindPublished(ctx context.Context) ([]models.BlogPost, error)
 	FindAll(ctx context.Context) ([]models.BlogPost, error)
 	FindBySlug(ctx context.Context, slug string) (*models.BlogPost, error)
+	FindScheduledDue(ctx context.Context) ([]models.BlogPost, error)
+	Publish(ctx context.Context, id string) error
 	Create(ctx context.Context, post models.BlogPost) (*models.BlogPost, error)
 	Update(ctx context.Context, id string, post models.BlogPost) (*models.BlogPost, error)
 	Delete(ctx context.Context, id string) error
@@ -55,6 +57,39 @@ func (r *blogRepository) FindBySlug(ctx context.Context, slug string) (*models.B
 	return &post, nil
 }
 
+func (r *blogRepository) FindScheduledDue(ctx context.Context) ([]models.BlogPost, error) {
+	filter := bson.M{
+		"published": false,
+		"scheduled_at": bson.M{
+			"$ne":  nil,
+			"$lte": time.Now(),
+		},
+	}
+	cursor, err := r.col.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]models.BlogPost, 0)
+	return results, cursor.All(ctx, &results)
+}
+
+func (r *blogRepository) Publish(ctx context.Context, id string) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	_, err = r.col.UpdateOne(ctx,
+		bson.M{"_id": oid},
+		bson.M{"$set": bson.M{
+			"published":    true,
+			"published_at": now,
+			"updated_at":   now,
+		}},
+	)
+	return err
+}
+
 func (r *blogRepository) Create(ctx context.Context, post models.BlogPost) (*models.BlogPost, error) {
 	post.ID = primitive.NewObjectID()
 	post.CreatedAt = time.Now()
@@ -83,6 +118,7 @@ func (r *blogRepository) Update(ctx context.Context, id string, post models.Blog
 			"branch_slugs":  post.BranchSlugs,
 			"published":     post.Published,
 			"published_at":  post.PublishedAt,
+			"scheduled_at":  post.ScheduledAt,
 			"updated_at":    time.Now(),
 		},
 	}

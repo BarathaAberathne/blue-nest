@@ -54,7 +54,8 @@ func (h *CartHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := r.Context().Value(middleware.UserIDKey).(string)
 	productID := chi.URLParam(r, "id")
-	cart, err := h.svc.UpdateItem(r.Context(), userID, productID, req)
+	size := r.URL.Query().Get("size")
+	cart, err := h.svc.UpdateItem(r.Context(), userID, productID, size, req)
 	if err != nil {
 		response.BadRequest(w, err.Error())
 		return
@@ -65,7 +66,8 @@ func (h *CartHandler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 func (h *CartHandler) RemoveItem(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.UserIDKey).(string)
 	productID := chi.URLParam(r, "id")
-	cart, err := h.svc.RemoveItem(r.Context(), userID, productID)
+	size := r.URL.Query().Get("size")
+	cart, err := h.svc.RemoveItem(r.Context(), userID, productID, size)
 	if err != nil {
 		response.BadRequest(w, err.Error())
 		return

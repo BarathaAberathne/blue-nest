@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import {
   ArrowRight,
   Heart,
@@ -17,10 +16,10 @@ import PublicLayout from "@/components/layout/PublicLayout";
 import PastelButton from "@/components/ui/PastelButton";
 import StickerCard from "@/components/ui/StickerCard";
 import Doodle from "@/components/ui/Doodle";
-import { Float, Reveal } from "@/components/ui/Motion";
+import { Reveal } from "@/components/ui/Motion";
 import { LightboxGallery } from "@/components/ui/LightboxGallery";
-import FeeCalculatorCard from "@/components/ui/FeeCalculatorCard";
 import BranchMap from "@/components/contact/BranchMap";
+import BranchHero from "@/components/sections/BranchHero";
 
 export const metadata: Metadata = {
   title: "Borehamwood Nursery — Blue Nest Montessori School",
@@ -80,70 +79,16 @@ export default function BorehamwoodBranchPage() {
   return (
     <PublicLayout>
 
-      {/* ══════════════════════════════════════════════════════
-          1 — HERO
-      ══════════════════════════════════════════════════════ */}
-      <section className="paper-bg relative overflow-hidden h-[calc(100dvh-8.5rem)] sm:h-[calc(100dvh-11rem)]">
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <Image
-            src="/home/children-outdoor-play.jpg"
-            alt="Blue Nest Montessori Borehamwood nursery"
-            fill
-            priority
-            className="object-cover object-center"
-            sizes="100vw"
-          />
-          <div className="absolute inset-0 bg-[#fff8f2]/72" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_15%_55%,rgba(246,213,223,0.55),transparent_50%),radial-gradient(ellipse_at_80%_22%,rgba(127,216,210,0.2),transparent_42%)]" />
-          <div
-            className="absolute inset-0 opacity-[0.28]"
-            style={{ backgroundImage: "radial-gradient(circle, rgba(90,74,66,0.07) 1px, transparent 1px)", backgroundSize: "20px 20px" }}
-          />
-        </div>
-
-        <Doodle kind="blue-bird"   animated="float" className="absolute right-[5%] top-8    h-11 w-11 opacity-55 hidden lg:block" />
-        <Doodle kind="pink-flower"                  className="absolute left-[3%] bottom-10 h-10 w-10 opacity-50 hidden lg:block" />
-
-        <div className="container-site relative z-10 flex h-full items-center py-6 sm:py-8">
-          <div className="grid w-full items-center gap-8 lg:grid-cols-2 lg:gap-12">
-
-            {/* Text */}
-            <Reveal className="flex flex-col gap-4">
-              <span className="section-kicker">Borehamwood, Hertfordshire</span>
-              <h1 className="font-heading text-[2rem] leading-[1.15] text-[var(--ink)] sm:text-[2.6rem] lg:text-[3rem] max-w-3xl">
-                Montessori Nursery in Borehamwood
-              </h1>
-              <p className="body-text max-w-xl hidden sm:block">
-                At Blue Nest Montessori School Borehamwood, we bring the same outstanding Montessori
-                experience to families in Hertfordshire. A warm, stimulating environment where children
-                aged 3 months to 5 years can learn, play and truly thrive.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <PastelButton href="/contact?enquiry=book-visit&branch=borehamwood" variant="rose">
-                  Book a Visit <ArrowRight className="h-4 w-4" />
-                </PastelButton>
-                <PastelButton href="#visit" variant="mint">
-                  Contact Us <ArrowRight className="h-4 w-4" />
-                </PastelButton>
-              </div>
-
-              {/* Fee calculator — mobile */}
-              <div className="lg:hidden">
-                <p className="mb-2 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[var(--muted)]">Quick fee estimate</p>
-                <FeeCalculatorCard compact defaultBranch="borehamwood" />
-              </div>
-            </Reveal>
-
-            {/* Fee calculator — desktop */}
-            <Reveal delay={0.12} className="hidden lg:block">
-              <Float delay={0.2}>
-                <FeeCalculatorCard defaultBranch="borehamwood" />
-              </Float>
-            </Reveal>
-
-          </div>
-        </div>
-      </section>
+      <BranchHero
+        branch="borehamwood"
+        location="Borehamwood, Hertfordshire"
+        heading="Montessori Nursery in Borehamwood"
+        description="At Blue Nest Montessori School Borehamwood, we bring the same outstanding Montessori experience to families in Hertfordshire. A warm, stimulating environment where children aged 3 months to 5 years can learn, play and truly thrive."
+        image="/home/children-outdoor-play.jpg"
+        imageAlt="Blue Nest Montessori Borehamwood nursery"
+        primaryCta={{ label: "Book a Visit", href: "/contact?enquiry=book-visit&branch=borehamwood", variant: "rose" }}
+        secondaryCta={{ label: "Contact Us", href: "#visit", variant: "mint" }}
+      />
 
       {/* ══════════════════════════════════════════════════════
           2 — ABOUT

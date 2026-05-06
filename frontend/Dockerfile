@@ -13,6 +13,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # NEXT_PUBLIC_* vars are inlined at build time — accept via build arg
 ARG NEXT_PUBLIC_API_URL=http://localhost:8080
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+# Internal URL used by rewrites() for server-side image proxy (not baked into client JS)
+ARG NEXT_PUBLIC_API_INTERNAL_URL=http://localhost:8080
+ENV NEXT_PUBLIC_API_INTERNAL_URL=${NEXT_PUBLIC_API_INTERNAL_URL}
 RUN npm run build
 
 # ── Runner ────────────────────────────────────────────────────────────────────

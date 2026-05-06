@@ -133,6 +133,10 @@ export default function DashboardClient() {
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
 
+  const lowStockProducts = products.filter(
+    (p) => p.stock_qty < (p.reorder_point ?? 100),
+  );
+
   const kpis = [
     {
       label: "Total Orders",
@@ -186,6 +190,36 @@ export default function DashboardClient() {
           <KpiCard key={k.label} {...k} loading={loading} />
         ))}
       </div>
+
+      {/* Low-stock alerts */}
+      {!loading && lowStockProducts.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-red-100">
+            <p className="font-semibold text-red-700 text-sm">
+              Low Stock Alerts ({lowStockProducts.length})
+            </p>
+            <Link
+              href="/admin/products"
+              className="flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 transition-colors"
+            >
+              Manage <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="divide-y divide-red-100">
+            {lowStockProducts.map((p) => (
+              <div key={p.id} className="flex items-center justify-between px-6 py-3">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block h-2 w-2 rounded-full bg-red-500 shrink-0" />
+                  <span className="text-sm font-medium text-red-800">{p.name}</span>
+                </div>
+                <div className="text-xs text-red-600 font-medium">
+                  {p.stock_qty} left &mdash; reorder at {p.reorder_point ?? 100}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recent Orders */}
       <div className="bg-white border border-slate-100 shadow-sm rounded-xl overflow-hidden">

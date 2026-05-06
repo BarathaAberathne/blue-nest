@@ -1,7 +1,7 @@
 .PHONY: all build run dev test lint install clean \
         docker-up docker-down docker-build docker-logs docker-restart docker-stop \
         dev-backend dev-frontend run-backend run-frontend \
-        mongo-shell setup
+        mongo-shell setup seed
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 all: build
@@ -98,6 +98,10 @@ mongo-shell:
 clean:
 	rm -rf backend/bin frontend/.next frontend/out
 	@echo "✓ Cleaned"
+
+# ── Database seed ─────────────────────────────────────────────────────────────
+seed:
+	cd backend && go run ./cmd/seed/main.go
 
 # ── First-time setup ──────────────────────────────────────────────────────────
 setup: install

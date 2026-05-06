@@ -1,6 +1,7 @@
 import type { User } from "@/types";
 
 const ACCESS_TOKEN_KEY = "access_token";
+const REFRESH_TOKEN_KEY = "refresh_token";
 const AUTH_USER_KEY = "auth_user";
 const AUTH_UPDATED_EVENT = "blue-nest-auth-updated";
 
@@ -11,6 +12,19 @@ function isBrowser() {
 export function getAccessToken(): string {
   if (!isBrowser()) return "";
   return window.localStorage.getItem(ACCESS_TOKEN_KEY) ?? "";
+}
+
+export function getRefreshToken(): string {
+  if (!isBrowser()) return "";
+  return window.localStorage.getItem(REFRESH_TOKEN_KEY) ?? "";
+}
+
+/** Store access + refresh tokens (used by OAuth callback). Does NOT store user object. */
+export function setTokens(accessToken: string, refreshToken: string) {
+  if (!isBrowser()) return;
+  window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  if (refreshToken) window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  window.dispatchEvent(new Event(AUTH_UPDATED_EVENT));
 }
 
 export function getAuthUser(): User | null {
@@ -34,6 +48,7 @@ export function setAuthSession(accessToken: string, user: User) {
 export function clearAuthSession() {
   if (!isBrowser()) return;
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
   window.localStorage.removeItem(AUTH_USER_KEY);
   window.dispatchEvent(new Event(AUTH_UPDATED_EVENT));
 }
