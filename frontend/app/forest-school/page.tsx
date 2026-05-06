@@ -108,7 +108,7 @@ export default function ForestSchoolPage() {
           HERO — split layout (matches branch page pattern)
       ══════════════════════════════════════════════════════════ */}
       <section
-        className="flex flex-col lg:flex-row lg:h-[calc(100dvh-11rem)] overflow-hidden"
+        className="flex flex-col lg:flex-row overflow-hidden"
         style={{ background: C.bg }}
       >
 
@@ -259,21 +259,23 @@ export default function ForestSchoolPage() {
 
             {/* Right: image */}
             <Reveal delay={0.1}>
-              <div
-                className="relative overflow-hidden rounded-[2.5rem] shadow-2xl aspect-[4/5]"
-                style={{ boxShadow: `0 24px 64px ${C.darker}60` }}
-              >
-                <Image
-                  src="/home/forest-school-2.jpg"
-                  alt="Children learning in the forest"
-                  fill
-                  className="object-cover object-center"
-                  sizes="(max-width: 1024px) 90vw, 44vw"
-                />
+              <div className="mx-auto w-full max-w-[420px]">
                 <div
-                  className="absolute inset-0 opacity-20"
-                  style={{ background: `linear-gradient(to top, ${C.darker}, transparent 50%)` }}
-                />
+                  className="relative overflow-hidden rounded-[2rem] aspect-[4/5]"
+                  style={{ boxShadow: `0 24px 64px ${C.darker}60` }}
+                >
+                  <Image
+                    src="/home/forest-school-2.jpg"
+                    alt="Children learning in the forest"
+                    fill
+                    className="object-cover object-center"
+                    sizes="(max-width: 1024px) 80vw, 420px"
+                  />
+                  <div
+                    className="absolute inset-0 opacity-20"
+                    style={{ background: `linear-gradient(to top, ${C.darker}, transparent 50%)` }}
+                  />
+                </div>
               </div>
             </Reveal>
 
