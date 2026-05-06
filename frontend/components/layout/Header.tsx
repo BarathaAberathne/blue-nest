@@ -62,6 +62,15 @@ function InstagramIcon({ className }: { className?: string }) {
   );
 }
 
+function YellIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="5,3 12,12 19,3" />
+      <line x1="12" y1="12" x2="12" y2="21" />
+    </svg>
+  );
+}
+
 // ── Data ──────────────────────────────────────────────────────────────────────
 
 const trustBadges = [
@@ -239,18 +248,21 @@ export default function Header() {
               {/* Social + Action icons */}
               <div className="flex items-center gap-0.5">
                 {[
-                  { label: "Facebook", Icon: () => <FacebookIcon className="h-[18px] w-[18px]" /> },
-                  { label: "Instagram", Icon: () => <InstagramIcon className="h-[18px] w-[18px]" /> },
-                  { label: "WhatsApp", Icon: () => <MessageCircle className="h-[18px] w-[18px]" /> },
-                ].map(({ label, Icon }) => (
-                  <button
+                  { label: "Facebook",  href: "#", Icon: () => <FacebookIcon className="h-[18px] w-[18px]" /> },
+                  { label: "Instagram", href: "#", Icon: () => <InstagramIcon className="h-[18px] w-[18px]" /> },
+                  { label: "WhatsApp",  href: "#", Icon: () => <MessageCircle className="h-[18px] w-[18px]" /> },
+                  { label: "Yell",      href: "https://www.yell.com/biz/blue-nest-montessori-school-harrow-341644/", Icon: () => <YellIcon className="h-[18px] w-[18px]" /> },
+                ].map(({ label, href, Icon }) => (
+                  <a
                     key={label}
-                    type="button"
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     aria-label={label}
                     className="flex h-8 w-8 items-center justify-center rounded-full text-[rgba(90,74,66,0.7)] transition hover:bg-white/60 hover:text-[var(--ink)]"
                   >
                     <Icon />
-                  </button>
+                  </a>
                 ))}
 
                 <span className="mx-2.5 h-5 w-px bg-[rgba(90,74,66,0.18)]" aria-hidden="true" />
@@ -441,19 +453,22 @@ export default function Header() {
             {/* Social icons */}
             <div className="mt-3 flex items-center gap-2">
               {[
-                { label: "Facebook", Icon: () => <FacebookIcon className="h-4 w-4" /> },
-                { label: "Instagram", Icon: () => <InstagramIcon className="h-4 w-4" /> },
-                { label: "WhatsApp", Icon: () => <MessageCircle className="h-4 w-4" /> },
-              ].map(({ label, Icon }) => (
-                <button
+                { label: "Facebook",  href: "#", Icon: () => <FacebookIcon className="h-4 w-4" /> },
+                { label: "Instagram", href: "#", Icon: () => <InstagramIcon className="h-4 w-4" /> },
+                { label: "WhatsApp",  href: "#", Icon: () => <MessageCircle className="h-4 w-4" /> },
+                { label: "Yell",      href: "https://www.yell.com/biz/blue-nest-montessori-school-harrow-341644/", Icon: () => <YellIcon className="h-4 w-4" /> },
+              ].map(({ label, href, Icon }) => (
+                <a
                   key={label}
-                  type="button"
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={label}
                   onClick={(e) => e.stopPropagation()}
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/30"
                 >
                   <Icon />
-                </button>
+                </a>
               ))}
             </div>
 
