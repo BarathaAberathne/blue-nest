@@ -251,7 +251,12 @@ export default function FeeCalculatorSection() {
 
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
-                href="/contact"
+                href={
+                  `/contact?enquiry=fee-enquiry` +
+                  `&q_age=${ageBandId}&q_session=${sessionId}&q_days=${days}` +
+                  `&q_funding=${activeFunding}&q_gross=${grossWeekly.toFixed(2)}` +
+                  `&q_offset=${fundingOffset.toFixed(2)}&q_weekly=${netWeekly.toFixed(2)}&q_monthly=${netMonthly.toFixed(2)}`
+                }
                 className="btn-primary inline-flex items-center gap-2"
               >
                 Get a personalised quote

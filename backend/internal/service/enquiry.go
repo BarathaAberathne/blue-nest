@@ -53,6 +53,7 @@ func (s *enquiryService) Submit(ctx context.Context, req models.EnquiryRequest) 
 		ChildAge:    req.ChildAge,
 		EnquiryType: req.EnquiryType,
 		Message:     req.Message,
+		FeeQuote:    req.FeeQuote,
 		Status:      "new",
 	}
 
@@ -87,6 +88,52 @@ func (s *enquiryService) UpdateStatus(ctx context.Context, id, status string) er
 
 // ── Email templates ───────────────────────────────────────────────────────────
 
+func feeQuoteHTML(q *models.FeeQuote) string {
+	if q == nil {
+		return ""
+	}
+	fmtGBP := func(v float64) string { return fmt.Sprintf("£%.2f", v) }
+	row := func(label, value string) string {
+		if value == "" {
+			return ""
+		}
+		return fmt.Sprintf(
+			`<tr>`+
+				`<td style="padding:6px 12px;font-weight:600;color:#3a5c38;background:#f2f7f2;width:160px;border-bottom:1px solid #d8e8d8;">%s</td>`+
+				`<td style="padding:6px 12px;color:#2a3c29;border-bottom:1px solid #d8e8d8;">%s</td>`+
+				`</tr>`,
+			label, value,
+		)
+	}
+
+	rows := row("Branch", q.Branch) +
+		row("Age Group", q.AgeGroup) +
+		row("Session", q.Session)
+	if q.Days > 0 {
+		rows += row("Days / Week", fmt.Sprintf("%d day(s)", q.Days))
+	}
+	if q.EarlyBird {
+		rows += row("Early Bird", "Yes (before 8:00 am)")
+	}
+	if q.Funding != "" {
+		rows += row("Gov. Funding", q.Funding+" hrs/wk")
+	}
+	rows += row("Gross Weekly", fmtGBP(q.GrossWeekly))
+	if q.FundingOffset > 0 {
+		rows += row("Funding Offset", "– "+fmtGBP(q.FundingOffset))
+	}
+	rows += row("Net Weekly", fmtGBP(q.NetWeekly))
+	rows += row("Est. Monthly", fmtGBP(q.NetMonthly))
+
+	return fmt.Sprintf(
+		`<div style="margin-top:24px;">`+
+			`<h2 style="margin:0 0 10px;font-size:13px;font-weight:700;color:#3a5c38;text-transform:uppercase;letter-spacing:0.08em;">Fee Quote</h2>`+
+			`<table style="width:100%%;border-collapse:collapse;border-radius:8px;overflow:hidden;border:1px solid #d8e8d8;">%s</table>`+
+			`</div>`,
+		rows,
+	)
+}
+
 func adminNotificationSubject(req models.EnquiryRequest) string {
 	return fmt.Sprintf("New Enquiry: %s — %s", req.EnquiryType, req.Name)
 }
@@ -113,6 +160,7 @@ func adminNotificationHTML(req models.EnquiryRequest) string {
         %s%s%s%s%s%s%s
       </table>
       %s
+      %s
     </div>
     <div style="background:#fdf8f5;padding:16px 32px;text-align:center;font-size:12px;color:rgba(90,74,66,0.55);">
       Blue Nest Montessori School &mdash; manager@bluenest.uk
@@ -133,6 +181,7 @@ func adminNotificationHTML(req models.EnquiryRequest) string {
 			}
 			return fmt.Sprintf(`<p style="margin:20px 0 0;padding:16px;background:#f8f1ec;border-radius:8px;color:#3a2e29;font-size:14px;line-height:1.6;">%s</p>`, req.Message)
 		}(),
+		feeQuoteHTML(req.FeeQuote),
 	)
 }
 

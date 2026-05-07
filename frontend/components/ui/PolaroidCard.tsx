@@ -7,7 +7,7 @@ type PolaroidCardProps = {
   image: string;
   alt: string;
   accent: string;
-  icon: LucideIcon;
+  icon?: LucideIcon;
 };
 
 export default function PolaroidCard({
@@ -28,7 +28,7 @@ export default function PolaroidCard({
           className="mb-5 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_10px_24px_rgba(90,74,66,0.12)]"
           style={{ backgroundColor: accent }}
         >
-          <Icon className="h-6 w-6" strokeWidth={1.8} />
+          {Icon && <Icon className="h-6 w-6" strokeWidth={1.8} />}
         </div>
         <h3 className="card-title text-[var(--ink)]">
           {title}

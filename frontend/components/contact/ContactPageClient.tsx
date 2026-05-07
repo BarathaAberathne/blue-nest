@@ -193,6 +193,7 @@ function SuccessMessage({ onReset }: { onReset: () => void }) {
 const ENQUIRY_PARAM_MAP: Record<string, string> = {
   "arrange-a-visit":  "Arrange a visit",
   "fees":             "Fees and availability",
+  "fee-enquiry":      "Fees and availability",
   "application-form": "Application form",
   "general-enquiry":  "General enquiry",
 };
@@ -202,19 +203,45 @@ export default function ContactPageClient() {
   const [errors,    setErrors]    = useState<Record<string, string>>({});
   const [status,    setStatus]    = useState<"idle" | "submitting" | "success">("idle");
   const [submitErr, setSubmitErr] = useState<string | null>(null);
+  const [feeQuote,  setFeeQuote]  = useState<Record<string, string | number | boolean> | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const searchParams = useSearchParams();
 
-  // Pre-fill from URL params: ?enquiry=arrange-a-visit&branch=harrow
+  // Pre-fill from URL params and read fee quote encoded by the calculator
   useEffect(() => {
     const enquiry = searchParams.get("enquiry");
-    const branch  = searchParams.get("branch");
+    const branch  = searchParams.get("branch") ?? searchParams.get("q_branch");
     if (enquiry || branch) {
       setForm((f) => ({
         ...f,
         ...(enquiry && ENQUIRY_PARAM_MAP[enquiry] ? { enquiryType: ENQUIRY_PARAM_MAP[enquiry] } : {}),
         ...(branch ? { branch } : {}),
       }));
+    }
+    // Build fee quote from q_* params attached by the fee calculators
+    const qWeekly  = searchParams.get("q_weekly");
+    const qMonthly = searchParams.get("q_monthly");
+    if (qWeekly && qMonthly) {
+      const qBranch  = searchParams.get("q_branch");
+      const qAge     = searchParams.get("q_age");
+      const qSession = searchParams.get("q_session");
+      const qDays    = searchParams.get("q_days");
+      const qEb      = searchParams.get("q_eb");
+      const qFunding = searchParams.get("q_funding");
+      const qGross   = searchParams.get("q_gross");
+      const qOffset  = searchParams.get("q_offset");
+      setFeeQuote({
+        ...(qBranch  ? { branch: qBranch }                          : {}),
+        ...(qAge     ? { age_group: qAge }                          : {}),
+        ...(qSession ? { session: qSession }                        : {}),
+        ...(qDays    ? { days: parseInt(qDays, 10) }                : {}),
+        ...(qEb      ? { early_bird: qEb === "true" }               : {}),
+        ...(qFunding && qFunding !== "none" ? { funding: qFunding } : {}),
+        gross_weekly:   parseFloat(qGross ?? qWeekly),
+        ...(qOffset   ? { funding_offset: parseFloat(qOffset) }     : {}),
+        net_weekly:     parseFloat(qWeekly),
+        net_monthly:    parseFloat(qMonthly),
+      });
     }
   }, [searchParams]);
 
@@ -250,6 +277,7 @@ export default function ContactPageClient() {
         enquiry_type: form.enquiryType,
         message:      form.message,
         consent:      form.consent,
+        ...(feeQuote ? { fee_quote: feeQuote } : {}),
       });
       setStatus("success");
     } catch (err) {

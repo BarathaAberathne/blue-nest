@@ -270,7 +270,12 @@ export default function FeeCalculatorCard({
 
         {/* CTA */}
         <Link
-          href="/contact?enquiry=fee-enquiry"
+          href={
+            `/contact?enquiry=fee-enquiry` +
+            `&q_branch=${branch}&q_age=${encodeURIComponent(safeAgeGroup)}` +
+            `&q_session=${session}&q_days=${days}&q_eb=${earlyBird}` +
+            `&q_gross=${weekly.toFixed(2)}&q_weekly=${weekly.toFixed(2)}&q_monthly=${monthly.toFixed(2)}`
+          }
           className="btn-primary flex w-full items-center justify-center gap-2 text-sm"
         >
           Get a personalised quote
