@@ -50,17 +50,20 @@ blue-nest-montessori/
 ├── frontend/
 │   ├── app/                        # Next.js App Router pages
 │   │   ├── page.tsx                # Home
+│   │   ├── layout.tsx              # Root layout — fonts, global metadata, metadataBase
 │   │   ├── why-montessori/
 │   │   ├── forest-school/
-│   │   ├── gallery/
-│   │   ├── our-team/
+│   │   ├── gallery/                # Photo/video/updates gallery with like, share, comments
+│   │   ├── our-team/               # Staff profiles grouped by site → role category
 │   │   ├── our-charities/
 │   │   ├── home-learning/
 │   │   ├── contact/
 │   │   ├── nursery-store/
-│   │   ├── blog/[slug]/
-│   │   ├── branches/               # harrow | borehamwood | pinner | northwood
-│   │   ├── admission/              # admission index + our-fees + prospectus + application-form
+│   │   ├── blog/
+│   │   │   ├── page.tsx            # Post listing
+│   │   │   └── [slug]/             # Individual post — async OG metadata, likes, share, comments
+│   │   ├── branches/               # harrow | borehamwood | pinner | pinner-green | northwood
+│   │   ├── admission/              # overview + our-fees + prospectus + application-form
 │   │   ├── login/ | register/
 │   │   ├── account/ | account/orders/
 │   │   ├── cart/
@@ -70,29 +73,33 @@ blue-nest-montessori/
 │   ├── components/
 │   │   ├── layout/                 # Header, Footer, PublicLayout, AdminLayout, AccountLayout
 │   │   ├── sections/               # HeroSection, IntroSection, VirtualTourStrip, FeatureCardsSection,
-│   │   │                           #   ValuesSection, GallerySection, LearningPathSection
-│   │   ├── blog/                   # BlogClient
+│   │   │                           #   NurseriesSection, ValuesSection, GalleryPreviewSection,
+│   │   │                           #   LearningPathSection, FeesCTASection
+│   │   ├── blog/                   # BlogClient (listing + search)
 │   │   ├── contact/                # ContactPageClient, BranchMap, LeafletMap
-│   │   ├── gallery/                # GalleryPageClient
-│   │   ├── store/                  # StoreClient
+│   │   ├── gallery/                # GalleryPageClient (tabs, filters, MediaPreview, comments)
+│   │   ├── store/                  # StoreClient, ProductDetailClient
 │   │   └── ui/                     # Design-system primitives:
-│   │                               #   Button, PastelButton, BlobButton, Badge, Card, StickerCard,
-│   │                               #   PolaroidCard, PaperSection, ZigzagBand, SectionDivider,
-│   │                               #   SectionWrapper, PageWrapper, Motion, Doodle, LightboxGallery,
-│   │                               #   ChatBotCard, ChatBotFAB, BreakIllustration
+│   │                               #   PastelButton, Badge, StickerCard, PolaroidCard,
+│   │                               #   PaperSection, ZigzagBand, SectionDivider, SectionWrapper,
+│   │                               #   PageWrapper, Motion (Reveal), Doodle, LightboxGallery,
+│   │                               #   ChatBotCard, ChatBotFAB, FeeCalculatorCard, BreakIllustration
 │   │
 │   ├── lib/
 │   │   ├── api.ts                  # Typed API client (all backend calls)
 │   │   ├── auth.ts                 # JWT token helpers
 │   │   ├── store-cart.ts           # localStorage cart state + helpers
-│   │   ├── gallery-data.ts         # Static gallery data
+│   │   ├── gallery-data.ts         # Static gallery items (photos, videos, updates)
+│   │   ├── fee-data.json           # Branch fee schedules (read by FeeCalculatorCard)
 │   │   └── useAuthGuard.ts         # Auth redirect hook
 │   │
 │   ├── types/index.ts              # Shared TypeScript types
 │   ├── public/
 │   │   ├── home/                   # Hero images, logo, brand assets
+│   │   │   └── branches/           # Branch office photos (harrow, borehamwood, pinner, northwood)
+│   │   ├── team/                   # Staff profile photos — naming: firstname-lastname.jpg
 │   │   ├── doodles/                # Decorative hand-drawn PNGs
-│   │   └── site-images/            # Badges, accreditations, section breaks
+│   │   └── site-images/            # Badges, accreditations, section imagery
 │   ├── styles/globals.css          # Tailwind + CSS design tokens
 │   ├── tailwind.config.ts
 │   ├── Dockerfile
@@ -206,17 +213,17 @@ make dev-frontend  # Next.js dev server (npm run dev)
 
 | Route | Description |
 |---|---|
-| `/` | Home — pastel scrapbook landing page with animated hero, virtual-tour CTA, gallery, and values strip |
+| `/` | Home — pastel scrapbook landing page with hero, fee calculator, virtual-tour CTA, nurseries strip, and values section |
 | `/why-montessori` | Montessori philosophy and principles |
-| `/forest-school` | Forest School programme |
-| `/gallery` | Photo gallery with lightbox |
-| `/our-team` | Team profiles |
+| `/forest-school` | Forest School programme with SEO breadcrumb |
+| `/gallery` | Photos, videos, and updates — tabbed with branch/category filters, like, share (deep-link), and per-item comments |
+| `/our-team` | Staff profiles from live staff data, grouped by site → role category, with photos and qualifications |
 | `/our-charities` | Charity partnerships |
 | `/home-learning` | Home learning resources |
 | `/nursery-store` | Product listing with localStorage cart |
-| `/contact` | Branch contacts + enquiry form |
-| `/blog` | Blog post listing |
-| `/blog/[slug]` | Individual blog post |
+| `/contact` | Branch contacts + enquiry form with fee-quote email |
+| `/blog` | Blog post listing with search and tag filters |
+| `/blog/[slug]` | Individual blog post — like, share, comments, reading progress bar, async OG metadata |
 
 ### Admission
 
@@ -234,6 +241,7 @@ make dev-frontend  # Next.js dev server (npm run dev)
 | `/branches/harrow` | Active |
 | `/branches/borehamwood` | Active |
 | `/branches/pinner` | Active |
+| `/branches/pinner-green` | Active |
 | `/branches/northwood` | Coming Soon |
 
 ### Auth & Account
@@ -318,15 +326,17 @@ The frontend uses a hand-crafted pastel design system defined in `styles/globals
 
 | Component | Location | Purpose |
 |---|---|---|
-| `PastelButton` | `ui/PastelButton` | Chunky rounded CTA buttons |
+| `PastelButton` | `ui/PastelButton` | Chunky rounded CTA buttons (blush, mint, sage, lavender, butter variants) |
 | `ZigzagBand` | `ui/ZigzagBand` | Coloured section dividers |
-| `PolaroidCard` | `ui/PolaroidCard` | Scrapbook-style image cards |
+| `PolaroidCard` | `ui/PolaroidCard` | Scrapbook-style image cards with accent tint |
 | `StickerCard` | `ui/StickerCard` | Feature cards with icon badges |
 | `PaperSection` | `ui/PaperSection` | Paper-texture section wrapper |
-| `Doodle` | `ui/Doodle` | Floating hand-drawn decorations |
-| `ChatBotCard` | `ui/ChatBotCard` | Hero chatbot UI panel |
-| `ChatBotFAB` | `ui/ChatBotFAB` | Floating action button for chatbot |
-| `LightboxGallery` | `ui/LightboxGallery` | Full-screen image lightbox |
+| `Doodle` | `ui/Doodle` | Floating hand-drawn decorations (absolutely positioned, decorative only) |
+| `Reveal` | `ui/Motion` | Scroll-triggered fade-up animation wrapper |
+| `FeeCalculatorCard` | `ui/FeeCalculatorCard` | Interactive fee calculator — reads from `lib/fee-data.json` |
+| `ChatBotCard` | `ui/ChatBotCard` | Hero chatbot UI panel (visual only — not yet connected) |
+| `ChatBotFAB` | `ui/ChatBotFAB` | Sticky floating chatbot button in `PublicLayout` |
+| `LightboxGallery` | `ui/LightboxGallery` | Full-screen image lightbox (used in branch pages) |
 
 ---
 
@@ -345,6 +355,42 @@ The homepage follows a conversion-first layout optimised for "Book a Visit" conv
 - **Avoid duplicate CTAs** across sections — only one "Book a Visit" is the primary action. Supporting CTAs (fees, gallery, nurseries) are secondary.
 - All headings use `text-[var(--ink)]` — no bright accent colors on section titles.
 - Triangle page-breakers and `ZigzagBand` are **removed** from the homepage.
+
+---
+
+## Our Team Page
+
+Staff data lives in `frontend/app/our-team/page.tsx` in the `ALL_STAFF` array, sourced from the staff spreadsheet. Each entry is grouped by `branch` (Harrow / Borehamwood / Pinner) and `category` (MD / Manager / Deputy / Academic / Support / BA).
+
+### Adding a staff photo
+
+1. Drop the image into `frontend/public/team/`
+2. Name it `firstname-lastname.jpg` (lowercase, hyphens — e.g. `dolvy-colaco.jpg`)
+3. Un-comment the `photo:` line for that person in `ALL_STAFF`
+
+### Staff currently without photos (16)
+
+**Harrow**
+- Jyoti Kothari — Nursery Practitioner
+- Priyanthi Mala Wijesekara — Nursery Practitioner
+- Resmi Pathirattil Thankappan — Nursery Practitioner
+- Habeeba Fyzer — Nursery Assistant
+- Hansanee Priyalakshika — Nursery Assistant
+- Imali Nissanka — SENCO Assistant
+- Kurukulasuriya Lorage Adithya Parindhini Fernando — Nursery Assistant
+- Ram Kumar Shrestha — Maintenance
+- Thisaruni Widanapathirana — Nursery Assistant
+- Baratha Abeyrathne — Business Analyst
+- Thilina Obeysinghe Arachchige — Business Analyst
+
+**Borehamwood**
+- Dulanga Dilrangi Wijesekara — Nursery Assistant
+
+**Pinner**
+- Star Amber Mercedes Takelove — Deputy Manager
+- Deepthi Yarasani — Nursery Practitioner
+- Amelie Marie Hogberg — Bank Staff
+- Sanduni Mudiyanselage — Bank Staff
 
 ---
 
@@ -430,9 +476,11 @@ To add a new branch: create the DB document, add the frontend page, and add it t
 6. **Product image upload** — integrate Cloudinary or S3; hook into admin products page
 7. **Blog rich text editor** — connect admin blog to API; add Tiptap or Slate
 8. **ChatBot** — connect `ChatBotCard` / `ChatBotFAB` to a real AI endpoint or third-party (Tidio / Crisp)
-9. **SEO metadata** — add `generateMetadata` per page with real branch/post content
-10. **Analytics** — PostHog or Plausible (GDPR-compliant)
-11. **Refresh tokens** — implement `/auth/refresh` endpoint + client-side token refresh
+9. **SEO metadata** — ✅ Done for gallery, blog index, and blog posts (async OG + Twitter). Remaining: branch pages, admission, why-montessori, forest-school
+10. **Gallery comments API** — current gallery comments are localStorage-only (per device); wire to a real backend endpoint so comments persist and are shareable
+11. **Staff photos** — 16 staff members still need profile photos (see Our Team page — commented-out `photo:` lines)
+12. **Analytics** — PostHog or Plausible (GDPR-compliant)
+13. **Refresh tokens** — implement `/auth/refresh` endpoint + client-side token refresh
 
 ---
 
