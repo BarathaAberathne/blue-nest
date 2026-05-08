@@ -27,10 +27,16 @@ export const metadata: Metadata = {
     icon: "/home/favicon.png",
     apple: "/home/favicon.png",
   },
+  metadataBase: new URL("https://bluenest.uk"),
   openGraph: {
     type: "website",
     locale: "en_GB",
     siteName: "Blue Nest Montessori School",
+    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori — nurturing curious minds" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "@bluenestschool",
   },
 };
 

@@ -7,7 +7,7 @@ const branches = [
   {
     name:        "Harrow",
     href:        "/branches/harrow",
-    image:       "/home/blue-nest-school-exterior.jpg",
+    image:       "/home/branches/harrow/harrow-office.jpg",
     alt:         "Blue Nest Montessori nursery in Harrow",
     description: "Our flagship nursery in Harrow offers a warm, Montessori-inspired environment with spacious classrooms, a dedicated outdoor play area, and an award-winning team.",
     tag:         "Most Popular",
@@ -17,7 +17,7 @@ const branches = [
   {
     name:        "Pinner",
     href:        "/branches/pinner",
-    image:       "/home/outdoor-childrens-play-area.jpg",
+    image:       "/home/branches/pinner/pinner-office.jpg",
     alt:         "Blue Nest Montessori nursery in Pinner",
     description: "Nestled in Pinner, this branch combines authentic Montessori learning with a calm, home-away-from-home atmosphere that children and parents love.",
     color:       "var(--branch-pinner)",
@@ -26,7 +26,7 @@ const branches = [
   {
     name:        "Borehamwood",
     href:        "/branches/borehamwood",
-    image:       "/home/children-outdoor-play.jpg",
+    image:       "/home/branches/borehamwood/borehamwood-office.jpg",
     alt:         "Blue Nest Montessori nursery in Borehamwood",
     description: "Our Borehamwood nursery brings the full Blue Nest experience to families in Hertfordshire — the same high standard of Montessori care and learning.",
     color:       "var(--branch-borehamwood)",
@@ -48,6 +48,7 @@ const branches = [
     image:       "/home/outdoor-learning-and-play-area.jpg",
     alt:         "Blue Nest Montessori nursery in Pinner Green",
     description: "Our Pinner Green nursery brings child-led Montessori learning to the heart of the community — a nurturing space where curiosity and confidence flourish.",
+    comingSoon:  true,
     color:       "var(--branch-pinner-green)",
     cta:         "View Nursery",
   },

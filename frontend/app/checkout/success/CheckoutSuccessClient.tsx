@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import PageWrapper from "@/components/ui/PageWrapper";
@@ -20,10 +21,12 @@ export default function CheckoutSuccessClient() {
 
         {/* Friendly visual instead of emoji */}
         <div className="mb-6">
-          <img
+          <Image
             src="/doodles/pink-bird.png"
             alt="Blue Nest bird"
-            className="mx-auto h-16 w-16 animate-bounce-slow"
+            width={64}
+            height={64}
+            className="mx-auto animate-bounce-slow"
           />
         </div>
 

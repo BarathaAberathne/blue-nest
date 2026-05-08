@@ -309,6 +309,7 @@ export default function AdminProductsClient() {
                 >
                   {url ? (
                     <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={url} alt="" className="w-full h-full object-cover" />
                       <button
                         type="button"

@@ -300,7 +300,9 @@ export default function AdminBlogClient() {
     }
   };
 
-  useEffect(() => { void loadPosts(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  // loadPosts is stable (defined inside the component but never changes identity)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void loadPosts(); }, []);
 
   const resetForm = () => { setEditing(null); setForm(BLANK_FORM); };
 
