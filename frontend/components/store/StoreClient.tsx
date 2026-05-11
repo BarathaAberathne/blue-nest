@@ -6,13 +6,12 @@ import Link from "next/link";
 import { ArrowRight, Check, ShoppingCart, X } from "lucide-react";
 import PastelButton from "@/components/ui/PastelButton";
 import { addToCart, type CategorySlug, type StoreProduct } from "@/lib/store-cart";
+import { categoryFromText } from "@/lib/store-utils";
 import type { Product } from "@/types";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 
-type ExtendedCategorySlug = CategorySlug | "clothing";
-
-const CATEGORIES: { value: ExtendedCategorySlug; label: string; colour: string }[] = [
+const CATEGORIES: { value: CategorySlug; label: string; colour: string }[] = [
   { value: "all",          label: "All",         colour: "#5a4a42" },
   { value: "sensory",      label: "Sensory",      colour: "#cf7d9c" },
   { value: "outdoor",      label: "Outdoor",      colour: "#3d8a52" },
@@ -24,7 +23,7 @@ const CATEGORIES: { value: ExtendedCategorySlug; label: string; colour: string }
   { value: "clothing",     label: "Clothing",     colour: "#9b59b6" },
 ];
 
-const CAT_BG: Record<Exclude<ExtendedCategorySlug, "all">, string> = {
+const CAT_BG: Record<Exclude<CategorySlug, "all">, string> = {
   sensory:       "rgba(244,170,200,0.18)",
   outdoor:       "rgba(142,203,155,0.20)",
   maths:         "rgba(127,216,210,0.18)",
@@ -37,20 +36,6 @@ const CAT_BG: Record<Exclude<ExtendedCategorySlug, "all">, string> = {
 
 function fmt(pence: number) {
   return `£${(pence / 100).toFixed(2)}`;
-}
-
-function categoryFromText(text: string): Exclude<ExtendedCategorySlug, "all"> {
-  const n = text.toLowerCase();
-  if (n.includes("holiday club")) return "outdoor";
-  if (n.includes("clothing") || n.includes("schoolwear") || n.includes("uniform") ||
-      n.includes("polo") || n.includes("sweatshirt") || n.includes("t-shirt") || n.includes("tshirt")) return "clothing";
-  if (n.includes("outdoor")) return "outdoor";
-  if (n.includes("math")) return "maths";
-  if (n.includes("literacy") || n.includes("book")) return "literacy";
-  if (n.includes("life")) return "life-skills";
-  if (n.includes("art") || n.includes("craft")) return "art";
-  if (n.includes("sensory")) return "sensory";
-  return "accessories";
 }
 
 function mapProduct(product: Product): StoreProduct {
@@ -131,7 +116,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
   const mustPickSize = hasSizes && !selectedSize;
 
   const cat       = CATEGORIES.find((c) => c.value === product.category);
-  const catBg     = CAT_BG[product.category as Exclude<ExtendedCategorySlug, "all">];
+  const catBg     = CAT_BG[product.category as Exclude<CategorySlug, "all">];
   const catColour = cat?.colour ?? "#5a4a42";
 
   const firstImage = product.imageUrls?.[0];
@@ -214,7 +199,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function StoreClient() {
-  const [activeCategory, setActiveCategory] = useState<ExtendedCategorySlug>("all");
+  const [activeCategory, setActiveCategory] = useState<CategorySlug>("all");
   const [products, setProducts] = useState<StoreProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

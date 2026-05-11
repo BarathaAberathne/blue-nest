@@ -8,6 +8,7 @@ import (
 	adminHandler "github.com/blue-nest-montessori/api/internal/handler/admin"
 	"github.com/blue-nest-montessori/api/internal/handler/webhooks"
 	"github.com/blue-nest-montessori/api/internal/middleware"
+	"github.com/blue-nest-montessori/api/internal/platform/email"
 	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/go-chi/chi/v5"
@@ -29,6 +30,8 @@ type Services struct {
 type Repos struct {
 	Orders   repository.OrderRepository
 	Products repository.ProductRepository
+	Mailer   *email.Mailer
+	AdminTo  string
 }
 
 func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSecret string, cfg *config.Config) {
@@ -40,7 +43,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 	r.Get("/api/v1/health", health.Check)
 
 	// ── Stripe webhook (raw body required before JSON middleware) ───────────
-	stripeWH := webhooks.NewStripeWebhookHandler(stripeWebhookSecret, repos.Orders, repos.Products)
+	stripeWH := webhooks.NewStripeWebhookHandler(stripeWebhookSecret, repos.Orders, repos.Products, repos.Mailer, repos.AdminTo)
 	r.Post("/api/v1/webhooks/stripe", stripeWH.Handle)
 
 	r.Route("/api/v1", func(r chi.Router) {

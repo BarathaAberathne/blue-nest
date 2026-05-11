@@ -280,9 +280,11 @@ export default function Header() {
                   className="relative ml-1 flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-white/60"
                 >
                   <Handbag className="h-5 w-5 text-[#7fd8d2]" />
-                  <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[#7fd8d2]">
-                    {cartCount}
-                  </span>
+                  {cartCount > 0 && (
+                    <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[#7fd8d2]">
+                      {cartCount}
+                    </span>
+                  )}
                 </Link>
               </div>
             </div>
@@ -362,9 +364,11 @@ export default function Header() {
                 className="relative flex h-9 w-9 items-center justify-center text-[#7fd8d2] transition hover:text-[#6ab5ad]"
               >
                 <Handbag className="h-5 w-5" />
-                <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[#7fd8d2]">
-                  {cartCount}
-                </span>
+                {cartCount > 0 && (
+                  <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[#7fd8d2]">
+                    {cartCount}
+                  </span>
+                )}
               </Link>
               {/* Menu button */}
               <button

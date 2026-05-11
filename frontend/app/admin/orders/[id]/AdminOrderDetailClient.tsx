@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
-import type { Order, OrderStatus } from "@/types";
+import type { Order, OrderStatus, ShippingAddress } from "@/types";
 
 const STATUS_VARIANT: Record<OrderStatus, "green" | "blue" | "amber" | "gray"> = {
   paid:        "green",
@@ -23,6 +23,12 @@ const ALL_STATUSES: OrderStatus[] = [
 
 function fmt(pence: number) {
   return `£${(pence / 100).toFixed(2)}`;
+}
+
+function fmtAddress(addr: ShippingAddress): string {
+  return [addr.name, addr.line1, addr.line2, addr.city, addr.postal_code, addr.country]
+    .filter(Boolean)
+    .join(", ");
 }
 
 function fmtDate(iso: string) {
@@ -168,12 +174,41 @@ export default function AdminOrderDetailClient({ id }: { id: string }) {
                 <dt className="text-gray-500 w-28 shrink-0">Currency</dt>
                 <dd className="uppercase text-gray-800">{order.currency}</dd>
               </div>
+              {order.customer_email && (
+                <div className="flex gap-2">
+                  <dt className="text-gray-500 w-28 shrink-0">Customer</dt>
+                  <dd className="text-gray-800">{order.customer_email}</dd>
+                </div>
+              )}
             </dl>
           </Card>
         </div>
 
-        {/* Status update panel */}
+        {/* Sidebar: delivery + status */}
         <div className="space-y-5">
+          {order.shipping_address?.line1 && (
+            <Card>
+              <h2 className="font-semibold text-gray-900 mb-3">Delivery Address</h2>
+              <address className="not-italic text-sm text-gray-700 leading-relaxed">
+                {[
+                  order.shipping_address.name,
+                  order.shipping_address.line1,
+                  order.shipping_address.line2,
+                  order.shipping_address.city,
+                  order.shipping_address.postal_code,
+                  order.shipping_address.country,
+                ]
+                  .filter(Boolean)
+                  .map((line, i) => (
+                    <span key={i} className="block">{line}</span>
+                  ))}
+              </address>
+              {order.customer_email && (
+                <p className="mt-3 text-xs text-gray-400">{order.customer_email}</p>
+              )}
+            </Card>
+          )}
+
           <Card>
             <h2 className="font-semibold text-gray-900 mb-3">Update Status</h2>
             <select

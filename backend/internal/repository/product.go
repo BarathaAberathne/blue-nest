@@ -25,6 +25,7 @@ type ProductRepository interface {
 	Delete(ctx context.Context, id string) error
 	UpsertByExternalOrSlug(ctx context.Context, p models.Product) (*models.Product, error)
 	DecrementStock(ctx context.Context, productID string, qty int) error
+	IncrementStock(ctx context.Context, productID string, qty int) error
 }
 
 type productRepository struct {
@@ -187,6 +188,21 @@ func (r *productRepository) DecrementStock(ctx context.Context, productID string
 		bson.M{"_id": oid},
 		bson.M{
 			"$inc": bson.M{"stock_qty": -qty},
+			"$set": bson.M{"updated_at": time.Now()},
+		},
+	)
+	return err
+}
+
+func (r *productRepository) IncrementStock(ctx context.Context, productID string, qty int) error {
+	oid, err := primitive.ObjectIDFromHex(productID)
+	if err != nil {
+		return err
+	}
+	_, err = r.products.UpdateOne(ctx,
+		bson.M{"_id": oid},
+		bson.M{
+			"$inc": bson.M{"stock_qty": qty},
 			"$set": bson.M{"updated_at": time.Now()},
 		},
 	)

@@ -1,3 +1,6 @@
+import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
+import type { User } from "@/types";
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 interface FetchOptions extends RequestInit {
@@ -9,6 +12,33 @@ type ApiEnvelope<T> = {
   error?: string;
   message?: string;
 };
+
+// Deduplicates concurrent refresh calls — only one in-flight at a time.
+let refreshPromise: Promise<string | null> | null = null;
+
+async function tryRefreshToken(): Promise<string | null> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = (async () => {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return null;
+    try {
+      const res = await fetch(`${BASE_URL}/api/v1/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      if (!res.ok) return null;
+      const body = await res.json() as ApiEnvelope<{ access_token: string; refresh_token: string; user: User }>;
+      const data = body.data;
+      if (!data?.access_token) return null;
+      storeAuthResponse(data.access_token, data.refresh_token, data.user);
+      return data.access_token;
+    } catch {
+      return null;
+    }
+  })().finally(() => { refreshPromise = null; });
+  return refreshPromise;
+}
 
 async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
   const { token, ...init } = options;
@@ -25,7 +55,19 @@ async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T>
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+  let res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+
+  // Silent token refresh on 401 (skip for the refresh endpoint itself)
+  if (res.status === 401 && path !== "/api/v1/auth/refresh") {
+    const newToken = await tryRefreshToken();
+    if (newToken) {
+      headers["Authorization"] = `Bearer ${newToken}`;
+      res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+    } else {
+      clearAuthSession();
+    }
+  }
+
   const body = await res.json().catch(() => ({} as ApiEnvelope<T>));
 
   if (!res.ok) {
@@ -71,7 +113,7 @@ export const api = {
   },
   createCheckoutSession: (
     token: string,
-    body: { success_url: string; cancel_url: string },
+    body: { success_url: string; cancel_url: string; customer_email?: string },
   ) => apiFetch<{ session_id: string; url: string }>("/api/v1/checkout/session", {
     method: "POST",
     body: JSON.stringify(body),

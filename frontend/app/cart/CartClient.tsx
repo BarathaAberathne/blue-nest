@@ -20,35 +20,36 @@ import type { Cart } from "@/types";
 
 const SHIPPING_PENCE = 399;
 
+function mapCart(cart: Cart): StoreCartItem[] {
+  return Array.isArray(cart?.items)
+    ? cart.items.map((entry) => ({
+        id: entry.product_id,
+        name: entry.name,
+        price: entry.price,
+        quantity: entry.qty,
+        size: entry.size,
+      }))
+    : [];
+}
+
 export default function CartClient() {
-  const { token, isAuthenticated, ensureAuthenticated } = useAuthGuard();
+  const { token, isAuthenticated, ensureAuthenticated, user } = useAuthGuard();
   const [items, setItems] = useState<StoreCartItem[]>([]);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [submittingCheckout, setSubmittingCheckout] = useState(false);
 
   useEffect(() => {
-    const mapServerCart = (cart: Cart | null | undefined): StoreCartItem[] => {
-      if (!cart?.items || !Array.isArray(cart.items)) return [];
-      return cart.items.map((item) => ({
-        id: item.product_id,
-        name: item.name,
-        price: item.price,
-        quantity: item.qty,
-        size: item.size,
-      }));
-    };
-
     const refreshCart = async () => {
       if (isAuthenticated && token) {
         try {
           const serverCart = await api.getCart(token) as Cart;
-          const mapped = mapServerCart(serverCart);
+          const mapped = mapCart(serverCart);
           setItems(mapped);
           syncCartSilently(mapped);
           return;
         } catch {
-          setItems([]);
-          syncCartSilently([]);
+          // Server fetch failed — show cached localStorage items rather than clearing
+          setItems(loadCart());
           return;
         }
       }
@@ -72,17 +73,6 @@ export default function CartClient() {
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shipping = items.length === 0 ? 0 : subtotal >= 3000 ? 0 : SHIPPING_PENCE;
   const total = subtotal + shipping;
-
-  const mapCart = (cart: Cart): StoreCartItem[] =>
-    Array.isArray(cart?.items)
-      ? cart.items.map((entry) => ({
-          id: entry.product_id,
-          name: entry.name,
-          price: entry.price,
-          quantity: entry.qty,
-          size: entry.size,
-        }))
-      : [];
 
   const handleUpdateQty = async (item: StoreCartItem, delta: number) => {
     const nextQty = item.quantity + delta;
@@ -134,6 +124,7 @@ export default function CartClient() {
       const session = await api.createCheckoutSession(token, {
         success_url: `${origin}/checkout/success`,
         cancel_url: `${origin}/checkout/cancel`,
+        customer_email: user?.email,
       });
 
       if (session?.url) {

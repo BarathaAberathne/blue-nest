@@ -14,9 +14,10 @@ import (
 )
 
 type CreateCheckoutSessionInput struct {
-	UserID     string         `json:"-"`
-	SuccessURL string         `json:"success_url"`
-	CancelURL  string         `json:"cancel_url"`
+	UserID        string `json:"-"`
+	CustomerEmail string `json:"customer_email"`
+	SuccessURL    string `json:"success_url"`
+	CancelURL     string `json:"cancel_url"`
 }
 
 type CreateCheckoutSessionResult struct {
@@ -71,7 +72,10 @@ func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckou
 		return nil, errors.New("cart is empty")
 	}
 
-	lineItems := make([]*stripe.CheckoutSessionLineItemParams, 0, len(cart.Items))
+	const freeShippingThreshold int64 = 3000 // £30.00
+	const shippingPence int64 = 399          // £3.99
+
+	lineItems := make([]*stripe.CheckoutSessionLineItemParams, 0, len(cart.Items)+1)
 	orderItems := make([]models.OrderItem, 0, len(cart.Items))
 	var totalAmount int64
 
@@ -122,6 +126,22 @@ func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckou
 		})
 	}
 
+	shipping := int64(0)
+	if totalAmount < freeShippingThreshold {
+		shipping = shippingPence
+		lineItems = append(lineItems, &stripe.CheckoutSessionLineItemParams{
+			PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{
+				Currency: stripe.String("gbp"),
+				ProductData: &stripe.CheckoutSessionLineItemPriceDataProductDataParams{
+					Name: stripe.String("Standard Shipping"),
+				},
+				UnitAmount: stripe.Int64(shippingPence),
+			},
+			Quantity: stripe.Int64(1),
+		})
+	}
+	totalAmount += shipping
+
 	order, err := s.orders.Create(ctx, models.Order{
 		UserID:          userOID,
 		Items:           orderItems,
@@ -150,26 +170,28 @@ func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckou
 
 	params := &stripe.CheckoutSessionParams{
 		Mode:       stripe.String(string(stripe.CheckoutSessionModePayment)),
-		SuccessURL: stripe.String(input.SuccessURL),
+		SuccessURL: stripe.String(input.SuccessURL + "?order_id=" + order.ID.Hex()),
 		CancelURL:  stripe.String(input.CancelURL),
 		LineItems:  lineItems,
 	}
 	params.Metadata = map[string]string{
-		"user_id":  input.UserID,
-		"order_id": order.ID.Hex(),
+		"user_id":        input.UserID,
+		"order_id":       order.ID.Hex(),
+		"customer_email": input.CustomerEmail,
+	}
+	params.ShippingAddressCollection = &stripe.CheckoutSessionShippingAddressCollectionParams{
+		AllowedCountries: []*string{stripe.String("GB")},
+	}
+	if input.CustomerEmail != "" {
+		params.CustomerEmail = stripe.String(input.CustomerEmail)
 	}
 
 	session, err := checkoutsession.New(params)
 	if err != nil {
-		_ = s.orders.UpdateStatus(ctx, order.ID.Hex(), string(models.OrderPaid))
-		for _, item := range orderItems {
-			_ = s.products.DecrementStock(ctx, item.ProductID.Hex(), item.Qty)
-		}
-		return &CreateCheckoutSessionResult{
-			SessionID: "local_" + order.ID.Hex(),
-			URL:       input.SuccessURL + "?order_id=" + order.ID.Hex(),
-			OrderID:   order.ID.Hex(),
-		}, nil
+		// Stripe session creation failed — cancel the pending order so it doesn't
+		// linger as "pending" and confuse the admin view.
+		_ = s.orders.UpdateStatus(ctx, order.ID.Hex(), string(models.OrderCancelled))
+		return nil, fmt.Errorf("create stripe session: %w", err)
 	}
 
 	return &CreateCheckoutSessionResult{

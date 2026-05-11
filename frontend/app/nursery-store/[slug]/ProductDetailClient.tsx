@@ -6,25 +6,12 @@ import Link from "next/link";
 import { ArrowLeft, Check, Minus, Plus, ShoppingCart } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
-import { addToCart, type CategorySlug, type StoreProduct } from "@/lib/store-cart";
+import { addToCart, type StoreProduct } from "@/lib/store-cart";
+import { categoryFromText } from "@/lib/store-utils";
 import type { Product } from "@/types";
 
 function fmt(pence: number) {
   return `£${(pence / 100).toFixed(2)}`;
-}
-
-function categoryFromText(text: string): Exclude<CategorySlug, "all"> {
-  const n = text.toLowerCase();
-  if (n.includes("holiday club")) return "outdoor";
-  if (n.includes("clothing") || n.includes("schoolwear") || n.includes("uniform") ||
-      n.includes("polo") || n.includes("sweatshirt") || n.includes("t-shirt") || n.includes("tshirt")) return "clothing";
-  if (n.includes("outdoor")) return "outdoor";
-  if (n.includes("math")) return "maths";
-  if (n.includes("literacy") || n.includes("book")) return "literacy";
-  if (n.includes("life")) return "life-skills";
-  if (n.includes("art") || n.includes("craft")) return "art";
-  if (n.includes("sensory")) return "sensory";
-  return "accessories";
 }
 
 function toStoreProduct(p: Product): StoreProduct {
@@ -112,9 +99,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
       if (token) {
         await api.addCartItem(token, { product_id: product.id, qty, size: selectedSize });
       }
-      for (let i = 0; i < qty; i++) {
-        addToCart(sp, 1, selectedSize);
-      }
+      addToCart(sp, qty, selectedSize);
       setAdded(true);
       setTimeout(() => setAdded(false), 2200);
     } catch (err) {

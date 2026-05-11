@@ -92,7 +92,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	r.Use(middleware.CORS(cfg.CORS.FrontendURL))
 	r.Use(middleware.Logger(log))
 
-	routes.Register(r, svc, routes.Repos{Orders: orderRepo, Products: productRepo}, cfg.JWT.Secret, cfg.Stripe.WebhookSecret, cfg)
+	routes.Register(r, svc, routes.Repos{Orders: orderRepo, Products: productRepo, Mailer: mailer, AdminTo: cfg.SMTP.AdminTo}, cfg.JWT.Secret, cfg.Stripe.WebhookSecret, cfg)
 
 	bgCtx, cancel := context.WithCancel(context.Background())
 	go runBlogPublisher(bgCtx, svc.Blog, log)

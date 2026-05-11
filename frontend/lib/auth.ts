@@ -45,6 +45,14 @@ export function setAuthSession(accessToken: string, user: User) {
   window.dispatchEvent(new Event(AUTH_UPDATED_EVENT));
 }
 
+export function storeAuthResponse(accessToken: string, refreshToken: string, user: User) {
+  if (!isBrowser()) return;
+  window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  if (refreshToken) window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+  window.dispatchEvent(new Event(AUTH_UPDATED_EVENT));
+}
+
 export function clearAuthSession() {
   if (!isBrowser()) return;
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);

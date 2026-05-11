@@ -85,6 +85,15 @@ export interface OrderItem {
   size?: string;
 }
 
+export interface ShippingAddress {
+  name?: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  postal_code: string;
+  country: string;
+}
+
 export interface Order {
   id: string;
   user_id: string;
@@ -92,6 +101,11 @@ export interface Order {
   status: OrderStatus;
   total_amount: number;
   currency: string;
+  shipping_address?: ShippingAddress;
+  customer_email?: string;
+  stripe_session_id?: string;
+  payment_intent_id?: string;
+  paid_at?: string;
   created_at: string;
 }
 
