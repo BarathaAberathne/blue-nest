@@ -152,7 +152,7 @@ func adminNotificationHTML(req models.EnquiryRequest) string {
 <body style="margin:0;padding:0;background:#fdf8f5;font-family:Arial,sans-serif;">
   <div style="max-width:580px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(90,74,66,0.10);">
     <div style="background:#fde8f0;padding:24px 32px;border-bottom:3px solid #f4aac8;">
-      <img src="https://bluenest.uk/home/logo_new.png" alt="Blue Nest Montessori" style="height:48px;" />
+      <img src="%s" alt="Blue Nest Montessori School" width="180" style="display:block;height:auto;border:0;max-width:180px;" />
       <h1 style="margin:12px 0 0;font-size:20px;color:#3a2e29;">New Enquiry Received</h1>
     </div>
     <div style="padding:24px 32px;">
@@ -168,6 +168,7 @@ func adminNotificationHTML(req models.EnquiryRequest) string {
   </div>
 </body>
 </html>`,
+		email.LogoURL,
 		row("Name", req.Name),
 		row("Email", req.Email),
 		row("Phone", req.Phone),
@@ -196,7 +197,7 @@ func userConfirmationHTML(req models.EnquiryRequest) string {
 <body style="margin:0;padding:0;background:#fdf8f5;font-family:Arial,sans-serif;">
   <div style="max-width:580px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(90,74,66,0.10);">
     <div style="background:#fde8f0;padding:24px 32px;border-bottom:3px solid #f4aac8;">
-      <img src="https://bluenest.uk/home/logo_new.png" alt="Blue Nest Montessori" style="height:48px;" />
+      <img src="%s" alt="Blue Nest Montessori School" width="180" style="display:block;height:auto;border:0;max-width:180px;" />
     </div>
     <div style="padding:32px;">
       <h1 style="margin:0 0 8px;font-size:22px;color:#3a2e29;">Hi %s,</h1>
@@ -223,6 +224,7 @@ func userConfirmationHTML(req models.EnquiryRequest) string {
   </div>
 </body>
 </html>`,
+		email.LogoURL,
 		req.Name,
 		req.EnquiryType,
 		req.Branch,

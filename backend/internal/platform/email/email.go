@@ -7,6 +7,15 @@ import (
 	"strings"
 )
 
+// LogoURL is the publicly accessible logo for use inside HTML email templates.
+// Uses the GitHub raw CDN as an interim host until the site is deployed at
+// https://bluenest.uk, at which point this should become:
+//
+//	https://bluenest.uk/email/logo.png
+//
+// The asset lives at frontend/public/email/logo.png (360×197 PNG, ~51 KB).
+const LogoURL = "https://raw.githubusercontent.com/BarathaAberathne/blue-nest/main/frontend/public/email/logo.png"
+
 type Config struct {
 	Host    string
 	Port    int
