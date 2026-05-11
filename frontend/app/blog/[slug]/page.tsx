@@ -3,14 +3,15 @@ import PublicLayout from "@/components/layout/PublicLayout";
 import BlogPostClient from "./BlogPostClient";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const fallbackTitle = params.slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const { slug } = await params;
+  const fallbackTitle = slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   try {
     const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
-    const res  = await fetch(`${apiBase}/api/v1/blog/posts/${encodeURIComponent(params.slug)}`, { next: { revalidate: 3600 } });
+    const res  = await fetch(`${apiBase}/api/v1/blog/posts/${encodeURIComponent(slug)}`, { next: { revalidate: 3600 } });
     if (!res.ok) throw new Error("not found");
     const post = await res.json() as { title?: string; excerpt?: string; cover_image?: string };
     const title = post.title ?? fallbackTitle;
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       openGraph: {
         title,
         description: desc,
-        url: `/blog/${params.slug}`,
+        url: `/blog/${slug}`,
         images: [{ url: image, alt: title }],
         type: "article",
       },
@@ -33,10 +34,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default function BlogPostPage({ params }: Props) {
+export default async function BlogPostPage({ params }: Props) {
+  const { slug } = await params;
   return (
     <PublicLayout>
-      <BlogPostClient slug={params.slug} />
+      <BlogPostClient slug={slug} />
     </PublicLayout>
   );
 }

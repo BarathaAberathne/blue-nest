@@ -366,6 +366,13 @@ export default function AdminBlogClient() {
     }
   };
 
+  const minScheduleDate = useMemo(
+    () => new Date(Date.now() + 60_000).toISOString().slice(0, 16),
+    // Recompute each time the schedule panel opens (publish_mode change).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [form.publish_mode],
+  );
+
   return (
     <>
       <div className="flex items-center justify-between mb-8">
@@ -478,7 +485,7 @@ export default function AdminBlogClient() {
               <input
                 type="datetime-local"
                 value={form.scheduled_at}
-                min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                min={minScheduleDate}
                 onChange={(e) => set("scheduled_at", e.target.value)}
                 required
                 className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400"

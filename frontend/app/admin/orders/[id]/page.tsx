@@ -2,16 +2,18 @@ import type { Metadata } from "next";
 import AdminLayout from "@/components/layout/AdminLayout";
 import AdminOrderDetailClient from "./AdminOrderDetailClient";
 
-interface Props { params: { id: string } }
+interface Props { params: Promise<{ id: string }> }
 
-export function generateMetadata({ params }: Props): Metadata {
-  return { title: `Order ${params.id.slice(0, 8).toUpperCase()} — Admin` };
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  return { title: `Order ${id.slice(0, 8).toUpperCase()} — Admin` };
 }
 
-export default function AdminOrderDetailPage({ params }: Props) {
+export default async function AdminOrderDetailPage({ params }: Props) {
+  const { id } = await params;
   return (
     <AdminLayout>
-      <AdminOrderDetailClient id={params.id} />
+      <AdminOrderDetailClient id={id} />
     </AdminLayout>
   );
 }

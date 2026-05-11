@@ -301,7 +301,7 @@ export default function BlogPostClient({ slug }: { slug: string }) {
   const htmlBody = useMemo(() => {
     if (!post?.body) return "";
     return String(marked.parse(post.body));
-  }, [post?.body]);
+  }, [post]);
 
   const readTime = useMemo(() => readingTime(htmlBody), [htmlBody]);
 
@@ -324,7 +324,7 @@ export default function BlogPostClient({ slug }: { slug: string }) {
       await navigator.clipboard.writeText(url);
       setShared(true); setTimeout(() => setShared(false), 2500);
     } catch { window.prompt("Copy this link:", url); }
-  }, [post?.title]);
+  }, [post]);
 
   // ── Loading ───────────────────────────────────────────────────────────────────
   if (loading) {

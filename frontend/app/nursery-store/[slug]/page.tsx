@@ -3,20 +3,22 @@ import PublicLayout from "@/components/layout/PublicLayout";
 import ProductDetailClient from "./ProductDetailClient";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
-export function generateMetadata({ params }: Props): Metadata {
-  const name = params.slug.replace(/-/g, " ");
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const name = slug.replace(/-/g, " ");
   return {
     title: `${name.charAt(0).toUpperCase() + name.slice(1)} — Blue Nest Store`,
   };
 }
 
-export default function ProductDetailPage({ params }: Props) {
+export default async function ProductDetailPage({ params }: Props) {
+  const { slug } = await params;
   return (
     <PublicLayout>
-      <ProductDetailClient slug={params.slug} />
+      <ProductDetailClient slug={slug} />
     </PublicLayout>
   );
 }
