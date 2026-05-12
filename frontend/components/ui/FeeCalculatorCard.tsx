@@ -248,13 +248,13 @@ export default function FeeCalculatorCard({
             role="switch"
             aria-checked={earlyBird}
             onClick={() => setEarlyBird((v) => !v)}
-            className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${
+            className={`relative h-6 w-11 shrink-0 rounded-full overflow-hidden transition-colors duration-200 ${
               earlyBird ? "bg-[#6ecfc9]" : "bg-[rgba(90,74,66,0.15)]"
             }`}
           >
             <span
-              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                earlyBird ? "translate-x-5" : "translate-x-0.5"
+              className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                earlyBird ? "translate-x-5" : "translate-x-0"
               }`}
             />
           </button>
