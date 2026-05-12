@@ -152,7 +152,7 @@ export default function FeeCalculatorCard({
     >
       {/* ── Header ────────────────────────────────────────────── */}
       <div
-        className="px-5 py-4"
+        className="px-5 py-3"
         style={{ background: "linear-gradient(135deg, #8ee2dc 0%, #60c9c3 60%, #54b9b3 100%)" }}
       >
         <div className="flex items-center gap-3">
@@ -169,7 +169,7 @@ export default function FeeCalculatorCard({
       </div>
 
       {/* ── Controls ──────────────────────────────────────────── */}
-      <div className="space-y-4 px-5 py-5">
+      <div className="space-y-3 px-5 py-4">
 
         {/* Branch */}
         <div>

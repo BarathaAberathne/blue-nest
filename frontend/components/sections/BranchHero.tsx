@@ -93,7 +93,7 @@ export default function BranchHero({
       </div>
 
       {/* ── RIGHT — branch image + calculator (desktop only) ──── */}
-      <div className="relative hidden lg:flex w-1/2 items-center justify-center overflow-hidden">
+      <div className="relative hidden lg:flex w-1/2 items-center justify-center overflow-x-hidden overflow-y-auto">
 
         {/* Branch photo fills the right pane */}
         <Image
