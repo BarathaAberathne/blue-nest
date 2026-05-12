@@ -5,6 +5,15 @@ import Link from "next/link";
 import { ArrowRight, Calculator, Info } from "lucide-react";
 import { Reveal } from "@/components/ui/Motion";
 
+// ── Discount ──────────────────────────────────────────────────────────────────
+
+type DiscountId = "none" | "sibling" | "staff";
+const DISCOUNTS: { id: DiscountId; label: string; rate: number }[] = [
+  { id: "none",    label: "No discount",          rate: 0    },
+  { id: "sibling", label: "Sibling discount — 10%", rate: 0.10 },
+  { id: "staff",   label: "Staff discount — 50%",   rate: 0.50 },
+];
+
 // ── Data ──────────────────────────────────────────────────────────────────────
 
 const AGE_BANDS = [
@@ -92,10 +101,11 @@ function Chip<T extends string>({
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function FeeCalculatorSection() {
-  const [ageBandId, setAgeBandId]  = useState<AgeBandId>("toddler");
-  const [sessionId, setSessionId]  = useState<SessionId>("day");
-  const [days, setDays]            = useState(5);
-  const [fundingId, setFundingId]  = useState<FundingId>("none");
+  const [ageBandId, setAgeBandId]    = useState<AgeBandId>("toddler");
+  const [sessionId, setSessionId]    = useState<SessionId>("day");
+  const [days, setDays]              = useState(5);
+  const [fundingId, setFundingId]    = useState<FundingId>("none");
+  const [discountId, setDiscountId]  = useState<DiscountId>("none");
 
   const band    = AGE_BANDS.find((b) => b.id === ageBandId)!;
   const session = SESSIONS.find((s) => s.id === sessionId)!;
@@ -107,15 +117,20 @@ export default function FeeCalculatorSection() {
   // Weekly session hours (days attended × session length)
   const weeklySessionHours = days * session.hours;
 
-  // Gross weekly cost (before funding)
+  // Gross weekly cost (before discount and funding)
   const grossWeekly = days * getDailyRate(band, sessionId);
+
+  // Discount
+  const discountRate    = DISCOUNTS.find((d) => d.id === discountId)!.rate;
+  const discountAmount  = grossWeekly * discountRate;
+  const discountedGross = grossWeekly - discountAmount;
 
   // Funding offset — capped at weekly session hours
   const fundingHrsPerWeek = Math.min(FUNDING_HRS[activeFunding], weeklySessionHours);
   const fundingOffset     = fundingHrsPerWeek * FUNDING_PER_HR;
 
-  // Net weekly after funding
-  const netWeekly  = Math.max(0, grossWeekly - fundingOffset);
+  // Net weekly after discount and funding
+  const netWeekly  = Math.max(0, discountedGross - fundingOffset);
   const netMonthly = netWeekly * 4.33;
 
   return (
@@ -219,6 +234,20 @@ export default function FeeCalculatorSection() {
               </fieldset>
             )}
 
+            {/* ── Discount ─────────────────────────────────────── */}
+            <fieldset className="mb-8">
+              <legend className="mb-3 text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
+                Discount
+              </legend>
+              <div className="flex flex-wrap gap-2.5">
+                {DISCOUNTS.map((d) => (
+                  <Chip key={d.id} value={d.id} selected={discountId === d.id} onClick={setDiscountId}>
+                    {d.label}
+                  </Chip>
+                ))}
+              </div>
+            </fieldset>
+
             {/* ── Cost breakdown ────────────────────────────────── */}
             <div className="rounded-[1.5rem] bg-[rgba(127,216,210,0.08)] px-6 py-5 ring-1 ring-[rgba(127,216,210,0.20)]">
               <div className="space-y-2.5 text-sm">
@@ -226,6 +255,12 @@ export default function FeeCalculatorSection() {
                   <span>Gross weekly ({days} day{days !== 1 ? "s" : ""} × {fmt(getDailyRate(band, sessionId))})</span>
                   <span className="font-semibold text-[var(--ink)]">{fmt(grossWeekly)}</span>
                 </div>
+                {discountId !== "none" && (
+                  <div className="flex justify-between text-[#3aada9]">
+                    <span>{DISCOUNTS.find((d) => d.id === discountId)!.label}</span>
+                    <span className="font-semibold">– {fmt(discountAmount)}</span>
+                  </div>
+                )}
                 {activeFunding !== "none" && (
                   <div className="flex justify-between text-[#3aada9]">
                     <span>Government funding ({FUNDING_HRS[activeFunding]}h/wk × £{FUNDING_PER_HR})</span>
@@ -255,7 +290,8 @@ export default function FeeCalculatorSection() {
                   `/contact?enquiry=fee-enquiry` +
                   `&q_age=${ageBandId}&q_session=${sessionId}&q_days=${days}` +
                   `&q_funding=${activeFunding}&q_gross=${grossWeekly.toFixed(2)}` +
-                  `&q_offset=${fundingOffset.toFixed(2)}&q_weekly=${netWeekly.toFixed(2)}&q_monthly=${netMonthly.toFixed(2)}`
+                  `&q_offset=${fundingOffset.toFixed(2)}&q_weekly=${netWeekly.toFixed(2)}&q_monthly=${netMonthly.toFixed(2)}` +
+                  `&q_discount=${discountId}&q_discount_amount=${discountAmount.toFixed(2)}`
                 }
                 className="btn-primary inline-flex items-center gap-2"
               >

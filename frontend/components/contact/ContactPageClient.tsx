@@ -222,20 +222,25 @@ export default function ContactPageClient() {
     const qWeekly  = searchParams.get("q_weekly");
     const qMonthly = searchParams.get("q_monthly");
     if (qWeekly && qMonthly) {
-      const qBranch  = searchParams.get("q_branch");
-      const qAge     = searchParams.get("q_age");
-      const qSession = searchParams.get("q_session");
-      const qDays    = searchParams.get("q_days");
-      const qEb      = searchParams.get("q_eb");
-      const qFunding = searchParams.get("q_funding");
-      const qGross   = searchParams.get("q_gross");
-      const qOffset  = searchParams.get("q_offset");
+      const qBranch         = searchParams.get("q_branch");
+      const qAge            = searchParams.get("q_age");
+      const qSession        = searchParams.get("q_session");
+      const qDays           = searchParams.get("q_days");
+      const qEb             = searchParams.get("q_eb");
+      const qFunding        = searchParams.get("q_funding");
+      const qGross          = searchParams.get("q_gross");
+      const qOffset         = searchParams.get("q_offset");
+      const qDiscount       = searchParams.get("q_discount");
+      const qDiscountAmount = searchParams.get("q_discount_amount");
       setFeeQuote({
         ...(qBranch  ? { branch: qBranch }                          : {}),
         ...(qAge     ? { age_group: qAge }                          : {}),
         ...(qSession ? { session: qSession }                        : {}),
         ...(qDays    ? { days: parseInt(qDays, 10) }                : {}),
         ...(qEb      ? { early_bird: qEb === "true" }               : {}),
+        ...(qDiscount && qDiscount !== "none" ? { discount: qDiscount } : {}),
+        ...(qDiscountAmount && parseFloat(qDiscountAmount) > 0
+              ? { discount_amount: parseFloat(qDiscountAmount) } : {}),
         ...(qFunding && qFunding !== "none" ? { funding: qFunding } : {}),
         gross_weekly:   parseFloat(qGross ?? qWeekly),
         ...(qOffset   ? { funding_offset: parseFloat(qOffset) }     : {}),
@@ -335,6 +340,65 @@ export default function ContactPageClient() {
                       We&rsquo;ll get back to you within one working day.
                     </p>
                   </div>
+
+                  {/* Fee quote summary — shown when arriving from the calculator */}
+                  {feeQuote && (
+                    <div className="mb-5 rounded-[1.2rem] bg-[rgba(127,216,210,0.09)] px-5 py-4 ring-1 ring-[rgba(127,216,210,0.25)]">
+                      <p className="mb-3 text-[0.6rem] font-extrabold uppercase tracking-[0.18em] text-[#3aada9]">
+                        Your fee estimate
+                      </p>
+                      <div className="space-y-1.5 text-[0.78rem]">
+                        {feeQuote.branch && (
+                          <div className="flex justify-between">
+                            <span className="text-[rgba(90,74,66,0.55)]">Branch</span>
+                            <span className="font-semibold capitalize text-[var(--ink)]">{String(feeQuote.branch)}</span>
+                          </div>
+                        )}
+                        {feeQuote.age_group && (
+                          <div className="flex justify-between">
+                            <span className="text-[rgba(90,74,66,0.55)]">Age group</span>
+                            <span className="font-semibold text-[var(--ink)]">{String(feeQuote.age_group)}</span>
+                          </div>
+                        )}
+                        {feeQuote.session && (
+                          <div className="flex justify-between">
+                            <span className="text-[rgba(90,74,66,0.55)]">Session</span>
+                            <span className="font-semibold capitalize text-[var(--ink)]">{String(feeQuote.session).replace("_", " ")}</span>
+                          </div>
+                        )}
+                        {(feeQuote.days as number) > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-[rgba(90,74,66,0.55)]">Days / week</span>
+                            <span className="font-semibold text-[var(--ink)]">{feeQuote.days} day{(feeQuote.days as number) !== 1 ? "s" : ""}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="text-[rgba(90,74,66,0.55)]">Gross weekly</span>
+                          <span className="font-semibold text-[var(--ink)]">£{(feeQuote.gross_weekly as number).toFixed(2)}</span>
+                        </div>
+                        {feeQuote.discount && (
+                          <div className="flex justify-between text-[#3aada9]">
+                            <span>{feeQuote.discount === "staff" ? "Staff discount (50%)" : "Sibling discount (10%)"}</span>
+                            <span className="font-semibold">– £{(feeQuote.discount_amount as number).toFixed(2)}</span>
+                          </div>
+                        )}
+                        {(feeQuote.funding_offset as number) > 0 && (
+                          <div className="flex justify-between text-[#3aada9]">
+                            <span>Gov. funding ({String(feeQuote.funding)})</span>
+                            <span className="font-semibold">– £{(feeQuote.funding_offset as number).toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between border-t border-[rgba(127,216,210,0.30)] pt-2">
+                          <span className="font-bold text-[var(--ink)]">Net weekly</span>
+                          <span className="font-extrabold text-[#3aada9]">£{(feeQuote.net_weekly as number).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-[rgba(90,74,66,0.55)]">
+                          <span>Monthly estimate</span>
+                          <span className="font-semibold text-[var(--ink)]">£{(feeQuote.net_monthly as number).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <form ref={formRef} onSubmit={handleSubmit} noValidate aria-label="Enquiry form" className="space-y-4">
 

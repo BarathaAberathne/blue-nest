@@ -119,6 +119,13 @@ func feeQuoteHTML(q *models.FeeQuote) string {
 		rows += row("Gov. Funding", q.Funding+" hrs/wk")
 	}
 	rows += row("Gross Weekly", fmtGBP(q.GrossWeekly))
+	if q.Discount != "" {
+		discountLabel := "Sibling Discount (10%)"
+		if q.Discount == "staff" {
+			discountLabel = "Staff Discount (50%)"
+		}
+		rows += row(discountLabel, "– "+fmtGBP(q.DiscountAmount))
+	}
 	if q.FundingOffset > 0 {
 		rows += row("Funding Offset", "– "+fmtGBP(q.FundingOffset))
 	}

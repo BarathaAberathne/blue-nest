@@ -7,6 +7,13 @@ import feeData from "@/lib/fee-data.json";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+type DiscountId = "none" | "sibling" | "staff";
+const DISCOUNTS: { id: DiscountId; label: string; rate: number }[] = [
+  { id: "none",    label: "No discount",   rate: 0    },
+  { id: "sibling", label: "Sibling −10%",  rate: 0.10 },
+  { id: "staff",   label: "Staff −50%",    rate: 0.50 },
+];
+
 // Props use hyphenated slugs; JSON uses space variant for "pinner green"
 type BranchProp = "harrow" | "pinner" | "borehamwood" | "pinner-green" | "northwood";
 type JsonBranchKey = keyof typeof feeData.branches;
@@ -119,6 +126,7 @@ export default function FeeCalculatorCard({
   const [session, setSession]     = useState<SessionId>("full_day");
   const [days, setDays]           = useState(5);
   const [earlyBird, setEarlyBird] = useState(false);
+  const [discount, setDiscount]   = useState<DiscountId>("none");
 
   // Guard: if branch doesn't have the selected age group, pick first available
   const available = getAvailableAgeGroups(branch);
@@ -130,8 +138,11 @@ export default function FeeCalculatorCard({
     if (!avail.includes(ageGroup)) setAgeGroup(avail[0]);
   }
 
-  const weekly  = calcWeekly(branch, safeAgeGroup, session, days, earlyBird);
-  const monthly = weekly * 4.33;
+  const gross          = calcWeekly(branch, safeAgeGroup, session, days, earlyBird);
+  const discountRate   = DISCOUNTS.find((d) => d.id === discount)!.rate;
+  const discountAmount = gross * discountRate;
+  const weekly         = gross - discountAmount;
+  const monthly        = weekly * 4.33;
 
   const AgeIcon = AGE_GROUPS.find((g) => g.id === safeAgeGroup)!.icon;
 
@@ -249,6 +260,18 @@ export default function FeeCalculatorCard({
           </button>
         </div>
 
+        {/* Discount */}
+        <div>
+          <p className="mb-2 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Discount</p>
+          <div className="flex flex-wrap gap-1.5">
+            {DISCOUNTS.map((d) => (
+              <Chip key={d.id} value={d.id} selected={discount === d.id} onClick={setDiscount} small>
+                {d.label}
+              </Chip>
+            ))}
+          </div>
+        </div>
+
         {/* Result */}
         <div className="rounded-[1.25rem] bg-[rgba(127,216,210,0.12)] px-4 py-3.5 ring-1 ring-[rgba(127,216,210,0.25)]">
           <div className="flex items-end justify-between gap-4">
@@ -266,6 +289,11 @@ export default function FeeCalculatorCard({
               Includes early bird (£{getBranchData(branch).earlyBird}/day × {days} day{days !== 1 ? "s" : ""})
             </p>
           )}
+          {discountAmount > 0 && (
+            <p className="mt-2 text-[0.65rem] text-[#3aada9]">
+              {DISCOUNTS.find((d) => d.id === discount)!.label} applied (saving {fmt(discountAmount)}/wk)
+            </p>
+          )}
         </div>
 
         {/* CTA */}
@@ -274,7 +302,8 @@ export default function FeeCalculatorCard({
             `/contact?enquiry=fee-enquiry` +
             `&q_branch=${branch}&q_age=${encodeURIComponent(safeAgeGroup)}` +
             `&q_session=${session}&q_days=${days}&q_eb=${earlyBird}` +
-            `&q_gross=${weekly.toFixed(2)}&q_weekly=${weekly.toFixed(2)}&q_monthly=${monthly.toFixed(2)}`
+            `&q_gross=${gross.toFixed(2)}&q_weekly=${weekly.toFixed(2)}&q_monthly=${monthly.toFixed(2)}` +
+            `&q_discount=${discount}&q_discount_amount=${discountAmount.toFixed(2)}`
           }
           className="btn-primary flex w-full items-center justify-center gap-2 text-sm"
         >

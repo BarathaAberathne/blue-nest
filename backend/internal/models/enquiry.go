@@ -7,16 +7,18 @@ import (
 )
 
 type FeeQuote struct {
-	Branch        string  `bson:"branch,omitempty"         json:"branch,omitempty"`
-	AgeGroup      string  `bson:"age_group,omitempty"      json:"age_group,omitempty"`
-	Session       string  `bson:"session,omitempty"        json:"session,omitempty"`
-	Days          int     `bson:"days,omitempty"           json:"days,omitempty"`
-	EarlyBird     bool    `bson:"early_bird,omitempty"     json:"early_bird,omitempty"`
-	Funding       string  `bson:"funding,omitempty"        json:"funding,omitempty"`
-	GrossWeekly   float64 `bson:"gross_weekly"             json:"gross_weekly"`
-	FundingOffset float64 `bson:"funding_offset,omitempty" json:"funding_offset,omitempty"`
-	NetWeekly     float64 `bson:"net_weekly"               json:"net_weekly"`
-	NetMonthly    float64 `bson:"net_monthly"              json:"net_monthly"`
+	Branch         string  `bson:"branch,omitempty"          json:"branch,omitempty"`
+	AgeGroup       string  `bson:"age_group,omitempty"       json:"age_group,omitempty"`
+	Session        string  `bson:"session,omitempty"         json:"session,omitempty"`
+	Days           int     `bson:"days,omitempty"            json:"days,omitempty"`
+	EarlyBird      bool    `bson:"early_bird,omitempty"      json:"early_bird,omitempty"`
+	Discount       string  `bson:"discount,omitempty"        json:"discount,omitempty"`        // "sibling" | "staff"
+	DiscountAmount float64 `bson:"discount_amount,omitempty" json:"discount_amount,omitempty"` // weekly £ saving
+	Funding        string  `bson:"funding,omitempty"         json:"funding,omitempty"`
+	GrossWeekly    float64 `bson:"gross_weekly"              json:"gross_weekly"`
+	FundingOffset  float64 `bson:"funding_offset,omitempty"  json:"funding_offset,omitempty"`
+	NetWeekly      float64 `bson:"net_weekly"                json:"net_weekly"`
+	NetMonthly     float64 `bson:"net_monthly"               json:"net_monthly"`
 }
 
 type Enquiry struct {
