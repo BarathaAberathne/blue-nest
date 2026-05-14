@@ -16,9 +16,18 @@ import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/our-team" },
   title: "Our Team — Blue Nest Montessori School",
   description:
     "Meet the qualified, passionate educators behind Blue Nest Montessori — DBS-checked, first-aid certified, and dedicated to every child.",
+  openGraph: {
+    title: "Our Team — Blue Nest Montessori School",
+    description:
+      "Meet our qualified, DBS-checked educators dedicated to every child's development across Harrow, Pinner and Borehamwood.",
+    url: "/our-team",
+    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori team" }],
+    type: "website",
+  },
 };
 
 // ── Types ─────────────────────────────────────────────────────────────────────

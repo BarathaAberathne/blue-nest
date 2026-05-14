@@ -55,7 +55,10 @@ async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T>
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  let res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+  let res = await fetch(`${BASE_URL}${path}`, { ...init, headers }).catch((err: unknown) => {
+    console.error(`[api] Network error — ${init.method ?? "GET"} ${BASE_URL}${path}:`, err);
+    throw err;
+  });
 
   // Silent token refresh on 401 (skip for the refresh endpoint itself)
   if (res.status === 401 && path !== "/api/v1/auth/refresh") {

@@ -183,18 +183,20 @@ export default function Header() {
           TRUST BAR — scrolls with page (not sticky)
       ══════════════════════════════════════════════════════════════════════ */}
       <div className="relative overflow-hidden border-b border-[rgba(90,74,66,0.06)] bg-[#fdf8f5]">
-        {/* Edge doodles — desktop only */}
-        <Doodle kind="leaf" className="left-4  top-1/2 h-7 w-7 -translate-y-1/2 hidden sm:block opacity-40" />
-        <Doodle kind="pink-flower" className="right-4 top-1/2 h-6 w-6 -translate-y-1/2 hidden sm:block opacity-40" />
+        {/* Edge doodles — desktop only (matches the desktop header breakpoint) */}
+        <Doodle kind="leaf" className="left-4  top-1/2 h-7 w-7 -translate-y-1/2 hidden lg:block opacity-40" />
+        <Doodle kind="pink-flower" className="right-4 top-1/2 h-6 w-6 -translate-y-1/2 hidden lg:block opacity-40" />
 
-        {/* Scrollable badge row */}
-        <div className="flex items-center gap-2 overflow-x-auto px-10 py-2.5 scrollbar-none sm:justify-center sm:gap-0 sm:overflow-visible sm:px-16 lg:px-24">
+        {/* Badge row: scrolls horizontally below 1024px (mobile + tablet) because
+            the 5 badges + separators need ~900-1000px to lay out without crowding.
+            At lg+ (≥1024px) we have enough width to centre them with separators. */}
+        <div className="flex items-center gap-2 overflow-x-auto px-10 py-2.5 scrollbar-none lg:justify-center lg:gap-0 lg:overflow-visible lg:px-16 xl:px-24">
           {trustBadges.map((badge, i) => (
             <div key={badge.line1} className="flex shrink-0 items-center">
               <BadgeItem badge={badge} />
               {i < trustBadges.length - 1 && (
                 <span
-                  className="mx-4 hidden h-6 w-px flex-shrink-0 bg-[rgba(90,74,66,0.1)] sm:block"
+                  className="mx-4 hidden h-6 w-px flex-shrink-0 bg-[rgba(90,74,66,0.1)] lg:block"
                   aria-hidden="true"
                 />
               )}
@@ -209,8 +211,12 @@ export default function Header() {
       <header className="sticky top-0 z-50 overflow-visible border-b border-[rgba(207,125,156,0.15)] bg-[#fde8f0] shadow-[0_2px_12px_rgba(207,125,156,0.1)] backdrop-blur-sm">
         <div className="container-site">
 
-          {/* DESKTOP LAYOUT — 2-row grid */}
-          <div className="hidden sm:grid grid-cols-[auto_1fr_auto] grid-rows-2 gap-0 py-2.5">
+          {/* DESKTOP LAYOUT — 2-row grid, only at ≥1024px.
+              At smaller widths the content inside (380px logo + 384px search + 3
+              branch phones + email + 4 social icons + login text + cart + menu)
+              needs ~1100px to lay out without overflow, so we switch to the
+              simpler mobile/tablet layout below 1024px. */}
+          <div className="hidden lg:grid grid-cols-[auto_1fr_auto] grid-rows-2 gap-0 py-2.5">
 
             {/* LEFT: Logo (spans 2 rows, bleeds to fill full header height) */}
             <div className="row-span-2 flex items-center pr-2">
@@ -333,24 +339,31 @@ export default function Header() {
             </div>
           </div>
 
-          {/* MOBILE LAYOUT — Single row */}
-          <div className="sm:hidden flex items-center justify-between py-2 px-3">
-            <Link href="/" className="flex shrink-0 items-center">
-              {/* Larger logo, negative margin keeps header height unchanged */}
-              <div className="relative -my-[22px] h-[84px] w-[158px]">
+          {/* MOBILE + TABLET LAYOUT — single row, <1024px.
+              Search and account text live inside the slide-over MENU instead of
+              the bar itself so we never have to compete with the logo for room.
+              Logo scales up on larger phones / tablets so it doesn't look lost
+              at 768-1023px viewports. */}
+          <div className="lg:hidden flex items-center justify-between gap-2 py-2 px-3 sm:px-4 md:px-6">
+            <Link href="/" className="flex shrink-0 items-center min-w-0">
+              {/* Logo scales: 158px on phone → 195px md → 240px just under desktop.
+                  Negative margin grows with size so the header keeps the same
+                  visual rhythm at every breakpoint. */}
+              <div className="relative -my-[22px] h-[84px] w-[158px] sm:-my-[26px] sm:h-[98px] sm:w-[185px] md:-my-[32px] md:h-[112px] md:w-[212px]">
                 <Image
                   src="/home/logo_new.png"
                   alt="Blue Nest Montessori logo"
                   fill
                   className="object-contain drop-shadow-[0_4px_10px_rgba(90,74,66,0.14)]"
-                  sizes="158px"
+                  sizes="(min-width: 768px) 212px, (min-width: 640px) 185px, 158px"
                   priority
                 />
               </div>
             </Link>
 
-            {/* Search + admin hidden on mobile — both accessible via MENU */}
-            <div className="flex items-center gap-3 ml-auto">
+            {/* Search + account text are accessible via MENU at <1024px so the
+                bar stays free of overflow risk on any phone or tablet width. */}
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <Link
                 href={authUser ? "/account" : "/login?next=/account"}
                 aria-label="Open account"

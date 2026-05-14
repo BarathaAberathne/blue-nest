@@ -7,9 +7,18 @@ import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/admission" },
   title: "Admission — Blue Nest Montessori School",
   description:
     "Start your child's journey with Blue Nest Montessori School. Download our prospectus, view our fees, or complete an application form.",
+  openGraph: {
+    title: "Admission — Blue Nest Montessori School",
+    description:
+      "Start your child's Montessori journey. Download our prospectus, view fees, or apply online today.",
+    url: "/admission",
+    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori admission" }],
+    type: "website",
+  },
 };
 
 const cards = [

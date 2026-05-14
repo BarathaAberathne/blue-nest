@@ -17,20 +17,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const title = post.title ?? fallbackTitle;
     const desc  = post.excerpt ?? `Read ${title} on the Blue Nest Montessori blog.`;
     const image = post.cover_image ?? "/home/montessori-learning.jpeg";
+    const url   = `/blog/${slug}`;
     return {
       title,
       description: desc,
+      alternates: { canonical: url },
       openGraph: {
         title,
         description: desc,
-        url: `/blog/${slug}`,
+        url,
         images: [{ url: image, alt: title }],
         type: "article",
       },
       twitter: { card: "summary_large_image", title, description: desc, images: [image] },
     };
   } catch {
-    return { title: `${fallbackTitle} — Blue Nest Montessori Blog` };
+    return {
+      title: `${fallbackTitle} — Blue Nest Montessori Blog`,
+      alternates: { canonical: `/blog/${slug}` },
+    };
   }
 }
 

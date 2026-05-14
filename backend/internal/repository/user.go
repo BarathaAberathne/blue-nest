@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -27,7 +28,24 @@ type userRepository struct {
 }
 
 func NewUserRepository(db *mongo.Database) UserRepository {
-	return &userRepository{col: db.Collection("users")}
+	col := db.Collection("users")
+
+	// Enforce uniqueness at the DB layer — the service-level FindByEmail check
+	// in Register/CreateAdminUser/UpsertOAuthUser is a UX nicety; this index is
+	// the actual safety net against concurrent registrations and any code path
+	// that bypasses the service. Non-fatal: if duplicate emails already exist
+	// from before this migration, the create call will fail and we log a
+	// warning. Once duplicates are cleaned up, the next server boot succeeds.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if _, err := col.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "email", Value: 1}},
+		Options: options.Index().SetUnique(true).SetName("uniq_email"),
+	}); err != nil {
+		slog.Warn("users: could not create unique index on email — clean up duplicates with db.users.aggregate([...]) and retry", "err", err)
+	}
+
+	return &userRepository{col: col}
 }
 
 func (r *userRepository) Create(ctx context.Context, user *models.User) error {

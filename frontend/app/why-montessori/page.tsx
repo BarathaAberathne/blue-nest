@@ -9,7 +9,18 @@ import { Reveal } from "@/components/ui/Motion";
 import ZigzagBand from "@/components/ui/ZigzagBand";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/why-montessori" },
   title: "Why Montessori — Blue Nest Montessori School",
+  description:
+    "Discover why Montessori education gives children the best start in life. Blue Nest follows the Montessori method — child-led learning, prepared environments, and a love of discovery.",
+  openGraph: {
+    title: "Why Montessori — Blue Nest Montessori School",
+    description:
+      "Discover why Montessori education gives children the best start in life. Child-led learning, prepared environments, and a genuine love of discovery.",
+    url: "/why-montessori",
+    images: [{ url: "/home/outdoor-learning-and-play-area.jpg", width: 1280, height: 854, alt: "Children learning in a Montessori environment" }],
+    type: "website",
+  },
 };
 
 export default function WhyMontessoriPage() {
@@ -47,7 +58,7 @@ export default function WhyMontessoriPage() {
           <Reveal>
             <span className="section-kicker">Blue Nest Montessori School</span>
             <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-white sm:text-[3rem] lg:text-[3.4rem] max-w-3xl">
-              Montessori nursery in Harrow, Pinner and Borehamwood
+              Why Choose Montessori for Your Child?
             </h1>
             <p className="body-text mt-5 max-w-xl !text-white/90">
               Blue Nest Montessori School provides a home away from home, where children can

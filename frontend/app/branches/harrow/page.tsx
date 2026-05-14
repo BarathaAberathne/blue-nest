@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import {
   ArrowRight,
   Heart,
@@ -22,10 +23,42 @@ import { LightboxGallery } from "@/components/ui/LightboxGallery";
 import BranchMap from "@/components/contact/BranchMap";
 import BranchHero from "@/components/sections/BranchHero";
 
+const branchJsonLd = {
+  "@context": "https://schema.org",
+  "@type": ["LocalBusiness", "ChildCare"],
+  name: "Blue Nest Montessori School — Harrow",
+  url: "https://bluenest.uk/branches/harrow",
+  telephone: "02088615574",
+  email: "manager@bluenest.uk",
+  openingHours: "Mo-Fr 07:30-18:00",
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "29 Churchfield Close",
+    addressLocality: "Harrow",
+    postalCode: "HA2 6BD",
+    addressCountry: "GB",
+  },
+  geo: {
+    "@type": "GeoCoordinates",
+    latitude: 51.5795,
+    longitude: -0.3668,
+  },
+  parentOrganization: { "@id": "https://bluenest.uk/#organization" },
+};
+
 export const metadata: Metadata = {
+  alternates: { canonical: "/branches/harrow" },
   title: "Harrow Nursery — Blue Nest Montessori School",
   description:
     "Blue Nest Montessori School Harrow — a warm, nurturing Montessori nursery for children aged 3 months to 5 years in Harrow, London.",
+  openGraph: {
+    title: "Harrow Nursery — Blue Nest Montessori School",
+    description:
+      "Montessori nursery in Harrow for children aged 3 months to 5 years. Ofsted Good · Award-winning · Government funding available.",
+    url: "/branches/harrow",
+    images: [{ url: "/home/outdoor-learning-and-play-area.jpg", width: 1280, height: 854, alt: "Blue Nest Montessori Harrow nursery" }],
+    type: "website",
+  },
 };
 
 // ── Features ───────────────────────────────────────────────────────────────────
@@ -117,6 +150,11 @@ const gallery = [
 export default function HarrowBranchPage() {
   return (
     <PublicLayout>
+      <Script
+        id="harrow-branch-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(branchJsonLd) }}
+      />
 
       <BranchHero
         branch="harrow"

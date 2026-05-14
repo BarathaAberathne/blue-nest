@@ -6,6 +6,7 @@ import GalleryPageClient from "@/components/gallery/GalleryPageClient";
 const DESC = "Explore photos, videos, and updates from Blue Nest Montessori — Harrow, Pinner, and Borehamwood.";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/gallery" },
   title: "Gallery — Blue Nest Montessori School",
   description: DESC,
   openGraph: {

@@ -5,6 +5,7 @@ import BlogClient from "@/components/blog/BlogClient";
 const DESC = "Insights, updates, and parenting resources from the Blue Nest Montessori team.";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/blog" },
   title: "Blog — Blue Nest Montessori School",
   description: DESC,
   openGraph: {

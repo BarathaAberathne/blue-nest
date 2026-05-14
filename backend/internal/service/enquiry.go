@@ -159,7 +159,19 @@ func adminNotificationHTML(req models.EnquiryRequest) string {
 <body style="margin:0;padding:0;background:#fdf8f5;font-family:Arial,sans-serif;">
   <div style="max-width:580px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(90,74,66,0.10);">
     <div style="background:#fde8f0;padding:24px 32px;border-bottom:3px solid #f4aac8;">
-      <img src="%s" alt="Blue Nest Montessori School" width="180" style="display:block;height:auto;border:0;max-width:180px;" />
+      <!--[if mso]>
+      <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:0;">
+      <![endif]-->
+      <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;border-collapse:collapse;">
+        <tr>
+          <td align="center" style="padding:0;">
+            <img src="%s" alt="Blue Nest Montessori School" width="240" style="display:block;height:auto;border:0;outline:none;text-decoration:none;max-width:240px;margin:0 auto;" />
+          </td>
+        </tr>
+      </table>
+      <!--[if mso]>
+      </td></tr></table>
+      <![endif]-->
       <h1 style="margin:12px 0 0;font-size:20px;color:#3a2e29;">New Enquiry Received</h1>
     </div>
     <div style="padding:24px 32px;">
@@ -204,7 +216,19 @@ func userConfirmationHTML(req models.EnquiryRequest) string {
 <body style="margin:0;padding:0;background:#fdf8f5;font-family:Arial,sans-serif;">
   <div style="max-width:580px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(90,74,66,0.10);">
     <div style="background:#fde8f0;padding:24px 32px;border-bottom:3px solid #f4aac8;">
-      <img src="%s" alt="Blue Nest Montessori School" width="180" style="display:block;height:auto;border:0;max-width:180px;" />
+      <!--[if mso]>
+      <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:0;">
+      <![endif]-->
+      <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;border-collapse:collapse;">
+        <tr>
+          <td align="center" style="padding:0;">
+            <img src="%s" alt="Blue Nest Montessori School" width="240" style="display:block;height:auto;border:0;outline:none;text-decoration:none;max-width:240px;margin:0 auto;" />
+          </td>
+        </tr>
+      </table>
+      <!--[if mso]>
+      </td></tr></table>
+      <![endif]-->
     </div>
     <div style="padding:32px;">
       <h1 style="margin:0 0 8px;font-size:22px;color:#3a2e29;">Hi %s,</h1>
@@ -218,6 +242,7 @@ func userConfirmationHTML(req models.EnquiryRequest) string {
         <p style="margin:0;font-size:14px;color:#3a2e29;"><strong>Type:</strong> %s</p>
         %s
       </div>
+      %s
       <p style="margin:0 0 6px;font-size:14px;color:#5a4a42;">In the meantime, feel free to reach us directly:</p>
       <p style="margin:0;font-size:14px;color:#3a2e29;">
         📞 <a href="tel:02088615574" style="color:#3aada9;text-decoration:none;">020 8861 5574</a><br>
@@ -242,5 +267,10 @@ func userConfirmationHTML(req models.EnquiryRequest) string {
 			}
 			return fmt.Sprintf(`<p style="margin:6px 0 0;font-size:14px;color:#3a2e29;"><strong>Message:</strong> %s</p>`, req.Message)
 		}(),
+		// Fee quote block — reuses the same renderer the admin email uses so
+		// the parent sees an identical breakdown (Branch / Age Group / Session
+		// / Days / Gross & Net Weekly etc). feeQuoteHTML returns "" when
+		// req.FeeQuote is nil, so non-quote enquiries are unaffected.
+		feeQuoteHTML(req.FeeQuote),
 	)
 }

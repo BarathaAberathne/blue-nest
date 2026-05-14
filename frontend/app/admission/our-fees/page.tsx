@@ -6,7 +6,18 @@ import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/admission/our-fees" },
   title: "Our Fees — Blue Nest Montessori School",
+  description:
+    "View nursery fees for Blue Nest Montessori in Harrow, Pinner, and Borehamwood. Flexible sessions, government funding available, sibling discounts, and childcare vouchers accepted.",
+  openGraph: {
+    title: "Our Fees — Blue Nest Montessori School",
+    description:
+      "View nursery fees for Blue Nest Montessori. Flexible sessions, government funding, sibling discounts, and childcare vouchers.",
+    url: "/admission/our-fees",
+    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori fees and sessions" }],
+    type: "website",
+  },
 };
 
 const downloads = [

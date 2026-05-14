@@ -8,9 +8,18 @@ import { Reveal } from "@/components/ui/Motion";
 import { LightboxGallery } from "@/components/ui/LightboxGallery";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/our-charities" },
   title: "Our Charities — Blue Nest Montessori School",
   description:
     "Discover how Blue Nest Montessori supports meaningful causes and teaches children the importance of kindness, empathy, and giving back.",
+  openGraph: {
+    title: "Our Charities — Blue Nest Montessori School",
+    description:
+      "How Blue Nest Montessori supports meaningful causes — teaching children kindness, empathy, and the joy of giving back.",
+    url: "/our-charities",
+    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori charities" }],
+    type: "website",
+  },
 };
 
 // ── Data ──────────────────────────────────────────────────────────────────────

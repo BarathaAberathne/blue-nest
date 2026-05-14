@@ -16,7 +16,13 @@ RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /app
 COPY --from=builder /app/bin/api .
-RUN mkdir -p uploads
+
+# Bake the seed images (backend/uploads/products/*) into the image so a fresh
+# `docker compose up` always has them, even when the uploads_data volume is
+# wiped. On first start with an empty named volume, Docker initialises it from
+# the image's contents, so seed images land in the volume automatically.
+# Admin-uploaded images that arrive later still persist in the same volume.
+COPY --from=builder /app/uploads ./uploads
 
 EXPOSE 8080
 CMD ["./api"]

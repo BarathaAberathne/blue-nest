@@ -324,7 +324,19 @@ func buildOrderConfirmationEmail(orderID, customerEmail string, addr models.Ship
 <body style="margin:0;padding:0;background:#f5faf5;font-family:Arial,sans-serif;">
   <div style="max-width:580px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(58,173,169,0.10);">
     <div style="background:#ffffff;padding:20px 32px;text-align:left;border-bottom:1px solid #e8f5f4;">
-      <img src="%s" alt="Blue Nest Montessori School" width="180" style="display:block;height:auto;border:0;max-width:180px;" />
+      <!--[if mso]>
+      <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:0;">
+      <![endif]-->
+      <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;border-collapse:collapse;">
+        <tr>
+          <td align="center" style="padding:0;">
+            <img src="%s" alt="Blue Nest Montessori School" width="240" style="display:block;height:auto;border:0;outline:none;text-decoration:none;max-width:240px;margin:0 auto;" />
+          </td>
+        </tr>
+      </table>
+      <!--[if mso]>
+      </td></tr></table>
+      <![endif]-->
     </div>
     <div style="background:#3aada9;padding:28px 32px;">
       <h1 style="margin:0;font-size:22px;color:#ffffff;font-weight:700;">Order Confirmed!</h1>
@@ -414,7 +426,19 @@ func buildAdminOrderEmail(orderID, stripeSessionID, paymentIntentID, customerEma
 <body style="margin:0;padding:0;background:#f9f9f9;font-family:Arial,sans-serif;">
   <div style="max-width:620px;margin:32px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
     <div style="background:#ffffff;padding:20px 32px;text-align:left;border-bottom:1px solid #e4ede4;">
-      <img src="%s" alt="Blue Nest Montessori School" width="180" style="display:block;height:auto;border:0;max-width:180px;" />
+      <!--[if mso]>
+      <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:0;">
+      <![endif]-->
+      <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;border-collapse:collapse;">
+        <tr>
+          <td align="center" style="padding:0;">
+            <img src="%s" alt="Blue Nest Montessori School" width="240" style="display:block;height:auto;border:0;outline:none;text-decoration:none;max-width:240px;margin:0 auto;" />
+          </td>
+        </tr>
+      </table>
+      <!--[if mso]>
+      </td></tr></table>
+      <![endif]-->
     </div>
     <div style="background:#2a3c29;padding:24px 32px;">
       <h1 style="margin:0;font-size:20px;color:#ffffff;">New Paid Store Order</h1>

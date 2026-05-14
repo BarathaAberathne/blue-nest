@@ -18,17 +18,26 @@ import PublicLayout from "@/components/layout/PublicLayout";
 import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/forest-school" },
   title: "Forest School — Blue Nest Montessori School",
   description:
     "Blue Nest Forest School in Harrow & London. Outdoor learning that nurtures curiosity, creativity and independence in children.",
+  openGraph: {
+    title: "Forest School — Blue Nest Montessori School",
+    description:
+      "Outdoor Forest School sessions at Blue Nest Montessori — nurturing curiosity, resilience and a love of nature in Harrow & London.",
+    url: "/forest-school",
+    images: [{ url: "/home/forest-school.jpg", width: 1280, height: 854, alt: "Blue Nest Forest School — children learning outdoors" }],
+    type: "website",
+  },
 };
 
 const breadcrumbJsonLd = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Home",          item: "https://bluenestmontessori.co.uk/" },
-    { "@type": "ListItem", position: 2, name: "Forest School", item: "https://bluenestmontessori.co.uk/forest-school" },
+    { "@type": "ListItem", position: 1, name: "Home",          item: "https://bluenest.uk/" },
+    { "@type": "ListItem", position: 2, name: "Forest School", item: "https://bluenest.uk/forest-school" },
   ],
 };
 

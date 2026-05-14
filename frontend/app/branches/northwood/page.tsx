@@ -6,9 +6,18 @@ import { Reveal } from "@/components/ui/Motion";
 import BranchHero from "@/components/sections/BranchHero";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/branches/northwood" },
   title: "Northwood — Blue Nest Montessori School (Coming Soon)",
   description:
     "Blue Nest Montessori School is expanding to Northwood, HA6. Register your interest now to be first in line for a place at our newest nursery.",
+  openGraph: {
+    title: "Northwood — Blue Nest Montessori (Coming Soon)",
+    description:
+      "Blue Nest Montessori is coming to Northwood, HA6. Register your interest now to be first in line.",
+    url: "/branches/northwood",
+    images: [{ url: "/home/outdoor-play-for-children-new.jpg", width: 1280, height: 854, alt: "Blue Nest Montessori coming to Northwood" }],
+    type: "website",
+  },
 };
 
 const details = [

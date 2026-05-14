@@ -1,10 +1,15 @@
-// cmd/seed/main.go — seeds products exactly as defined in catalog_products.csv.
-// Run: cd backend && go run ./cmd/seed/main.go
+// cmd/seed/main.go — seeds products exactly as defined in catalog_products.csv,
+// then derives and seeds the categories collection from distinct product
+// categories so the two collections can never drift apart.
+//
+// Run: cd backend && go run ./cmd/seed
 package main
 
 import (
 	"context"
 	"log"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/config"
@@ -14,6 +19,16 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+// slugify lowercases, trims, and replaces runs of non-alphanumerics with `-`.
+// "Holiday Club" → "holiday-club", "Schoolwear" → "schoolwear".
+var slugifyRe = regexp.MustCompile(`[^a-z0-9]+`)
+
+func slugify(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = slugifyRe.ReplaceAllString(s, "-")
+	return strings.Trim(s, "-")
+}
 
 func img(filename string) string { return "/uploads/products/" + filename }
 
@@ -279,9 +294,66 @@ func main() {
 		log.Printf("WARN slug index: %v", err)
 	}
 
+	// ── Rebuild categories from distinct product.category values ─────────────
+	// The /api/v1/categories endpoint is supposed to reflect the categories
+	// products are actually tagged with. Derive them here so the two
+	// collections can never drift (e.g. admins manually adding stale categories
+	// like "T-shirt" / "Bottom" that no product uses).
+	catColl := client.Database(cfg.Mongo.Database).Collection("categories")
+	if err = catColl.Drop(ctx); err != nil {
+		log.Fatalf("drop categories: %v", err)
+	}
+	log.Println("Dropped existing categories collection")
+
+	// Build a set of unique, non-empty category names from the seeded products.
+	seen := make(map[string]struct{})
+	categoryNames := make([]string, 0)
+	for _, p := range products {
+		name := strings.TrimSpace(p.Category)
+		if name == "" {
+			continue
+		}
+		if _, ok := seen[name]; ok {
+			continue
+		}
+		seen[name] = struct{}{}
+		categoryNames = append(categoryNames, name)
+	}
+
+	if len(categoryNames) > 0 {
+		catDocs := make([]interface{}, 0, len(categoryNames))
+		for _, name := range categoryNames {
+			catDocs = append(catDocs, models.Category{
+				ID:        primitive.NewObjectID(),
+				Slug:      slugify(name),
+				Name:      name,
+				CreatedAt: now,
+			})
+		}
+		catRes, catErr := catColl.InsertMany(ctx, catDocs)
+		if catErr != nil {
+			log.Fatalf("insertMany categories: %v", catErr)
+		}
+		log.Printf("Inserted %d categories from distinct product.category", len(catRes.InsertedIDs))
+
+		// Unique index on slug — same guarantee as products / branches.
+		if _, idxErr := catColl.Indexes().CreateOne(ctx, mongo.IndexModel{
+			Keys:    bson.D{{Key: "slug", Value: 1}},
+			Options: options.Index().SetUnique(true).SetName("uniq_category_slug"),
+		}); idxErr != nil {
+			log.Printf("WARN category slug index: %v", idxErr)
+		}
+	} else {
+		log.Println("No non-empty product categories found — categories collection left empty")
+	}
+
 	log.Println("\nSeed complete ✓")
 	for _, p := range products {
 		log.Printf("  %-12s  £%5.2f  imgs=%d  %s",
 			p.Category, float64(p.Price)/100, len(p.ImageURLs), p.Name)
+	}
+	log.Printf("\nCategories (derived):")
+	for _, name := range categoryNames {
+		log.Printf("  %-14s  → %s", slugify(name), name)
 	}
 }

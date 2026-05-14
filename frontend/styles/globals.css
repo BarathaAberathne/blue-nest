@@ -27,6 +27,11 @@
 
   html {
     scroll-behavior: smooth;
+    /* Belt-and-braces with the body rule below: some Safari builds only honour
+       overflow-x on the root element, not <body>. Keeping both is harmless and
+       guarantees no horizontal scroll regardless of where the offending element
+       lives. */
+    overflow-x: clip;
   }
 
   body {

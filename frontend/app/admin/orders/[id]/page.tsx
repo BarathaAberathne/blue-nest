@@ -6,7 +6,7 @@ interface Props { params: Promise<{ id: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  return { title: `Order ${id.slice(0, 8).toUpperCase()} — Admin` };
+  return { title: `Order ${id.slice(0, 8).toUpperCase()} — Admin`, robots: { index: false, follow: false } };
 }
 
 export default async function AdminOrderDetailPage({ params }: Props) {

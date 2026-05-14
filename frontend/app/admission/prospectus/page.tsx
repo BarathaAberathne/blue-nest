@@ -8,7 +8,18 @@ import { Reveal } from "@/components/ui/Motion";
 import ZigzagBand from "@/components/ui/ZigzagBand";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/admission/prospectus" },
   title: "Prospectus — Blue Nest Montessori School",
+  description:
+    "Download the Blue Nest Montessori School prospectus. Learn about our Montessori approach, daily routines, curriculum, and what makes our nurseries outstanding.",
+  openGraph: {
+    title: "Prospectus — Blue Nest Montessori School",
+    description:
+      "Download the Blue Nest Montessori School prospectus and learn about our award-winning approach, daily routines, and curriculum.",
+    url: "/admission/prospectus",
+    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori prospectus" }],
+    type: "website",
+  },
 };
 
 const highlights = [

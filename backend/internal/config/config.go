@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -45,7 +46,7 @@ type StripeConfig struct {
 }
 
 type CORSConfig struct {
-	FrontendURL string
+	AllowedOrigins []string
 }
 
 type SMTPConfig struct {
@@ -64,9 +65,7 @@ type OAuthProviderConfig struct {
 }
 
 func Load() *Config {
-	if err := godotenv.Load(); err != nil {
-		log.Println("no .env file found, reading from environment")
-	}
+	loadDotenv()
 
 	jwtHours, _ := strconv.Atoi(getEnv("JWT_EXPIRY_HOURS", "24"))
 	jwtRefreshDays, _ := strconv.Atoi(getEnv("JWT_REFRESH_EXPIRY_DAYS", "30"))
@@ -92,7 +91,7 @@ func Load() *Config {
 			PublishableKey: getEnv("STRIPE_PUBLISHABLE_KEY", ""),
 		},
 		CORS: CORSConfig{
-			FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
+			AllowedOrigins: strings.Split(getEnv("FRONTEND_URL", "http://localhost:3000"), ","),
 		},
 		Google: OAuthProviderConfig{
 			ClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
@@ -121,4 +120,21 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// loadDotenv tries common .env locations: the current working directory first,
+// then walks up to four parent levels. This makes `go run ./cmd/seedusers`
+// (which leaves cwd at backend/) and other `cd backend && go run …` patterns
+// pick up the project-root .env. Inside Docker the file never exists; env vars
+// are already injected via env_file in docker-compose, so all paths miss and
+// we fall back silently to os.Getenv.
+func loadDotenv() {
+	candidates := []string{".env", "../.env", "../../.env", "../../../.env"}
+	for _, path := range candidates {
+		if err := godotenv.Load(path); err == nil {
+			log.Printf("loaded env from %s", path)
+			return
+		}
+	}
+	log.Println("no .env file found, reading from environment")
 }

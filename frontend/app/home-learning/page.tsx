@@ -7,9 +7,18 @@ import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/home-learning" },
   title: "Home Learning — Blue Nest Montessori School",
   description:
     "Explore the Blue Nest Home Learning Kit — a parent support resource designed to extend nursery learning at home through language, play and exploration.",
+  openGraph: {
+    title: "Home Learning — Blue Nest Montessori School",
+    description:
+      "Extend nursery learning at home with the Blue Nest Home Learning Kit — activities, language tips, and routine cards for parents.",
+    url: "/home-learning",
+    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori home learning" }],
+    type: "website",
+  },
 };
 
 // ── Kit contents ───────────────────────────────────────────────────────────────

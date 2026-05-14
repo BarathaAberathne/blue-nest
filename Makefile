@@ -1,7 +1,10 @@
 .PHONY: all build run dev test lint install clean \
         docker-up docker-down docker-build docker-logs docker-restart docker-stop \
         dev-backend dev-frontend run-backend run-frontend \
-        mongo-shell setup seed
+        mongo-shell setup \
+        seed seed-products seed-branches seed-users seed-all \
+        wait-api \
+        optimize-images optimize-images-dry
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 all: build
@@ -68,6 +71,8 @@ install:
 # ── Docker ────────────────────────────────────────────────────────────────────
 docker-up:
 	docker compose up -d
+	@$(MAKE) wait-api
+	@$(MAKE) seed-all
 	@echo "✓ Services running"
 	@echo "  API  → http://localhost:8080"
 	@echo "  Web  → http://localhost:3000"
@@ -84,12 +89,26 @@ docker-logs:
 
 docker-restart:
 	docker compose up --build -d
-	@echo "✓ Images rebuilt and services restarted"
+	@$(MAKE) wait-api
+	@$(MAKE) seed-all
+	@echo "✓ Images rebuilt, services restarted, DB seeded"
 	@echo "  API  → http://localhost:8080"
 	@echo "  Web  → http://localhost:3000"
 
 docker-stop:
 	docker compose stop
+
+# Wait for the API health endpoint before running seed commands. Polls every
+# second up to 30s — enough time for MongoDB → backend boot order.
+wait-api:
+	@echo "→ Waiting for API health..."
+	@for i in $$(seq 1 30); do \
+	  if curl -fsS http://localhost:8080/api/v1/health > /dev/null 2>&1; then \
+	    echo "✓ API healthy"; exit 0; \
+	  fi; \
+	  sleep 1; \
+	done; \
+	echo "✗ API didn't become healthy in 30s — check 'make docker-logs'"; exit 1
 
 # ── Utilities ─────────────────────────────────────────────────────────────────
 mongo-shell:
@@ -100,8 +119,37 @@ clean:
 	@echo "✓ Cleaned"
 
 # ── Database seed ─────────────────────────────────────────────────────────────
-seed:
-	cd backend && go run ./cmd/seed/main.go
+# `make seed-all` runs everything in dependency order: products & categories
+# first (categories are derived from products), then branches, then users.
+# Re-running is safe — each command drops & re-inserts its collection except
+# users, which is idempotent.
+seed: seed-all  ## alias
+
+seed-products:
+	@echo "→ Seeding products & categories..."
+	cd backend && go run ./cmd/seed
+
+seed-branches:
+	@echo "→ Seeding branches..."
+	cd backend && go run ./cmd/seedbranches
+
+seed-users:
+	@echo "→ Seeding default users (admin / test customer)..."
+	cd backend && go run ./cmd/seedusers
+
+seed-all: seed-products seed-branches seed-users
+	@echo "✓ All seeds complete"
+
+# ── Frontend image optimisation ──────────────────────────────────────────────
+# One-shot pass that resizes any /public image wider than 1920px down to 1920,
+# re-encodes JPEGs/PNGs with sane quality, and produces .webp siblings for
+# Next/Image to serve. Idempotent — safe to re-run after adding new assets.
+# `optimize-images-dry` reports what would change without writing anything.
+optimize-images:
+	cd frontend && npm run optimize:images
+
+optimize-images-dry:
+	cd frontend && npm run optimize:images:dry
 
 # ── First-time setup ──────────────────────────────────────────────────────────
 setup: install

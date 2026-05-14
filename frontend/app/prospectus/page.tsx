@@ -7,7 +7,18 @@ import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/prospectus" },
   title: "Prospectus — Blue Nest Montessori School",
+  description:
+    "Download the Blue Nest Montessori School prospectus. Learn about our Montessori approach, daily routines, curriculum, and what makes our nurseries outstanding.",
+  openGraph: {
+    title: "Prospectus — Blue Nest Montessori School",
+    description:
+      "Download the Blue Nest Montessori School prospectus and learn about our award-winning approach, daily routines, and curriculum.",
+    url: "/prospectus",
+    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori prospectus" }],
+    type: "website",
+  },
 };
 
 const offerings = [

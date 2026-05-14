@@ -40,20 +40,32 @@ type Branch struct {
 	UpdatedAt       time.Time          `bson:"updated_at"    json:"updated_at"`
 }
 
-// SeedBranches returns the starter branch data for all four locations.
+// SeedBranches returns the starter branch data for all five locations.
+//
+// Values mirror what's already hard-coded in the frontend so the API and the
+// browser agree about phone numbers, addresses and statuses:
+//   - phones from frontend/components/layout/Header.tsx and each branch's
+//     JSON-LD block in frontend/app/branches/<slug>/page.tsx
+//   - addresses from frontend/components/contact/LeafletMap.tsx (PINS array)
+//   - email is the shared manager@bluenest.uk inbox used across the site
+//
+// If the frontend display ever changes, update this seed and re-run
+// `go run ./cmd/seedbranches` so the data stays consistent.
 func SeedBranches() []Branch {
 	now := time.Now()
+	const sharedEmail = "manager@bluenest.uk"
 	return []Branch{
 		{
 			ID:               primitive.NewObjectID(),
 			Slug:             "harrow",
-			Name:             "Blue Nest Montessori – Harrow",
+			Name:             "Blue Nest Montessori School — Harrow",
 			Status:           BranchActive,
 			ShortDescription: "Our flagship nursery in the heart of Harrow, offering a nurturing Montessori environment for children aged 3 months to 5 years.",
 			Contact: BranchContact{
-				Phone:   "+44 20 0000 0001",
-				Email:   "harrow@bluenestmontessori.co.uk",
-				Address: "Harrow, London, HA1",
+				Phone:   "020 8861 5574",
+				Email:   sharedEmail,
+				Address: "29 Churchfield Close, Harrow, HA2 6BD",
+				MapURL:  "https://www.google.com/maps/search/?api=1&query=29+Churchfield+Close+Harrow+HA2+6BD",
 			},
 			Admissions: BranchAdmissions{
 				AgeRange:    "3 months – 5 years",
@@ -66,13 +78,14 @@ func SeedBranches() []Branch {
 		{
 			ID:               primitive.NewObjectID(),
 			Slug:             "borehamwood",
-			Name:             "Blue Nest Montessori – Borehamwood",
+			Name:             "Blue Nest Montessori School — Borehamwood",
 			Status:           BranchActive,
 			ShortDescription: "A vibrant Montessori nursery in Borehamwood, fostering curiosity and independence through child-led learning.",
 			Contact: BranchContact{
-				Phone:   "+44 20 0000 0002",
-				Email:   "borehamwood@bluenestmontessori.co.uk",
+				Phone:   "020 8953 1718",
+				Email:   sharedEmail,
 				Address: "Borehamwood, Hertfordshire, WD6",
+				MapURL:  "https://www.google.com/maps/search/?api=1&query=Borehamwood+WD6",
 			},
 			Admissions: BranchAdmissions{
 				AgeRange:    "3 months – 5 years",
@@ -85,13 +98,34 @@ func SeedBranches() []Branch {
 		{
 			ID:               primitive.NewObjectID(),
 			Slug:             "pinner",
-			Name:             "Blue Nest Montessori – Pinner",
+			Name:             "Blue Nest Montessori School — Pinner",
 			Status:           BranchActive,
 			ShortDescription: "Set in leafy Pinner, this branch combines outdoor Forest School activities with our signature Montessori curriculum.",
 			Contact: BranchContact{
-				Phone:   "+44 20 0000 0003",
-				Email:   "pinner@bluenestmontessori.co.uk",
+				Phone:   "07400 430630",
+				Email:   sharedEmail,
 				Address: "Pinner, London, HA5",
+				MapURL:  "https://www.google.com/maps/search/?api=1&query=Pinner+HA5",
+			},
+			Admissions: BranchAdmissions{
+				AgeRange:    "3 months – 5 years",
+				OpeningTime: "07:30",
+				ClosingTime: "18:30",
+			},
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		{
+			ID:               primitive.NewObjectID(),
+			Slug:             "pinner-green",
+			Name:             "Blue Nest Montessori School — Pinner Green",
+			Status:           BranchActive,
+			ShortDescription: "A child-led Montessori nursery in the heart of Pinner Green, surrounded by leafy outdoor spaces for daily exploration and Forest School sessions.",
+			Contact: BranchContact{
+				Phone:   "07400 430630",
+				Email:   sharedEmail,
+				Address: "Pinner Green, Pinner, HA5",
+				MapURL:  "https://www.google.com/maps/search/?api=1&query=Pinner+Green+HA5",
 			},
 			Admissions: BranchAdmissions{
 				AgeRange:    "3 months – 5 years",
@@ -104,12 +138,13 @@ func SeedBranches() []Branch {
 		{
 			ID:               primitive.NewObjectID(),
 			Slug:             "northwood",
-			Name:             "Blue Nest Montessori – Northwood",
+			Name:             "Blue Nest Montessori School — Northwood",
 			Status:           BranchComingSoon,
-			ShortDescription: "Our newest branch, coming soon to Northwood. Register your interest to be first in line for a place.",
+			ShortDescription: "Our newest branch, coming soon to Northwood, HA6. Register your interest to be first in line for a place at our newest nursery.",
 			Contact: BranchContact{
-				Email:   "northwood@bluenestmontessori.co.uk",
+				Email:   sharedEmail,
 				Address: "Northwood, London, HA6",
+				MapURL:  "https://www.google.com/maps/search/?api=1&query=Northwood+HA6",
 			},
 			Admissions: BranchAdmissions{
 				AgeRange: "3 months – 5 years",

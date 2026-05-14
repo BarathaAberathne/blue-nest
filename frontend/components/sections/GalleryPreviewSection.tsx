@@ -45,7 +45,9 @@ export default function GalleryPreviewSection() {
                   alt={img.alt}
                   fill
                   className="object-cover transition-transform duration-500 hover:scale-105"
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  sizes={img.wide
+                    ? "(max-width: 640px) 100vw, (max-width: 1024px) 66vw, 33vw"
+                    : "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"}
                 />
                 <div className="absolute inset-0 bg-[rgba(90,74,66,0)] transition-colors duration-300 hover:bg-[rgba(90,74,66,0.05)]" />
               </div>

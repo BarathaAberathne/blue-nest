@@ -23,9 +23,18 @@ import BranchMap from "@/components/contact/BranchMap";
 import BranchHero from "@/components/sections/BranchHero";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/branches/pinner-green" },
   title: "Pinner Green Nursery — Blue Nest Montessori School",
   description:
     "Blue Nest Montessori School Pinner Green — a child-led Montessori nursery for children aged 3 months to 5 years, set in the heart of Pinner Green.",
+  openGraph: {
+    title: "Pinner Green Nursery — Blue Nest Montessori School",
+    description:
+      "Montessori nursery in Pinner Green for children aged 3 months to 5 years. Government funding available.",
+    url: "/branches/pinner-green",
+    images: [{ url: "/home/outdoor-learning-and-play-area.jpg", width: 1280, height: 854, alt: "Blue Nest Montessori Pinner Green nursery" }],
+    type: "website",
+  },
 };
 
 // ── Features ───────────────────────────────────────────────────────────────────

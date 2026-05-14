@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import {
   ArrowRight,
   Heart,
@@ -21,10 +22,36 @@ import { LightboxGallery } from "@/components/ui/LightboxGallery";
 import BranchMap from "@/components/contact/BranchMap";
 import BranchHero from "@/components/sections/BranchHero";
 
+const branchJsonLd = {
+  "@context": "https://schema.org",
+  "@type": ["LocalBusiness", "ChildCare"],
+  name: "Blue Nest Montessori School — Borehamwood",
+  url: "https://bluenest.uk/branches/borehamwood",
+  telephone: "02089531718",
+  email: "manager@bluenest.uk",
+  openingHours: "Mo-Fr 07:30-18:00",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Borehamwood",
+    postalCode: "WD6",
+    addressCountry: "GB",
+  },
+  parentOrganization: { "@id": "https://bluenest.uk/#organization" },
+};
+
 export const metadata: Metadata = {
+  alternates: { canonical: "/branches/borehamwood" },
   title: "Borehamwood Nursery — Blue Nest Montessori School",
   description:
     "Blue Nest Montessori School Borehamwood — a warm, nurturing Montessori nursery for children aged 3 months to 5 years in Borehamwood, Hertfordshire.",
+  openGraph: {
+    title: "Borehamwood Nursery — Blue Nest Montessori School",
+    description:
+      "Montessori nursery in Borehamwood for children aged 3 months to 5 years. Ofsted Good · Government funding available.",
+    url: "/branches/borehamwood",
+    images: [{ url: "/home/branches/borehamwood/borehamwood-office.jpg", width: 1280, height: 854, alt: "Blue Nest Montessori Borehamwood nursery" }],
+    type: "website",
+  },
 };
 
 type Feature = { icon: LucideIcon; title: string; desc: string; accent: string };
@@ -78,6 +105,11 @@ const gallery = [
 export default function BorehamwoodBranchPage() {
   return (
     <PublicLayout>
+      <Script
+        id="borehamwood-branch-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(branchJsonLd) }}
+      />
 
       <BranchHero
         branch="borehamwood"

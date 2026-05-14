@@ -41,7 +41,11 @@ export default function SectionDivider({
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none -mb-px w-screen overflow-hidden leading-none ${className}`}
+      // `w-full` rather than `w-screen`: 100vw includes scrollbar width on
+      // Windows/Linux Chrome, so `w-screen` pushes the divider a scrollbar-width
+      // past the viewport and triggers horizontal scroll on every page that
+      // uses a divider. `w-full` matches the section container exactly.
+      className={`pointer-events-none -mb-px w-full overflow-hidden leading-none ${className}`}
       style={{ background: from }}
     >
       <svg

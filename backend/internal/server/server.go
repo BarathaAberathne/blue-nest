@@ -89,7 +89,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	}
 
 	r := chi.NewRouter()
-	r.Use(middleware.CORS(cfg.CORS.FrontendURL))
+	r.Use(middleware.CORS(cfg.CORS.AllowedOrigins))
 	r.Use(middleware.Logger(log))
 
 	routes.Register(r, svc, routes.Repos{Orders: orderRepo, Products: productRepo, Mailer: mailer, AdminTo: cfg.SMTP.AdminTo}, cfg.JWT.Secret, cfg.Stripe.WebhookSecret, cfg)

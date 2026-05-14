@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import {
   ArrowRight,
   Heart,
@@ -21,10 +22,36 @@ import { LightboxGallery } from "@/components/ui/LightboxGallery";
 import BranchMap from "@/components/contact/BranchMap";
 import BranchHero from "@/components/sections/BranchHero";
 
+const branchJsonLd = {
+  "@context": "https://schema.org",
+  "@type": ["LocalBusiness", "ChildCare"],
+  name: "Blue Nest Montessori School — Pinner",
+  url: "https://bluenest.uk/branches/pinner",
+  telephone: "07400430630",
+  email: "manager@bluenest.uk",
+  openingHours: "Mo-Fr 07:30-18:00",
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: "Pinner",
+    postalCode: "HA5",
+    addressCountry: "GB",
+  },
+  parentOrganization: { "@id": "https://bluenest.uk/#organization" },
+};
+
 export const metadata: Metadata = {
+  alternates: { canonical: "/branches/pinner" },
   title: "Pinner Nursery — Blue Nest Montessori School",
   description:
     "Blue Nest Montessori School Pinner — a warm, nurturing Montessori nursery for children aged 3 months to 5 years in Pinner, London.",
+  openGraph: {
+    title: "Pinner Nursery — Blue Nest Montessori School",
+    description:
+      "Montessori nursery in Pinner for children aged 3 months to 5 years. Ofsted Good · Government funding available.",
+    url: "/branches/pinner",
+    images: [{ url: "/home/branches/pinner/pinner-office.jpg", width: 1280, height: 854, alt: "Blue Nest Montessori Pinner nursery" }],
+    type: "website",
+  },
 };
 
 type Feature = { icon: LucideIcon; title: string; desc: string; accent: string };
@@ -78,6 +105,11 @@ const gallery = [
 export default function PinnerBranchPage() {
   return (
     <PublicLayout>
+      <Script
+        id="pinner-branch-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(branchJsonLd) }}
+      />
 
       <BranchHero
         branch="pinner"
