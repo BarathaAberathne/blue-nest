@@ -222,17 +222,19 @@ export default function FeeCalculatorCard({
               {days} day{days !== 1 ? "s" : ""}
             </span>
           </p>
-          <input
-            type="range"
-            min={1}
-            max={5}
-            step={1}
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-            className="w-full accent-[#6ecfc9]"
-            aria-label="Days per week"
-          />
-          <div className="mt-1 flex justify-between text-[0.6rem] text-[var(--muted)]">
+          <div className="px-2">
+            <input
+              type="range"
+              min={1}
+              max={5}
+              step={1}
+              value={days}
+              onChange={(e) => setDays(Number(e.target.value))}
+              className="w-full accent-[#6ecfc9]"
+              aria-label="Days per week"
+            />
+          </div>
+          <div className="mt-3 flex justify-between text-[0.6rem] text-[var(--muted)]">
             {[1, 2, 3, 4, 5].map((d) => <span key={d}>{d}d</span>)}
           </div>
         </div>
@@ -273,8 +275,8 @@ export default function FeeCalculatorCard({
         </div>
 
         {/* Result */}
-        <div className="rounded-[1.25rem] bg-[rgba(127,216,210,0.12)] px-4 py-3.5 ring-1 ring-[rgba(127,216,210,0.25)]">
-          <div className="flex items-end justify-between gap-4">
+        <div className="flex flex-col gap-2 rounded-[1.25rem] bg-[rgba(127,216,210,0.12)] px-4 py-3.5 ring-1 ring-[rgba(127,216,210,0.25)]">
+          <div className="flex items-baseline justify-between gap-4">
             <div>
               <p className="text-[0.62rem] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">Weekly</p>
               <p className="font-heading text-[2rem] leading-none text-[var(--ink)]">{fmt(weekly)}</p>
@@ -284,15 +286,19 @@ export default function FeeCalculatorCard({
               <p className="font-heading text-[1.35rem] leading-none text-[#3aada9]">{fmt(monthly)}</p>
             </div>
           </div>
-          {earlyBird && (
-            <p className="mt-2 text-[0.65rem] text-[#3aada9]">
-              Includes early bird (£{getBranchData(branch).earlyBird}/day × {days} day{days !== 1 ? "s" : ""})
-            </p>
-          )}
-          {discountAmount > 0 && (
-            <p className="mt-2 text-[0.65rem] text-[#3aada9]">
-              {DISCOUNTS.find((d) => d.id === discount)!.label} applied (saving {fmt(discountAmount)}/wk)
-            </p>
+          {(earlyBird || discountAmount > 0) && (
+            <div className="flex flex-col gap-1 border-t border-[rgba(127,216,210,0.25)] pt-2">
+              {earlyBird && (
+                <p className="text-[0.65rem] text-[#3aada9]">
+                  Includes early bird (£{getBranchData(branch).earlyBird}/day × {days} day{days !== 1 ? "s" : ""})
+                </p>
+              )}
+              {discountAmount > 0 && (
+                <p className="text-[0.65rem] text-[#3aada9]">
+                  {DISCOUNTS.find((d) => d.id === discount)!.label} applied (saving {fmt(discountAmount)}/wk)
+                </p>
+              )}
+            </div>
           )}
         </div>
 

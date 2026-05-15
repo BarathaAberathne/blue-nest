@@ -111,6 +111,7 @@ const branches = [
   { label: "Harrow", href: "/branches/harrow", phone: "020 8861 5574" },
   { label: "Borehamwood", href: "/branches/borehamwood", phone: "020 8953 1718" },
   { label: "Pinner", href: "/branches/pinner", phone: "07400 430630" },
+  { label: "Pinner Green", href: "/branches/pinner-green", comingSoon: true },
   { label: "Northwood", href: "/branches/northwood", comingSoon: true },
 ];
 

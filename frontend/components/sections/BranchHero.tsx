@@ -38,14 +38,14 @@ export default function BranchHero({
   badge,
 }: BranchHeroProps) {
   return (
-    <section className="flex flex-col lg:flex-row lg:h-[calc(100dvh-11rem)] overflow-hidden">
+    <section className="flex flex-col lg:flex-row lg:min-h-[calc(100dvh-11rem)]">
 
       {/* ── LEFT — text on paper background ──────────────────── */}
       <div className="paper-bg relative flex w-full items-center lg:w-1/2">
 
         <Doodle
           kind="pink-flower"
-          className="absolute bottom-8 left-5 h-9 w-9 opacity-35 hidden sm:block pointer-events-none"
+          className="absolute bottom-8 left-5 h-9 w-9 opacity-35 hidden lg:block pointer-events-none"
         />
 
         <div className="w-full px-8 py-14 sm:px-12 lg:px-14 xl:px-20 lg:py-0">
@@ -93,7 +93,7 @@ export default function BranchHero({
       </div>
 
       {/* ── RIGHT — branch image + calculator (desktop only) ──── */}
-      <div className="relative hidden lg:flex w-1/2 items-center justify-center overflow-x-hidden overflow-y-auto">
+      <div className="relative hidden lg:flex w-1/2 overflow-x-hidden">
 
         {/* Branch photo fills the right pane */}
         <Image
@@ -119,7 +119,7 @@ export default function BranchHero({
         />
 
         {/* Calculator — centred in right pane, intentionally placed */}
-        <div className="relative z-10 w-full max-w-[27rem] px-6 xl:px-0">
+        <div className="relative z-10 w-full max-w-[27rem] px-6 xl:px-0 my-8 mx-auto">
           <Reveal delay={0.1}>
             <FeeCalculatorCard defaultBranch={branch} />
           </Reveal>
