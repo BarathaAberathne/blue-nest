@@ -97,8 +97,7 @@
   /* ── Cards ───────────────────────────────────────────────── */
   .card {
     @apply overflow-hidden rounded-[2rem] bg-[var(--soft-white)]
-           shadow-[0_14px_40px_rgba(90,74,66,0.08)] ring-1;
-    ring-color: rgba(255, 255, 255, 0.8);
+           shadow-[0_14px_40px_rgba(90,74,66,0.08)] ring-1 ring-white/80;
   }
 
   .paper-panel {

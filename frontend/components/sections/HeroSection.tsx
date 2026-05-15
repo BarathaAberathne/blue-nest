@@ -97,8 +97,8 @@ export default function HeroSection() {
           {/* Image fills the column height */}
           <div className="relative flex-1 overflow-hidden rounded-[3rem] shadow-[0_24px_60px_rgba(90,74,66,0.13)] ring-4 ring-white/55">
             <Image
-              src="/home/home_hero_image.jpeg"
-              alt="Children learning outdoors at Blue Nest Montessori nursery"
+              src="/home/branches/harrow/harrow-home-hero.webp"
+              alt="Two children dressed as astronauts at the Blue Nest Montessori space-station role-play area"
               fill
               priority
               className="object-cover object-center"

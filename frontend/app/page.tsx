@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     description:
       "Outstanding Montessori nursery education for children aged 3 months to 5 years in Harrow, Pinner and Borehamwood. Ofsted Good · Award-winning.",
     url: "/",
-    images: [{ url: "/home/home_hero_image.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori — nurturing curious minds" }],
+    images: [{ url: "/home/branches/harrow/harrow-home-hero.jpg", width: 1920, height: 1440, alt: "Two children dressed as astronauts at the Blue Nest Montessori space-station role-play area" }],
     type: "website",
   },
 };
@@ -34,7 +34,7 @@ const organizationJsonLd = {
       name: "Blue Nest Montessori School",
       url: "https://bluenest.uk",
       logo: "https://bluenest.uk/home/logo_new.png",
-      image: "https://bluenest.uk/home/home_hero_image.jpeg",
+      image: "https://bluenest.uk/home/branches/harrow/harrow-home-hero.jpg",
       description:
         "Award-winning Montessori nursery for children aged 3 months to 5 years in Harrow, Pinner and Borehamwood. Ofsted Good provider with government funding available.",
       telephone: "02088615574",

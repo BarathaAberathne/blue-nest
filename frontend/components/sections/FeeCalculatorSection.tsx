@@ -47,9 +47,9 @@ const AGE_BANDS = [
 ] as const;
 
 const SESSIONS = [
-  { id: "day",       label: "Full Day",  hours: 10.5, description: "7:30 am – 6:00 pm" },
-  { id: "morning",   label: "Morning",   hours: 5.5,  description: "7:30 am – 1:00 pm"  },
-  { id: "afternoon", label: "Afternoon", hours: 5,    description: "1:00 pm – 6:00 pm"  },
+  { id: "day",       label: "Full Day",  hours: 10,  description: "8:00am–6:00pm" },
+  { id: "morning",   label: "Morning",   hours: 5,   description: "8:00am–1:00pm" },
+  { id: "afternoon", label: "Afternoon", hours: 5,   description: "1:00pm–6:00pm" },
 ] as const;
 
 type AgeBandId  = typeof AGE_BANDS[number]["id"];

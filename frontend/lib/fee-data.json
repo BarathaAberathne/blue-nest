@@ -15,7 +15,11 @@
           "school": { "daily": 80, "weekly": 392 }
         }
       },
-      "earlyBird": 8
+      "earlyBird": 8,
+      "stdFunded": {
+        "below3": { "morning": 10, "afternoon": 10, "school": 12, "full_day": 15 },
+        "above3": { "morning": 15, "afternoon": 15, "school": 17, "full_day": 20 }
+      }
     },
 
     "harrow": {
@@ -39,7 +43,11 @@
           "school": { "daily": 85, "weekly": 416 }
         }
       },
-      "earlyBird": 8
+      "earlyBird": 8,
+      "stdFunded": {
+        "below3": { "morning": 10, "afternoon": 10, "school": 12, "full_day": 15 },
+        "above3": { "morning": 15, "afternoon": 15, "school": 17, "full_day": 20 }
+      }
     },
 
     "borehamwood": {
@@ -63,7 +71,11 @@
           "school": { "daily": 53, "weekly": 260 }
         }
       },
-      "earlyBird": 8
+      "earlyBird": 8,
+      "stdFunded": {
+        "below3": { "morning": 10, "afternoon": 10, "school": 12, "full_day": 15 },
+        "above3": { "morning": 15, "afternoon": 15, "school": 17, "full_day": 20 }
+      }
     },
 
     "pinner green": {
@@ -87,7 +99,11 @@
           "school": { "daily": 85, "weekly": 416 }
         }
       },
-      "earlyBird": 8
+      "earlyBird": 8,
+      "stdFunded": {
+        "below3": { "morning": 10, "afternoon": 10, "school": 12, "full_day": 15 },
+        "above3": { "morning": 15, "afternoon": 15, "school": 17, "full_day": 20 }
+      }
     },
 
     
@@ -112,7 +128,11 @@
           "school": { "daily": 85, "weekly": 416 }
         }
       },
-      "earlyBird": 8
+      "earlyBird": 8,
+      "stdFunded": {
+        "below3": { "morning": 10, "afternoon": 10, "school": 12, "full_day": 15 },
+        "above3": { "morning": 15, "afternoon": 15, "school": 17, "full_day": 20 }
+      }
     }
 
   },

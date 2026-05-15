@@ -246,6 +246,7 @@ export default function ContactPageClient() {
       const qOffset         = searchParams.get("q_offset");
       const qDiscount       = searchParams.get("q_discount");
       const qDiscountAmount = searchParams.get("q_discount_amount");
+      const qYearWeeks      = searchParams.get("q_year_weeks");
       setFeeQuote({
         ...(qBranch  ? { branch: qBranch }                          : {}),
         ...(qAge     ? { age_group: qAge }                          : {}),
@@ -256,6 +257,7 @@ export default function ContactPageClient() {
         ...(qDiscountAmount && parseFloat(qDiscountAmount) > 0
               ? { discount_amount: parseFloat(qDiscountAmount) } : {}),
         ...(qFunding && qFunding !== "none" ? { funding: qFunding } : {}),
+        ...(qYearWeeks ? { year_weeks: parseInt(qYearWeeks, 10) }   : {}),
         gross_weekly:   parseFloat(qGross ?? qWeekly),
         ...(qOffset   ? { funding_offset: parseFloat(qOffset) }     : {}),
         net_weekly:     parseFloat(qWeekly),
@@ -384,6 +386,14 @@ export default function ContactPageClient() {
                           <div className="flex justify-between">
                             <span className="text-[rgba(90,74,66,0.55)]">Days / week</span>
                             <span className="font-semibold text-[var(--ink)]">{feeQuote.days} day{(feeQuote.days as number) !== 1 ? "s" : ""}</span>
+                          </div>
+                        )}
+                        {feeQuote.year_weeks && (
+                          <div className="flex justify-between">
+                            <span className="text-[rgba(90,74,66,0.55)]">Annual basis</span>
+                            <span className="font-semibold text-[var(--ink)]">
+                              {feeQuote.year_weeks === 38 ? "38 weeks · term-time" : "52 weeks · full year"}
+                            </span>
                           </div>
                         )}
                         <div className="flex justify-between">

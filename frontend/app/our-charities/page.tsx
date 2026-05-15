@@ -111,7 +111,7 @@ export default function OurCharitiesPage() {
       <section className="paper-bg relative flex min-h-[55vh] items-center">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <Image
-            src="/home/blue-nest-school-exterior.jpg"
+            src="/home/branches/harrow/harrow-preview-04.jpg"
             alt="Children playing together at Blue Nest Montessori"
             fill
             priority

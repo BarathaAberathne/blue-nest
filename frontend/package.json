@@ -10,7 +10,8 @@
     "type-check": "tsc --noEmit",
     "test:e2e": "playwright test",
     "optimize:images": "node scripts/optimize-images.mjs",
-    "optimize:images:dry": "node scripts/optimize-images.mjs --dry"
+    "optimize:images:dry": "node scripts/optimize-images.mjs --dry",
+    "build:branch-images": "node scripts/build-branch-images.mjs"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",

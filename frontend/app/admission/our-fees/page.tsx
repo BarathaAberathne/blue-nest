@@ -27,11 +27,12 @@ const downloads = [
 ];
 
 const sessions = [
-  { icon: Clock,      color: "#f0bd55", label: "Early Bird Session",  time: "7:30 AM – 8:00 AM"  },
-  { icon: Sun,        color: "#ef8cab", label: "Morning Session",     time: "8:00 AM – 12:30 PM" },
-  { icon: Sunset,     color: "#7fd8d2", label: "Afternoon Session",   time: "12:30 PM – 5:00 PM" },
-  { icon: Clock,      color: "#cf7d9c", label: "Full Day",            time: "8:00 AM – 5:00 PM"  },
-  { icon: Star,       color: "#7fd8d2", label: "Full Week (Full Day)", time: "Monday – Friday"   },
+  { icon: Clock,      color: "#f0bd55", label: "Early Bird Session",  time: "7:30am – 8:00am"  },
+  { icon: Sun,        color: "#ef8cab", label: "Morning Session",     time: "8:00am – 1:00pm"  },
+  { icon: Sunset,     color: "#7fd8d2", label: "Afternoon Session",   time: "1:00pm – 6:00pm"  },
+  { icon: Clock,      color: "#cf7d9c", label: "Full Day",            time: "8:00am – 6:00pm"  },
+  { icon: Clock,      color: "#b89bdd", label: "School Session",      time: "9:00am – 4:00pm"  },
+  { icon: Star,       color: "#7fd8d2", label: "Full Week (Full Day)", time: "Monday – Friday" },
 ];
 
 const notes = [

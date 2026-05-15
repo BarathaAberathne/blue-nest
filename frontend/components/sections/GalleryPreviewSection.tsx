@@ -4,12 +4,12 @@ import { Reveal } from "@/components/ui/Motion";
 import PastelButton from "@/components/ui/PastelButton";
 
 const images = [
-  { src: "/home/outdoor-learning-and-play-area.jpg", alt: "Children learning in the outdoor play area at Blue Nest Montessori",    wide: true  },
-  { src: "/home/DSC_0177.jpg",                       alt: "Children working with Montessori materials in the classroom",            wide: false },
-  { src: "/home/outdoor-childrens-play-area.jpg",    alt: "Outdoor children's play area at Blue Nest nursery",                     wide: false },
-  { src: "/home/forest-school.jpg",                  alt: "Blue Nest forest school session — children exploring nature",           wide: false },
-  { src: "/home/DSC_0151.jpg",                       alt: "Nurturing learning environment at Blue Nest Montessori",                wide: false },
-  { src: "/home/outdoor-play-for-children.jpg",      alt: "Children enjoying outdoor play at Blue Nest Montessori",               wide: false },
+  { src: "/home/branches/harrow/harrow-preview-01.webp", alt: "Children playing in the wisteria-shaded garden at Blue Nest Montessori",          wide: true  },
+  { src: "/home/branches/harrow/harrow-preview-02.webp", alt: "Children and teacher exploring an ocean sensory bin at Blue Nest Montessori",     wide: false },
+  { src: "/home/branches/harrow/harrow-preview-03.webp", alt: "Child playing inside a wooden tunnel with rainbow scarves at Blue Nest Montessori", wide: false },
+  { src: "/home/branches/harrow/harrow-preview-04.webp", alt: "Children at the ice-cream parlour role-play area at Blue Nest Montessori",        wide: false },
+  { src: "/home/branches/harrow/harrow-preview-05.webp", alt: "Blue Nest Montessori teacher with two toddlers at the outdoor water table",       wide: false },
+  { src: "/home/branches/harrow/harrow-preview-06.webp", alt: "Child concentrating on a Montessori writing activity at Blue Nest",               wide: false },
 ];
 
 export default function GalleryPreviewSection() {
@@ -37,7 +37,7 @@ export default function GalleryPreviewSection() {
             <Reveal key={img.src} delay={0.05 * i} className={img.wide ? "col-span-2 lg:col-span-1" : ""}>
               <div
                 className={`relative overflow-hidden rounded-[1.5rem] ${
-                  img.wide ? "aspect-[16/9] lg:aspect-[3/4]" : "aspect-square"
+                  img.wide ? "aspect-[16/9] lg:aspect-square" : "aspect-square"
                 }`}
               >
                 <Image

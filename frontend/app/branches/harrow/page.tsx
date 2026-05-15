@@ -108,40 +108,64 @@ const features: Feature[] = [
 
 const gallery = [
   {
-    src: "/home/DSC_0151.jpg",
-    alt: "Children engaged in a learning activity",
+    src: "/home/branches/harrow/harrow-gallery-01.webp",
+    alt: "Storytelling table at Blue Nest Montessori Harrow with Little Red Riding Hood book and Montessori letter cards",
     rotate: -2,
-    caption: "Learning through play",
-  },
-  {
-    src: "/home/DSC_0177.jpg",
-    alt: "Prepared Montessori classroom",
-    rotate: 2,
     caption: "Prepared environments",
   },
   {
-    src: "/home/outdoor-learning-and-play-area.jpg",
-    alt: "Outdoor learning and play area",
-    rotate: -1,
-    caption: "Outdoor classroom",
-  },
-  {
-    src: "/home/outdoor-childrens-play-area.jpg",
-    alt: "Children's outdoor play area",
+    src: "/home/branches/harrow/harrow-gallery-02.webp",
+    alt: "Toddler at the Little Ducks water-play table with a Blue Nest Montessori Harrow teacher",
     rotate: 2,
-    caption: "Garden and play",
+    caption: "Sensory water play",
   },
   {
-    src: "/home/outdoor-childrens-play-area2.jpg",
-    alt: "Outdoor activities at Blue Nest",
+    src: "/home/branches/harrow/harrow-gallery-03.webp",
+    alt: "Teacher and toddler exploring a citrus water sensory tray at Blue Nest Montessori Harrow",
+    rotate: -1,
+    caption: "Hands-on discovery",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-04.webp",
+    alt: "Child walking on Montessori balance frames at Blue Nest Montessori Harrow",
+    rotate: 2,
+    caption: "Practical life",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-05.webp",
+    alt: "Three children running a fizzy volcano science experiment at Blue Nest Montessori Harrow",
     rotate: -2,
-    caption: "Fresh air every day",
+    caption: "Curious experiments",
   },
   {
-    src: "/home/structured-routine.jpg",
-    alt: "Structured routine at Blue Nest",
+    src: "/home/branches/harrow/harrow-gallery-06.webp",
+    alt: "Blue Nest Montessori Harrow teacher reading Little Red Riding Hood with a child",
     rotate: 1,
-    caption: "Calm, consistent routines",
+    caption: "Calm, focused moments",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-07.webp",
+    alt: "Young child focused on an outdoor wood-and-water sensory tray at Blue Nest Montessori Harrow",
+    rotate: -1,
+    caption: "Outdoor exploration",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-08.webp",
+    alt: "Smiling toddler with a food sensory tray at Blue Nest Montessori Harrow",
+    rotate: 2,
+    caption: "Joyful learning",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-09.webp",
+    alt: "Child playing a drum kit during a music session at Blue Nest Montessori Harrow",
+    rotate: -2,
+    caption: "Music sessions",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-10.webp",
+    alt: "Children at the ice-cream parlour role-play area at Blue Nest Montessori Harrow",
+    rotate: 1,
+    caption: "Imaginative play",
   },
 ];
 
@@ -161,8 +185,8 @@ export default function HarrowBranchPage() {
         location="Harrow, London"
         heading="Montessori Nursery in Harrow"
         description="At Blue Nest Montessori School Harrow, we provide a warm, nurturing and stimulating environment where children can learn, develop and grow with confidence — a home away from home for every child's early years journey."
-        image="/home/outdoor-learning-and-play-area.jpg"
-        imageAlt="Blue Nest Montessori Harrow nursery outdoor area"
+        image="/home/branches/harrow/harrow-hero.webp"
+        imageAlt="Children playing in the wisteria-shaded garden at Blue Nest Montessori Harrow"
         primaryCta={{ label: "Book a Visit", href: "/contact?enquiry=book-visit&branch=harrow", variant: "rose" }}
         secondaryCta={{ label: "Contact Us", href: "#visit", variant: "mint" }}
       />
@@ -181,8 +205,8 @@ export default function HarrowBranchPage() {
             <Reveal>
               <div className="mx-auto w-full max-w-[420px]">
                 <StickerCard
-                  src="/home/children-outdoor-play.jpg"
-                  alt="Children at Blue Nest Montessori Harrow"
+                  src="/home/branches/harrow/harrow-welcome.webp"
+                  alt="Two children reading inside the leaf-covered teepee in the Blue Nest Montessori Harrow garden"
                   rotate={-3}
                   sizes="(max-width: 1024px) 80vw, 38vw"
                   className="w-full"
@@ -313,8 +337,8 @@ export default function HarrowBranchPage() {
             <Reveal delay={0.1}>
               <div className="mx-auto w-full max-w-[420px]">
                 <StickerCard
-                  src="/home/outdoor-play-for-children.jpg"
-                  alt="Children enjoying outdoor play at Blue Nest Harrow"
+                  src="/home/branches/harrow/harrow-daily.webp"
+                  alt="A Blue Nest Montessori Harrow teacher at play with a young child"
                   rotate={4}
                   sizes="(max-width: 1024px) 80vw, 38vw"
                   className="w-full"
