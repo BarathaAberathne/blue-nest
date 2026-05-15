@@ -3,14 +3,18 @@ import Script from "next/script";
 import {
   ArrowRight,
   Heart,
+  Languages,
   Leaf,
   Lightbulb,
   Mail,
+  Monitor,
+  Music,
   Phone,
   ShieldCheck,
   Sparkles,
   SunMedium,
   TreePine,
+  Trophy,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
@@ -20,6 +24,7 @@ import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
 import { LightboxGallery } from "@/components/ui/LightboxGallery";
 import BranchMap from "@/components/contact/BranchMap";
+import BranchEnrichmentSection, { type EnrichmentActivity } from "@/components/sections/BranchEnrichmentSection";
 import BranchHero from "@/components/sections/BranchHero";
 
 const branchJsonLd = {
@@ -93,6 +98,14 @@ const features: Feature[] = [
     desc: "Rigorous safety standards, DBS-checked staff and secure entry systems ensure every child is always protected.",
     accent: "#b99fe0",
   },
+];
+
+const enrichmentActivities: EnrichmentActivity[] = [
+  { name: "Yoga",                       icon: Sparkles,  accent: "#ef8cab" },
+  { name: "Super Star Sports",          icon: Trophy,    accent: "#f0bd55" },
+  { name: "Music and Movement Session", icon: Music,     accent: "#82cfc4" },
+  { name: "Spanish Lesson",             icon: Languages, accent: "#cf7d9c" },
+  { name: "ICT Lesson",                 icon: Monitor,   accent: "#6ecfc9" },
 ];
 
 const gallery = [
@@ -194,6 +207,11 @@ export default function BorehamwoodBranchPage() {
           </div>
         </div>
       </section>
+
+      {/* ══════════════════════════════════════════════════════
+          3.5 — WEEKLY ENRICHMENT ACTIVITIES
+      ══════════════════════════════════════════════════════ */}
+      <BranchEnrichmentSection activities={enrichmentActivities} branchName="Borehamwood" />
 
       {/* ══════════════════════════════════════════════════════
           4 — GALLERY

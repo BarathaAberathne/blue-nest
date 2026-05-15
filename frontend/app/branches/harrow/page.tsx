@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import {
+  Activity,
   ArrowRight,
   Heart,
+  Languages,
   Leaf,
   Lightbulb,
   Mail,
+  Monitor,
+  Music,
   Phone,
   ShieldCheck,
   Sparkles,
@@ -22,6 +26,7 @@ import { Reveal } from "@/components/ui/Motion";
 import { LightboxGallery } from "@/components/ui/LightboxGallery";
 import BranchMap from "@/components/contact/BranchMap";
 import BranchHero from "@/components/sections/BranchHero";
+import BranchEnrichmentSection, { type EnrichmentActivity } from "@/components/sections/BranchEnrichmentSection";
 
 const branchJsonLd = {
   "@context": "https://schema.org",
@@ -102,6 +107,16 @@ const features: Feature[] = [
     desc: "Rigorously maintained safety standards, enhanced DBS-checked staff and secure entry systems.",
     accent: "#b99fe0",
   },
+];
+
+// ── Weekly enrichment activities ──────────────────────────────────────────────
+
+const enrichmentActivities: EnrichmentActivity[] = [
+  { name: "Lunge & Leap",    icon: Activity,  accent: "#ef8cab" },
+  { name: "Yoga",            icon: Sparkles,  accent: "#82cfc4" },
+  { name: "Music Sessions",  icon: Music,     accent: "#f0bd55" },
+  { name: "French Lesson",   icon: Languages, accent: "#cf7d9c" },
+  { name: "Computer Lesson", icon: Monitor,   accent: "#6ecfc9" },
 ];
 
 // ── Gallery ────────────────────────────────────────────────────────────────────
@@ -277,6 +292,11 @@ export default function HarrowBranchPage() {
           </div>
         </div>
       </section>
+
+      {/* ══════════════════════════════════════════════════════
+          3.5 — WEEKLY ENRICHMENT ACTIVITIES
+      ══════════════════════════════════════════════════════ */}
+      <BranchEnrichmentSection activities={enrichmentActivities} branchName="Harrow" />
 
       {/* ══════════════════════════════════════════════════════
           4 — GALLERY

@@ -12,10 +12,20 @@ const trustItems = [
 
 export default function HeroSection() {
   return (
-    // h = 100dvh minus the trust-strip + sticky header heights
-    // mobile  ≈ 48px strip + 80px header  = ~128px → 8.5rem buffer
-    // sm+     ≈ 48px strip + 120px header = ~168px → 11rem buffer
-    <section className="paper-bg relative overflow-hidden h-[calc(100dvh-8.5rem)] sm:h-[calc(100dvh-11rem)]">
+    // Hero height policy:
+    //   mobile  (<sm) fills viewport — `min-h` = 100dvh − header/trust buffer
+    //                 (≈ 8.5rem on phone). Gives the full-bleed phone hero.
+    //   tablet  (sm)  content-driven — no min-h floor. A viewport-tall hero
+    //                 leaves ~200px of dead vertical space below the centred
+    //                 copy (the right-column image only renders at `lg`), so
+    //                 we let the section size to its content and the next
+    //                 ribbon follows directly underneath.
+    //   desktop (lg)  fills viewport — the image column on the right uses
+    //                 `lg:self-stretch lg:flex-1` to fill, so it needs the
+    //                 section to span 100dvh − 11rem (taller desktop header).
+    //
+    // min-h (not h) so content never gets clipped by overflow-hidden.
+    <section className="paper-bg relative overflow-hidden min-h-[calc(100dvh-8.5rem)] sm:min-h-0 lg:min-h-[calc(100dvh-11rem)]">
 
       {/* Dot texture */}
       <div
