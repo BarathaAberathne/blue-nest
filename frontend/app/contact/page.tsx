@@ -5,15 +5,15 @@ import ContactPageClient from "@/components/contact/ContactPageClient";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
-  title: "Contact Us — Blue Nest Montessori School",
+  title: "Contact Us — Book a Visit at Blue Nest Montessori",
   description:
-    "Get in touch with Blue Nest Montessori School. Arrange a visit, ask about availability, or send an enquiry to our team in Harrow, Pinner, and Borehamwood.",
+    "Book a nursery visit or ask about availability, fees and funded childcare at Blue Nest Montessori in Harrow (HA2), Pinner (HA5) and Borehamwood (WD6). Call 020 8861 5574 or send an enquiry to manager@bluenest.uk — we reply within one working day.",
   openGraph: {
-    title: "Contact Us — Blue Nest Montessori School",
+    title: "Contact Us — Blue Nest Montessori",
     description:
-      "Get in touch with Blue Nest Montessori. Arrange a visit, ask about availability, or send an enquiry.",
+      "Book a visit, ask about availability or fees at Blue Nest Montessori — Harrow, Pinner and Borehamwood.",
     url: "/contact",
-    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Contact Blue Nest Montessori" }],
+    images: [{ url: "/home/branches/harrow/harrow-home-hero.jpg", width: 1920, height: 1440, alt: "Contact Blue Nest Montessori" }],
     type: "website",
   },
 };

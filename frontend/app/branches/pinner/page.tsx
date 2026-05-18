@@ -27,32 +27,84 @@ import BranchMap from "@/components/contact/BranchMap";
 import BranchEnrichmentSection, { type EnrichmentActivity } from "@/components/sections/BranchEnrichmentSection";
 import BranchHero from "@/components/sections/BranchHero";
 
+// Pinner branch JSON-LD. Preschool is the most-recognised early-years
+// schema type — used alongside ChildCare and LocalBusiness. Linked to
+// the site-wide organisation via parentOrganization @id.
 const branchJsonLd = {
   "@context": "https://schema.org",
-  "@type": ["LocalBusiness", "ChildCare"],
+  "@type": ["Preschool", "ChildCare", "LocalBusiness"],
+  "@id": "https://bluenest.uk/branches/pinner#preschool",
   name: "Blue Nest Montessori School — Pinner",
   url: "https://bluenest.uk/branches/pinner",
-  telephone: "07400430630",
+  image: "https://bluenest.uk/home/branches/pinner/pinner-hero.jpg",
+  telephone: "+44 7400 430630",
   email: "manager@bluenest.uk",
-  openingHours: "Mo-Fr 07:30-18:00",
+  priceRange: "££",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Pinner",
     postalCode: "HA5",
     addressCountry: "GB",
   },
+  geo: {
+    "@type": "GeoCoordinates",
+    latitude: 51.5919,
+    longitude: -0.3795,
+  },
+  areaServed: [
+    "Pinner",
+    "Hatch End",
+    "Eastcote",
+    "Rayners Lane",
+    "North Harrow",
+    "Northwood Hills",
+    "Pinner Green",
+    "Harrow",
+  ],
+  openingHoursSpecification: [{
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+    opens: "07:30",
+    closes: "18:00",
+  }],
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "Nursery sessions",
+    itemListElement: [
+      { "@type": "Offer", name: "Full Day session",   description: "Monday–Friday, 8:00am–6:00pm" },
+      { "@type": "Offer", name: "Morning session",    description: "Monday–Friday, 8:00am–1:00pm" },
+      { "@type": "Offer", name: "Afternoon session",  description: "Monday–Friday, 1:00pm–6:00pm" },
+      { "@type": "Offer", name: "School Day session", description: "Monday–Friday, 9:00am–4:00pm" },
+      { "@type": "Offer", name: "Early Bird drop-off", description: "Optional 7:30am–8:00am add-on" },
+      { "@type": "Offer", name: "Holiday Club Pinner", description: "Term-break childcare for ages 3–5" },
+    ],
+  },
   parentOrganization: { "@id": "https://bluenest.uk/#organization" },
+};
+
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Home", item: "https://bluenest.uk/" },
+    { "@type": "ListItem", position: 2, name: "Our nurseries", item: "https://bluenest.uk/#our-nurseries" },
+    { "@type": "ListItem", position: 3, name: "Pinner", item: "https://bluenest.uk/branches/pinner" },
+  ],
 };
 
 export const metadata: Metadata = {
   alternates: { canonical: "/branches/pinner" },
-  title: "Pinner Nursery — Blue Nest Montessori School",
+  // Title leads with "Pinner nursery" — the Yell ranking report shows
+  // we sit at position 33 for "nursery pinner" despite getting 39
+  // impressions/month, so prioritising that exact phrase in the title is
+  // the single biggest CTR/rank lever for this page.
+  title: "Pinner Nursery — Montessori Day Nursery in Pinner (HA5)",
   description:
-    "Blue Nest Montessori School Pinner — a warm, nurturing Montessori nursery for children aged 3 months to 5 years in Pinner, London.",
+    "Ofsted Good Montessori day nursery in Pinner (HA5) for ages 3 months to 5 years. Serving Pinner, Hatch End, Eastcote, Rayners Lane and Northwood Hills families. Forest school, 15/30 hours funded childcare and Pinner holiday club.",
   openGraph: {
-    title: "Pinner Nursery — Blue Nest Montessori School",
+    title: "Pinner Nursery — Blue Nest Montessori",
     description:
-      "Montessori nursery in Pinner for children aged 3 months to 5 years. Ofsted Good · Government funding available.",
+      "Montessori day nursery in Pinner for ages 3 months to 5 years. Ofsted Good · funded childcare · forest school · holiday club. Book a visit today.",
     url: "/branches/pinner",
     images: [{ url: "/home/branches/pinner/pinner-office.jpg", width: 1200, height: 800, alt: "Wide view of a busy Montessori classroom at Blue Nest Pinner" }],
     type: "website",
@@ -160,6 +212,11 @@ export default function PinnerBranchPage() {
         id="pinner-branch-jsonld"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(branchJsonLd) }}
+      />
+      <Script
+        id="pinner-breadcrumb-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <BranchHero

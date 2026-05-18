@@ -3,15 +3,15 @@ import ApplicationFormClient from "./ApplicationFormClient";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/admission/application-form" },
-  title: "Application Form — Blue Nest Montessori School",
+  title: "Apply Online — Nursery Application | Blue Nest Montessori",
   description:
-    "Apply for a place at Blue Nest Montessori School in Harrow, Pinner, or Borehamwood. Complete our simple online form and we'll be in touch within 2 working days.",
+    "Apply for a nursery place at Blue Nest Montessori in Harrow, Pinner or Borehamwood. Quick online application form — choose your branch, sessions and start week. We respond within two working days.",
   openGraph: {
-    title: "Application Form — Blue Nest Montessori School",
+    title: "Apply Online — Blue Nest Montessori",
     description:
-      "Apply for a nursery place at Blue Nest Montessori. Complete our form and we'll be in touch within 2 working days.",
+      "Online nursery application form for Blue Nest Montessori in Harrow, Pinner and Borehamwood. Two-working-day response.",
     url: "/admission/application-form",
-    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori application form" }],
+    images: [{ url: "/home/branches/harrow/harrow-home-hero.jpg", width: 1920, height: 1440, alt: "Blue Nest Montessori application form" }],
     type: "website",
   },
 };

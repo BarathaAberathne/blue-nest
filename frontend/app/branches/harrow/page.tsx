@@ -28,14 +28,20 @@ import BranchMap from "@/components/contact/BranchMap";
 import BranchHero from "@/components/sections/BranchHero";
 import BranchEnrichmentSection, { type EnrichmentActivity } from "@/components/sections/BranchEnrichmentSection";
 
+// Branch JSON-LD. Uses Preschool as the primary @type (Google's most
+// well-supported nursery/early-years type) alongside ChildCare and
+// LocalBusiness for breadth. Links up to the site-wide organisation via
+// parentOrganization @id. Includes session offers + opening-hours spec.
 const branchJsonLd = {
   "@context": "https://schema.org",
-  "@type": ["LocalBusiness", "ChildCare"],
+  "@type": ["Preschool", "ChildCare", "LocalBusiness"],
+  "@id": "https://bluenest.uk/branches/harrow#preschool",
   name: "Blue Nest Montessori School — Harrow",
   url: "https://bluenest.uk/branches/harrow",
-  telephone: "02088615574",
+  image: "https://bluenest.uk/home/branches/harrow/harrow-hero.jpg",
+  telephone: "+44 20 8861 5574",
   email: "manager@bluenest.uk",
-  openingHours: "Mo-Fr 07:30-18:00",
+  priceRange: "££",
   address: {
     "@type": "PostalAddress",
     streetAddress: "29 Churchfield Close",
@@ -48,18 +54,59 @@ const branchJsonLd = {
     latitude: 51.5795,
     longitude: -0.3668,
   },
+  // Nearby areas families travel from — helps the local-pack surface this
+  // branch for searches like "nursery near me" outside the exact postcode.
+  areaServed: [
+    "Harrow",
+    "Harrow on the Hill",
+    "South Harrow",
+    "North Harrow",
+    "West Harrow",
+    "Rayners Lane",
+    "Wealdstone",
+    "Headstone",
+    "Pinner",
+  ],
+  openingHoursSpecification: [{
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+    opens: "07:30",
+    closes: "18:00",
+  }],
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "Nursery sessions",
+    itemListElement: [
+      { "@type": "Offer", name: "Full Day session",  description: "Monday–Friday, 8:00am–6:00pm" },
+      { "@type": "Offer", name: "Morning session",   description: "Monday–Friday, 8:00am–1:00pm" },
+      { "@type": "Offer", name: "Afternoon session", description: "Monday–Friday, 1:00pm–6:00pm" },
+      { "@type": "Offer", name: "School Day session",description: "Monday–Friday, 9:00am–4:00pm" },
+      { "@type": "Offer", name: "Early Bird drop-off", description: "Optional 7:30am–8:00am add-on" },
+    ],
+  },
   parentOrganization: { "@id": "https://bluenest.uk/#organization" },
+};
+
+// Breadcrumb trail for the rich-results breadcrumb chip in search.
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Home", item: "https://bluenest.uk/" },
+    { "@type": "ListItem", position: 2, name: "Our nurseries", item: "https://bluenest.uk/#our-nurseries" },
+    { "@type": "ListItem", position: 3, name: "Harrow", item: "https://bluenest.uk/branches/harrow" },
+  ],
 };
 
 export const metadata: Metadata = {
   alternates: { canonical: "/branches/harrow" },
-  title: "Harrow Nursery — Blue Nest Montessori School",
+  title: "Montessori Nursery in Harrow — Ages 3 months to 5 years",
   description:
-    "Blue Nest Montessori School Harrow — a warm, nurturing Montessori nursery for children aged 3 months to 5 years in Harrow, London.",
+    "Ofsted Good Montessori day nursery in Harrow (HA2) for ages 3 months to 5 years. Serving families across South Harrow, North Harrow, Rayners Lane and Wealdstone. Forest school, funded childcare and warm Montessori care, Mon–Fri 7:30am–6:00pm.",
   openGraph: {
-    title: "Harrow Nursery — Blue Nest Montessori School",
+    title: "Montessori Nursery in Harrow — Blue Nest Montessori",
     description:
-      "Montessori nursery in Harrow for children aged 3 months to 5 years. Ofsted Good · Award-winning · Government funding available.",
+      "Ofsted Good Montessori nursery in Harrow for ages 3 months to 5 years. Forest school, 15/30 hours funded childcare, weekly enrichment activities. Book a visit today.",
     url: "/branches/harrow",
     images: [{ url: "/home/branches/harrow/harrow-hero.jpg", width: 1920, height: 1440, alt: "Children playing in the wisteria-shaded garden at Blue Nest Montessori Harrow" }],
     type: "website",
@@ -193,6 +240,11 @@ export default function HarrowBranchPage() {
         id="harrow-branch-jsonld"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(branchJsonLd) }}
+      />
+      <Script
+        id="harrow-breadcrumb-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <BranchHero

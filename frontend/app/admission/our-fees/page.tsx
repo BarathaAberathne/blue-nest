@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Script from "next/script";
 import { ArrowRight, CalendarDays, Clock, Download, Info, Phone, Star, Sun, Sunset } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import Doodle from "@/components/ui/Doodle";
@@ -8,17 +9,68 @@ import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/admission/our-fees" },
-  title: "Our Fees — Blue Nest Montessori School",
+  title: "Nursery Fees & Fee Calculator — Harrow, Pinner & Borehamwood",
   description:
-    "View nursery fees for Blue Nest Montessori in Harrow, Pinner, and Borehamwood. Flexible sessions, government funding available, sibling discounts, and childcare vouchers accepted.",
+    "Estimate your weekly and monthly nursery fees with our interactive Fee Calculator for Harrow, Pinner and Borehamwood. 15 and 30 hours funded childcare, sibling and staff discounts, childcare vouchers accepted, term-time or full-year basis.",
   openGraph: {
-    title: "Our Fees — Blue Nest Montessori School",
+    title: "Nursery Fees & Fee Calculator — Blue Nest Montessori",
     description:
-      "View nursery fees for Blue Nest Montessori. Flexible sessions, government funding, sibling discounts, and childcare vouchers.",
+      "Interactive nursery fee calculator with funded childcare (15/30 hours), term-time vs. full-year, sibling and staff discounts. Harrow, Pinner and Borehamwood branches.",
     url: "/admission/our-fees",
-    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori fees and sessions" }],
+    images: [{ url: "/home/branches/harrow/harrow-home-hero.jpg", width: 1920, height: 1440, alt: "Blue Nest Montessori — nursery fees and fee calculator" }],
     type: "website",
   },
+};
+
+// FAQ JSON-LD covers the highest-impression informational queries from
+// the Yell ranking report (funded childcare, term-time stretching,
+// sibling discounts, when fees are paid). Each answer is short so it
+// surfaces cleanly as a Google Q&A snippet.
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "Do you accept 15 or 30 hours of funded childcare?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes — Blue Nest Montessori School accepts both the universal 15-hour offer (eligible 3- and 4-year-olds, and some 2-year-olds with extra support) and the 30-hour expanded offer for working parents (from 9 months to 4 years, subject to HMRC eligibility). Use our fee calculator to see how funding affects your weekly cost.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Can funded hours be stretched across all 52 weeks?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Funded hours are normally provided across 38 term-time weeks. Many of our families choose to stretch them across 52 weeks for full-year cover, which reduces the weekly funded hours but spreads them through the holidays. The calculator lets you pick either basis.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Are there sibling or staff discounts?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes — siblings attending Blue Nest at the same time receive a 10% discount, and staff families receive a 50% discount. Both are applied automatically in the fee calculator and confirmed in our personalised quote.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "When are nursery fees paid?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Fees are invoiced monthly in advance and can be paid by bank transfer, childcare vouchers or Tax-Free Childcare. We accept all major employer voucher schemes and the HMRC childcare account.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What does Early Bird drop-off include?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Early Bird is an optional 7:30am–8:00am drop-off window for £8 per day. It runs in addition to your child's chosen session and never changes the standard session start time.",
+      },
+    },
+  ],
 };
 
 const downloads = [
@@ -52,6 +104,11 @@ const highlights = [
 export default function OurFeesPage() {
   return (
     <PublicLayout>
+      <Script
+        id="our-fees-faq-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
 
       {/* ══════════════════════════════════════════════════════
           HERO — 2-column: text left, photo right

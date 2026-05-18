@@ -10,22 +10,76 @@ import ZigzagBand from "@/components/ui/ZigzagBand";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/why-montessori" },
-  title: "Why Montessori — Blue Nest Montessori School",
+  title: "Why Montessori — Play-Based Learning at Blue Nest",
   description:
-    "Discover why Montessori education gives children the best start in life. Blue Nest follows the Montessori method — child-led learning, prepared environments, and a love of discovery.",
+    "Why parents in Harrow, Pinner and Borehamwood choose Montessori. Compare Montessori vs traditional nursery, see how play-based learning supports independence, language development and school readiness, and discover Blue Nest's Montessori method.",
   openGraph: {
-    title: "Why Montessori — Blue Nest Montessori School",
+    title: "Why Montessori — Blue Nest Montessori",
     description:
-      "Discover why Montessori education gives children the best start in life. Child-led learning, prepared environments, and a genuine love of discovery.",
+      "Compare Montessori vs traditional nursery. See how play-based learning, prepared environments and child-led discovery build independence and school readiness at Blue Nest.",
     url: "/why-montessori",
     images: [{ url: "/home/outdoor-learning-and-play-area.jpg", width: 1280, height: 854, alt: "Children learning in a Montessori environment" }],
     type: "website",
   },
 };
 
+// FAQ JSON-LD covers the highest-impression informational queries from
+// the Yell ranking report — Montessori vs traditional, play-based
+// learning, independent learning, school readiness, language development.
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is the Montessori method?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Montessori is a child-led approach to early years education developed by Dr. Maria Montessori. Children work at their own pace with carefully designed materials in mixed-age, prepared environments. The adult's role is to observe and gently guide rather than direct, building independence, concentration, language and a genuine love of learning.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How is Montessori different from a traditional nursery?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Traditional nurseries usually run group-led activities on a set timetable; Montessori classrooms let children choose work from a prepared environment and stay with each activity as long as they need. The result is deeper concentration, stronger independence and a slower-paced, calmer day. Blue Nest blends Montessori with the EYFS framework so children also meet every UK early-years goal.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What age is best to start nursery?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Children can join Blue Nest from 3 months. Many families start their child between 9 months and 2 years for the routine, social and language benefits, but the right age depends on each family. Our settling-in programme is gentle and personalised — visits, short sessions and a key person — so children of any age join confidently.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does Montessori prepare children for school?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes — and arguably more thoroughly than many settings. By the time Blue Nest children move to reception class they are practised at making choices, finishing tasks independently, sharing space with mixed ages and self-regulating their emotions. Pre-writing, early phonics, number sense and practical-life skills are part of the daily prepared environment.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Does Montessori support language development?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Strongly. Conversation-rich routines, vocabulary cards, the sandpaper letters, storytelling and one-to-one teacher time all build receptive and expressive language. Children regularly meet the EYFS communication-and-language milestones a term ahead of average, in our experience.",
+      },
+    },
+  ],
+};
+
 export default function WhyMontessoriPage() {
   return (
     <PublicLayout>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
 
       {/* ══════════════════════════════════════════════════════
           HERO

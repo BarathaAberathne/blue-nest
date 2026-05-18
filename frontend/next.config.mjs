@@ -30,6 +30,45 @@ const nextConfig = {
       },
     ];
   },
+  /**
+   * Legacy Wix URL redirects.
+   *
+   * Yell SEO data shows Google still indexes many of the old Wix paths
+   * (`/harrow`, `/our-fees`, `/post/<slug>`, `/application-form`, ...) with
+   * thousands of monthly impressions and accumulated CTR. 301 redirects
+   * preserve that authority and keep organic clicks landing on real
+   * content on the new Next.js site. All redirects are permanent so
+   * search engines update their indexes to the new canonical URLs.
+   */
+  async redirects() {
+    return [
+      // Branch pages — /harrow alone was pulling ~1,500 imp/mo
+      { source: "/harrow",       destination: "/branches/harrow",       permanent: true },
+      { source: "/pinner",       destination: "/branches/pinner",       permanent: true },
+      { source: "/borehamwood",  destination: "/branches/borehamwood",  permanent: true },
+      { source: "/northwood",    destination: "/branches/northwood",    permanent: true },
+      { source: "/pinner-green", destination: "/branches/pinner-green", permanent: true },
+
+      // Admission — Wix kept these at the root
+      { source: "/our-fees",         destination: "/admission/our-fees",         permanent: true },
+      { source: "/application-form", destination: "/admission/application-form", permanent: true },
+      { source: "/prospectus",       destination: "/admission/prospectus",       permanent: true },
+
+      // Blog — Wix used /post/<slug>, we use /blog/<slug>. The top legacy
+      // blog post ("best age to start nursery") alone pulled 3,800+ imp/mo.
+      { source: "/post/:slug",  destination: "/blog/:slug", permanent: true },
+
+      // Old Wix holiday-club product pages — content now lives on branch
+      // pages, so redirect to the matching branch.
+      { source: "/product-page/holiday-club-harrow-:rest*",      destination: "/branches/harrow",      permanent: true },
+      { source: "/product-page/holiday-club-pinner-:rest*",      destination: "/branches/pinner",      permanent: true },
+      { source: "/product-page/holiday-club-borehamwood-:rest*", destination: "/branches/borehamwood", permanent: true },
+
+      // /careers had organic traffic; no dedicated page yet — closest
+      // content match is the team page.
+      { source: "/careers", destination: "/our-team", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

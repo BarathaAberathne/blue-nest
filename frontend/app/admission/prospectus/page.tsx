@@ -9,15 +9,15 @@ import ZigzagBand from "@/components/ui/ZigzagBand";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/admission/prospectus" },
-  title: "Prospectus — Blue Nest Montessori School",
+  title: "Nursery Prospectus — Blue Nest Montessori (Free PDF)",
   description:
-    "Download the Blue Nest Montessori School prospectus. Learn about our Montessori approach, daily routines, curriculum, and what makes our nurseries outstanding.",
+    "Download the Blue Nest Montessori prospectus — a free PDF guide to our Harrow, Pinner and Borehamwood Montessori day nurseries. Covers daily routines, EYFS curriculum, forest school, fees and funded childcare.",
   openGraph: {
-    title: "Prospectus — Blue Nest Montessori School",
+    title: "Nursery Prospectus — Blue Nest Montessori",
     description:
-      "Download the Blue Nest Montessori School prospectus and learn about our award-winning approach, daily routines, and curriculum.",
+      "Free Blue Nest Montessori prospectus — daily routines, EYFS curriculum, forest school and fees for Harrow, Pinner and Borehamwood.",
     url: "/admission/prospectus",
-    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori prospectus" }],
+    images: [{ url: "/home/branches/harrow/harrow-home-hero.jpg", width: 1920, height: 1440, alt: "Blue Nest Montessori prospectus" }],
     type: "website",
   },
 };

@@ -17,9 +17,9 @@ import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/our-team" },
-  title: "Our Team — Blue Nest Montessori School",
+  title: "Our Team — Montessori Educators in Harrow, Pinner & Borehamwood",
   description:
-    "Meet the qualified, passionate educators behind Blue Nest Montessori — DBS-checked, first-aid certified, and dedicated to every child.",
+    "Meet the Blue Nest Montessori team — Montessori-trained, EYFS-qualified, enhanced-DBS-checked and paediatric-first-aid certified educators across our Harrow, Pinner and Borehamwood nurseries. Careers and apprenticeships also welcome.",
   openGraph: {
     title: "Our Team — Blue Nest Montessori School",
     description:

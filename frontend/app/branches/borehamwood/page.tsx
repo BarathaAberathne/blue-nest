@@ -27,32 +27,86 @@ import BranchMap from "@/components/contact/BranchMap";
 import BranchEnrichmentSection, { type EnrichmentActivity } from "@/components/sections/BranchEnrichmentSection";
 import BranchHero from "@/components/sections/BranchHero";
 
+// Borehamwood branch JSON-LD. Preschool + ChildCare + LocalBusiness for
+// schema breadth; linked to the site-wide org via parentOrganization @id.
 const branchJsonLd = {
   "@context": "https://schema.org",
-  "@type": ["LocalBusiness", "ChildCare"],
+  "@type": ["Preschool", "ChildCare", "LocalBusiness"],
+  "@id": "https://bluenest.uk/branches/borehamwood#preschool",
   name: "Blue Nest Montessori School — Borehamwood",
   url: "https://bluenest.uk/branches/borehamwood",
-  telephone: "02089531718",
+  image: "https://bluenest.uk/home/branches/borehamwood/borehamwood-hero.jpg",
+  telephone: "+44 20 8953 1718",
   email: "manager@bluenest.uk",
-  openingHours: "Mo-Fr 07:30-18:00",
+  priceRange: "££",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Borehamwood",
+    addressRegion: "Hertfordshire",
     postalCode: "WD6",
     addressCountry: "GB",
+  },
+  geo: {
+    "@type": "GeoCoordinates",
+    latitude: 51.6594,
+    longitude: -0.2724,
+  },
+  // Yell data shows we rank well for "private daycare" (SV 1600, rank #6)
+  // mainly from Borehamwood SERPs, with strong signals from Watford. Both
+  // are listed so the local-pack reaches families across the corridor.
+  areaServed: [
+    "Borehamwood",
+    "Elstree",
+    "Radlett",
+    "Bushey",
+    "Edgware",
+    "Stanmore",
+    "Watford",
+    "Hertfordshire",
+  ],
+  openingHoursSpecification: [{
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+    opens: "07:30",
+    closes: "18:00",
+  }],
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "Nursery sessions",
+    itemListElement: [
+      { "@type": "Offer", name: "Full Day session",   description: "Monday–Friday, 8:00am–6:00pm" },
+      { "@type": "Offer", name: "Morning session",    description: "Monday–Friday, 8:00am–1:00pm" },
+      { "@type": "Offer", name: "Afternoon session",  description: "Monday–Friday, 1:00pm–6:00pm" },
+      { "@type": "Offer", name: "School Day session", description: "Monday–Friday, 9:00am–4:00pm" },
+      { "@type": "Offer", name: "Early Bird drop-off", description: "Optional 7:30am–8:00am add-on" },
+    ],
   },
   parentOrganization: { "@id": "https://bluenest.uk/#organization" },
 };
 
+const breadcrumbJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Home", item: "https://bluenest.uk/" },
+    { "@type": "ListItem", position: 2, name: "Our nurseries", item: "https://bluenest.uk/#our-nurseries" },
+    { "@type": "ListItem", position: 3, name: "Borehamwood", item: "https://bluenest.uk/branches/borehamwood" },
+  ],
+};
+
 export const metadata: Metadata = {
   alternates: { canonical: "/branches/borehamwood" },
-  title: "Borehamwood Nursery — Blue Nest Montessori School",
+  // Lead with the high-volume keyword "Private Day Nursery" — Yell shows
+  // we already rank #6 for "private daycare" (SV 1600). Borehamwood
+  // also pulls strong signals for "infant care" (#1) and "infant
+  // nursery" (#3), so we mention both age framing and the borough.
+  title: "Borehamwood Nursery — Private Montessori Day Nursery (WD6)",
   description:
-    "Blue Nest Montessori School Borehamwood — a warm, nurturing Montessori nursery for children aged 3 months to 5 years in Borehamwood, Hertfordshire.",
+    "Ofsted Good private Montessori day nursery in Borehamwood (WD6) for infants and children aged 3 months to 5 years. Serving Borehamwood, Elstree, Radlett, Bushey and Edgware families. Forest school, 15/30 hours funded childcare, mud kitchen and reading garden.",
   openGraph: {
-    title: "Borehamwood Nursery — Blue Nest Montessori School",
+    title: "Borehamwood Nursery — Blue Nest Montessori",
     description:
-      "Montessori nursery in Borehamwood for children aged 3 months to 5 years. Ofsted Good · Government funding available.",
+      "Private Montessori day nursery in Borehamwood for ages 3 months to 5 years. Ofsted Good · forest school · funded childcare · enrichment activities.",
     url: "/branches/borehamwood",
     images: [{ url: "/home/branches/borehamwood/borehamwood-office.jpg", width: 1200, height: 800, alt: "Blue Nest Montessori Borehamwood building, main entrance" }],
     type: "website",
@@ -178,6 +232,11 @@ export default function BorehamwoodBranchPage() {
         id="borehamwood-branch-jsonld"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(branchJsonLd) }}
+      />
+      <Script
+        id="borehamwood-breadcrumb-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <BranchHero

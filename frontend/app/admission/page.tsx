@@ -8,15 +8,15 @@ import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/admission" },
-  title: "Admission — Blue Nest Montessori School",
+  title: "Admission — Apply, Prospectus & Fees | Blue Nest Montessori",
   description:
-    "Start your child's journey with Blue Nest Montessori School. Download our prospectus, view our fees, or complete an application form.",
+    "Start your child's nursery journey at Blue Nest Montessori in Harrow, Pinner and Borehamwood. Download the prospectus, estimate fees with our calculator, or send your application online. We reply within one working day.",
   openGraph: {
-    title: "Admission — Blue Nest Montessori School",
+    title: "Admission — Blue Nest Montessori",
     description:
-      "Start your child's Montessori journey. Download our prospectus, view fees, or apply online today.",
+      "Apply, view fees and download the prospectus for Blue Nest Montessori in Harrow, Pinner and Borehamwood.",
     url: "/admission",
-    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori admission" }],
+    images: [{ url: "/home/branches/harrow/harrow-home-hero.jpg", width: 1920, height: 1440, alt: "Blue Nest Montessori admission" }],
     type: "website",
   },
 };

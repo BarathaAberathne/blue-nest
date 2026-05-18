@@ -19,13 +19,16 @@ import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/forest-school" },
-  title: "Forest School — Blue Nest Montessori School",
+  // Lead the title with "Forest School Harrow" — Yell shows we sit at
+  // position 7 for that exact term with 5.4% CTR, so reinforcing it in
+  // the meta should push us into top-3 territory.
+  title: "Forest School Harrow — Outdoor Learning at Blue Nest Montessori",
   description:
-    "Blue Nest Forest School in Harrow & London. Outdoor learning that nurtures curiosity, creativity and independence in children.",
+    "Weekly Forest School sessions for ages 2 to 5 at Blue Nest Montessori in Harrow, Pinner and Borehamwood. Qualified Forest School leaders, outdoor-led EYFS learning, log builds, mud kitchen, nature treasure hunts and confidence-building risk play.",
   openGraph: {
-    title: "Forest School — Blue Nest Montessori School",
+    title: "Forest School Harrow — Blue Nest Montessori",
     description:
-      "Outdoor Forest School sessions at Blue Nest Montessori — nurturing curiosity, resilience and a love of nature in Harrow & London.",
+      "Forest School at Blue Nest Montessori (Harrow, Pinner, Borehamwood). Outdoor-led EYFS, qualified leaders, log builds, mud kitchen, nature hunts.",
     url: "/forest-school",
     images: [{ url: "/home/forest-school.jpg", width: 1280, height: 854, alt: "Blue Nest Forest School — children learning outdoors" }],
     type: "website",
@@ -38,6 +41,48 @@ const breadcrumbJsonLd = {
   itemListElement: [
     { "@type": "ListItem", position: 1, name: "Home",          item: "https://bluenest.uk/" },
     { "@type": "ListItem", position: 2, name: "Forest School", item: "https://bluenest.uk/forest-school" },
+  ],
+};
+
+// FAQ JSON-LD targets the informational queries Yell flagged
+// ("what is forest school", "what age forest school", "forest school
+// near me") that have high impressions but poor CTR.
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is Forest School?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Forest School is a long-term, outdoor-led learning approach where children explore woodland environments with qualified Forest School Leaders. Sessions focus on free play, hands-on nature activities, calculated risk-taking and the child's own interests, building confidence, resilience and a deep connection with the natural world.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What ages take part in Forest School at Blue Nest?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Our Forest School programme runs for ages 2 to 5 across the Blue Nest Montessori nurseries in Harrow, Pinner and Borehamwood. Sessions are weekly and form part of our EYFS-aligned curriculum.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What do children do at Forest School?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Activities include log-pile and den building, mud kitchen cooking, nature treasure hunts, weather watching, fire-circle stories with our qualified leaders, planting and seasonal gardening. Every session is child-led and tied to the EYFS framework.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is Forest School safe in all weather?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes — we follow the official Forest School principles, with risk assessments before every session and qualified leaders trained in outdoor first aid. Children come dressed for the weather and we run all year round (except in genuine safety risks like high winds or lightning).",
+      },
+    },
   ],
 };
 
@@ -124,6 +169,10 @@ export default function ForestSchoolPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
 
       {/* ══════════════════════════════════════════════════════════

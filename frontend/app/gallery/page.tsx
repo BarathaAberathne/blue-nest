@@ -3,24 +3,24 @@ import type { Metadata } from "next";
 import PublicLayout from "@/components/layout/PublicLayout";
 import GalleryPageClient from "@/components/gallery/GalleryPageClient";
 
-const DESC = "Explore photos, videos, and updates from Blue Nest Montessori — Harrow, Pinner, and Borehamwood.";
+const DESC = "Step inside Blue Nest Montessori — photos and videos of Montessori classrooms, forest school, outdoor play and enrichment activities at our Harrow, Pinner and Borehamwood nurseries.";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/gallery" },
-  title: "Gallery — Blue Nest Montessori School",
+  title: "Nursery Gallery — Photos & Videos | Blue Nest Montessori",
   description: DESC,
   openGraph: {
-    title: "Gallery — Blue Nest Montessori School",
+    title: "Nursery Gallery — Blue Nest Montessori",
     description: DESC,
     url: "/gallery",
-    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori gallery" }],
+    images: [{ url: "/home/branches/harrow/harrow-home-hero.jpg", width: 1920, height: 1440, alt: "Blue Nest Montessori gallery" }],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Gallery — Blue Nest Montessori School",
+    title: "Nursery Gallery — Blue Nest Montessori",
     description: DESC,
-    images: ["/home/montessori-learning.jpeg"],
+    images: ["/home/branches/harrow/harrow-home-hero.jpg"],
   },
 };
 

@@ -17,22 +17,37 @@ const bodyFont = Nunito({
 
 export const metadata: Metadata = {
   title: {
-    default: "Blue Nest Montessori School",
+    default: "Blue Nest Montessori School — Nursery in Harrow, Pinner & Borehamwood",
     template: "%s | Blue Nest Montessori",
   },
   description:
-    "Blue Nest Montessori School — nurturing curious minds in Harrow, Borehamwood, and Pinner through child-led Montessori education.",
+    "Blue Nest Montessori School — Ofsted Good Montessori day nursery and preschool for children aged 3 months to 5 years in Harrow, Pinner and Borehamwood, with new branches coming to Pinner Green and Northwood. Funded childcare, forest school and warm Montessori care.",
   keywords: [
+    // Branded + branch-local (matches Yell high-impression terms)
     "montessori nursery harrow",
     "nursery in pinner",
     "nursery in borehamwood",
+    "harrow nursery",
+    "pinner nursery",
+    "borehamwood nursery",
     "forest school harrow",
-    "montessori nursery london",
-    "early years nursery harrow",
-    "childcare harrow",
-    "ofsted good nursery",
-    "montessori school",
+    // Service modifiers that pulled traffic in the Yell report
+    "day nursery",
+    "private nursery",
+    "infant nursery",
+    "childcare nursery",
+    "infant daycare",
+    "nursery services",
+    "holiday club pinner",
+    // Informational + intent
+    "montessori school near me",
     "nursery near me",
+    "montessori school",
+    "ofsted good nursery",
+    "funded childcare",
+    "15 hours funded childcare",
+    "30 hours funded childcare",
+    "early years nursery harrow",
   ],
   icons: {
     icon: "/home/favicon.png",
@@ -43,7 +58,12 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_GB",
     siteName: "Blue Nest Montessori School",
-    images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori — nurturing curious minds" }],
+    images: [{
+      url: "/home/branches/harrow/harrow-home-hero.jpg",
+      width: 1920,
+      height: 1440,
+      alt: "Blue Nest Montessori — Ofsted Good Montessori nursery in Harrow, Pinner and Borehamwood",
+    }],
   },
   twitter: {
     card: "summary_large_image",
@@ -51,21 +71,51 @@ export const metadata: Metadata = {
   },
 };
 
-// Site-wide LocalBusiness/ChildCare JSON-LD. Branch pages keep their own
-// per-branch JSON-LD with specific address/coords/telephone; this one is the
-// parent organisation node so Google can tie everything together.
+// Site-wide LocalBusiness/Preschool/ChildCare JSON-LD. Branch pages keep
+// their own per-branch JSON-LD with specific address/coords/telephone;
+// this one is the parent organisation node so Google can tie everything
+// together. `Preschool` is the most recognised type for early-years
+// settings; we also list `ChildCare` and `LocalBusiness` for breadth.
 const organisationJsonLd = {
   "@context": "https://schema.org",
-  "@type": ["LocalBusiness", "ChildCare"],
+  "@type": ["Preschool", "ChildCare", "LocalBusiness"],
+  "@id": "https://bluenest.uk/#organization",
   name: "Blue Nest Montessori School",
   url: "https://bluenest.uk",
-  logo: "https://bluenest.uk/email/logo.png",
-  image: "https://bluenest.uk/home/montessori-learning.jpeg",
+  logo: "https://bluenest.uk/home/logo_new.png",
+  image: "https://bluenest.uk/home/branches/harrow/harrow-home-hero.jpg",
   description:
-    "Blue Nest Montessori School — nurturing curious minds in Harrow, Borehamwood, and Pinner through child-led Montessori education.",
+    "Award-winning Ofsted Good Montessori day nursery for children aged 3 months to 5 years in Harrow, Pinner and Borehamwood, with new settings coming soon to Pinner Green and Northwood. Funded childcare (15/30 hours) and forest school programmes.",
   telephone: "+44 20 8861 5574",
   email: "manager@bluenest.uk",
-  areaServed: ["Harrow", "Pinner", "Borehamwood", "Northwood", "London"],
+  priceRange: "££",
+  openingHoursSpecification: [{
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+    opens: "07:30",
+    closes: "18:00",
+  }],
+  // areaServed lists every locality our branches reach. Order matters for
+  // local-pack signals — keep primary towns first.
+  areaServed: [
+    "Harrow",
+    "Pinner",
+    "Borehamwood",
+    "Pinner Green",
+    "Northwood",
+    "Harrow on the Hill",
+    "South Harrow",
+    "North Harrow",
+    "Rayners Lane",
+    "Wealdstone",
+    "Hatch End",
+    "Eastcote",
+    "Elstree",
+    "Radlett",
+    "Bushey",
+    "London",
+    "Hertfordshire",
+  ],
   address: {
     "@type": "PostalAddress",
     streetAddress: "29 Churchfield Close",
@@ -76,6 +126,7 @@ const organisationJsonLd = {
   sameAs: [
     "https://www.facebook.com/bluenestmontessori",
     "https://www.instagram.com/bluenestmontessori",
+    "https://www.yell.com/biz/blue-nest-montessori-school-harrow-341644/",
   ],
 };
 

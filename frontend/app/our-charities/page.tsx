@@ -9,9 +9,9 @@ import { LightboxGallery } from "@/components/ui/LightboxGallery";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/our-charities" },
-  title: "Our Charities — Blue Nest Montessori School",
+  title: "Our Charities — How Blue Nest Children Give Back",
   description:
-    "Discover how Blue Nest Montessori supports meaningful causes and teaches children the importance of kindness, empathy, and giving back.",
+    "Charity projects we support at Blue Nest Montessori — Headstone Green, Sunny Days Fund, Crackerjacks and more. Each project teaches children kindness, empathy and the joy of community contribution in Harrow, Pinner and Borehamwood.",
   openGraph: {
     title: "Our Charities — Blue Nest Montessori School",
     description:

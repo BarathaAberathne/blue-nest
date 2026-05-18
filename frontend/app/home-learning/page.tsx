@@ -8,9 +8,9 @@ import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/home-learning" },
-  title: "Home Learning — Blue Nest Montessori School",
+  title: "Home Learning Kit — Montessori Activities for Parents",
   description:
-    "Explore the Blue Nest Home Learning Kit — a parent support resource designed to extend nursery learning at home through language, play and exploration.",
+    "The Blue Nest Home Learning Kit — Montessori-inspired activity guides, speech and language tips, routine cards and play-based learning resources for parents. Extend your child's nursery learning at home across Harrow, Pinner and Borehamwood.",
   openGraph: {
     title: "Home Learning — Blue Nest Montessori School",
     description:
