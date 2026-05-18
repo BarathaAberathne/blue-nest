@@ -8,7 +8,7 @@ import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/admission" },
-  title: "Admission — Apply, Prospectus & Fees | Blue Nest Montessori",
+  title: "Admission — Apply, Prospectus & Fees",
   description:
     "Start your child's nursery journey at Blue Nest Montessori in Harrow, Pinner and Borehamwood. Download the prospectus, estimate fees with our calculator, or send your application online. We reply within one working day.",
   openGraph: {

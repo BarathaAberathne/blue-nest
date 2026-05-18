@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import {
   ArrowRight,
   Heart,
@@ -228,13 +227,11 @@ const gallery = [
 export default function BorehamwoodBranchPage() {
   return (
     <PublicLayout>
-      <Script
-        id="borehamwood-branch-jsonld"
+      <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(branchJsonLd) }}
       />
-      <Script
-        id="borehamwood-breadcrumb-jsonld"
+      <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />

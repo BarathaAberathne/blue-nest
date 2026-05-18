@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import {
   ArrowRight,
   Heart,
@@ -208,13 +207,11 @@ const gallery = [
 export default function PinnerBranchPage() {
   return (
     <PublicLayout>
-      <Script
-        id="pinner-branch-jsonld"
+      <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(branchJsonLd) }}
       />
-      <Script
-        id="pinner-breadcrumb-jsonld"
+      <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />

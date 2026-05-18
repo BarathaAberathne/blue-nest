@@ -7,7 +7,7 @@ const DESC = "Step inside Blue Nest Montessori — photos and videos of Montesso
 
 export const metadata: Metadata = {
   alternates: { canonical: "/gallery" },
-  title: "Nursery Gallery — Photos & Videos | Blue Nest Montessori",
+  title: "Nursery Gallery — Photos & Videos",
   description: DESC,
   openGraph: {
     title: "Nursery Gallery — Blue Nest Montessori",

@@ -3,7 +3,7 @@ import ApplicationFormClient from "./ApplicationFormClient";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/admission/application-form" },
-  title: "Apply Online — Nursery Application | Blue Nest Montessori",
+  title: "Apply Online — Nursery Application",
   description:
     "Apply for a nursery place at Blue Nest Montessori in Harrow, Pinner or Borehamwood. Quick online application form — choose your branch, sessions and start week. We respond within two working days.",
   openGraph: {

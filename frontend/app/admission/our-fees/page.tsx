@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Script from "next/script";
 import { ArrowRight, CalendarDays, Clock, Download, Info, Phone, Star, Sun, Sunset } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import Doodle from "@/components/ui/Doodle";
@@ -104,8 +103,7 @@ const highlights = [
 export default function OurFeesPage() {
   return (
     <PublicLayout>
-      <Script
-        id="our-fees-faq-jsonld"
+      <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />

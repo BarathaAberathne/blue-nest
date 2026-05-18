@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import {
   Activity,
   ArrowRight,
@@ -236,13 +235,11 @@ const gallery = [
 export default function HarrowBranchPage() {
   return (
     <PublicLayout>
-      <Script
-        id="harrow-branch-jsonld"
+      <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(branchJsonLd) }}
       />
-      <Script
-        id="harrow-breadcrumb-jsonld"
+      <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />

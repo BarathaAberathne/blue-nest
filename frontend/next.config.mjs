@@ -59,10 +59,12 @@ const nextConfig = {
       { source: "/post/:slug",  destination: "/blog/:slug", permanent: true },
 
       // Old Wix holiday-club product pages — content now lives on branch
-      // pages, so redirect to the matching branch.
-      { source: "/product-page/holiday-club-harrow-:rest*",      destination: "/branches/harrow",      permanent: true },
-      { source: "/product-page/holiday-club-pinner-:rest*",      destination: "/branches/pinner",      permanent: true },
-      { source: "/product-page/holiday-club-borehamwood-:rest*", destination: "/branches/borehamwood", permanent: true },
+      // pages, so redirect to the matching branch. Path-to-regexp can't
+      // repeat a parameter that's prefixed by a string literal (no
+      // delimiter), so we capture the trailing slug as a single segment.
+      { source: "/product-page/holiday-club-harrow-:slug",      destination: "/branches/harrow",      permanent: true },
+      { source: "/product-page/holiday-club-pinner-:slug",      destination: "/branches/pinner",      permanent: true },
+      { source: "/product-page/holiday-club-borehamwood-:slug", destination: "/branches/borehamwood", permanent: true },
 
       // /careers had organic traffic; no dedicated page yet — closest
       // content match is the team page.
