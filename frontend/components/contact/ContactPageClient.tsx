@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import {
   Check,
   CheckCircle2,
@@ -299,6 +300,15 @@ export default function ContactPageClient() {
         message:      form.message,
         consent:      form.consent,
         ...(feeQuote ? { fee_quote: feeQuote } : {}),
+      });
+      // Fire GA4 conversion events. A fee-quote enquiry gets its own event
+      // so we can measure the fee-calculator funnel separately from the
+      // generic contact form. No PII is sent (strip in lib/analytics.ts).
+      trackEvent(feeQuote ? "fee_quote_submit" : "contact_form_submit", {
+        form_name:   feeQuote ? "fee_calculator_enquiry" : "contact",
+        branch:      form.branch || undefined,
+        enquiry_type: form.enquiryType || undefined,
+        page_path:   typeof window !== "undefined" ? window.location.pathname : undefined,
       });
       setStatus("success");
     } catch (err) {

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { ArrowRight, BookOpen, Download, Leaf, Shield, TreePine, Users } from "lucide-react";
+import { ArrowRight, BookOpen, Leaf, Shield, TreePine, Users } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
-import ZigzagBand from "@/components/ui/ZigzagBand";
+import ProspectusDownloadLink from "./ProspectusDownloadLink";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/admission/prospectus" },
@@ -104,14 +104,7 @@ export default function ProspectusPage() {
 
             {/* PRIMARY action — visually strongest */}
             <div className="mt-7 flex flex-wrap gap-3">
-              <a
-                href="/prospectus.pdf"
-                download
-                className="inline-flex items-center gap-2.5 rounded-full bg-[#f7d774] px-7 py-3.5 font-heading text-[1.35rem] leading-none tracking-[0.04em] text-[var(--ink)] shadow-[0_6px_20px_rgba(247,215,116,0.45)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#f5c842]"
-              >
-                <Download className="h-5 w-5" strokeWidth={2} />
-                Download Prospectus
-              </a>
+              <ProspectusDownloadLink />
               <PastelButton href="/contact?enquiry=application-form" variant="blush">
                 Contact Us <ArrowRight className="h-4 w-4" />
               </PastelButton>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   Activity,
   ArrowRight,
@@ -287,13 +288,24 @@ export default function HarrowBranchPage() {
               </h2>
               <div className="body-text mt-5 space-y-5">
                 <p>
-                  Our Harrow nursery offers a calm, structured environment based on Montessori
-                  principles. Children are encouraged to explore, learn independently and develop
-                  essential life skills through hands-on activities.
+                  Blue Nest is a private Montessori day nursery in Harrow, welcoming children aged
+                  3 months to 5 years from families across South Harrow, North Harrow, Rayners
+                  Lane, Wealdstone and Headstone. Our calm, structured classrooms blend authentic
+                  Montessori principles with the EYFS framework, so independence, language and a
+                  genuine love of early years learning grow side by side.
                 </p>
                 <p>
-                  We provide carefully prepared classrooms, outdoor play areas and a caring team
-                  who support each child&rsquo;s development at their own pace.
+                  If you&rsquo;ve been searching for a &ldquo;nursery near me&rdquo; in Harrow,
+                  we&rsquo;d love to show you our prepared environments, outdoor play areas and
+                  forest school sessions. We accept 15 and 30 hours of funded childcare — try our{" "}
+                  <Link href="/admission/our-fees" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    fee calculator
+                  </Link>{" "}
+                  to estimate weekly fees, then{" "}
+                  <Link href="/admission" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    apply for a place
+                  </Link>
+                  .
                 </p>
               </div>
             </Reveal>
@@ -385,14 +397,26 @@ export default function HarrowBranchPage() {
               </h2>
               <div className="body-text mt-5 space-y-5">
                 <p>
-                  Children take part in a variety of activities including practical life skills,
-                  sensory exploration, creative play and outdoor learning. Our Montessori approach
-                  encourages independence, curiosity and confidence.
+                  A typical day at our Harrow nursery weaves Montessori practical life, sensory
+                  exploration, language work and number sense around regular outdoor learning.
+                  Children meet EYFS communication, literacy and physical development goals through
+                  hands-on materials rather than rigid worksheets.
                 </p>
                 <p>
-                  From morning circle time to afternoon garden play, every moment of the day is
-                  purposefully designed to nurture the whole child — socially, emotionally and
-                  intellectually.
+                  From morning circle time to afternoon garden play and weekly{" "}
+                  <Link href="/forest-school" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    forest school
+                  </Link>{" "}
+                  sessions, every part of the day is purposefully planned to nurture the whole
+                  child — socially, emotionally and intellectually. Read more about our{" "}
+                  <Link href="/why-montessori" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    Montessori approach
+                  </Link>{" "}
+                  or{" "}
+                  <Link href="/contact?branch=harrow" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    get in touch
+                  </Link>{" "}
+                  to book a visit.
                 </p>
               </div>
               <div className="mt-7">

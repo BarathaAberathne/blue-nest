@@ -6,6 +6,7 @@ import PublicLayout from "@/components/layout/PublicLayout";
 import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
 import { api } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -329,6 +330,14 @@ export default function ApplicationFormClient() {
           sessions:     sessionsList,
           signature_data_url: signatureDataUrl,
         },
+      });
+      // GA4 conversion — application submitted. No PII; only the
+      // non-identifying branch + session count.
+      trackEvent("application_form_submit", {
+        form_name:    "application",
+        branch,
+        sessions_count: sessionsList.length,
+        page_path:    typeof window !== "undefined" ? window.location.pathname : undefined,
       });
       setStatus("success");
     } catch (err) {

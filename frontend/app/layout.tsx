@@ -131,6 +131,11 @@ const organisationJsonLd = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // GA4 only loads when the measurement ID env var is set, so dev/preview
+  // environments stay clean. Both scripts are afterInteractive-equivalent
+  // (async + bottom of <head>) — they never block the page or the form.
+  const ga4Id = process.env.NEXT_PUBLIC_GA4_MEASUREMENT_ID;
+
   return (
     <html lang="en">
       <head>
@@ -139,6 +144,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           // JSON.stringify is safe here — the object is fully literal and trusted.
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organisationJsonLd) }}
         />
+        {ga4Id ? (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`} />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js', new Date());gtag('config', '${ga4Id}', { send_page_view: true });`,
+              }}
+            />
+          </>
+        ) : null}
       </head>
       <body className={`${displayFont.variable} ${bodyFont.variable} font-body antialiased`}>
         {children}

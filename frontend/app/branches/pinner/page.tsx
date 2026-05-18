@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   ArrowRight,
   Heart,
@@ -253,14 +254,28 @@ export default function PinnerBranchPage() {
               <h2 className="section-title mt-4">Welcome to Our Pinner Nursery</h2>
               <div className="body-text mt-5 space-y-5">
                 <p>
-                  Our Pinner nursery offers a calm, structured environment rooted in Montessori principles.
-                  Children are encouraged to explore, learn independently and develop essential life skills
-                  through meaningful, hands-on activities.
+                  Blue Nest is a Montessori day nursery in Pinner (HA5), welcoming children aged
+                  3 months to 5 years from families across Pinner, Hatch End, Eastcote, Rayners
+                  Lane and Northwood Hills. Our Pinner nursery blends authentic Montessori
+                  materials with the EYFS framework, plus real-life practical activities and one-
+                  to-one moments with a familiar key person.
                 </p>
                 <p>
-                  With a dedicated Forest School programme and spacious outdoor spaces, Pinner gives
-                  children an exceptional opportunity to connect with nature alongside their indoor
-                  Montessori learning.
+                  Looking for a Montessori nursery in Pinner with its own outdoor space and a
+                  proper forest school programme? That&rsquo;s us. We accept 15 and 30 hours of
+                  funded childcare — use our{" "}
+                  <Link href="/admission/our-fees" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    fee calculator
+                  </Link>{" "}
+                  to estimate weekly fees,{" "}
+                  <Link href="/admission" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    apply for a place
+                  </Link>{" "}
+                  or{" "}
+                  <Link href="/contact?branch=pinner" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    book a visit
+                  </Link>{" "}
+                  to come and see us.
                 </p>
               </div>
             </Reveal>
@@ -302,7 +317,42 @@ export default function PinnerBranchPage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════
-          3.5 — WEEKLY ENRICHMENT ACTIVITIES
+          3.5 — FOREST SCHOOL AT PINNER
+      ══════════════════════════════════════════════════════ */}
+      <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <Doodle kind="leaf"        className="left-[3%]  top-10    h-9 w-9 opacity-45 hidden sm:block" />
+        <Doodle kind="pink-flower" className="right-[4%] bottom-10 h-9 w-9 opacity-45 hidden sm:block" />
+
+        <div className="container-site">
+          <Reveal>
+            <div className="mx-auto max-w-2xl text-center">
+              <span className="section-kicker">Outdoor learning</span>
+              <h2 className="section-title mt-4">Forest School at Pinner</h2>
+              <div className="body-text mt-5 space-y-5">
+                <p>
+                  Our Pinner branch runs a weekly forest school programme led by qualified
+                  practitioners. Children explore log piles, mud kitchens, nature treasure hunts
+                  and storytelling by the fire circle — building resilience, curiosity and a
+                  genuine connection with the natural world.
+                </p>
+                <p>
+                  Sessions run year-round in every weather, and sit alongside our indoor Montessori
+                  curriculum so children move naturally between focused indoor work and free
+                  outdoor exploration.
+                </p>
+              </div>
+              <div className="mt-7">
+                <PastelButton href="/forest-school" variant="mint">
+                  About our Forest School <ArrowRight className="h-4 w-4" />
+                </PastelButton>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════
+          3.6 — WEEKLY ENRICHMENT ACTIVITIES
       ══════════════════════════════════════════════════════ */}
       <BranchEnrichmentSection activities={enrichmentActivities} branchName="Pinner" />
 

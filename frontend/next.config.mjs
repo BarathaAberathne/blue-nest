@@ -58,13 +58,16 @@ const nextConfig = {
       // blog post ("best age to start nursery") alone pulled 3,800+ imp/mo.
       { source: "/post/:slug",  destination: "/blog/:slug", permanent: true },
 
-      // Old Wix holiday-club product pages — content now lives on branch
-      // pages, so redirect to the matching branch. Path-to-regexp can't
-      // repeat a parameter that's prefixed by a string literal (no
-      // delimiter), so we capture the trailing slug as a single segment.
-      { source: "/product-page/holiday-club-harrow-:slug",      destination: "/branches/harrow",      permanent: true },
-      { source: "/product-page/holiday-club-pinner-:slug",      destination: "/branches/pinner",      permanent: true },
-      { source: "/product-page/holiday-club-borehamwood-:slug", destination: "/branches/borehamwood", permanent: true },
+      // Old Wix holiday-club product pages — now point at the dedicated
+      // /admission/holiday-club destination so we keep the visitor on a
+      // page that actually matches their search intent. Path-to-regexp
+      // can't repeat a parameter prefixed by a string literal, so each
+      // pattern captures the trailing slug as a single segment.
+      { source: "/product-page/holiday-club-harrow-:slug",      destination: "/admission/holiday-club", permanent: true },
+      { source: "/product-page/holiday-club-pinner-:slug",      destination: "/admission/holiday-club", permanent: true },
+      { source: "/product-page/holiday-club-borehamwood-:slug", destination: "/admission/holiday-club", permanent: true },
+      // Catch-all for any other legacy holiday-club product URLs.
+      { source: "/product-page/holiday-club-:slug",             destination: "/admission/holiday-club", permanent: true },
 
       // /careers had organic traffic; no dedicated page yet — closest
       // content match is the team page.

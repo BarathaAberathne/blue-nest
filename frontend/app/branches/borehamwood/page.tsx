@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   ArrowRight,
   Heart,
@@ -273,13 +274,31 @@ export default function BorehamwoodBranchPage() {
               <h2 className="section-title mt-4">Welcome to Our Borehamwood Nursery</h2>
               <div className="body-text mt-5 space-y-5">
                 <p>
-                  Our Borehamwood nursery provides a calm, structured Montessori environment where
-                  children are encouraged to explore, build independence and develop essential life skills
-                  through purposeful, hands-on activities.
+                  Blue Nest is a private Montessori day nursery in Borehamwood (WD6), welcoming
+                  infants and children aged 3 months to 5 years from families across Borehamwood,
+                  Elstree, Radlett, Bushey and Edgware. Our infant nursery rooms are calm,
+                  settled and run by long-serving key persons, while our older Montessori
+                  classrooms blend the EYFS framework with authentic Montessori materials.
                 </p>
                 <p>
-                  We accept children aged 3 months to 5 years and welcome government funding including
-                  15-hour and 30-hour free childcare for eligible families.
+                  We accept 15 and 30 hours of funded childcare for eligible families and welcome
+                  childcare vouchers and Tax-Free Childcare. Use our{" "}
+                  <Link href="/admission/our-fees" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    fee calculator
+                  </Link>{" "}
+                  to estimate weekly fees,{" "}
+                  <Link href="/admission" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    apply for a place
+                  </Link>{" "}
+                  or{" "}
+                  <Link href="/contact?branch=borehamwood" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    book a visit
+                  </Link>{" "}
+                  to see our Borehamwood nursery. Weekly{" "}
+                  <Link href="/forest-school" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    forest school
+                  </Link>{" "}
+                  sessions run year-round.
                 </p>
               </div>
             </Reveal>

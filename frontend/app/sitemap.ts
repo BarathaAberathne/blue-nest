@@ -13,6 +13,7 @@ const staticRoutes: { url: string; priority: number; changeFrequency: MetadataRo
   { url: "/admission",                      priority: 0.9, changeFrequency: "monthly" },
   { url: "/admission/prospectus",           priority: 0.8, changeFrequency: "monthly" },
   { url: "/admission/our-fees",             priority: 0.8, changeFrequency: "monthly" },
+  { url: "/admission/holiday-club",         priority: 0.8, changeFrequency: "monthly" },
   { url: "/admission/application-form",     priority: 0.7, changeFrequency: "monthly" },
   { url: "/branches/harrow",                priority: 0.9, changeFrequency: "monthly" },
   { url: "/branches/pinner",                priority: 0.9, changeFrequency: "monthly" },
