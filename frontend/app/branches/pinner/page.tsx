@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     description:
       "Montessori nursery in Pinner for children aged 3 months to 5 years. Ofsted Good · Government funding available.",
     url: "/branches/pinner",
-    images: [{ url: "/home/branches/pinner/pinner-office.jpg", width: 1280, height: 854, alt: "Blue Nest Montessori Pinner nursery" }],
+    images: [{ url: "/home/branches/pinner/pinner-office.jpg", width: 1200, height: 800, alt: "Wide view of a busy Montessori classroom at Blue Nest Pinner" }],
     type: "website",
   },
 };
@@ -109,10 +109,48 @@ const enrichmentActivities: EnrichmentActivity[] = [
 ];
 
 const gallery = [
-  { src: "/home/outdoor-childrens-play-area.jpg", alt: "Outdoor play area at Pinner nursery",       rotate: -2, caption: "Outdoor classroom" },
-  { src: "/home/forest-school.jpg",               alt: "Forest school session at Blue Nest Pinner", rotate:  2, caption: "Forest School"     },
-  { src: "/home/DSC_0177.jpg",                    alt: "Montessori classroom activity",              rotate: -1, caption: "Learning through play" },
-  { src: "/home/children-outdoor-play.jpg",       alt: "Children playing outdoors",                 rotate:  2, caption: "Fresh air every day"   },
+  {
+    src: "/home/branches/pinner/pinner-gallery-01.webp",
+    alt: "Children at a real-food prep table with the Pink Tower at Blue Nest Pinner",
+    rotate: -2,
+    caption: "Real-food prep",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-02.webp",
+    alt: "Outdoor miniature village and animal models in the Blue Nest Pinner garden",
+    rotate: 2,
+    caption: "Outdoor village",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-03.webp",
+    alt: "Practical-life dough activity with a teacher and three children at Blue Nest Pinner",
+    rotate: -1,
+    caption: "Practical life",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-04.webp",
+    alt: "Cozy reading nook with animal cushions at Blue Nest Pinner",
+    rotate: 2,
+    caption: "Reading corner",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-05.webp",
+    alt: "Blue Nest Pinner teacher working one-to-one with a child on a Montessori puzzle",
+    rotate: -2,
+    caption: "One-to-one learning",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-06.webp",
+    alt: "A busy Montessori classroom with children at independent learning stations at Blue Nest Pinner",
+    rotate: 1,
+    caption: "Independent work",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-07.webp",
+    alt: "Reading corner with picture-book caddy and sensory-play backdrop at Blue Nest Pinner",
+    rotate: -1,
+    caption: "Quiet reading corner",
+  },
 ];
 
 export default function PinnerBranchPage() {
@@ -129,8 +167,8 @@ export default function PinnerBranchPage() {
         location="Pinner, London"
         heading="Montessori Nursery in Pinner"
         description="At Blue Nest Montessori School Pinner, we combine authentic Montessori learning with a calm, home-away-from-home atmosphere. Set in leafy Pinner, our nursery offers spacious outdoor spaces and a dedicated Forest School programme."
-        image="/home/outdoor-childrens-play-area.jpg"
-        imageAlt="Blue Nest Montessori Pinner nursery outdoor play area"
+        image="/home/branches/pinner/pinner-hero.webp"
+        imageAlt="Children playing with a wooden village in the Blue Nest Montessori Pinner outdoor garden"
         primaryCta={{ label: "Book a Visit", href: "/contact?enquiry=book-visit&branch=pinner", variant: "rose" }}
         secondaryCta={{ label: "Contact Us", href: "#visit", variant: "mint" }}
       />
@@ -147,8 +185,8 @@ export default function PinnerBranchPage() {
             <Reveal>
               <div className="mx-auto w-full max-w-[420px]">
                 <StickerCard
-                  src="/home/forest-school.jpg"
-                  alt="Forest school at Blue Nest Pinner"
+                  src="/home/branches/pinner/pinner-welcome.webp"
+                  alt="Teacher and child exploring a Montessori dollhouse activity at Blue Nest Pinner"
                   rotate={-3}
                   sizes="(max-width: 1024px) 80vw, 38vw"
                   className="w-full"

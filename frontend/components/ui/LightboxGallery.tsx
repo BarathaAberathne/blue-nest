@@ -41,7 +41,7 @@ export function LightboxGallery({ images, columns = 3 }: Props) {
               className="rounded-[1.4rem] bg-white px-2.5 pb-6 pt-2.5 shadow-[3px_5px_16px_rgba(90,74,66,0.11)]"
               style={{ transform: `rotate(${img.rotate ?? 0}deg)` }}
             >
-              <div className="relative overflow-hidden rounded-[1rem]" style={{ aspectRatio: "4/3" }}>
+              <div className="photo-tone relative overflow-hidden rounded-[1rem]" style={{ aspectRatio: "4/3" }}>
                 <Image
                   src={img.src}
                   alt={img.alt}
@@ -81,7 +81,7 @@ export function LightboxGallery({ images, columns = 3 }: Props) {
             className="relative w-full max-w-3xl overflow-hidden rounded-[1.5rem] shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative aspect-[4/3] w-full">
+            <div className="photo-tone relative aspect-[4/3] w-full">
               <Image
                 src={active.src}
                 alt={active.alt}

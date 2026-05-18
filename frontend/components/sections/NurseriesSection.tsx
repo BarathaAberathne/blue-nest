@@ -17,8 +17,8 @@ const branches = [
   {
     name:        "Pinner",
     href:        "/branches/pinner",
-    image:       "/home/branches/pinner/pinner-office.jpg",
-    alt:         "Blue Nest Montessori nursery in Pinner",
+    image:       "/home/branches/pinner/pinner-office.webp",
+    alt:         "Busy Montessori classroom at Blue Nest Pinner",
     description: "Nestled in Pinner, this branch combines authentic Montessori learning with a calm, home-away-from-home atmosphere that children and parents love.",
     color:       "var(--branch-pinner)",
     cta:         "View Nursery",
@@ -26,8 +26,8 @@ const branches = [
   {
     name:        "Borehamwood",
     href:        "/branches/borehamwood",
-    image:       "/home/branches/borehamwood/borehamwood-office.jpg",
-    alt:         "Blue Nest Montessori nursery in Borehamwood",
+    image:       "/home/branches/borehamwood/borehamwood-office.webp",
+    alt:         "Blue Nest Montessori Borehamwood building, main entrance",
     description: "Our Borehamwood nursery brings the full Blue Nest experience to families in Hertfordshire — the same high standard of Montessori care and learning.",
     color:       "var(--branch-borehamwood)",
     cta:         "View Nursery",

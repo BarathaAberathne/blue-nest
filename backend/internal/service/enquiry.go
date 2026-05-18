@@ -54,6 +54,7 @@ func (s *enquiryService) Submit(ctx context.Context, req models.EnquiryRequest) 
 		EnquiryType: req.EnquiryType,
 		Message:     req.Message,
 		FeeQuote:    req.FeeQuote,
+		Application: req.Application,
 		Status:      "new",
 	}
 
@@ -141,6 +142,73 @@ func feeQuoteHTML(q *models.FeeQuote) string {
 	)
 }
 
+// applicationHTML renders a structured panel for an application-form
+// submission, in the same visual style as feeQuoteHTML. Returns "" when
+// req.Application is nil so non-application enquiries are unaffected.
+func applicationHTML(a *models.Application) string {
+	if a == nil {
+		return ""
+	}
+	row := func(label, value string) string {
+		if value == "" {
+			return ""
+		}
+		return fmt.Sprintf(
+			`<tr>`+
+				`<td style="padding:6px 12px;font-weight:600;color:#3a5c38;background:#f2f7f2;width:160px;border-bottom:1px solid #d8e8d8;">%s</td>`+
+				`<td style="padding:6px 12px;color:#2a3c29;border-bottom:1px solid #d8e8d8;">%s</td>`+
+				`</tr>`,
+			label, value,
+		)
+	}
+
+	gender := ""
+	if a.Child.Gender != nil {
+		gender = *a.Child.Gender
+	}
+
+	rows := row("Child Name", a.Child.Name) +
+		row("Child DOB", a.Child.Dob) +
+		row("Child Gender", gender) +
+		row("Branch", a.Branch) +
+		row("Parent Name", a.Parent.Name) +
+		row("Parent Email", a.Parent.Email) +
+		row("Parent Phone", a.Parent.Phone) +
+		row("Settling-in Week", a.SettlingIn) +
+		row("Join Waiting List", func() string {
+			if a.WaitingList {
+				return "Yes"
+			}
+			return "No"
+		}())
+
+	if len(a.Sessions) > 0 {
+		var parts []string
+		for _, s := range a.Sessions {
+			label := s.Label
+			if label == "" {
+				label = s.Type
+			}
+			t := s.Time
+			if t != "" {
+				t = " (" + t + ")"
+			}
+			parts = append(parts, fmt.Sprintf("%s: %s%s", s.Day, label, t))
+		}
+		rows += row("Sessions Required", strings.Join(parts, "<br>"))
+	}
+
+	rows += row("Signature", "Captured digitally on submission")
+
+	return fmt.Sprintf(
+		`<div style="margin-top:24px;">`+
+			`<h2 style="margin:0 0 10px;font-size:13px;font-weight:700;color:#3a5c38;text-transform:uppercase;letter-spacing:0.08em;">Application Details</h2>`+
+			`<table style="width:100%%;border-collapse:collapse;border-radius:8px;overflow:hidden;border:1px solid #d8e8d8;">%s</table>`+
+			`</div>`,
+		rows,
+	)
+}
+
 func adminNotificationSubject(req models.EnquiryRequest) string {
 	return fmt.Sprintf("New Enquiry: %s — %s", req.EnquiryType, req.Name)
 }
@@ -180,6 +248,7 @@ func adminNotificationHTML(req models.EnquiryRequest) string {
       </table>
       %s
       %s
+      %s
     </div>
     <div style="background:#fdf8f5;padding:16px 32px;text-align:center;font-size:12px;color:rgba(90,74,66,0.55);">
       Blue Nest Montessori School &mdash; manager@bluenest.uk
@@ -199,9 +268,10 @@ func adminNotificationHTML(req models.EnquiryRequest) string {
 			if req.Message == "" {
 				return ""
 			}
-			return fmt.Sprintf(`<p style="margin:20px 0 0;padding:16px;background:#f8f1ec;border-radius:8px;color:#3a2e29;font-size:14px;line-height:1.6;">%s</p>`, req.Message)
+			return fmt.Sprintf(`<p style="margin:20px 0 0;padding:16px;background:#f8f1ec;border-radius:8px;color:#3a2e29;font-size:14px;line-height:1.6;white-space:pre-line;">%s</p>`, req.Message)
 		}(),
 		feeQuoteHTML(req.FeeQuote),
+		applicationHTML(req.Application),
 	)
 }
 
@@ -243,6 +313,7 @@ func userConfirmationHTML(req models.EnquiryRequest) string {
         %s
       </div>
       %s
+      %s
       <p style="margin:0 0 6px;font-size:14px;color:#5a4a42;">In the meantime, feel free to reach us directly:</p>
       <p style="margin:0;font-size:14px;color:#3a2e29;">
         📞 <a href="tel:02088615574" style="color:#3aada9;text-decoration:none;">020 8861 5574</a><br>
@@ -265,12 +336,15 @@ func userConfirmationHTML(req models.EnquiryRequest) string {
 			if req.Message == "" {
 				return ""
 			}
-			return fmt.Sprintf(`<p style="margin:6px 0 0;font-size:14px;color:#3a2e29;"><strong>Message:</strong> %s</p>`, req.Message)
+			return fmt.Sprintf(`<p style="margin:6px 0 0;font-size:14px;color:#3a2e29;white-space:pre-line;"><strong>Message:</strong> %s</p>`, req.Message)
 		}(),
 		// Fee quote block — reuses the same renderer the admin email uses so
 		// the parent sees an identical breakdown (Branch / Age Group / Session
 		// / Days / Gross & Net Weekly etc). feeQuoteHTML returns "" when
 		// req.FeeQuote is nil, so non-quote enquiries are unaffected.
 		feeQuoteHTML(req.FeeQuote),
+		// Application block — same pattern. Renders only when the enquiry
+		// is from /admission/application-form (req.Application != nil).
+		applicationHTML(req.Application),
 	)
 }

@@ -5,6 +5,7 @@ import { ArrowRight, CheckCircle2, ChevronDown, MapPin, Sparkles } from "lucide-
 import PublicLayout from "@/components/layout/PublicLayout";
 import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
+import { api } from "@/lib/api";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -244,8 +245,11 @@ function SessionsGrid({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+type SubmitStatus = "idle" | "submitting" | "success" | "error";
+
 export default function ApplicationFormClient() {
-  const [submitted,    setSubmitted]    = useState(false);
+  const [status,       setStatus]       = useState<SubmitStatus>("idle");
+  const [submitError,  setSubmitError]  = useState<string | null>(null);
   const [branch,       setBranch]       = useState("");
   const [gender,       setGender]       = useState("");
   const [waitingList,  setWaitingList]  = useState("");
@@ -254,24 +258,93 @@ export default function ApplicationFormClient() {
   const [sessions, setSessions] = useState<Record<string, Set<string>>>({});
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  const submitted = status === "success";
+
   function toggleSession(day: string, key: string) {
     setSessions((prev) => {
       const s = new Set(prev[day] ?? []);
-      s.has(key) ? s.delete(key) : s.add(key);
+      if (s.has(key)) s.delete(key); else s.add(key);
       return { ...prev, [day]: s };
     });
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setAttempted(true);
+    setSubmitError(null);
+
+    // Manual validation for fields that aren't standard form inputs.
     if (!branch || !waitingList || !hasSignature) return;
-    setSubmitted(true);
+
+    // Let the browser surface its native validity messages for required
+    // text/date inputs (`required` is already on each one).
+    const form = e.currentTarget;
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    // Capture all named field values.
+    const fd = new FormData(form);
+    const childName    = String(fd.get("child_name")    ?? "").trim();
+    const childDob     = String(fd.get("child_dob")     ?? "").trim();
+    const parentName   = String(fd.get("parent_name")   ?? "").trim();
+    const parentEmail  = String(fd.get("parent_email")  ?? "").trim();
+    const parentPhone  = String(fd.get("parent_phone")  ?? "").trim();
+    const settlingDate = String(fd.get("settling_date") ?? "").trim();
+
+    // Flatten the day×type matrix into a list the backend can serialise.
+    const sessionsList = DAYS_FULL.flatMap((day) =>
+      Array.from(sessions[day] ?? []).map((typeKey) => {
+        const meta = SESSION_TYPES.find((s) => s.key === typeKey);
+        return { day, type: typeKey, label: meta?.label ?? typeKey, time: meta?.time ?? "" };
+      }),
+    );
+
+    const signatureDataUrl = canvasRef.current?.toDataURL("image/png") ?? "";
+
+    // Short one-line summary — the structured `application` sub-object is
+    // rendered as a full "Application Details" table in both emails, so we
+    // intentionally keep the free-text message field tiny to avoid
+    // duplicating every line above and below the table.
+    const summaryLine = `New application from ${parentName} for ${childName || "their child"} at ${branch}.`;
+
+    setStatus("submitting");
+    try {
+      await api.submitEnquiry({
+        name:         parentName,
+        email:        parentEmail,
+        phone:        parentPhone,
+        branch:       branch,
+        child_age:    childDob,
+        enquiry_type: "Application form",
+        message:      summaryLine,
+        consent:      true,
+        application: {
+          child:        { name: childName, dob: childDob, gender: gender || null },
+          parent:       { name: parentName, email: parentEmail, phone: parentPhone },
+          branch,
+          settling_in:  settlingDate,
+          waiting_list: waitingList === "Yes",
+          sessions:     sessionsList,
+          signature_data_url: signatureDataUrl,
+        },
+      });
+      setStatus("success");
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while submitting your application. Please try again.",
+      );
+      setStatus("error");
+    }
   }
 
   const errBranch = attempted && !branch;
   const errWait   = attempted && !waitingList;
   const errSig    = attempted && !hasSignature;
+  const submitting = status === "submitting";
 
   return (
     <PublicLayout>
@@ -376,11 +449,11 @@ export default function ApplicationFormClient() {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label htmlFor="child-name" className={labelCls}>Child&rsquo;s name<Req /></label>
-                            <input id="child-name" type="text" required placeholder="e.g. Emma" className={inputCls} />
+                            <input id="child-name" name="child_name" type="text" required placeholder="e.g. Emma" className={inputCls} />
                           </div>
                           <div>
                             <label htmlFor="child-dob" className={labelCls}>Date of birth<Req /></label>
-                            <input id="child-dob" type="date" required className={inputCls} />
+                            <input id="child-dob" name="child_dob" type="date" required className={inputCls} />
                           </div>
                         </div>
 
@@ -408,16 +481,16 @@ export default function ApplicationFormClient() {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label htmlFor="parent-name" className={labelCls}>Full name<Req /></label>
-                            <input id="parent-name" type="text" required placeholder="Sarah Johnson" className={inputCls} />
+                            <input id="parent-name" name="parent_name" type="text" required placeholder="Sarah Johnson" className={inputCls} />
                           </div>
                           <div>
                             <label htmlFor="parent-email" className={labelCls}>Email<Req /></label>
-                            <input id="parent-email" type="email" required placeholder="sarah@email.com" className={inputCls} />
+                            <input id="parent-email" name="parent_email" type="email" required placeholder="sarah@email.com" className={inputCls} />
                           </div>
                         </div>
                         <div>
                           <label htmlFor="parent-phone" className={labelCls}>Phone<Req /></label>
-                          <input id="parent-phone" type="tel" required placeholder="07700 900000" className={inputCls} />
+                          <input id="parent-phone" name="parent_phone" type="tel" required placeholder="07700 900000" className={inputCls} />
                         </div>
                       </div>
                     </div>
@@ -440,7 +513,7 @@ export default function ApplicationFormClient() {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label htmlFor="settling-date" className={labelCls}>Settling-in week<Req /></label>
-                            <input id="settling-date" type="date" required className={inputCls} />
+                            <input id="settling-date" name="settling_date" type="date" required className={inputCls} />
                           </div>
                           <fieldset>
                             <legend className={labelCls}>Waiting list if unavailable?<Req /></legend>
@@ -480,9 +553,22 @@ export default function ApplicationFormClient() {
                       Please complete all required fields before submitting.
                     </p>
                   )}
-                  <button type="submit" className="btn-primary w-full">
+                  {submitError && (
+                    <div
+                      role="alert"
+                      className="mb-3 rounded-[0.9rem] border border-[rgba(232,113,154,0.45)] bg-[rgba(246,213,223,0.32)] px-4 py-3 text-[0.75rem] font-semibold text-[#b8516f]"
+                    >
+                      {submitError}
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    aria-busy={submitting}
+                    className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
+                  >
                     <Sparkles className="h-4 w-4" aria-hidden="true" />
-                    Send Application
+                    {submitting ? "Sending…" : "Send Application"}
                   </button>
                 </div>
               </form>

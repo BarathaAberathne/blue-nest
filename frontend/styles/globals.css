@@ -100,6 +100,30 @@
            shadow-[0_14px_40px_rgba(90,74,66,0.08)] ring-1 ring-white/80;
   }
 
+  /* ── Gallery photo tone ──────────────────────────────────── */
+  /*
+   * Very light global filter for gallery photography. The cream-toned
+   * sepia wash was making photos read greyish, so it's now off by
+   * default. We keep a tiny saturation and brightness adjustment that
+   * still helps colours feel cohesive without flattening them.
+   *
+   * Apply to the wrapping <div> of any gallery image — NOT the <Image>
+   * itself, so Next/Image's own optimisations aren't affected.
+   *
+   * Tunable via CSS custom properties so future-you can dial without
+   * touching every gallery file:
+   *   .photo-tone { --photo-warm: 0.04; }   (add a cream wash back in)
+   *   .photo-tone { --photo-saturate: 1.10; } (extra vibrance)
+   */
+  .photo-tone {
+    --photo-saturate:   0.98;
+    --photo-brightness: 1.02;
+    --photo-warm:       0;     /* sepia disabled — was 0.04 */
+    filter: saturate(var(--photo-saturate))
+            brightness(var(--photo-brightness))
+            sepia(var(--photo-warm));
+  }
+
   .paper-panel {
     @apply relative overflow-hidden rounded-[2.5rem] border border-white/60
            bg-[var(--soft-white)] shadow-[0_16px_50px_rgba(90,74,66,0.12)];

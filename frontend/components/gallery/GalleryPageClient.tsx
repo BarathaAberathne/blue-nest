@@ -427,7 +427,7 @@ function FeaturedCard({
     >
       {/* Clickable image area */}
       <div
-        className="relative aspect-[4/3] cursor-pointer overflow-hidden rounded-[1.2rem]"
+        className="photo-tone relative aspect-[4/3] cursor-pointer overflow-hidden rounded-[1.2rem]"
         onClick={onPreview}
         role="button"
         tabIndex={0}
@@ -518,7 +518,7 @@ function PhotoGrid({
                 onClick={() => onOpen(item)}
                 aria-label={`View ${item.title}`}
               >
-                <div className="relative overflow-hidden rounded-[1.2rem]">
+                <div className="photo-tone relative overflow-hidden rounded-[1.2rem]">
                   <Image
                     src={item.src!}
                     alt={item.alt ?? item.title}
@@ -667,9 +667,9 @@ function VideoGrid({
 // ── Updates Grid ──────────────────────────────────────────────────────────────
 
 const UPDATE_BORDER_COLOURS: Record<Exclude<BranchFilter, "all">, string> = {
-  harrow:      "#f4aac8",
-  pinner:      "#7fd8d2",
-  borehamwood: "#7fd8d2",
+  harrow:      "#E99FC1",  // rose — matches Harrow brand token
+  pinner:      "#7ECFC8",  // teal — matches Pinner brand token
+  borehamwood: "#BFD3A1",  // sage — matches Borehamwood brand token
 };
 
 function UpdatesGrid({ items }: { items: GalleryItem[] }) {
@@ -788,7 +788,7 @@ function MediaPreview({
               ) : null}
             </div>
           ) : (
-            <div className="relative h-[52vh] bg-[#faf8f6]">
+            <div className="photo-tone relative h-[52vh] bg-[#faf8f6]">
               <Image
                 src={item.src!}
                 alt={item.alt ?? item.title}

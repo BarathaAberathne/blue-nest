@@ -3,6 +3,7 @@ import Image from "next/image";
 import { ArrowRight, CalendarDays, Clock, Download, Info, Phone, Star, Sun, Sunset } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import Doodle from "@/components/ui/Doodle";
+import FeeCalculatorCard from "@/components/ui/FeeCalculatorCard";
 import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
@@ -195,6 +196,37 @@ export default function OurFeesPage() {
                   <Download className="h-4 w-4 opacity-50 transition group-hover:opacity-100" style={{ color: d.color }} strokeWidth={2} />
                 </a>
               ))}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+
+      {/* ══════════════════════════════════════════════════════
+          FEE CALCULATOR
+          Anchor target for the home-page hero's "Fee Calculator"
+          CTA: /admission/our-fees#fee-calculator
+      ══════════════════════════════════════════════════════ */}
+      <section
+        id="fee-calculator"
+        className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16"
+      >
+        <div className="container-site">
+          <Reveal>
+            <div className="mx-auto mb-8 max-w-2xl text-center">
+              <span className="section-kicker">Plan ahead</span>
+              <h2 className="section-title mt-4">Estimate your fees</h2>
+              <p className="body-text mt-5">
+                Pick your branch, age band and session pattern below for an
+                indicative weekly and monthly cost. Funding, year basis and
+                family discount options are built in.
+              </p>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.08}>
+            <div className="mx-auto w-full max-w-[28rem]">
+              <FeeCalculatorCard defaultBranch="harrow" />
             </div>
           </Reveal>
         </div>

@@ -1,6 +1,6 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
-import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
 import PastelButton from "@/components/ui/PastelButton";
 
@@ -10,47 +10,61 @@ const trustItems = [
   "Trusted by local families",
 ];
 
+// Branch picker — colour tokens match the per-branch `--branch-*` variables
+// defined in styles/globals.css so the chips line up with the rest of the
+// site's branch identity.
+const branches: {
+  name:        string;
+  href:        string;
+  colour:      string;
+  comingSoon?: boolean;
+}[] = [
+  { name: "Harrow",       href: "/branches/harrow",       colour: "var(--branch-harrow)" },
+  { name: "Pinner",       href: "/branches/pinner",       colour: "var(--branch-pinner)" },
+  { name: "Borehamwood",  href: "/branches/borehamwood",  colour: "var(--branch-borehamwood)" },
+  { name: "Pinner Green", href: "/branches/pinner-green", colour: "var(--branch-pinner-green)", comingSoon: true },
+  { name: "Northwood",    href: "/branches/northwood",    colour: "var(--branch-northwood)",    comingSoon: true },
+];
+
 export default function HeroSection() {
   return (
-    // Hero height policy:
-    //   mobile  (<sm) fills viewport — `min-h` = 100dvh − header/trust buffer
-    //                 (≈ 8.5rem on phone). Gives the full-bleed phone hero.
-    //   tablet  (sm)  content-driven — no min-h floor. A viewport-tall hero
-    //                 leaves ~200px of dead vertical space below the centred
-    //                 copy (the right-column image only renders at `lg`), so
-    //                 we let the section size to its content and the next
-    //                 ribbon follows directly underneath.
-    //   desktop (lg)  fills viewport — the image column on the right uses
-    //                 `lg:self-stretch lg:flex-1` to fill, so it needs the
-    //                 section to span 100dvh − 11rem (taller desktop header).
-    //
-    // min-h (not h) so content never gets clipped by overflow-hidden.
+    // Height policy (preserved from the earlier tablet fix):
+    //   mobile  (<sm) fills viewport
+    //   tablet  (sm)  content-driven
+    //   desktop (lg)  fills viewport (with full-bleed background image)
     <section className="paper-bg relative overflow-hidden min-h-[calc(100dvh-8.5rem)] sm:min-h-0 lg:min-h-[calc(100dvh-11rem)]">
 
-      {/* Dot texture */}
+      {/* Full-bleed background image (the astronaut photo previously
+          shown only on the desktop right pane). priority+sizes=100vw
+          because it's above the fold and now spans the whole hero. */}
+      <Image
+        src="/home/branches/harrow/harrow-home-hero.webp"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-center"
+        aria-hidden="true"
+      />
+
+      {/* Cream-to-transparent gradient — keeps the left-side h1 readable
+          while letting the photo bleed through on the right (where the
+          branch-picker card sits with its own backdrop-blur). */}
       <div
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[rgba(255,253,249,0.95)] via-[rgba(255,253,249,0.78)] to-[rgba(255,253,249,0.18)]"
+        aria-hidden="true"
+      />
+
+      {/* Subtle dot grain (kept from the original) — sits over both the
+          image and the gradient to give the cream area its paper feel. */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-40"
         style={{
           backgroundImage: "radial-gradient(circle, rgba(90,74,66,0.05) 1px, transparent 1px)",
           backgroundSize: "20px 20px",
         }}
         aria-hidden="true"
       />
-
-      {/* Colour blooms */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse at 10% 60%, rgba(246,213,223,0.32) 0%, transparent 42%), " +
-            "radial-gradient(ellipse at 88% 18%, rgba(127,216,210,0.18) 0%, transparent 38%)",
-        }}
-        aria-hidden="true"
-      />
-
-      {/* Doodles — max 2, desktop only */}
-      <Doodle kind="pink-flower" animated="subtle" className="absolute left-[2%]  bottom-10 h-11 w-11 opacity-55 hidden lg:block" />
-      <Doodle kind="blue-bird"   animated="float"  className="absolute right-[3%] top-12   h-10 w-10 opacity-50 hidden lg:block" />
 
       {/* ── Grid — fills section height ──────────────────────────────── */}
       <div className="container-site relative z-10 grid h-full items-center gap-6 px-4 py-5 sm:px-6 sm:py-6 lg:grid-cols-2 lg:gap-12 lg:px-8 lg:py-8">
@@ -82,8 +96,8 @@ export default function HeroSection() {
               Book a Visit
               <ArrowRight className="h-4 w-4" />
             </PastelButton>
-            <PastelButton href="#our-nurseries" variant="mint">
-              View Our Nurseries
+            <PastelButton href="/admission/our-fees#fee-calculator" variant="mint">
+              Fee Calculator
             </PastelButton>
           </div>
 
@@ -99,30 +113,43 @@ export default function HeroSection() {
 
         </Reveal>
 
-        {/* ── Right: image stretches to fill the hero height (desktop only) ── */}
+        {/* ── Right: branch picker (desktop only) ── */}
         <Reveal
           delay={0.14}
-          className="relative hidden lg:flex lg:flex-col lg:self-stretch lg:py-6"
+          className="hidden lg:flex lg:justify-end"
         >
-          {/* Image fills the column height */}
-          <div className="relative flex-1 overflow-hidden rounded-[3rem] shadow-[0_24px_60px_rgba(90,74,66,0.13)] ring-4 ring-white/55">
-            <Image
-              src="/home/branches/harrow/harrow-home-hero.webp"
-              alt="Two children dressed as astronauts at the Blue Nest Montessori space-station role-play area"
-              fill
-              priority
-              className="object-cover object-center"
-              sizes="45vw"
-            />
-            <div className="absolute inset-0 bg-[rgba(255,248,242,0.10)]" aria-hidden="true" />
-          </div>
+          <div className="w-full max-w-[22rem] rounded-[2rem] bg-white/85 p-6 shadow-[0_18px_48px_rgba(90,74,66,0.18)] ring-1 ring-white/60 backdrop-blur-sm">
+            <span className="section-kicker">Our nurseries</span>
+            <h2 className="mt-3 font-heading text-[1.55rem] leading-snug text-[var(--ink)]">
+              Find your nearest Blue Nest
+            </h2>
 
-          {/* Floating info badge */}
-          <div className="absolute -bottom-1 -left-5 rounded-[1.5rem] bg-[rgba(255,253,249,0.96)] px-5 py-4 shadow-[0_10px_28px_rgba(90,74,66,0.12)] ring-1 ring-[rgba(90,74,66,0.07)] backdrop-blur-sm">
-            <p className="font-heading text-[1.55rem] leading-none text-[var(--ink)]">Ages 3m – 5yrs</p>
-            <p className="mt-1 text-xs text-[var(--muted)]">Mon–Fri · 7:30am–6:00pm</p>
+            <ul className="mt-5 flex flex-col gap-2">
+              {branches.map((b) => (
+                <li key={b.href}>
+                  <Link
+                    href={b.href}
+                    className="group flex items-center gap-3 rounded-[1.1rem] bg-[var(--soft-white)] px-4 py-3 ring-1 ring-[rgba(90,74,66,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_8px_22px_rgba(90,74,66,0.10)]"
+                  >
+                    <span
+                      className="h-3 w-3 shrink-0 rounded-full"
+                      style={{ background: b.colour }}
+                      aria-hidden="true"
+                    />
+                    <span className="flex-1 text-sm font-bold text-[var(--ink)]">
+                      {b.name}
+                    </span>
+                    {b.comingSoon && (
+                      <span className="rounded-full bg-[rgba(247,215,116,0.30)] px-2 py-0.5 text-[0.55rem] font-bold uppercase tracking-[0.12em] text-[#8a6d00]">
+                        Coming Soon
+                      </span>
+                    )}
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[var(--muted)] transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-[var(--ink)]" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
-
         </Reveal>
 
       </div>

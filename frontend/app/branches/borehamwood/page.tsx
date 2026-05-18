@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     description:
       "Montessori nursery in Borehamwood for children aged 3 months to 5 years. Ofsted Good · Government funding available.",
     url: "/branches/borehamwood",
-    images: [{ url: "/home/branches/borehamwood/borehamwood-office.jpg", width: 1280, height: 854, alt: "Blue Nest Montessori Borehamwood nursery" }],
+    images: [{ url: "/home/branches/borehamwood/borehamwood-office.jpg", width: 1200, height: 800, alt: "Blue Nest Montessori Borehamwood building, main entrance" }],
     type: "website",
   },
 };
@@ -109,10 +109,66 @@ const enrichmentActivities: EnrichmentActivity[] = [
 ];
 
 const gallery = [
-  { src: "/home/children-outdoor-play.jpg",    alt: "Children enjoying outdoor play at Borehamwood nursery", rotate: -2, caption: "Outdoor play"      },
-  { src: "/home/outdoor-play-for-children.jpg", alt: "Outdoor learning at Blue Nest Borehamwood",            rotate:  2, caption: "Learning outside"  },
-  { src: "/home/DSC_0151.jpg",                  alt: "Montessori learning environment",                       rotate: -1, caption: "Learning through play" },
-  { src: "/home/structured-routine.jpg",        alt: "Calm structured routine at nursery",                    rotate:  2, caption: "Calm routines"    },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-01.webp",
+    alt: "Teacher with two children building with red Montessori cubes by the cherry-blossom reading area at Blue Nest Borehamwood",
+    rotate: -2,
+    caption: "Montessori cubes",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-02.webp",
+    alt: "Imaginative wisteria-and-foliage reading nook at Blue Nest Borehamwood",
+    rotate: 2,
+    caption: "Imagination corner",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-03.webp",
+    alt: "Calm baby room with cot, book caddy and sensory mat at Blue Nest Borehamwood",
+    rotate: -1,
+    caption: "Baby room",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-04.webp",
+    alt: "Two babies in the wooden reading arch with fairy lights at Blue Nest Borehamwood",
+    rotate: 2,
+    caption: "Reading arch",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-05.webp",
+    alt: "Outdoor mud kitchen with chalkboard menu at Blue Nest Borehamwood",
+    rotate: -2,
+    caption: "Mud kitchen",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-06.webp",
+    alt: "Creation Station art area with chalkboard and crayon labels at Blue Nest Borehamwood",
+    rotate: 1,
+    caption: "Creation Station",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-07.webp",
+    alt: "Outdoor reading rug with picture books and soft toys at Blue Nest Borehamwood",
+    rotate: -1,
+    caption: "Outdoor reading rug",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-08.webp",
+    alt: "Africa-themed cultural sensory bin with globe and figurines at Blue Nest Borehamwood",
+    rotate: 2,
+    caption: "Cultural discovery",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-09.webp",
+    alt: "Spring reading area with pink cherry-blossom tree and triangle rug at Blue Nest Borehamwood",
+    rotate: -2,
+    caption: "Spring reading area",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-10.webp",
+    alt: "Baby exploring the wooden reading arch at Blue Nest Borehamwood",
+    rotate: 1,
+    caption: "Baby explorers",
+  },
 ];
 
 export default function BorehamwoodBranchPage() {
@@ -129,8 +185,8 @@ export default function BorehamwoodBranchPage() {
         location="Borehamwood, Hertfordshire"
         heading="Montessori Nursery in Borehamwood"
         description="At Blue Nest Montessori School Borehamwood, we bring the same outstanding Montessori experience to families in Hertfordshire. A warm, stimulating environment where children aged 3 months to 5 years can learn, play and truly thrive."
-        image="/home/children-outdoor-play.jpg"
-        imageAlt="Blue Nest Montessori Borehamwood nursery"
+        image="/home/branches/borehamwood/borehamwood-hero.webp"
+        imageAlt="Outdoor learning playground under the pergola at Blue Nest Montessori Borehamwood"
         primaryCta={{ label: "Book a Visit", href: "/contact?enquiry=book-visit&branch=borehamwood", variant: "rose" }}
         secondaryCta={{ label: "Contact Us", href: "#visit", variant: "mint" }}
       />
@@ -147,8 +203,8 @@ export default function BorehamwoodBranchPage() {
             <Reveal>
               <div className="mx-auto w-full max-w-[420px]">
                 <StickerCard
-                  src="/home/outdoor-play-for-children.jpg"
-                  alt="Children at Blue Nest Montessori Borehamwood"
+                  src="/home/branches/borehamwood/borehamwood-welcome.webp"
+                  alt="Two babies playing with wooden trains by the fairy-light teepee at Blue Nest Montessori Borehamwood"
                   rotate={-3}
                   sizes="(max-width: 1024px) 80vw, 38vw"
                   className="w-full"

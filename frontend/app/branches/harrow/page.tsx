@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     description:
       "Montessori nursery in Harrow for children aged 3 months to 5 years. Ofsted Good · Award-winning · Government funding available.",
     url: "/branches/harrow",
-    images: [{ url: "/home/outdoor-learning-and-play-area.jpg", width: 1280, height: 854, alt: "Blue Nest Montessori Harrow nursery" }],
+    images: [{ url: "/home/branches/harrow/harrow-hero.jpg", width: 1920, height: 1440, alt: "Children playing in the wisteria-shaded garden at Blue Nest Montessori Harrow" }],
     type: "website",
   },
 };
