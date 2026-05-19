@@ -144,10 +144,10 @@ export default function OurFeesPage() {
         <Doodle kind="pink-flower" className="right-[3%] bottom-8 h-9 w-9 opacity-45 hidden lg:block" />
 
         <div className="container-site relative">
-          <div className="grid items-center gap-10 py-10 sm:py-12 lg:grid-cols-[1.05fr_1fr] lg:gap-12 lg:py-16">
+          <div className="grid items-start gap-10 py-8 sm:py-10 lg:grid-cols-[1.05fr_1fr] lg:gap-12 lg:py-12">
 
             {/* Left — content */}
-            <Reveal>
+            <Reveal className="lg:pt-2">
               <div>
                 <span className="section-kicker">Admissions</span>
                 <h1 className="mt-3 font-heading text-[2.4rem] leading-[1.05] text-[var(--ink)] sm:text-[2.9rem] lg:text-[3.3rem]">
