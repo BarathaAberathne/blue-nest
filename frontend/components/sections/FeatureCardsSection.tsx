@@ -8,7 +8,7 @@ const cards = [
     description:
       "Child-led discovery with beautiful Montessori materials that build independence, focus and a genuine love of learning.",
     image: "/home/branches/harrow/harrow-feature-learning.webp",
-    alt: "A Blue Nest Montessori teacher guiding a child through a play-doh Insect Impressions activity",
+    alt: "Children engaged in a Montessori learning activity at Blue Nest Montessori Harrow",
     accent: "#ef8cab",
   },
   {
@@ -16,7 +16,7 @@ const cards = [
     description:
       "Outdoor learning adventures that connect children with nature, build resilience and spark curiosity beyond the classroom.",
     image: "/home/branches/harrow/harrow-feature-forest.webp",
-    alt: "Children and teacher exploring an outdoor ice and wildflower sensory tray at Blue Nest Montessori",
+    alt: "Children exploring outdoor learning and nature at Blue Nest Montessori Harrow",
     accent: "#82cfc4",
   },
   {
@@ -24,7 +24,7 @@ const cards = [
     description:
       "Freshly prepared, nutritious halal meals and menus carefully designed to fuel growing minds and bodies every day.",
     image: "/home/branches/harrow/harrow-feature-food.webp",
-    alt: "Teacher with a toddler at a food sensory tray with fresh vegetables and noodles at Blue Nest Montessori",
+    alt: "Children sharing fresh, healthy meals at Blue Nest Montessori Harrow",
     accent: "#b89bdd",
   },
   {
@@ -32,7 +32,7 @@ const cards = [
     description:
       "A warm, home-away-from-home where every child feels valued, secure and gently supported to grow and thrive.",
     image: "/home/branches/harrow/harrow-feature-safe.webp",
-    alt: "Calm prepared classroom with hot air balloon mural and umbrella ceiling at Blue Nest Montessori",
+    alt: "Calm, prepared Montessori classroom at Blue Nest Montessori Harrow",
     accent: "#f0bd55",
   },
 ];

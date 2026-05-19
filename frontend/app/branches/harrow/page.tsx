@@ -108,7 +108,7 @@ export const metadata: Metadata = {
     description:
       "Ofsted Good Montessori nursery in Harrow for ages 3 months to 5 years. Forest school, 15/30 hours funded childcare, weekly enrichment activities. Book a visit today.",
     url: "/branches/harrow",
-    images: [{ url: "/home/branches/harrow/harrow-hero.jpg", width: 1920, height: 1440, alt: "Children playing in the wisteria-shaded garden at Blue Nest Montessori Harrow" }],
+    images: [{ url: "/home/branches/harrow/harrow-hero.jpg", width: 1920, height: 1440, alt: "Blue Nest Montessori Harrow educator engaging with a young child at a farm-animal sensory tray" }],
     type: "website",
   },
 };
@@ -251,7 +251,7 @@ export default function HarrowBranchPage() {
         heading="Montessori Nursery in Harrow"
         description="At Blue Nest Montessori School Harrow, we provide a warm, nurturing and stimulating environment where children can learn, develop and grow with confidence — a home away from home for every child's early years journey."
         image="/home/branches/harrow/harrow-hero.webp"
-        imageAlt="Children playing in the wisteria-shaded garden at Blue Nest Montessori Harrow"
+        imageAlt="Blue Nest Montessori Harrow educator engaging with a young child at a farm-animal sensory tray"
         primaryCta={{ label: "Book a Visit", href: "/contact?enquiry=book-visit&branch=harrow", variant: "rose" }}
         secondaryCta={{ label: "Contact Us", href: "#visit", variant: "mint" }}
       />

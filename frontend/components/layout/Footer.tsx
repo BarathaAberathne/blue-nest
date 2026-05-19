@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Mail, MapPin, MessageCircle, Phone } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 import Doodle from "@/components/ui/Doodle";
 
 // ── Inline social SVGs (mirrors Header.tsx) ───────────────────────────────────
@@ -66,9 +66,8 @@ const quickLinks = [
 ];
 
 const socialLinks = [
-  { label: "Facebook", href: "#", Icon: () => <FacebookIcon className="h-4 w-4" /> },
-  { label: "Instagram", href: "#", Icon: () => <InstagramIcon className="h-4 w-4" /> },
-  { label: "WhatsApp", href: "#", Icon: () => <MessageCircle className="h-4 w-4" /> },
+  { label: "Facebook",  href: "https://www.facebook.com/BlueNestMontessorischool", Icon: () => <FacebookIcon className="h-4 w-4" /> },
+  { label: "Instagram", href: "https://www.instagram.com/bluenest_montessori",     Icon: () => <InstagramIcon className="h-4 w-4" /> },
 ];
 
 // ── Column label style ────────────────────────────────────────────────────────
@@ -123,6 +122,8 @@ export default function Footer() {
                 <a
                   key={label}
                   href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={label}
                   className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[rgba(90,74,66,0.55)] shadow-[0_2px_8px_rgba(90,74,66,0.08)] transition hover:text-[#5fc8c7]"
                 >

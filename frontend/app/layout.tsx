@@ -124,8 +124,8 @@ const organisationJsonLd = {
     addressCountry: "GB",
   },
   sameAs: [
-    "https://www.facebook.com/bluenestmontessori",
-    "https://www.instagram.com/bluenestmontessori",
+    "https://www.facebook.com/BlueNestMontessorischool",
+    "https://www.instagram.com/bluenest_montessori",
     "https://www.yell.com/biz/blue-nest-montessori-school-harrow-341644/",
   ],
 };

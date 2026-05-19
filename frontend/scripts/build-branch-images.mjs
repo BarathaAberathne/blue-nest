@@ -52,7 +52,7 @@ const BRANCHES = {
   harrow: {
     sourceDir: "harrow-iphone",
     slots: [
-      { name: "harrow-hero",       src: "IMG_2614.JPG", preset: "hero"    },
+      { name: "harrow-hero",       src: "IMG_2626.JPG", preset: "hero"    },
       { name: "harrow-office",     src: "IMG_2800.jpg", preset: "card"    },
       { name: "harrow-welcome",    src: "IMG_2796.JPG", preset: "sticker" },
       { name: "harrow-daily",      src: "IMG_2789.JPG", preset: "sticker" },
@@ -70,10 +70,10 @@ const BRANCHES = {
       // Home-page hero (used by HeroSection)
       { name: "harrow-home-hero", src: "IMG_2762.JPG", preset: "hero"    },
       // Home-page "what makes Blue Nest special" feature cards
-      { name: "harrow-feature-learning", src: "IMG_2725.JPG", preset: "card" },
-      { name: "harrow-feature-forest",   src: "IMG_2606.JPG", preset: "card" },
-      { name: "harrow-feature-food",     src: "IMG_2683.JPG", preset: "card" },
-      { name: "harrow-feature-safe",     src: "IMG_2697.JPG", preset: "card" },
+      { name: "harrow-feature-learning", src: "IMG_2667.JPG", preset: "card" },
+      { name: "harrow-feature-forest",   src: "IMG_2601.JPG", preset: "card" },
+      { name: "harrow-feature-food",     src: "IMG_2687.JPG", preset: "card" },
+      { name: "harrow-feature-safe",     src: "IMG_2696.JPG", preset: "card" },
       // Home-page gallery preview tiles
       { name: "harrow-preview-01", src: "IMG_2615.JPG", preset: "gallery" },
       { name: "harrow-preview-02", src: "IMG_2730.JPG", preset: "gallery" },

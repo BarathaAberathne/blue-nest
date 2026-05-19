@@ -5,7 +5,6 @@ import {
   Handbag,
   Mail,
   Menu,
-  MessageCircle,
   Phone,
   Search,
   ShieldCheck,
@@ -253,9 +252,8 @@ export default function Header() {
               {/* Social + Action icons */}
               <div className="flex items-center gap-0.5">
                 {[
-                  { label: "Facebook",  href: "#", Icon: () => <FacebookIcon className="h-[18px] w-[18px]" /> },
-                  { label: "Instagram", href: "#", Icon: () => <InstagramIcon className="h-[18px] w-[18px]" /> },
-                  { label: "WhatsApp",  href: "#", Icon: () => <MessageCircle className="h-[18px] w-[18px]" /> },
+                  { label: "Facebook",  href: "https://www.facebook.com/BlueNestMontessorischool", Icon: () => <FacebookIcon className="h-[18px] w-[18px]" /> },
+                  { label: "Instagram", href: "https://www.instagram.com/bluenest_montessori",     Icon: () => <InstagramIcon className="h-[18px] w-[18px]" /> },
                   { label: "Yell",      href: "https://www.yell.com/biz/blue-nest-montessori-school-harrow-341644/", Icon: () => <YellIcon className="h-[18px] w-[18px]" /> },
                 ].map(({ label, href, Icon }) => (
                   <a
@@ -469,9 +467,8 @@ export default function Header() {
             {/* Social icons */}
             <div className="mt-3 flex items-center gap-2">
               {[
-                { label: "Facebook",  href: "#", Icon: () => <FacebookIcon className="h-4 w-4" /> },
-                { label: "Instagram", href: "#", Icon: () => <InstagramIcon className="h-4 w-4" /> },
-                { label: "WhatsApp",  href: "#", Icon: () => <MessageCircle className="h-4 w-4" /> },
+                { label: "Facebook",  href: "https://www.facebook.com/BlueNestMontessorischool", Icon: () => <FacebookIcon className="h-4 w-4" /> },
+                { label: "Instagram", href: "https://www.instagram.com/bluenest_montessori",     Icon: () => <InstagramIcon className="h-4 w-4" /> },
                 { label: "Yell",      href: "https://www.yell.com/biz/blue-nest-montessori-school-harrow-341644/", Icon: () => <YellIcon className="h-4 w-4" /> },
               ].map(({ label, href, Icon }) => (
                 <a
