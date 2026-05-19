@@ -109,20 +109,49 @@ export default function OurFeesPage() {
       />
 
       {/* ══════════════════════════════════════════════════════
-          HERO — 2-column: text left, photo right
+          HERO — split layout: content left, fee calculator right
+          Calculator lives in the hero so it's visible without
+          scrolling on both desktop and mobile. The #fee-calculator
+          anchor is preserved here so existing CTAs (home hero,
+          branch pages) still scroll to the calculator card.
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative overflow-hidden">
-        <Doodle kind="blue-bird"  className="left-[2%]  top-6  h-9  w-9  opacity-55 hidden sm:block" />
+        {/* Soft full-bleed Montessori classroom background — sits behind
+            everything at low opacity so the calculator stays the visual
+            anchor. Matches the layered-overlay pattern used on the
+            /admission and /admission/prospectus heroes. */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <Image
+            src="/home/DSC_0177.jpg"
+            alt=""
+            fill
+            priority
+            className="object-cover object-center"
+            sizes="100vw"
+          />
+          <div className="absolute inset-0 bg-[#fff8f2]/82" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_15%_55%,rgba(246,213,223,0.45),transparent_50%),radial-gradient(ellipse_at_82%_20%,rgba(127,216,210,0.20),transparent_40%)]" />
+          <div
+            className="absolute inset-0 opacity-30"
+            style={{
+              backgroundImage: "radial-gradient(circle, rgba(90,74,66,0.07) 1px, transparent 1px)",
+              backgroundSize: "20px 20px",
+            }}
+          />
+        </div>
 
-        <div className="container-site">
-          <div className="grid min-h-[58vh] items-center gap-0 lg:grid-cols-2">
+        <Doodle kind="blue-bird"   className="left-[2%]  top-6    h-9 w-9 opacity-55 hidden sm:block" />
+        <Doodle kind="pink-flower" className="right-[3%] bottom-8 h-9 w-9 opacity-45 hidden lg:block" />
+
+        <div className="container-site relative">
+          <div className="grid items-center gap-10 py-10 sm:py-12 lg:grid-cols-[1.05fr_1fr] lg:gap-12 lg:py-16">
 
             {/* Left — content */}
             <Reveal>
-              <div className="py-14 pr-0 sm:py-16 lg:pr-10">
+              <div>
                 <span className="section-kicker">Admissions</span>
-                <h1 className="mt-4 font-heading text-[3rem] leading-[1.05] text-[var(--ink)] sm:text-[3.6rem]">
-                  Our Fees
+                <h1 className="mt-3 font-heading text-[2.4rem] leading-[1.05] text-[var(--ink)] sm:text-[2.9rem] lg:text-[3.3rem]">
+                  Our Nursery Fees
                 </h1>
                 {/* Pink dotted underline */}
                 <div className="mt-2 flex gap-1" aria-hidden="true">
@@ -131,80 +160,60 @@ export default function OurFeesPage() {
                   ))}
                 </div>
 
-                <p className="body-text mt-5 max-w-sm">
-                  We offer flexible childcare options tailored to your family&rsquo;s needs.
-                  Contact us for full details and availability.
+                <p className="body-text mt-4 max-w-md text-[1.05rem]">
+                  Flexible childcare options tailored to your family&rsquo;s needs across all
+                  Blue Nest branches.
+                </p>
+                <p className="body-text mt-3 max-w-md">
+                  Estimate your weekly and monthly nursery fees instantly using our interactive
+                  calculator. Funding support and flexible sessions are built in.
                 </p>
 
-                <div className="mt-7 flex flex-wrap gap-3">
-                  <a
-                    href="/contact?enquiry=fees"
-                    className="inline-flex items-center gap-2 rounded-full bg-[#ef8cab] px-6 py-3 font-heading text-[1.3rem] leading-none tracking-[0.04em] text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#e8719a]"
-                  >
-                    <Phone className="h-4 w-4" strokeWidth={2} />
-                    Contact Us
-                  </a>
+                {/* CTAs */}
+                <div className="mt-6 flex flex-wrap gap-3">
                   <a
                     href="/contact?enquiry=arrange-a-visit"
-                    className="inline-flex items-center gap-2 rounded-full bg-[#7fd8d2] px-6 py-3 font-heading text-[1.3rem] leading-none tracking-[0.04em] text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#6ecfc9]"
+                    className="inline-flex items-center gap-2 rounded-full bg-[#7fd8d2] px-5 py-2.5 font-heading text-[1.05rem] leading-none tracking-[0.04em] text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#6ecfc9]"
                   >
                     <CalendarDays className="h-4 w-4" strokeWidth={2} />
                     Book a Visit
                   </a>
+                  <a
+                    href="/contact?enquiry=fees"
+                    className="inline-flex items-center gap-2 rounded-full bg-[#ef8cab] px-5 py-2.5 font-heading text-[1.05rem] leading-none tracking-[0.04em] text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#e8719a]"
+                  >
+                    <Phone className="h-4 w-4" strokeWidth={2} />
+                    Contact Us
+                  </a>
                 </div>
+
+                {/* Trust pills — compact, two columns on mobile, single row on sm+ */}
+                <ul className="mt-6 flex flex-wrap gap-2">
+                  {highlights.map((h) => (
+                    <li
+                      key={h.label}
+                      className="inline-flex items-center gap-2 rounded-full bg-white/85 px-3 py-1.5 text-[0.8rem] font-semibold text-[var(--ink)] ring-1 ring-[rgba(90,74,66,0.08)] shadow-[0_2px_8px_rgba(90,74,66,0.05)] backdrop-blur-sm"
+                    >
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ background: h.color }}
+                        aria-hidden="true"
+                      />
+                      {h.label}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </Reveal>
 
-            {/* Right — photo */}
-            <div className="relative hidden h-full min-h-[58vh] lg:block">
-              <Image
-                src="/home/DSC_0177.jpg"
-                alt="Child working with Montessori materials"
-                fill
-                priority
-                className="object-cover object-center"
-                sizes="50vw"
-              />
-              {/* Soft left fade to blend with paper-bg */}
-              <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--paper)_0%,transparent_30%)]" />
-            </div>
+            {/* Right — Fee Calculator (the hero's primary conversion element) */}
+            <Reveal delay={0.08}>
+              <div id="fee-calculator" className="lg:sticky lg:top-24">
+                <FeeCalculatorCard defaultBranch="harrow" />
+              </div>
+            </Reveal>
+
           </div>
-        </div>
-
-        {/* Mobile photo strip */}
-        <div className="relative h-48 sm:h-64 lg:hidden">
-          <Image
-            src="/home/DSC_0177.jpg"
-            alt="Child working with Montessori materials"
-            fill
-            className="object-cover object-top"
-            sizes="100vw"
-          />
-        </div>
-      </section>
-
-
-      {/* ══════════════════════════════════════════════════════
-          KEY INFO STRIP — 4 highlights
-      ══════════════════════════════════════════════════════ */}
-      <section className="paper-bg relative px-4 py-8 sm:px-6 lg:px-8">
-        <div className="container-site">
-          <Reveal>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {highlights.map((h) => (
-                <div
-                  key={h.label}
-                  className="flex items-center gap-3 rounded-[1.4rem] bg-white/80 px-5 py-4 ring-1 ring-[rgba(90,74,66,0.07)] shadow-[0_4px_14px_rgba(90,74,66,0.05)]"
-                >
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: h.color }}
-                  />
-                  <span className="text-sm font-bold text-[var(--ink)]">{h.label}</span>
-                </div>
-              ))}
-            </div>
-          </Reveal>
         </div>
       </section>
 
@@ -251,37 +260,6 @@ export default function OurFeesPage() {
                   <Download className="h-4 w-4 opacity-50 transition group-hover:opacity-100" style={{ color: d.color }} strokeWidth={2} />
                 </a>
               ))}
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-
-      {/* ══════════════════════════════════════════════════════
-          FEE CALCULATOR
-          Anchor target for the home-page hero's "Fee Calculator"
-          CTA: /admission/our-fees#fee-calculator
-      ══════════════════════════════════════════════════════ */}
-      <section
-        id="fee-calculator"
-        className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16"
-      >
-        <div className="container-site">
-          <Reveal>
-            <div className="mx-auto mb-8 max-w-2xl text-center">
-              <span className="section-kicker">Plan ahead</span>
-              <h2 className="section-title mt-4">Estimate your fees</h2>
-              <p className="body-text mt-5">
-                Pick your branch, age band and session pattern below for an
-                indicative weekly and monthly cost. Funding, year basis and
-                family discount options are built in.
-              </p>
-            </div>
-          </Reveal>
-
-          <Reveal delay={0.08}>
-            <div className="mx-auto w-full max-w-[28rem]">
-              <FeeCalculatorCard defaultBranch="harrow" />
             </div>
           </Reveal>
         </div>
