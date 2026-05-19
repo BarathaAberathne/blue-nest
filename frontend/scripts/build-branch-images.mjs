@@ -118,10 +118,10 @@ const BRANCHES = {
     saturation: 1.40,
     slots: [
       { name: "borehamwood-hero",       src: "DSC02288.JPG", preset: "hero"    },
-      // Landing-page Borehamwood card. Source is a Sony .ARW raw that was
-      // converted to JPG with `sips -s format jpeg`, then placed under
-      // .claude/site-images/ — hence the per-slot srcDir override.
-      { name: "borehamwood-office",     src: "DSC02288.jpg", srcDir: ".claude/site-images", preset: "card"    },
+      // Landing-page Borehamwood card. Uses the same source as the
+      // branch-page hero (DSC02288.JPG) but built at the smaller `card`
+      // preset (1200px wide) instead of `hero` (1920px wide).
+      { name: "borehamwood-office",     src: "DSC02288.JPG", preset: "card"    },
       { name: "borehamwood-welcome",    src: "DSC02019.JPG", preset: "sticker" },
       { name: "borehamwood-gallery-01", src: "DSC02105.JPG", preset: "gallery" },
       { name: "borehamwood-gallery-02", src: "DSC02143.JPG", preset: "gallery" },
@@ -164,14 +164,7 @@ function fmtKb(n) { return `${(n / 1024).toFixed(0)} KB`; }
 let totalBytes = 0;
 for (const slot of branch.slots) {
   const preset = PRESETS[slot.preset];
-  // Optional per-slot srcDir override — used when a single image needs to
-  // come from a different location than the branch's main source dir
-  // (e.g. a one-off shot sitting in the repo's .claude/site-images/).
-  // Path is resolved relative to the repo root.
-  const slotSourceDir = slot.srcDir
-    ? resolve(new URL("../..", import.meta.url).pathname, slot.srcDir)
-    : sourceDir;
-  const srcPath = join(slotSourceDir, slot.src);
+  const srcPath = join(sourceDir, slot.src);
   if (!existsSync(srcPath)) {
     // iPhone exports inconsistently capitalise the extension. Try the other case.
     const alt = srcPath.replace(/\.JPG$/, ".jpg").replace(/\.jpg$/, ".JPG");
@@ -183,7 +176,7 @@ for (const slot of branch.slots) {
     }
   }
 
-  const input = readFileSync(srcPath);
+  const input = readFileSync(join(sourceDir, slot.src));
   const meta  = await sharp(input, { failOn: "none" }).rotate().metadata();
   // Per-branch saturation multiplier. 1.0 = unchanged. Applied via
   // sharp.modulate before resize so the colour adjustment is baked into
