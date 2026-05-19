@@ -108,7 +108,7 @@ export const metadata: Metadata = {
     description:
       "Private Montessori day nursery in Borehamwood for ages 3 months to 5 years. Ofsted Good · forest school · funded childcare · enrichment activities.",
     url: "/branches/borehamwood",
-    images: [{ url: "/home/branches/borehamwood/borehamwood-office.jpg", width: 1200, height: 800, alt: "Blue Nest Montessori Borehamwood building, main entrance" }],
+    images: [{ url: "/home/branches/borehamwood/borehamwood-office.jpg", width: 1200, height: 800, alt: "Blue Nest Montessori Borehamwood nursery" }],
     type: "website",
   },
 };

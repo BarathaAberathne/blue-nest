@@ -27,7 +27,7 @@ const branches = [
     name:        "Borehamwood",
     href:        "/branches/borehamwood",
     image:       "/home/branches/borehamwood/borehamwood-office.webp",
-    alt:         "Blue Nest Montessori Borehamwood building, main entrance",
+    alt:         "Blue Nest Montessori Borehamwood nursery",
     description: "Our Borehamwood nursery brings the full Blue Nest experience to families in Hertfordshire — the same high standard of Montessori care and learning.",
     color:       "var(--branch-borehamwood)",
     cta:         "View Nursery",
