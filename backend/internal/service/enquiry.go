@@ -119,6 +119,11 @@ func feeQuoteHTML(q *models.FeeQuote) string {
 	if q.Funding != "" {
 		rows += row("Gov. Funding", q.Funding+" hrs/wk")
 	}
+	if q.YearWeeks == 38 {
+		rows += row("Year Basis", "Term-time only (38 weeks)")
+	} else if q.YearWeeks == 52 {
+		rows += row("Year Basis", "Full year (52 weeks)")
+	}
 	rows += row("Gross Weekly", fmtGBP(q.GrossWeekly))
 	if q.Discount != "" {
 		discountLabel := "Sibling Discount (10%)"

@@ -15,6 +15,7 @@ type FeeQuote struct {
 	Discount       string  `bson:"discount,omitempty"        json:"discount,omitempty"`        // "sibling" | "staff"
 	DiscountAmount float64 `bson:"discount_amount,omitempty" json:"discount_amount,omitempty"` // weekly £ saving
 	Funding        string  `bson:"funding,omitempty"         json:"funding,omitempty"`
+	YearWeeks      int     `bson:"year_weeks,omitempty"      json:"year_weeks,omitempty"`      // 38 = term-time, 52 = full-year
 	GrossWeekly    float64 `bson:"gross_weekly"              json:"gross_weekly"`
 	FundingOffset  float64 `bson:"funding_offset,omitempty"  json:"funding_offset,omitempty"`
 	NetWeekly      float64 `bson:"net_weekly"                json:"net_weekly"`
