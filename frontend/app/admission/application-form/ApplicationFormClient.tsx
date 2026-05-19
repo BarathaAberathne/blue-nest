@@ -386,9 +386,9 @@ export default function ApplicationFormClient() {
               <div className="lg:sticky lg:top-24 space-y-4">
                 <div>
                   <span className="section-kicker">Admissions</span>
-                  <h1 className="mt-3 font-heading text-[1.9rem] leading-tight text-[var(--ink)] sm:text-[2.1rem]">
+                  <h2 className="mt-3 font-heading text-[1.9rem] leading-tight text-[var(--ink)] sm:text-[2.1rem]">
                     Affordable private nursery in Harrow, Pinner and Borehamwood
-                  </h1>
+                  </h2>
                 </div>
 
                 <div className="h-px bg-[rgba(90,74,66,0.08)]" />
