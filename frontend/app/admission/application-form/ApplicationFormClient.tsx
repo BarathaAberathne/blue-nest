@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, CheckCircle2, ChevronDown, MapPin, Sparkles } from "lucide-react";
-import PublicLayout from "@/components/layout/PublicLayout";
 import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
 import { api } from "@/lib/api";
@@ -356,7 +355,7 @@ export default function ApplicationFormClient() {
   const submitting = status === "submitting";
 
   return (
-    <PublicLayout>
+    <>
 
       {/* ══════════════════════════════════════════════════════
           SINGLE SECTION — intro sidebar left, form right
@@ -588,6 +587,6 @@ export default function ApplicationFormClient() {
       </section>
 
 
-    </PublicLayout>
+    </>
   );
 }

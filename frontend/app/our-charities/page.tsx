@@ -244,6 +244,46 @@ export default function OurCharitiesPage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════
+          WHY COMMUNITY PARTICIPATION MATTERS
+      ══════════════════════════════════════════════════════ */}
+      <section className="blush-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <Doodle kind="pink-flower" className="left-[3%]  bottom-10 h-9 w-9 opacity-42 hidden sm:block" />
+        <Doodle kind="leaf"        className="right-[4%] top-10    h-9 w-9 opacity-42 hidden lg:block" />
+
+        <div className="container-site">
+          <Reveal>
+            <div className="mx-auto max-w-3xl">
+              <span className="section-kicker">Why it matters</span>
+              <h2 className="section-title mt-4 text-[#cf7d9c]">
+                Community participation is real early-years learning
+              </h2>
+              <div className="body-text mt-5 space-y-5">
+                <p>
+                  Young children build their sense of self through belonging. When a two-year-old
+                  helps choose tins for a food-bank collection, or a four-year-old runs a stall at
+                  a fundraising morning, they&rsquo;re practising the same social and emotional
+                  skills the EYFS framework calls out as fundamental: turn-taking, recognising
+                  feelings in others, sharing, and contributing to a group beyond themselves.
+                </p>
+                <p>
+                  Charity moments also give children a quiet introduction to agency — the feeling
+                  that what they do has weight in the world outside the nursery walls. Montessori
+                  educators have written about this for a century: real, purposeful work (not
+                  pretend work) is what builds confidence and care for others.
+                </p>
+                <p>
+                  Empathy isn&rsquo;t taught from a workbook. Children grow it by watching trusted
+                  adults act with kindness and by being included in those acts themselves. That&rsquo;s
+                  why we make our charity and community work visible — small moments that ripple
+                  out into a lifetime of being a good neighbour.
+                </p>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════
           HOW WE GIVE BACK — 4 approach cards
       ══════════════════════════════════════════════════════ */}
       <section

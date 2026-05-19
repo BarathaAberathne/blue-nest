@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { ArrowRight, Mail, Phone } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, BookOpen, Compass, Hammer, MessageCircle } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import PastelButton from "@/components/ui/PastelButton";
 import StickerCard from "@/components/ui/StickerCard";
@@ -167,14 +168,29 @@ export default function WhyMontessoriPage() {
               <div className="body-text mt-5 space-y-5">
                 <p>
                   Dr. Maria Montessori was a pioneer in the education of young children and
-                  founded the Montessori Method of teaching. She believed that children have
-                  sensitive periods for learning. These are the times when the child will be
-                  sensitive to a certain type of knowledge and will learn effortlessly.
+                  founded the Montessori method. She believed children have sensitive periods —
+                  times when a child absorbs a particular kind of knowledge almost effortlessly.
+                  Her approach has shaped early years learning for over a century and sits at
+                  the heart of every Blue Nest classroom across{" "}
+                  <Link href="/branches/harrow" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    Harrow
+                  </Link>
+                  ,{" "}
+                  <Link href="/branches/pinner" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    Pinner
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/branches/borehamwood" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                    Borehamwood
+                  </Link>
+                  .
                 </p>
                 <p>
-                  The Montessori nursery environment is carefully designed to respond to the
-                  child&rsquo;s needs at the early stages and provides maximum opportunity for
-                  their development.
+                  A Montessori nursery environment is carefully designed to respond to a child&rsquo;s
+                  developmental needs and gives them the maximum opportunity to lead their own
+                  learning. We blend Montessori with the UK EYFS framework so children meet every
+                  early-years milestone alongside the deeper independence, focus and language that
+                  Montessori is known for.
                 </p>
               </div>
             </Reveal>
@@ -183,6 +199,86 @@ export default function WhyMontessoriPage() {
         </div>
       </section>
 
+
+      {/* ══════════════════════════════════════════════════════
+          MONTESSORI PILLARS — 4 cards
+      ══════════════════════════════════════════════════════ */}
+      <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <Doodle kind="leaf"        className="left-[2%]  top-10    h-9 w-9 opacity-42 hidden sm:block" />
+        <Doodle kind="pink-flower" className="right-[4%] bottom-10 h-9 w-9 opacity-42 hidden lg:block" />
+
+        <div className="container-site">
+          <Reveal>
+            <div className="mx-auto max-w-2xl text-center">
+              <span className="section-kicker">Four pillars</span>
+              <h2 className="section-title mt-4 text-[#cf7d9c]">How Montessori shapes the day</h2>
+              <p className="body-text mt-5">
+                Children aged 3 months to 5 years learn through prepared environments and
+                purposeful materials. Every pillar below maps onto the EYFS framework so
+                Blue Nest children meet every UK early-years goal — and usually a bit more.
+              </p>
+            </div>
+          </Reveal>
+
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                icon: Compass,
+                color: "#cf7d9c",
+                bg:    "rgba(246,213,223,0.35)",
+                title: "Independence",
+                desc:  "Children choose their own work from the prepared shelves and see each activity through — building focus, agency and quiet confidence.",
+              },
+              {
+                icon: Hammer,
+                color: "#5fc8c7",
+                bg:    "rgba(127,216,210,0.18)",
+                title: "Practical Life",
+                desc:  "Pouring, buttoning, watering plants, preparing snack. Real tools, real care — the skills that build coordination, order and self-belief.",
+              },
+              {
+                icon: MessageCircle,
+                color: "#f0bd55",
+                bg:    "rgba(247,215,116,0.22)",
+                title: "Language Development",
+                desc:  "Sandpaper letters, conversation-rich routines, songs and one-to-one storytelling grow vocabulary, phonics and confident self-expression.",
+              },
+              {
+                icon: BookOpen,
+                color: "#b89bdd",
+                bg:    "rgba(185,159,224,0.20)",
+                title: "School Readiness",
+                desc:  "Pre-writing, number sense, social problem-solving and quiet rest. Children arrive at reception class ready to listen, ask and lead.",
+              },
+            ].map((p, i) => (
+              <Reveal key={p.title} delay={i * 0.06} className="h-full">
+                <article
+                  className="flex h-full flex-col rounded-[2rem] px-6 py-7 ring-1 ring-[rgba(90,74,66,0.07)] shadow-[0_4px_16px_rgba(90,74,66,0.07)]"
+                  style={{ background: p.bg }}
+                >
+                  <span className="mb-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 shadow-[0_2px_8px_rgba(90,74,66,0.08)]">
+                    <p.icon className="h-5 w-5" style={{ color: p.color }} strokeWidth={1.8} />
+                  </span>
+                  <h3 className="font-heading text-[1.25rem] leading-snug" style={{ color: p.color }}>
+                    {p.title}
+                  </h3>
+                  <p className="body-text mt-3 flex-1 text-sm">{p.desc}</p>
+                </article>
+              </Reveal>
+            ))}
+          </div>
+
+          <Reveal delay={0.2}>
+            <p className="body-text mx-auto mt-8 max-w-2xl text-center text-sm">
+              Pair Montessori indoors with weekly{" "}
+              <Link href="/forest-school" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                forest school
+              </Link>{" "}
+              sessions and you have the Blue Nest day — calm, child-led and full of real learning.
+            </p>
+          </Reveal>
+        </div>
+      </section>
 
       {/* ══════════════════════════════════════════════════════
           GREAT START TO SCHOOL LIFE
@@ -286,95 +382,37 @@ export default function WhyMontessoriPage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════
-          CTA / CONTACT
+          CTA
       ══════════════════════════════════════════════════════ */}
       <ZigzagBand className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <Doodle kind="leaf"      className="right-[3%]  top-12   h-10 w-10 hidden sm:block opacity-40" />
-        <Doodle kind="pink-flower"    className="right-[18%] bottom-6 h-9  w-9  hidden lg:block opacity-40" />
+        <Doodle kind="leaf"        className="right-[3%]  top-12   h-10 w-10 hidden sm:block opacity-40" />
+        <Doodle kind="pink-flower" className="right-[18%] bottom-6 h-9  w-9  hidden lg:block opacity-40" />
 
         <div className="container-site">
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-16">
-
-            {/* Left — heading + contact details */}
-            <Reveal>
-              <h2 className="font-heading text-[2.2rem] leading-[1.2] text-[var(--ink)] sm:text-[2.6rem]">
-                We provide a wonderful environment where children can learn and grow
+          <Reveal>
+            <div className="mx-auto max-w-2xl text-center">
+              <span className="section-kicker">Take the next step</span>
+              <h2 className="section-title mt-4 text-[var(--ink)]">
+                See Montessori in action
               </h2>
-
-              <div className="mt-8 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.08)]">
-                    <Phone className="h-4 w-4 text-[#5fc8c7]" />
-                  </div>
-                  <div className="text-sm font-semibold leading-relaxed text-[rgba(90,74,66,0.72)]">
-                    <div>020 8863 2076</div>
-                    <div>020 8429 5411</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.08)]">
-                    <Mail className="h-4 w-4 text-[#5fc8c7]" />
-                  </div>
-                  <a
-                    href="mailto:info@bluenest.uk"
-                    className="text-sm font-semibold text-[rgba(90,74,66,0.72)] transition hover:text-[var(--ink)]"
-                  >
-                    info@bluenest.uk
-                  </a>
-                </div>
-              </div>
-
-              <p className="mt-8 text-[0.65rem] font-bold uppercase tracking-[0.2em] text-[rgba(90,74,66,0.48)]">
-                Follow us
+              <p className="body-text mx-auto mt-5 max-w-lg">
+                Book a visit at our Harrow, Pinner or Borehamwood nursery and watch a Montessori
+                day unfold. We&rsquo;ll show you the prepared environments, introduce your child&rsquo;s
+                key person and talk you through fees and funded childcare.
               </p>
-              <div className="mt-3 flex gap-3">
-                {["Facebook", "Instagram", "TikTok"].map((name) => (
-                  <a
-                    key={name}
-                    href="#"
-                    aria-label={name}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-[rgba(90,74,66,0.08)] text-[0.6rem] font-bold text-[var(--ink)] transition hover:bg-[rgba(90,74,66,0.12)]"
-                  >
-                    {name[0]}
-                  </a>
-                ))}
+              <div className="mt-8 flex flex-wrap justify-center gap-3">
+                <PastelButton href="/contact" variant="rose">
+                  Book a Visit <ArrowRight className="h-4 w-4" />
+                </PastelButton>
+                <PastelButton href="/admission" variant="mint">
+                  Start an Application <ArrowRight className="h-4 w-4" />
+                </PastelButton>
+                <PastelButton href="/admission/our-fees" variant="blush">
+                  See Our Fees <ArrowRight className="h-4 w-4" />
+                </PastelButton>
               </div>
-            </Reveal>
-
-            {/* Right — contact form */}
-            <Reveal delay={0.1}>
-              <div className="rounded-[2rem] bg-white px-6 py-7 ring-1 ring-[rgba(90,74,66,0.08)] shadow-[0_4px_16px_rgba(90,74,66,0.07)] sm:px-8">
-                <form className="space-y-3">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <input
-                      type="text"
-                      placeholder="Your Name"
-                      className="w-full rounded-[1rem] border-0 bg-white/90 px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.4)] focus:outline-none focus:ring-2 focus:ring-white"
-                    />
-                    <input
-                      type="email"
-                      placeholder="Email Address"
-                      className="w-full rounded-[1rem] border-0 bg-white/90 px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.4)] focus:outline-none focus:ring-2 focus:ring-white"
-                    />
-                  </div>
-                  <input
-                    type="tel"
-                    placeholder="Phone Number"
-                    className="w-full rounded-[1rem] border-0 bg-white/90 px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.4)] focus:outline-none focus:ring-2 focus:ring-white"
-                  />
-                  <textarea
-                    rows={4}
-                    placeholder="Your Message"
-                    className="w-full resize-none rounded-[1rem] border-0 bg-white/90 px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.4)] focus:outline-none focus:ring-2 focus:ring-white"
-                  />
-                  <button type="submit" className="btn-primary w-full">
-                    Send Message <ArrowRight className="h-4 w-4" />
-                  </button>
-                </form>
-              </div>
-            </Reveal>
-
-          </div>
+            </div>
+          </Reveal>
         </div>
       </ZigzagBand>
 

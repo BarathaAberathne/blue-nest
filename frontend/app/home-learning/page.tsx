@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { ArrowRight, BookOpen, ExternalLink, Heart, Lightbulb, MessageCircle, Mic } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, BookOpen, ExternalLink, Heart, Lightbulb, Mic, Shirt, Sunrise, Utensils } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
@@ -227,6 +228,92 @@ export default function HomeLearningPage() {
         </div>
       </section>
 
+
+      {/* ══════════════════════════════════════════════════════
+          3.5 — MONTESSORI AT HOME — practical routine tiles
+      ══════════════════════════════════════════════════════ */}
+      <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <Doodle kind="leaf"        className="left-[3%]  bottom-10 h-9 w-9 opacity-42 hidden sm:block" />
+        <Doodle kind="pink-flower" className="right-[4%] top-10    h-9 w-9 opacity-42 hidden lg:block" />
+
+        <div className="container-site">
+          <Reveal>
+            <div className="mx-auto max-w-2xl text-center">
+              <span className="section-kicker">Montessori at home</span>
+              <h2 className="section-title mt-4 text-[#cf7d9c]">Simple daily routines</h2>
+              <p className="body-text mt-5">
+                Four small habits parents can weave into a normal weekday. Each one builds the
+                same independence, language and confidence we work on in nursery.
+              </p>
+            </div>
+          </Reveal>
+
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                icon: Sunrise,
+                color: "#f0bd55",
+                bg:    "rgba(247,215,116,0.22)",
+                title: "Morning routine",
+                desc:  "Set out clothes the night before. A two-step picture card on the wall helps a toddler dress themselves — even when it&rsquo;s slow.",
+              },
+              {
+                icon: Utensils,
+                color: "#cf7d9c",
+                bg:    "rgba(246,213,223,0.35)",
+                title: "Mealtime independence",
+                desc:  "Real plates, real cutlery, child-sized jug for water. Let them pour, scoop and clear their own plate — practical life in action.",
+              },
+              {
+                icon: Shirt,
+                color: "#5fc8c7",
+                bg:    "rgba(127,216,210,0.18)",
+                title: "Dressing themselves",
+                desc:  "Buttons, zips and Velcro are early years strength training. Loose clothes, a low hook for their coat, and time — that&rsquo;s the trick.",
+              },
+              {
+                icon: BookOpen,
+                color: "#b89bdd",
+                bg:    "rgba(185,159,224,0.20)",
+                title: "Story time, slowly",
+                desc:  "Same book, same time, every night. Pause and let them finish your sentence. Repetition is how language and memory are built.",
+              },
+            ].map((t, i) => (
+              <Reveal key={t.title} delay={i * 0.06} className="h-full">
+                <article
+                  className="flex h-full flex-col rounded-[2rem] px-6 py-7 ring-1 ring-[rgba(90,74,66,0.07)] shadow-[0_4px_16px_rgba(90,74,66,0.07)]"
+                  style={{ background: t.bg }}
+                >
+                  <span className="mb-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 shadow-[0_2px_8px_rgba(90,74,66,0.08)]">
+                    <t.icon className="h-5 w-5" style={{ color: t.color }} strokeWidth={1.8} />
+                  </span>
+                  <h3 className="font-heading text-[1.2rem] leading-snug" style={{ color: t.color }}>
+                    {t.title}
+                  </h3>
+                  <p
+                    className="body-text mt-3 flex-1 text-sm"
+                    dangerouslySetInnerHTML={{ __html: t.desc }}
+                  />
+                </article>
+              </Reveal>
+            ))}
+          </div>
+
+          <Reveal delay={0.2}>
+            <p className="body-text mx-auto mt-10 max-w-2xl text-center text-sm">
+              Want to see these routines in action? Visit our{" "}
+              <Link href="/branches/harrow" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">Harrow</Link>
+              ,{" "}
+              <Link href="/branches/pinner" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">Pinner</Link>{" "}
+              or{" "}
+              <Link href="/branches/borehamwood" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">Borehamwood</Link>{" "}
+              nursery, or read more about our{" "}
+              <Link href="/forest-school" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">forest school programme</Link>
+              .
+            </p>
+          </Reveal>
+        </div>
+      </section>
 
       {/* ══════════════════════════════════════════════════════
           4 — SPEECH & LANGUAGE

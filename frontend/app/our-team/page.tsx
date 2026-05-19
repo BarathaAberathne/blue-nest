@@ -630,7 +630,41 @@ export default function OurTeamPage() {
 
 
       {/* ══════════════════════════════════════════════════════
-          JOIN THE TEAM — editorial strip
+          CAREERS — safer recruitment + what we look for
+      ══════════════════════════════════════════════════════ */}
+      <section id="careers" className="blush-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <div className="container-site">
+          <Reveal>
+            <div className="mx-auto max-w-3xl">
+              <span className="section-kicker">Careers at Blue Nest</span>
+              <h2 className="section-title mt-4 text-[#cf7d9c]">Join our team</h2>
+              <div className="body-text mt-5 space-y-5">
+                <p>
+                  We&rsquo;re always looking for passionate early-years practitioners who love
+                  Montessori learning. Roles open up across our Harrow, Pinner and Borehamwood
+                  Montessori day nurseries — from Montessori-trained room leads and apprentices
+                  to qualified EYFS practitioners and bank staff.
+                </p>
+                <p>
+                  Our safer recruitment process is thorough by design. Every team member completes
+                  an enhanced DBS check before starting, two professional references are taken up,
+                  and identity and right-to-work are verified. Once you&rsquo;ve joined, we invest in
+                  paediatric emergency first aid, safeguarding (Level 2 minimum, Level 3 for
+                  designated leads), food hygiene and ongoing Montessori CPD.
+                </p>
+                <p>
+                  Most of all, we look for warmth. The people on this page have stayed at Blue
+                  Nest because the culture is calm, child-centred and respectful. If that sounds
+                  like your kind of nursery, we&rsquo;d love to hear from you.
+                </p>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════
+          JOIN THE TEAM — CTA strip
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 pb-16 sm:px-6 lg:px-8">
         <div className="container-site">
@@ -648,16 +682,16 @@ export default function OurTeamPage() {
                     Interested in joining our team?
                   </p>
                   <p className="mt-1.5 max-w-lg text-sm leading-[1.7] text-[rgba(90,74,66,0.65)]">
-                    We&rsquo;re always looking for passionate early-years practitioners who share our
-                    love of Montessori education. Get in touch to find out about current openings.
+                    Send your CV and a short note about why Montessori matters to you, and let us
+                    know which branch you&rsquo;re drawn to. We reply to every application.
                   </p>
                 </div>
               </div>
               <div className="flex shrink-0 flex-wrap gap-3">
-                <PastelButton href="mailto:manager@bluenest.uk" variant="sage">
+                <PastelButton href="mailto:manager@bluenest.uk?subject=Careers%20enquiry" variant="sage">
                   <Mail className="h-4 w-4" /> Email us
                 </PastelButton>
-                <PastelButton href="/contact" variant="lavender">
+                <PastelButton href="/contact?enquiry=careers" variant="lavender">
                   Contact Us <ArrowRight className="h-4 w-4" />
                 </PastelButton>
               </div>
