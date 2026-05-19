@@ -41,14 +41,14 @@ export default function BranchHero({
     <section className="flex flex-col lg:flex-row lg:min-h-[calc(100dvh-11rem)]">
 
       {/* ── LEFT — text on paper background ──────────────────── */}
-      <div className="paper-bg relative flex w-full items-center lg:w-1/2">
+      <div className="paper-bg relative flex w-full items-start lg:w-1/2">
 
         <Doodle
           kind="pink-flower"
           className="absolute bottom-8 left-5 h-9 w-9 opacity-35 hidden lg:block pointer-events-none"
         />
 
-        <div className="w-full px-8 py-14 sm:px-12 lg:px-14 xl:px-20 lg:py-0">
+        <div className="w-full px-8 py-10 sm:px-12 sm:py-12 lg:px-14 lg:pt-8 lg:pb-8 xl:px-20">
           <Reveal className="flex flex-col gap-5">
 
             {/* Optional badge (e.g. Coming Soon) */}
