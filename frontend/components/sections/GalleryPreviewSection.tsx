@@ -7,7 +7,7 @@ import PastelButton from "@/components/ui/PastelButton";
 // parents see Harrow / Pinner / Borehamwood represented equally. Layout is
 // unchanged — the first tile keeps its `wide` flag.
 const images = [
-  { src: "/home/branches/harrow/harrow-preview-01.webp",      alt: "Children playing in the wisteria-shaded garden at Blue Nest Harrow",                          wide: true  },
+  { src: "/home/branches/harrow/harrow-preview-01.webp",      alt: "Blue Nest Montessori Harrow educator engaging with a young child at a farm-animal sensory tray", wide: true  },
   { src: "/home/branches/pinner/pinner-gallery-01.webp",      alt: "Children at a Montessori real-food prep table at Blue Nest Pinner",                          wide: false },
   { src: "/home/branches/borehamwood/borehamwood-welcome.webp", alt: "Two babies on the rug by the fairy-light teepee at Blue Nest Borehamwood",                  wide: false },
   { src: "/home/branches/harrow/harrow-preview-02.webp",      alt: "Children and teacher exploring an ocean sensory bin at Blue Nest Harrow",                     wide: false },

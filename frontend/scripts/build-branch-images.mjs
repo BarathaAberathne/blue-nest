@@ -75,7 +75,7 @@ const BRANCHES = {
       { name: "harrow-feature-food",     src: "IMG_2687.JPG", preset: "card" },
       { name: "harrow-feature-safe",     src: "IMG_2696.JPG", preset: "card" },
       // Home-page gallery preview tiles
-      { name: "harrow-preview-01", src: "IMG_2615.JPG", preset: "gallery" },
+      { name: "harrow-preview-01", src: "IMG_2626.JPG", preset: "gallery" },
       { name: "harrow-preview-02", src: "IMG_2730.JPG", preset: "gallery" },
       { name: "harrow-preview-03", src: "IMG_2719.JPG", preset: "gallery" },
       { name: "harrow-preview-04", src: "IMG_2787.JPG", preset: "gallery" },
