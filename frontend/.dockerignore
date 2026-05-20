@@ -1,0 +1,33 @@
+node_modules
+.next
+out
+build
+.git
+.gitignore
+.env*
+!.env.example
+
+# Lighthouse / test artefacts
+lighthouse-reports
+.lighthouseci
+test-results
+playwright-report
+
+# IDE / OS
+.DS_Store
+.vscode
+.idea
+
+# Logs
+*.log
+npm-debug.log*
+
+# TypeScript incremental build
+tsconfig.tsbuildinfo
+
+# Tooling that the runtime image doesn't need
+scripts/lh-*.cjs
+scripts/optimize-images.mjs
+scripts/build-branch-images.mjs
+scripts/audit-thumbs.mjs
+scripts/preview-source.mjs

@@ -1,5 +1,32 @@
 # Deployment Instructions — Blue Nest Montessori
 
+## Quickstart (after first-time setup is done)
+
+From the deploy user's shell on the droplet:
+
+```bash
+cd /home/deploy/app
+
+git pull origin main
+docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker compose ps
+```
+
+That's the day-to-day deploy. The rest of this document is the first-time
+setup (sections 1–12) and ongoing maintenance reference.
+
+The production setup files all live in-repo and shouldn't be hand-edited
+during normal operation:
+
+- `docker-compose.prod.yml` — port + auth + resource overrides
+- `deploy/nginx/bluenest.conf` — nginx server config
+- `deploy/mongo-init/01-create-app-user.js` — runs on first mongo start
+- `.env.production.example` — populate as `.env` on the droplet
+- `.github/workflows/build-images.yml` — builds + pushes images to GHCR on push to main
+
+---
+
 ## Recommendation
 
 **DigitalOcean Droplet + Nginx + Docker Compose** is the recommended path.
@@ -188,52 +215,47 @@ openssl rand -hex 32   # 64-char JWT_SECRET
 
 ---
 
-### 7 — Create a production Docker Compose override
+### 7 — Production Docker Compose override
 
-Create `docker-compose.prod.yml` alongside the existing `docker-compose.yml`:
+`docker-compose.prod.yml` is already committed in the repo. It overlays the
+base `docker-compose.yml` to:
+
+- enable MongoDB authentication and remove its public port
+- bind the backend + frontend to `127.0.0.1` only (nginx is the public entry)
+- set memory/CPU limits sized for a 2 vCPU / 4 GB droplet
+- bake `NEXT_PUBLIC_API_URL=https://api.bluenest.uk` into the frontend bundle
+- pull images from GHCR (`${IMAGE_PREFIX}/blue-nest-{frontend,backend}:${IMAGE_TAG}`)
+  if `IMAGE_PREFIX` is set in `.env`; otherwise build locally on the droplet
+
+> Requires `docker compose` ≥ 2.24 for the `!reset` directive. Ubuntu 24.04's
+> `docker-compose-plugin` is current enough.
+
+Open the file once to confirm the memory/CPU limits match your droplet:
 
 ```bash
-cat > docker-compose.prod.yml << 'EOF'
-services:
-  mongodb:
-    # Remove public port exposure in production
-    ports: []
-
-  backend:
-    environment:
-      APP_ENV: production
-      FRONTEND_URL: https://bluenest.uk
-      MONGODB_URI: ${MONGODB_URI}
-    # Remove public port exposure — Nginx proxies to this container
-    ports: []
-
-  frontend:
-    build:
-      args:
-        NEXT_PUBLIC_API_URL: https://api.bluenest.uk
-    environment:
-      NODE_ENV: production
-    # Remove public port exposure
-    ports: []
-EOF
+less docker-compose.prod.yml
 ```
-
-> **Why this file?** The base `docker-compose.yml` exposes ports for local dev. In production, only Nginx should be publicly reachable. The override removes those port bindings.
 
 ---
 
-### 8 — Build and start the containers
+### 8 — Build (or pull) and start the containers
+
+If you've wired up the GitHub Actions image-build workflow and set
+`IMAGE_PREFIX` in `.env`:
 
 ```bash
 cd /home/deploy/app
-
-# Build images (takes 3–5 minutes on first run)
-docker compose -f docker-compose.yml -f docker-compose.prod.yml build
-
-# Start in the background
+docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker compose ps
+```
 
-# Check all three containers are running
+Otherwise build the images locally on the droplet (slower, uses more RAM):
+
+```bash
+cd /home/deploy/app
+docker compose -f docker-compose.yml -f docker-compose.prod.yml build
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 docker compose ps
 ```
 
@@ -257,51 +279,18 @@ rm /etc/nginx/sites-enabled/default
 nano /etc/nginx/sites-available/bluenest
 ```
 
-Paste this config:
-
-```nginx
-# ── Frontend (Next.js) ───────────────────────────────────────────────────────
-server {
-    listen 80;
-    server_name bluenest.uk www.bluenest.uk;
-
-    location / {
-        proxy_pass         http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header   Upgrade $http_upgrade;
-        proxy_set_header   Connection 'upgrade';
-        proxy_set_header   Host $host;
-        proxy_set_header   X-Real-IP $remote_addr;
-        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-
-# ── Go API ───────────────────────────────────────────────────────────────────
-server {
-    listen 80;
-    server_name api.bluenest.uk;
-
-    location / {
-        proxy_pass         http://localhost:8080;
-        proxy_http_version 1.1;
-        proxy_set_header   Host $host;
-        proxy_set_header   X-Real-IP $remote_addr;
-        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto $scheme;
-
-        # Allow large file uploads (product images)
-        client_max_body_size 20M;
-    }
-}
-```
+The nginx config is committed at `deploy/nginx/bluenest.conf` — it includes
+the two server blocks, the WebSocket upgrade map, security headers (HSTS,
+X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy),
+gzip, long-lived caching for `/_next/static/*` and `client_max_body_size 20M`
+on the API block. Symlink it into nginx:
 
 ```bash
-# Enable and test
-ln -s /etc/nginx/sites-available/bluenest /etc/nginx/sites-enabled/
-nginx -t
-systemctl reload nginx
+sudo cp /home/deploy/app/deploy/nginx/bluenest.conf /etc/nginx/sites-available/bluenest
+sudo ln -sf /etc/nginx/sites-available/bluenest /etc/nginx/sites-enabled/bluenest
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
 ---

@@ -1,0 +1,78 @@
+# Production overlay for docker-compose.yml.
+#
+# Usage on the droplet (from /home/deploy/app):
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Image source:
+#   - If you've set up the GitHub Actions image build, IMAGE_PREFIX is set in
+#     .env (e.g. ghcr.io/baratha-aberathne/blue-nest) and `docker compose pull`
+#     fetches pre-built images.
+#   - If IMAGE_PREFIX is empty, compose falls back to building locally with
+#     `docker compose build`.
+#
+# What this overlay does:
+#   1. Enables MongoDB authentication via MONGO_INITDB_ROOT_USERNAME/PASSWORD
+#      and runs the init script in deploy/mongo-init/ on first startup to
+#      create a dedicated application user with database-scoped privileges.
+#   2. Removes mongo's port mapping (DB is reachable only on the docker network).
+#   3. Restricts backend + frontend port mappings to 127.0.0.1 so nginx on the
+#      host is the only public entry point. Requires docker compose >= 2.24
+#      for the `!reset` directive.
+#   4. Applies modest memory and CPU limits sized for a 2 vCPU / 4 GB droplet.
+#   5. Bakes production NEXT_PUBLIC_API_URL into the frontend bundle.
+
+services:
+  mongodb:
+    ports: !reset []
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE:-blue_nest_montessori}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+      - ./deploy/mongo-init:/docker-entrypoint-initdb.d:ro
+    deploy:
+      resources:
+        limits:
+          memory: 1500M
+          cpus: "0.8"
+
+  backend:
+    image: ${IMAGE_PREFIX:-}${IMAGE_PREFIX:+/}blue-nest-backend:${IMAGE_TAG:-latest}
+    pull_policy: ${PULL_POLICY:-missing}
+    ports: !override
+      - "127.0.0.1:8080:8080"
+    environment:
+      APP_ENV: production
+      APP_PORT: "8080"
+      FRONTEND_URL: ${FRONTEND_URL}
+      MONGODB_URI: mongodb://${MONGO_APP_USERNAME}:${MONGO_APP_PASSWORD}@mongodb:27017/${MONGODB_DATABASE:-blue_nest_montessori}?authSource=${MONGODB_DATABASE:-blue_nest_montessori}
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-blue_nest_montessori}
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: "0.6"
+
+  frontend:
+    image: ${IMAGE_PREFIX:-}${IMAGE_PREFIX:+/}blue-nest-frontend:${IMAGE_TAG:-latest}
+    pull_policy: ${PULL_POLICY:-missing}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_API_INTERNAL_URL: http://backend:8080
+    ports: !override
+      - "127.0.0.1:3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_INTERNAL_URL: http://backend:8080
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+          cpus: "0.6"

@@ -1,0 +1,16 @@
+bin
+.git
+.gitignore
+.env*
+!.env.example
+
+# Local dev artefacts
+main
+*.test
+*.log
+coverage.out
+
+# IDE / OS
+.DS_Store
+.vscode
+.idea

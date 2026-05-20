@@ -8,7 +8,7 @@ Production-ready monorepo for the Blue Nest Montessori school website: a pastel-
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, Framer Motion, Lucide React |
+| Frontend | Next.js 16 (App Router), React 18, TypeScript, Tailwind CSS, Framer Motion, Lucide React |
 | Backend | Go 1.22, Chi router, REST API |
 | Database | MongoDB 7 |
 | Payments | Stripe (scaffolded — session + webhook) |
@@ -224,6 +224,9 @@ make dev-frontend  # Next.js dev server (npm run dev)
 | `/contact` | Branch contacts + enquiry form with fee-quote email |
 | `/blog` | Blog post listing with search and tag filters |
 | `/blog/[slug]` | Individual blog post — like, share, comments, reading progress bar, async OG metadata |
+| `/privacy` | Privacy & Cookie Policy (UK GDPR) — placeholder legal content pending final legal review |
+| `/terms` | Terms of Use — website usage, admissions/fees disclaimers, IP, liability |
+| `/trading-terms` | Trading Terms for the Blue Nest Nursery Store — orders, Stripe payment, delivery, refunds |
 
 ### Admission
 
@@ -232,6 +235,7 @@ make dev-frontend  # Next.js dev server (npm run dev)
 | `/admission` | Admissions overview |
 | `/admission/our-fees` | Fee schedule |
 | `/admission/prospectus` | School prospectus |
+| `/admission/holiday-club` | Holiday-club programme |
 | `/admission/application-form` | Online application form |
 
 ### Branch Pages
@@ -476,11 +480,58 @@ To add a new branch: create the DB document, add the frontend page, and add it t
 6. **Product image upload** — integrate Cloudinary or S3; hook into admin products page
 7. **Blog rich text editor** — connect admin blog to API; add Tiptap or Slate
 8. **ChatBot** — connect `ChatBotCard` / `ChatBotFAB` to a real AI endpoint or third-party (Tidio / Crisp)
-9. **SEO metadata** — ✅ Done for gallery, blog index, and blog posts (async OG + Twitter). Remaining: branch pages, admission, why-montessori, forest-school
+9. **SEO metadata** — ✅ Done across every public page (canonical, OG, Twitter, JSON-LD). Re-verify after content changes via `npm run lh:all` from `frontend/`
 10. **Gallery comments API** — current gallery comments are localStorage-only (per device); wire to a real backend endpoint so comments persist and are shareable
 11. **Staff photos** — 16 staff members still need profile photos (see Our Team page — commented-out `photo:` lines)
 12. **Analytics** — PostHog or Plausible (GDPR-compliant)
 13. **Refresh tokens** — implement `/auth/refresh` endpoint + client-side token refresh
+
+---
+
+## Lighthouse Audits
+
+A Lighthouse-CI setup lives in `frontend/` for auditing the full public route
+surface (mobile + desktop) against a fresh production build.
+
+```bash
+cd frontend
+NEXT_PUBLIC_API_URL=http://localhost:8080 \
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_placeholder \
+  npm run build
+
+npm run lh:routes   # print the auto-discovered public URL list
+npm run lh:mobile   # mobile audit  → lighthouse-reports/mobile/
+npm run lh:desktop  # desktop audit → lighthouse-reports/desktop/
+npm run lh:all      # both, mobile first
+```
+
+How it works:
+
+- Route discovery walks `frontend/app/` and excludes
+  `/admin`, `/account`, `/cart`, `/checkout`, `/login`, `/register`, `/auth`
+  plus all `[slug]` / `[id]` segments
+  (`frontend/scripts/lh-discover-routes.cjs`).
+- Two LHCI configs (`lighthouserc.mobile.cjs`, `lighthouserc.desktop.cjs`)
+  share the discovered URL list via `scripts/lh-urls.cjs`.
+- After a run, `node scripts/lh-summarize.cjs` prints per-route score tables
+  and `node scripts/lh-failures.cjs <dir>` lists failing audits sorted by
+  how many routes each affects.
+
+**Gotcha:** if `docker-compose` is running, the `blue-nest-web` container
+binds port 3000 and LHCI will silently audit that stale image. Stop it
+before running: `docker stop blue-nest-web`.
+
+Current baseline (averages over 23 public routes):
+
+| | Mobile | Desktop |
+|---|---:|---:|
+| Performance | 88 | 100 |
+| Accessibility | 96 | 96 |
+| Best Practices | 99 | 100 |
+| SEO | 100 | 100 |
+
+A full per-route breakdown lives at
+`frontend/lighthouse-reports/REPORT.md`.
 
 ---
 
