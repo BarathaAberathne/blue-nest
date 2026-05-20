@@ -155,16 +155,16 @@ function validate(f: FormValues): Record<string, string> {
 // ── Input style constants ──────────────────────────────────────────────────────
 
 const INPUT_BASE =
-  "w-full rounded-full border bg-[#fdfaf7] px-4 py-2.5 text-[0.85rem] text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.32)] outline-none transition-all duration-150 focus:ring-2";
+  "w-full rounded-full border bg-[#fdfaf7] px-4 py-2.5 text-[0.85rem] text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.85)] outline-none transition-all duration-150 focus:ring-2";
 const INPUT_NORMAL  = "border-[rgba(90,74,66,0.14)] focus:border-[#7fd8d2] focus:ring-[rgba(127,216,210,0.22)]";
 const INPUT_ERROR   = "border-[#ef8cab] focus:border-[#ef8cab] focus:ring-[rgba(239,140,171,0.18)]";
 const SELECT_BASE   = INPUT_BASE + " appearance-none cursor-pointer pr-9";
 const TEXTAREA_BASE =
-  "w-full rounded-2xl border bg-[#fdfaf7] px-4 py-2.5 text-[0.85rem] text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.32)] outline-none transition-all duration-150 focus:ring-2 resize-none";
+  "w-full rounded-2xl border bg-[#fdfaf7] px-4 py-2.5 text-[0.85rem] text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.85)] outline-none transition-all duration-150 focus:ring-2 resize-none";
 
 function FieldLabel({ htmlFor, children, required }: { htmlFor: string; children: React.ReactNode; required?: boolean }) {
   return (
-    <label htmlFor={htmlFor} className="mb-1 block text-[0.73rem] font-bold text-[rgba(90,74,66,0.65)]">
+    <label htmlFor={htmlFor} className="mb-1 block text-[0.73rem] font-bold text-[rgba(90,74,66,0.85)]">
       {children}
       {required && <span className="ml-0.5 text-[#ef8cab]" aria-hidden="true">*</span>}
     </label>
@@ -188,7 +188,7 @@ function SuccessMessage({ onReset }: { onReset: () => void }) {
       </div>
       <div>
         <h3 className="font-heading text-[1.7rem] text-[var(--ink)]">Enquiry sent!</h3>
-        <p className="mt-1.5 text-[0.82rem] leading-[1.65] text-[rgba(90,74,66,0.62)]">
+        <p className="mt-1.5 text-[0.82rem] leading-[1.65] text-[rgba(90,74,66,0.85)]">
           A member of our team will respond within one working day.
         </p>
       </div>
@@ -339,7 +339,7 @@ export default function ContactPageClient() {
             </a>
             <a
               href="mailto:manager@bluenest.uk"
-              className="inline-flex items-center gap-2 rounded-full border border-[rgba(90,74,66,0.18)] bg-white px-5 py-2.5 text-[0.85rem] font-bold text-[rgba(90,74,66,0.70)] transition hover:border-[rgba(90,74,66,0.30)] hover:text-[var(--ink)]"
+              className="inline-flex items-center gap-2 rounded-full border border-[rgba(90,74,66,0.18)] bg-white px-5 py-2.5 text-[0.85rem] font-bold text-[rgba(90,74,66,0.85)] transition hover:border-[rgba(90,74,66,0.30)] hover:text-[var(--ink)]"
             >
               <Mail className="h-3.5 w-3.5" strokeWidth={2} />
               manager@bluenest.uk
@@ -362,7 +362,7 @@ export default function ContactPageClient() {
                 <>
                   <div className="mb-6">
                     <h2 className="font-heading text-[1.6rem] text-[var(--ink)]">Send an Enquiry</h2>
-                    <p className="mt-1 text-[0.8rem] text-[rgba(90,74,66,0.55)]">
+                    <p className="mt-1 text-[0.8rem] text-[rgba(90,74,66,0.85)]">
                       We&rsquo;ll get back to you within one working day.
                     </p>
                   </div>
@@ -376,38 +376,38 @@ export default function ContactPageClient() {
                       <div className="space-y-1.5 text-[0.78rem]">
                         {feeQuote.branch && (
                           <div className="flex justify-between">
-                            <span className="text-[rgba(90,74,66,0.55)]">Branch</span>
+                            <span className="text-[rgba(90,74,66,0.85)]">Branch</span>
                             <span className="font-semibold capitalize text-[var(--ink)]">{String(feeQuote.branch)}</span>
                           </div>
                         )}
                         {feeQuote.age_group && (
                           <div className="flex justify-between">
-                            <span className="text-[rgba(90,74,66,0.55)]">Age group</span>
+                            <span className="text-[rgba(90,74,66,0.85)]">Age group</span>
                             <span className="font-semibold text-[var(--ink)]">{String(feeQuote.age_group)}</span>
                           </div>
                         )}
                         {feeQuote.session && (
                           <div className="flex justify-between">
-                            <span className="text-[rgba(90,74,66,0.55)]">Session</span>
+                            <span className="text-[rgba(90,74,66,0.85)]">Session</span>
                             <span className="font-semibold capitalize text-[var(--ink)]">{String(feeQuote.session).replace("_", " ")}</span>
                           </div>
                         )}
                         {(feeQuote.days as number) > 0 && (
                           <div className="flex justify-between">
-                            <span className="text-[rgba(90,74,66,0.55)]">Days / week</span>
+                            <span className="text-[rgba(90,74,66,0.85)]">Days / week</span>
                             <span className="font-semibold text-[var(--ink)]">{feeQuote.days} day{(feeQuote.days as number) !== 1 ? "s" : ""}</span>
                           </div>
                         )}
                         {feeQuote.year_weeks && (
                           <div className="flex justify-between">
-                            <span className="text-[rgba(90,74,66,0.55)]">Annual basis</span>
+                            <span className="text-[rgba(90,74,66,0.85)]">Annual basis</span>
                             <span className="font-semibold text-[var(--ink)]">
                               {feeQuote.year_weeks === 38 ? "38 weeks · term-time" : "52 weeks · full year"}
                             </span>
                           </div>
                         )}
                         <div className="flex justify-between">
-                          <span className="text-[rgba(90,74,66,0.55)]">Gross weekly</span>
+                          <span className="text-[rgba(90,74,66,0.85)]">Gross weekly</span>
                           <span className="font-semibold text-[var(--ink)]">£{(feeQuote.gross_weekly as number).toFixed(2)}</span>
                         </div>
                         {feeQuote.discount && (
@@ -426,7 +426,7 @@ export default function ContactPageClient() {
                           <span className="font-bold text-[var(--ink)]">Net weekly</span>
                           <span className="font-extrabold text-[#3aada9]">£{(feeQuote.net_weekly as number).toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between text-[rgba(90,74,66,0.55)]">
+                        <div className="flex justify-between text-[rgba(90,74,66,0.85)]">
                           <span>Monthly estimate</span>
                           <span className="font-semibold text-[var(--ink)]">£{(feeQuote.net_monthly as number).toFixed(2)}</span>
                         </div>
@@ -492,7 +492,7 @@ export default function ContactPageClient() {
                               </option>
                             ))}
                           </select>
-                          <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[rgba(90,74,66,0.38)]" />
+                          <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[rgba(90,74,66,0.85)]" />
                         </div>
                         <FieldError id="err-branch" message={errors.branch} />
                       </div>
@@ -513,7 +513,7 @@ export default function ContactPageClient() {
                               <option key={a} value={a}>{a}</option>
                             ))}
                           </select>
-                          <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[rgba(90,74,66,0.38)]" />
+                          <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[rgba(90,74,66,0.85)]" />
                         </div>
                       </div>
                       <div>
@@ -531,7 +531,7 @@ export default function ContactPageClient() {
                               <option key={t} value={t}>{t}</option>
                             ))}
                           </select>
-                          <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[rgba(90,74,66,0.38)]" />
+                          <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[rgba(90,74,66,0.85)]" />
                         </div>
                         <FieldError id="err-enquiryType" message={errors.enquiryType} />
                       </div>
@@ -571,7 +571,7 @@ export default function ContactPageClient() {
                             {form.consent && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
                           </div>
                         </div>
-                        <span className="text-[0.78rem] leading-[1.65] text-[rgba(90,74,66,0.65)]">
+                        <span className="text-[0.78rem] leading-[1.65] text-[rgba(90,74,66,0.85)]">
                           I consent to Blue Nest Montessori School contacting me about my enquiry.{" "}
                           <Link href="/privacy" className="text-[#5fc8c7] underline underline-offset-2 hover:text-[#3db0af]">
                             Privacy Policy
@@ -582,7 +582,7 @@ export default function ContactPageClient() {
                       <FieldError id="err-consent" message={errors.consent} />
                     </div>
 
-                    <p className="text-[0.65rem] text-[rgba(90,74,66,0.38)]">
+                    <p className="text-[0.65rem] text-[rgba(90,74,66,0.85)]">
                       <span className="text-[#ef8cab]">*</span> Required fields
                     </p>
 
@@ -626,7 +626,7 @@ export default function ContactPageClient() {
 
               {/* Branch info rows */}
               <div className="rounded-[1.8rem] bg-white px-5 py-4 shadow-[0_4px_16px_rgba(90,74,66,0.07)] ring-1 ring-[rgba(90,74,66,0.04)]">
-                <p className="mb-3 text-[0.65rem] font-extrabold uppercase tracking-[0.18em] text-[rgba(90,74,66,0.42)]">
+                <p className="mb-3 text-[0.65rem] font-extrabold uppercase tracking-[0.18em] text-[rgba(90,74,66,0.85)]">
                   Our Branches
                 </p>
                 <div className="divide-y divide-[rgba(90,74,66,0.06)]">
@@ -649,7 +649,7 @@ export default function ContactPageClient() {
                                 </span>
                               )}
                             </p>
-                            <p className="truncate text-[0.70rem] text-[rgba(90,74,66,0.50)]">
+                            <p className="truncate text-[0.70rem] text-[rgba(90,74,66,0.85)]">
                               {branch.address}, {branch.postcode}
                             </p>
                           </div>
@@ -672,7 +672,7 @@ export default function ContactPageClient() {
                             className="flex h-7 w-7 items-center justify-center rounded-full transition hover:bg-[rgba(90,74,66,0.06)]"
                             aria-label={`Directions to ${branch.name}`}
                           >
-                            <ExternalLink className="h-3.5 w-3.5 text-[rgba(90,74,66,0.42)]" strokeWidth={1.8} />
+                            <ExternalLink className="h-3.5 w-3.5 text-[rgba(90,74,66,0.85)]" strokeWidth={1.8} />
                           </a>
                         </div>
                       </div>
@@ -690,7 +690,7 @@ export default function ContactPageClient() {
                     <Mail className="h-3 w-3" strokeWidth={2} />
                     manager@bluenest.uk
                   </a>
-                  <span className="flex items-center gap-1.5 text-[rgba(90,74,66,0.50)]">
+                  <span className="flex items-center gap-1.5 text-[rgba(90,74,66,0.85)]">
                     <Clock className="h-3 w-3" strokeWidth={1.8} />
                     Mon–Fri, 07:30–18:30
                   </span>

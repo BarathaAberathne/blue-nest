@@ -27,6 +27,9 @@ const staticRoutes: { url: string; priority: number; changeFrequency: MetadataRo
   { url: "/nursery-store",                  priority: 0.7, changeFrequency: "weekly"  },
   { url: "/blog",                           priority: 0.7, changeFrequency: "weekly"  },
   { url: "/contact",                        priority: 0.8, changeFrequency: "monthly" },
+  { url: "/privacy",                        priority: 0.3, changeFrequency: "yearly"  },
+  { url: "/terms",                          priority: 0.3, changeFrequency: "yearly"  },
+  { url: "/trading-terms",                  priority: 0.3, changeFrequency: "yearly"  },
 ];
 
 type BlogPost = { slug: string; published_at?: string; updated_at?: string };

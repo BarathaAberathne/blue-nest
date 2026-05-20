@@ -112,7 +112,7 @@ export default function Footer() {
               </div>
             </Link>
 
-            <p className="max-w-[210px] text-[0.88rem] leading-[1.8] text-[rgba(90,74,66,0.68)]">
+            <p className="max-w-[210px] text-[0.88rem] leading-[1.8] text-[rgba(90,74,66,0.85)]">
               Nurturing curious minds through child-led Montessori education across North West London and Hertfordshire.
             </p>
 
@@ -125,7 +125,7 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[rgba(90,74,66,0.55)] shadow-[0_2px_8px_rgba(90,74,66,0.08)] transition hover:text-[#5fc8c7]"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[rgba(90,74,66,0.85)] shadow-[0_2px_8px_rgba(90,74,66,0.08)] transition hover:text-[#5fc8c7]"
                 >
                   <Icon />
                 </a>
@@ -164,7 +164,7 @@ export default function Footer() {
             <ul className="space-y-3 text-[0.88rem]">
               <li className="flex items-start gap-2.5">
                 <Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#7fd8d2]" aria-hidden="true" />
-                <div className="space-y-1 text-[rgba(90,74,66,0.78)]">
+                <div className="space-y-1 text-[rgba(90,74,66,0.85)]">
                   <a href="tel:02088615574" className="block font-medium transition hover:text-[#5fc8c7]">020 8861 5574</a>
                   <a href="tel:07400430630" className="block font-medium transition hover:text-[#5fc8c7]">07400 430630</a>
                 </div>
@@ -173,7 +173,7 @@ export default function Footer() {
                 <Mail className="h-4 w-4 shrink-0 text-[#7fd8d2]" aria-hidden="true" />
                 <a
                   href="mailto:manager@bluenest.uk"
-                  className="text-[0.88rem] font-medium text-[rgba(90,74,66,0.78)] transition hover:text-[#5fc8c7]"
+                  className="text-[0.88rem] font-medium text-[rgba(90,74,66,0.85)] transition hover:text-[#5fc8c7]"
                 >
                   manager@bluenest.uk
                 </a>
@@ -184,7 +184,7 @@ export default function Footer() {
             <ul className="space-y-1.5 text-[0.88rem]">
               {branches.map((b) => (
                 <li key={b.href}>
-                  <Link href={b.href} className="font-semibold text-[rgba(90,74,66,0.72)] transition hover:text-[#5fc8c7]">
+                  <Link href={b.href} className="font-semibold text-[rgba(90,74,66,0.85)] transition hover:text-[#5fc8c7]">
                     {b.label}
                   </Link>
                 </li>
@@ -196,7 +196,7 @@ export default function Footer() {
           <div>
             <ColLabel color="#f0bd55" top>Head Office</ColLabel>
             <address className="not-italic">
-              <div className="flex items-start gap-2.5 text-[0.88rem] text-[rgba(90,74,66,0.78)]">
+              <div className="flex items-start gap-2.5 text-[0.88rem] text-[rgba(90,74,66,0.85)]">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#7fd8d2]" aria-hidden="true" />
                 <div className="leading-[1.8]">
                   <p className="font-semibold">Blue Nest Montessori School</p>
@@ -210,7 +210,7 @@ export default function Footer() {
             <ul className="space-y-1.5 text-[0.88rem]">
               {quickLinks.map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="font-semibold text-[rgba(90,74,66,0.72)] transition hover:text-[#ef8cab]">
+                  <Link href={l.href} className="font-semibold text-[rgba(90,74,66,0.85)] transition hover:text-[#ef8cab]">
                     {l.label}
                   </Link>
                 </li>
@@ -222,21 +222,21 @@ export default function Footer() {
 
         {/* ── Legal strip ─────────────────────────────────────────── */}
         <div className="mt-12 border-t border-[rgba(90,74,66,0.08)] pb-8 pt-6 text-center">
-          <p className="mx-auto max-w-3xl text-[0.68rem] leading-[1.95] text-[rgba(90,74,66,0.42)]">
+          <p className="mx-auto max-w-3xl text-[0.68rem] leading-[1.95] text-[rgba(90,74,66,0.85)]">
             BUZY BEES CHILDCARE LIMITED (trading as Blue Nest Montessori School), registered as a
             limited company in England and Wales under company number: 07908763.{" "}
             Registered Company Address: 38 Victor Road, Harrow, HA2 6PZ.
           </p>
-          <p className="mt-1.5 text-[0.65rem] text-[rgba(90,74,66,0.35)]">
+          <p className="mt-1.5 text-[0.65rem] text-[rgba(90,74,66,0.85)]">
             The content on this website is owned by us and our licensors. Do not copy any content (including images) without our consent.
           </p>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[0.68rem] text-[rgba(90,74,66,0.42)]">
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[0.68rem] text-[rgba(90,74,66,0.85)]">
             <Link href="/terms" className="transition hover:text-[var(--ink)]">Terms of Use</Link>
-            <span aria-hidden="true" className="text-[rgba(90,74,66,0.2)]">·</span>
+            <span aria-hidden="true" className="text-[rgba(90,74,66,0.85)]">·</span>
             <Link href="/privacy" className="transition hover:text-[var(--ink)]">Privacy &amp; Cookie Policy</Link>
-            <span aria-hidden="true" className="text-[rgba(90,74,66,0.2)]">·</span>
+            <span aria-hidden="true" className="text-[rgba(90,74,66,0.85)]">·</span>
             <Link href="/trading-terms" className="transition hover:text-[var(--ink)]">Trading Terms</Link>
-            <span aria-hidden="true" className="text-[rgba(90,74,66,0.2)]">·</span>
+            <span aria-hidden="true" className="text-[rgba(90,74,66,0.85)]">·</span>
             <span>Powered by Blue Nest Montessori School &copy; 2026</span>
           </div>
         </div>
