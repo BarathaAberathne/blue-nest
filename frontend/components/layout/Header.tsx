@@ -126,7 +126,7 @@ function BadgeItem({ badge }: { badge: typeof trustBadges[number] }) {
       </span>
       <div className="leading-tight">
         <p className="text-xs font-extrabold text-[var(--ink)]">{badge.line1}</p>
-        <p className="text-[0.65rem] text-[rgba(90,74,66,0.62)]">{badge.line2}</p>
+        <p className="text-[0.65rem] text-[#6e5a4e]">{badge.line2}</p>
       </div>
     </div>
   );
@@ -242,7 +242,7 @@ export default function Header() {
                   type="text"
                   placeholder="Search..."
                   aria-label="Search"
-                  className="h-10 flex-1 bg-transparent px-4 text-sm text-[var(--ink)] outline-none placeholder:text-[rgba(90,74,66,0.4)]"
+                  className="h-10 flex-1 bg-transparent px-4 text-sm text-[var(--ink)] outline-none placeholder:text-[rgba(90,74,66,0.85)]"
                 />
                 <span className="flex h-10 w-11 items-center justify-center bg-[#7fd8d2] text-white">
                   <Search className="h-4 w-4" />
@@ -262,7 +262,7 @@ export default function Header() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={label}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-[rgba(90,74,66,0.7)] transition hover:bg-white/60 hover:text-[var(--ink)]"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-[rgba(90,74,66,0.85)] transition hover:bg-white/60 hover:text-[var(--ink)]"
                   >
                     <Icon />
                   </a>

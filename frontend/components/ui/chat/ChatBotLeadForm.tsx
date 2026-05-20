@@ -57,7 +57,7 @@ export default function ChatBotLeadForm() {
   }
 
   const inputCls =
-    "w-full rounded-xl border border-[rgba(90,74,66,0.15)] bg-white px-3.5 py-2.5 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.4)] focus:outline-none focus:ring-2 focus:ring-[#6ecfc9]/50 transition";
+    "w-full rounded-xl border border-[rgba(90,74,66,0.15)] bg-white px-3.5 py-2.5 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.85)] focus:outline-none focus:ring-2 focus:ring-[#6ecfc9]/50 transition";
 
   return (
     <motion.div

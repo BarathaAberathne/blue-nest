@@ -235,7 +235,7 @@ export default function AdmissionPage() {
                   Apply Online <ArrowRight className="h-4 w-4" />
                 </PastelButton>
               </div>
-              <p className="mt-6 text-xs font-semibold text-[rgba(90,74,66,0.6)]">
+              <p className="mt-6 text-xs font-semibold text-[rgba(90,74,66,0.85)]">
                 Discover our{" "}
                 <Link href="/branches/harrow" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">Harrow</Link>
                 ,{" "}

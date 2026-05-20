@@ -314,7 +314,7 @@ export default function OurFeesPage() {
                     </span>
                     <span className="font-heading text-[1.1rem] leading-snug text-[var(--ink)]">{row.label}</span>
                   </div>
-                  <span className="text-sm font-semibold text-[rgba(90,74,66,0.78)]">{row.time}</span>
+                  <span className="text-sm font-semibold text-[rgba(90,74,66,0.85)]">{row.time}</span>
                 </div>
               ))}
             </div>
@@ -328,7 +328,7 @@ export default function OurFeesPage() {
               </span>
               <ul className="space-y-1.5">
                 {notes.map((note) => (
-                  <li key={note} className="flex items-start gap-2 text-sm text-[rgba(90,74,66,0.78)]">
+                  <li key={note} className="flex items-start gap-2 text-sm text-[rgba(90,74,66,0.85)]">
                     <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#ef8cab]" strokeWidth={2.5} />
                     {note}
                   </li>

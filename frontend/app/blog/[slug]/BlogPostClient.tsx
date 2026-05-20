@@ -96,7 +96,7 @@ function FloatingActions({
           />
         </span>
         {likes > 0 && (
-          <span className="text-[0.65rem] font-bold text-[rgba(90,74,66,0.45)]">{likes}</span>
+          <span className="text-[0.65rem] font-bold text-[rgba(90,74,66,0.85)]">{likes}</span>
         )}
       </button>
 
@@ -107,7 +107,7 @@ function FloatingActions({
       >
         <span className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-[rgba(90,74,66,0.15)] bg-white transition-all duration-200 hover:border-[#7fd8d2] hover:bg-[rgba(127,216,210,0.08)]">
           <Share2
-            className="h-4.5 w-4.5 text-[rgba(90,74,66,0.40)] transition group-hover:text-[#3aada9]"
+            className="h-4.5 w-4.5 text-[rgba(90,74,66,0.85)] transition group-hover:text-[#3aada9]"
             style={{ width: 18, height: 18 }}
             strokeWidth={1.8}
           />
@@ -218,9 +218,9 @@ function CommentsSection({ slug }: { slug: string }) {
               <div className="flex-1 rounded-[1.1rem] rounded-tl-sm bg-white px-4 py-3.5 shadow-[0_2px_10px_rgba(90,74,66,0.06)] ring-1 ring-[rgba(90,74,66,0.04)]">
                 <div className="flex items-baseline justify-between gap-3 mb-1.5">
                   <span className="text-[0.82rem] font-bold text-[var(--ink)]">{c.name}</span>
-                  <span className="shrink-0 text-[0.68rem] text-[rgba(90,74,66,0.38)]">{formatCommentDate(c.created_at)}</span>
+                  <span className="shrink-0 text-[0.68rem] text-[rgba(90,74,66,0.85)]">{formatCommentDate(c.created_at)}</span>
                 </div>
-                <p className="text-[0.84rem] leading-[1.7] text-[rgba(90,74,66,0.72)]">{c.body}</p>
+                <p className="text-[0.84rem] leading-[1.7] text-[rgba(90,74,66,0.85)]">{c.body}</p>
               </div>
             </div>
           ))}
@@ -251,7 +251,7 @@ function CommentsSection({ slug }: { slug: string }) {
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name"
           required
-          className="mb-3 w-full rounded-xl border border-[rgba(90,74,66,0.12)] bg-[var(--paper)] px-4 py-2.5 text-[0.88rem] text-[var(--ink)] outline-none transition placeholder:text-[rgba(90,74,66,0.35)] focus:border-[#7fd8d2] focus:ring-2 focus:ring-[rgba(127,216,210,0.18)]"
+          className="mb-3 w-full rounded-xl border border-[rgba(90,74,66,0.12)] bg-[var(--paper)] px-4 py-2.5 text-[0.88rem] text-[var(--ink)] outline-none transition placeholder:text-[rgba(90,74,66,0.85)] focus:border-[#7fd8d2] focus:ring-2 focus:ring-[rgba(127,216,210,0.18)]"
         />
         <textarea
           value={body}
@@ -259,7 +259,7 @@ function CommentsSection({ slug }: { slug: string }) {
           placeholder="Share your thoughts…"
           required
           rows={3}
-          className="w-full resize-none rounded-xl border border-[rgba(90,74,66,0.12)] bg-[var(--paper)] px-4 py-2.5 text-[0.88rem] text-[var(--ink)] outline-none transition placeholder:text-[rgba(90,74,66,0.35)] focus:border-[#7fd8d2] focus:ring-2 focus:ring-[rgba(127,216,210,0.18)]"
+          className="w-full resize-none rounded-xl border border-[rgba(90,74,66,0.12)] bg-[var(--paper)] px-4 py-2.5 text-[0.88rem] text-[var(--ink)] outline-none transition placeholder:text-[rgba(90,74,66,0.85)] focus:border-[#7fd8d2] focus:ring-2 focus:ring-[rgba(127,216,210,0.18)]"
         />
         <div className="mt-3 flex justify-end">
           <button
@@ -361,7 +361,7 @@ export default function BlogPostClient({ slug }: { slug: string }) {
       <div className="paper-bg min-h-screen flex items-center justify-center px-4">
         <div className="text-center">
           <p className="font-heading text-[2rem] text-[var(--ink)]">Post not found</p>
-          <p className="mt-2 text-[0.85rem] text-[rgba(90,74,66,0.55)]">{error}</p>
+          <p className="mt-2 text-[0.85rem] text-[rgba(90,74,66,0.85)]">{error}</p>
           <Link href="/blog" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#5fc8c7] underline underline-offset-2">
             <ArrowLeft className="h-4 w-4" /> Back to Blog
           </Link>
@@ -390,7 +390,7 @@ export default function BlogPostClient({ slug }: { slug: string }) {
         <div className="mx-auto max-w-[720px] px-5 pt-10 sm:px-8">
           <Link
             href="/blog"
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.78rem] font-semibold text-[rgba(90,74,66,0.50)] transition hover:bg-[rgba(90,74,66,0.05)] hover:text-[var(--ink)]"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.78rem] font-semibold text-[rgba(90,74,66,0.85)] transition hover:bg-[rgba(90,74,66,0.05)] hover:text-[var(--ink)]"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
             All Posts
@@ -431,7 +431,7 @@ export default function BlogPostClient({ slug }: { slug: string }) {
                 <p className="text-[0.85rem] font-semibold text-[var(--ink)]">
                   {post.author_name || "Blue Nest Montessori"}
                 </p>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.72rem] text-[rgba(90,74,66,0.48)]">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.72rem] text-[rgba(90,74,66,0.85)]">
                   {post.published_at && (
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" strokeWidth={1.8} />
@@ -466,7 +466,7 @@ export default function BlogPostClient({ slug }: { slug: string }) {
               <button
                 onClick={handleShare}
                 aria-label="Share"
-                className="flex items-center gap-1.5 rounded-full border border-[rgba(90,74,66,0.12)] bg-white px-3.5 py-2 text-[0.75rem] font-semibold text-[rgba(90,74,66,0.50)] shadow-sm transition hover:border-[#7fd8d2] hover:text-[#3aada9]"
+                className="flex items-center gap-1.5 rounded-full border border-[rgba(90,74,66,0.12)] bg-white px-3.5 py-2 text-[0.75rem] font-semibold text-[rgba(90,74,66,0.85)] shadow-sm transition hover:border-[#7fd8d2] hover:text-[#3aada9]"
               >
                 <Share2 className="h-3.5 w-3.5" strokeWidth={1.8} />
                 {shared ? "Copied!" : "Share"}
@@ -494,7 +494,7 @@ export default function BlogPostClient({ slug }: { slug: string }) {
 
           {/* Lead / excerpt */}
           {post.excerpt && (
-            <p className="mt-8 border-l-[3px] border-[#7fd8d2] pl-5 text-[1.05rem] font-medium leading-[1.75] text-[rgba(90,74,66,0.75)] italic">
+            <p className="mt-8 border-l-[3px] border-[#7fd8d2] pl-5 text-[1.05rem] font-medium leading-[1.75] text-[rgba(90,74,66,0.85)] italic">
               {post.excerpt}
             </p>
           )}
@@ -521,7 +521,7 @@ export default function BlogPostClient({ slug }: { slug: string }) {
             <div className="mt-12">
               <div className="mb-4 flex items-center gap-3">
                 <div className="flex-1 h-px bg-[rgba(90,74,66,0.08)]" />
-                <span className="text-[0.72rem] font-bold uppercase tracking-widest text-[rgba(90,74,66,0.40)]">Gallery</span>
+                <span className="text-[0.72rem] font-bold uppercase tracking-widest text-[rgba(90,74,66,0.85)]">Gallery</span>
                 <div className="flex-1 h-px bg-[rgba(90,74,66,0.08)]" />
               </div>
               <div className={`grid gap-3 ${gallery.length === 1 ? "grid-cols-1" : gallery.length === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
@@ -560,7 +560,7 @@ export default function BlogPostClient({ slug }: { slug: string }) {
               <ArrowLeft className="h-4 w-4" />
               Back to Blog
             </Link>
-            <div className="flex items-center gap-1.5 text-[0.72rem] text-[rgba(90,74,66,0.40)]">
+            <div className="flex items-center gap-1.5 text-[0.72rem] text-[rgba(90,74,66,0.85)]">
               <Clock className="h-3 w-3" strokeWidth={1.8} />
               {readTime}
             </div>

@@ -203,7 +203,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
                     className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
                       selectedSize === size
                         ? "border-[var(--ink)] bg-[var(--ink)] text-white"
-                        : "border-[rgba(90,74,66,0.25)] text-[rgba(90,74,66,0.65)] hover:border-[rgba(90,74,66,0.5)]"
+                        : "border-[rgba(90,74,66,0.25)] text-[rgba(90,74,66,0.85)] hover:border-[rgba(90,74,66,0.5)]"
                     }`}
                   >
                     {size}

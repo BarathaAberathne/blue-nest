@@ -26,11 +26,11 @@ const SESSION_TYPES = [
 
 const inputCls =
   "w-full rounded-[0.75rem] border border-[rgba(90,74,66,0.12)] bg-[#fdfaf7] px-3 py-2 text-sm " +
-  "text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.32)] " +
+  "text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.85)] " +
   "focus:border-[#f4aac8] focus:outline-none focus:ring-1 focus:ring-[rgba(246,213,223,0.6)]";
 
 const labelCls =
-  "mb-1 block text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-[rgba(90,74,66,0.55)]";
+  "mb-1 block text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-[rgba(90,74,66,0.85)]";
 
 function Req() {
   return <span className="ml-0.5 text-[#ef8cab]">*</span>;
@@ -137,7 +137,7 @@ function SignaturePad({
           onTouchEnd={stopDraw}
         />
         {!hasDrawn && (
-          <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs text-[rgba(90,74,66,0.30)]">
+          <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs text-[rgba(90,74,66,0.85)]">
             Sign here
           </p>
         )}
@@ -171,9 +171,11 @@ function SessionsGrid({
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th className="pb-1.5 pr-2 text-left text-[0.6rem] font-extrabold uppercase tracking-[0.1em] text-[rgba(90,74,66,0.48)] w-28" />
+              <th scope="col" className="pb-1.5 pr-2 text-left text-[0.6rem] font-extrabold uppercase tracking-[0.1em] text-[rgba(90,74,66,0.85)] w-28">
+                <span className="sr-only">Session</span>
+              </th>
               {DAYS.map((d) => (
-                <th key={d} className="pb-1.5 text-center text-[0.6rem] font-extrabold uppercase tracking-[0.08em] text-[rgba(90,74,66,0.48)]">
+                <th scope="col" key={d} className="pb-1.5 text-center text-[0.6rem] font-extrabold uppercase tracking-[0.08em] text-[rgba(90,74,66,0.85)]">
                   {d}
                 </th>
               ))}
@@ -182,10 +184,10 @@ function SessionsGrid({
           <tbody>
             {SESSION_TYPES.map((st, ri) => (
               <tr key={st.key} className={ri % 2 === 1 ? "bg-[rgba(246,213,223,0.14)]" : ""}>
-                <td className="py-1.5 pr-2">
+                <th scope="row" className="py-1.5 pr-2 text-left font-normal">
                   <p className="text-[0.72rem] font-semibold leading-tight text-[var(--ink)]">{st.label}</p>
-                  <p className="text-[0.6rem] text-[rgba(90,74,66,0.5)]">{st.time}</p>
-                </td>
+                  <p className="text-[0.6rem] text-[#6e5a4e]">{st.time}</p>
+                </th>
                 {DAYS_FULL.map((d) => (
                   <td key={d} className="py-1.5 text-center">
                     <input
@@ -229,7 +231,7 @@ function SessionsGrid({
                         onChange={() => toggle(day, st.key)} className="h-4 w-4 accent-[#ef8cab]" />
                       <span>
                         <span className="block text-xs font-semibold text-[var(--ink)]">{st.label}</span>
-                        <span className="block text-[0.65rem] text-[rgba(90,74,66,0.5)]">{st.time}</span>
+                        <span className="block text-[0.65rem] text-[rgba(90,74,66,0.85)]">{st.time}</span>
                       </span>
                     </label>
                   ))}
@@ -397,7 +399,7 @@ export default function ApplicationFormClient() {
                   <h2 className="font-heading text-[1.15rem] leading-snug text-[#cf7d9c]">
                     Arrange your child&rsquo;s nursery place today
                   </h2>
-                  <div className="mt-3 space-y-3 text-[0.8rem] leading-[1.7] text-[rgba(90,74,66,0.72)]">
+                  <div className="mt-3 space-y-3 text-[0.8rem] leading-[1.7] text-[rgba(90,74,66,0.85)]">
                     <p>
                       As parents, we are all striving to give our children the best opportunities
                       we can, and education plays a major role. Located in Harrow, Pinner and
@@ -416,7 +418,7 @@ export default function ApplicationFormClient() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 text-[0.65rem] text-[rgba(90,74,66,0.48)]">
+                <div className="flex items-center gap-1.5 text-[0.65rem] text-[rgba(90,74,66,0.85)]">
                   <span className="h-2 w-2 rounded-full bg-[#ef8cab]" />
                   Fields marked <span className="font-bold text-[#ef8cab]">*</span> are required
                 </div>

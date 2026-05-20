@@ -167,7 +167,7 @@ export default function CartClient() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-[var(--ink)] text-sm truncate">{item.name}</p>
                   {item.size && (
-                    <p className="text-xs text-[rgba(90,74,66,0.55)]">Age: {item.size}</p>
+                    <p className="text-xs text-[rgba(90,74,66,0.85)]">Age: {item.size}</p>
                   )}
                   <p className="text-xs text-[var(--muted)]">{formatPence(item.price)} each</p>
                   <div className="mt-2 flex items-center gap-2">

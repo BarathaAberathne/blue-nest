@@ -137,7 +137,7 @@ export default function ProspectusPage() {
                     <p className="font-heading text-[1.05rem] leading-snug" style={{ color: item.color }}>
                       {item.label}
                     </p>
-                    <p className="mt-1 text-sm leading-[1.6] text-[rgba(90,74,66,0.72)]">{item.blurb}</p>
+                    <p className="mt-1 text-sm leading-[1.6] text-[rgba(90,74,66,0.85)]">{item.blurb}</p>
                   </div>
                 </div>
               ))}

@@ -30,24 +30,24 @@ export function ContactForm() {
             type="text"
             placeholder="Your Name"
             required
-            className="w-full rounded-[1rem] border border-[rgba(90,74,66,0.12)] bg-[#fdf9f6] px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.4)] focus:outline-none focus:ring-2 focus:ring-[#6ecfc9]/40"
+            className="w-full rounded-[1rem] border border-[rgba(90,74,66,0.12)] bg-[#fdf9f6] px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.85)] focus:outline-none focus:ring-2 focus:ring-[#6ecfc9]/40"
           />
           <input
             type="email"
             placeholder="Email Address"
             required
-            className="w-full rounded-[1rem] border border-[rgba(90,74,66,0.12)] bg-[#fdf9f6] px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.4)] focus:outline-none focus:ring-2 focus:ring-[#6ecfc9]/40"
+            className="w-full rounded-[1rem] border border-[rgba(90,74,66,0.12)] bg-[#fdf9f6] px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.85)] focus:outline-none focus:ring-2 focus:ring-[#6ecfc9]/40"
           />
         </div>
         <input
           type="tel"
           placeholder="Phone Number"
-          className="w-full rounded-[1rem] border border-[rgba(90,74,66,0.12)] bg-[#fdf9f6] px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.4)] focus:outline-none focus:ring-2 focus:ring-[#6ecfc9]/40"
+          className="w-full rounded-[1rem] border border-[rgba(90,74,66,0.12)] bg-[#fdf9f6] px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.85)] focus:outline-none focus:ring-2 focus:ring-[#6ecfc9]/40"
         />
         <textarea
           rows={4}
           placeholder="Your Message"
-          className="w-full resize-none rounded-[1rem] border border-[rgba(90,74,66,0.12)] bg-[#fdf9f6] px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.4)] focus:outline-none focus:ring-2 focus:ring-[#6ecfc9]/40"
+          className="w-full resize-none rounded-[1rem] border border-[rgba(90,74,66,0.12)] bg-[#fdf9f6] px-4 py-3 text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.85)] focus:outline-none focus:ring-2 focus:ring-[#6ecfc9]/40"
         />
         <button type="submit" className="btn-primary w-full">
           Send <ArrowRight className="h-4 w-4" />

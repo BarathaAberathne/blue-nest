@@ -581,6 +581,7 @@ export default function ForestSchoolPage() {
                   <img
                     src="/site-images/forest-school-logo.jpg"
                     alt=""
+                    aria-hidden="true"
                     className="h-full w-full object-cover"
                   />
                 </div>

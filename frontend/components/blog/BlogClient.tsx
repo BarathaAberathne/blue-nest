@@ -39,7 +39,7 @@ function LikeButton() {
     <button
       onClick={(e) => { e.preventDefault(); setLiked((l) => !l); }}
       aria-label={liked ? "Unlike" : "Like"}
-      className="flex items-center gap-1.5 transition-colors"
+      className="-m-2 flex h-10 w-10 items-center justify-center transition-colors"
     >
       <Heart
         className="h-4 w-4 transition-all duration-200"
@@ -90,7 +90,7 @@ function PostCard({ post }: { post: BlogPost }) {
                 <p className="truncate text-[0.72rem] font-bold text-[var(--ink)]">
                   {post.author_name || "Blue Nest Montessori"}
                 </p>
-                <p className="text-[0.65rem] text-[rgba(90,74,66,0.45)]">
+                <p className="text-[0.65rem] text-[rgba(90,74,66,0.85)]">
                   {formatDate(post.published_at)}
                 </p>
               </div>
@@ -111,7 +111,7 @@ function PostCard({ post }: { post: BlogPost }) {
           </h2>
 
           {/* Excerpt */}
-          <p className="mt-2 line-clamp-2 text-[0.8rem] leading-[1.65] text-[rgba(90,74,66,0.60)] sm:line-clamp-3">
+          <p className="mt-2 line-clamp-2 text-[0.8rem] leading-[1.65] text-[rgba(90,74,66,0.85)] sm:line-clamp-3">
             {post.excerpt}
           </p>
 
@@ -199,7 +199,7 @@ export default function BlogClient() {
               className={`relative whitespace-nowrap px-4 pb-3 pt-1 text-[0.82rem] font-bold transition-colors duration-150 ${
                 activeTag === "all"
                   ? "text-[#cf7d9c]"
-                  : "text-[rgba(90,74,66,0.45)] hover:text-[rgba(90,74,66,0.70)]"
+                  : "text-[rgba(90,74,66,0.85)] hover:text-[rgba(90,74,66,0.85)]"
               }`}
             >
               All Posts
@@ -218,7 +218,7 @@ export default function BlogClient() {
                   className={`relative whitespace-nowrap px-4 pb-3 pt-1 text-[0.82rem] font-bold transition-colors duration-150 ${
                     isActive
                       ? "text-[#cf7d9c]"
-                      : "text-[rgba(90,74,66,0.45)] hover:text-[rgba(90,74,66,0.70)]"
+                      : "text-[rgba(90,74,66,0.85)] hover:text-[rgba(90,74,66,0.85)]"
                   }`}
                 >
                   {tag}
@@ -234,17 +234,17 @@ export default function BlogClient() {
           <div className="ml-4 flex shrink-0 items-center">
             {searchOpen ? (
               <div className="flex items-center gap-2 rounded-full border border-[rgba(90,74,66,0.18)] bg-white px-3 py-1.5 shadow-sm">
-                <Search className="h-3.5 w-3.5 shrink-0 text-[rgba(90,74,66,0.40)]" />
+                <Search className="h-3.5 w-3.5 shrink-0 text-[rgba(90,74,66,0.85)]" />
                 <input
                   autoFocus
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search posts…"
-                  className="w-40 bg-transparent text-[0.78rem] text-[var(--ink)] outline-none placeholder:text-[rgba(90,74,66,0.35)] sm:w-52"
+                  className="w-40 bg-transparent text-[0.78rem] text-[var(--ink)] outline-none placeholder:text-[rgba(90,74,66,0.85)] sm:w-52"
                 />
                 <button
                   onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
-                  className="text-[rgba(90,74,66,0.35)] transition hover:text-[var(--ink)]"
+                  className="text-[rgba(90,74,66,0.85)] transition hover:text-[var(--ink)]"
                   aria-label="Close search"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -254,7 +254,7 @@ export default function BlogClient() {
               <button
                 onClick={() => setSearchOpen(true)}
                 aria-label="Search posts"
-                className="flex h-8 w-8 items-center justify-center rounded-full text-[rgba(90,74,66,0.45)] transition hover:bg-[rgba(90,74,66,0.06)] hover:text-[var(--ink)]"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-[rgba(90,74,66,0.85)] transition hover:bg-[rgba(90,74,66,0.06)] hover:text-[var(--ink)]"
               >
                 <Search className="h-4 w-4" />
               </button>
@@ -273,7 +273,7 @@ export default function BlogClient() {
           ) : error ? (
             <div className="flex flex-col items-center gap-3 py-24 text-center">
               <p className="font-heading text-[1.4rem] text-[var(--ink)]">Could not load posts</p>
-              <p className="text-[0.82rem] text-[rgba(90,74,66,0.55)]">{error}</p>
+              <p className="text-[0.82rem] text-[rgba(90,74,66,0.85)]">{error}</p>
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center gap-4 py-24 text-center">

@@ -364,13 +364,13 @@ export default function WhyMontessoriPage() {
                 >
                   &ldquo;
                 </span>
-                <p className="font-heading text-[1.5rem] leading-[1.65] text-[rgba(90,74,66,0.75)] sm:text-[1.75rem]">
+                <p className="font-heading text-[1.5rem] leading-[1.65] text-[rgba(90,74,66,0.85)] sm:text-[1.75rem]">
                   The best nursery I could&rsquo;ve chosen for my daughter. She is so happy there.
                   The staff are so caring and thoughtful. I would go there myself if I only could.
                 </p>
                 <div className="mt-6 flex items-center gap-3">
                   <div className="h-1.5 w-1.5 rounded-full bg-[#ef8cab] opacity-60" />
-                  <cite className="font-body text-[0.7rem] font-extrabold not-italic uppercase tracking-[0.22em] text-[rgba(90,74,66,0.45)]">
+                  <cite className="font-body text-[0.7rem] font-extrabold not-italic uppercase tracking-[0.22em] text-[rgba(90,74,66,0.85)]">
                     Agnieszka G
                   </cite>
                 </div>

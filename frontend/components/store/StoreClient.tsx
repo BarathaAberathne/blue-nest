@@ -88,10 +88,10 @@ function AddButton({
     <button
       onClick={() => void handleAdd()}
       disabled={mustPickSize}
-      aria-label={mustPickSize ? "Pick a size first" : "Add to cart"}
+      aria-label={mustPickSize ? "Pick size first" : "Add to cart"}
       className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[0.7rem] font-bold transition-all duration-200 ${
         mustPickSize
-          ? "cursor-not-allowed bg-[rgba(90,74,66,0.08)] text-[rgba(90,74,66,0.38)]"
+          ? "cursor-not-allowed bg-[rgba(90,74,66,0.08)] text-[rgba(90,74,66,0.85)]"
           : added
           ? "bg-[#8ecb9b] text-white"
           : "bg-[var(--ink)] text-white hover:bg-[#3aada9]"
@@ -178,7 +178,7 @@ function ProductCard({ product }: { product: StoreProduct }) {
                 className={`rounded-full border px-2 py-0.5 text-[0.58rem] font-bold transition-colors ${
                   selectedSize === size
                     ? "border-[var(--ink)] bg-[var(--ink)] text-white"
-                    : "border-[rgba(90,74,66,0.20)] text-[rgba(90,74,66,0.55)] hover:border-[rgba(90,74,66,0.40)]"
+                    : "border-[rgba(90,74,66,0.20)] text-[rgba(90,74,66,0.85)] hover:border-[rgba(90,74,66,0.40)]"
                 }`}
               >
                 {size}
@@ -239,7 +239,7 @@ export default function StoreClient() {
           <h1 className="font-heading text-[2.2rem] leading-none text-[var(--ink)]">
             Nursery Store
           </h1>
-          <p className="mt-1.5 text-sm text-[rgba(90,74,66,0.52)]">
+          <p className="mt-1.5 text-sm text-[rgba(90,74,66,0.85)]">
             Montessori-inspired materials and home learning resources — handpicked by our educators
           </p>
           {/* Store stats */}
@@ -249,7 +249,7 @@ export default function StoreClient() {
               "Secure checkout",
               "Educator-approved",
             ].map((s) => (
-              <span key={s} className="flex items-center gap-1.5 text-[0.72rem] text-[rgba(90,74,66,0.50)]">
+              <span key={s} className="flex items-center gap-1.5 text-[0.72rem] text-[rgba(90,74,66,0.85)]">
                 <Check className="h-3 w-3 text-[#8ecb9b]" strokeWidth={2.5} />
                 {s}
               </span>
@@ -285,13 +285,13 @@ export default function StoreClient() {
             {activeCategory !== "all" && (
               <button
                 onClick={() => setActiveCategory("all")}
-                className="flex items-center gap-1 whitespace-nowrap rounded-full border border-[rgba(90,74,66,0.13)] px-3 py-1.5 text-[0.72rem] font-bold text-[rgba(90,74,66,0.48)] transition hover:text-[var(--ink)]"
+                className="flex items-center gap-1 whitespace-nowrap rounded-full border border-[rgba(90,74,66,0.13)] px-3 py-1.5 text-[0.72rem] font-bold text-[rgba(90,74,66,0.85)] transition hover:text-[var(--ink)]"
               >
                 <X className="h-3 w-3" /> Clear
               </button>
             )}
 
-            <span className="ml-2 shrink-0 text-[0.70rem] text-[rgba(90,74,66,0.38)]">
+            <span className="ml-2 shrink-0 text-[0.70rem] text-[rgba(90,74,66,0.85)]">
               {filtered.length} product{filtered.length !== 1 ? "s" : ""}
             </span>
           </div>
@@ -299,10 +299,10 @@ export default function StoreClient() {
       </div>
 
       {/* ── Product grid ─────────────────────────────────────── */}
-      <section className="paper-bg px-4 pb-14 pt-8 sm:px-6 lg:px-8">
+      <section className="paper-bg min-h-[40rem] px-4 pb-14 pt-8 sm:px-6 lg:px-8">
         <div className="container-site">
           {loading ? (
-            <div className="py-10 text-center text-sm text-[rgba(90,74,66,0.52)]">Loading products...</div>
+            <div className="py-10 text-center text-sm text-[#6e5a4e]">Loading products...</div>
           ) : error ? (
             <div className="py-10 text-center text-sm text-red-500">{error}</div>
           ) : filtered.length === 0 ? (
@@ -335,7 +335,7 @@ export default function StoreClient() {
               <p className="font-heading text-[1.4rem] text-[var(--ink)]">
                 Questions about a product?
               </p>
-              <p className="mt-1 text-sm text-[rgba(90,74,66,0.60)]">
+              <p className="mt-1 text-sm text-[rgba(90,74,66,0.85)]">
                 Our team is happy to help you choose the right resources for your child.
               </p>
             </div>
@@ -345,7 +345,7 @@ export default function StoreClient() {
               </PastelButton>
               <Link
                 href="/cart"
-                className="inline-flex items-center gap-2 rounded-full border border-[rgba(90,74,66,0.15)] px-5 py-2.5 text-[0.85rem] font-bold text-[rgba(90,74,66,0.65)] transition hover:border-[rgba(90,74,66,0.30)] hover:text-[var(--ink)]"
+                className="inline-flex items-center gap-2 rounded-full border border-[rgba(90,74,66,0.15)] px-5 py-2.5 text-[0.85rem] font-bold text-[rgba(90,74,66,0.85)] transition hover:border-[rgba(90,74,66,0.30)] hover:text-[var(--ink)]"
               >
                 <ShoppingCart className="h-4 w-4" /> View cart
               </Link>

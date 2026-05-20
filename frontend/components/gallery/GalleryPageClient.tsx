@@ -215,7 +215,7 @@ export default function GalleryPageClient() {
       <div className="paper-bg px-4 pb-4 pt-10 sm:px-6 lg:px-8">
         <div className="container-site">
           <h1 className="font-heading text-[2.2rem] leading-none text-[var(--ink)]">Gallery</h1>
-          <p className="mt-1.5 text-sm text-[rgba(90,74,66,0.52)]">
+          <p className="mt-1.5 text-sm text-[rgba(90,74,66,0.85)]">
             Photos, videos and updates from our nurseries
           </p>
         </div>
@@ -235,7 +235,7 @@ export default function GalleryPageClient() {
                 className={`rounded-full px-5 py-1.5 font-heading text-[1rem] transition-all duration-200 ${
                   activeTab === type
                     ? activeClass
-                    : "text-[rgba(90,74,66,0.55)] hover:bg-[rgba(90,74,66,0.06)]"
+                    : "text-[rgba(90,74,66,0.85)] hover:bg-[rgba(90,74,66,0.06)]"
                 }`}
               >
                 {label}
@@ -251,7 +251,7 @@ export default function GalleryPageClient() {
                 className={`whitespace-nowrap rounded-full border px-3.5 py-1 text-[0.75rem] font-bold transition-all duration-150 ${
                   activeBranch === value
                     ? "border-transparent text-white"
-                    : "border-[rgba(90,74,66,0.14)] text-[rgba(90,74,66,0.58)] hover:border-[rgba(90,74,66,0.28)]"
+                    : "border-[rgba(90,74,66,0.14)] text-[rgba(90,74,66,0.85)] hover:border-[rgba(90,74,66,0.28)]"
                 }`}
                 style={activeBranch === value ? { backgroundColor: accentColour } : {}}
               >
@@ -268,7 +268,7 @@ export default function GalleryPageClient() {
                 className={`whitespace-nowrap rounded-full border px-3.5 py-1 text-[0.75rem] font-bold transition-all duration-150 ${
                   activeCategory === value
                     ? "border-transparent text-white"
-                    : "border-[rgba(90,74,66,0.14)] text-[rgba(90,74,66,0.58)] hover:border-[rgba(90,74,66,0.28)]"
+                    : "border-[rgba(90,74,66,0.14)] text-[rgba(90,74,66,0.85)] hover:border-[rgba(90,74,66,0.28)]"
                 }`}
                 style={activeCategory === value ? { backgroundColor: accentColour } : {}}
               >
@@ -281,14 +281,14 @@ export default function GalleryPageClient() {
                 <span className="mx-1 h-4 w-px shrink-0 bg-[rgba(90,74,66,0.15)]" aria-hidden="true" />
                 <button
                   onClick={clearFilters}
-                  className="flex items-center gap-1 whitespace-nowrap rounded-full border border-[rgba(90,74,66,0.14)] px-3.5 py-1 text-[0.75rem] font-bold text-[rgba(90,74,66,0.50)] transition hover:border-[rgba(90,74,66,0.30)] hover:text-[var(--ink)]"
+                  className="flex items-center gap-1 whitespace-nowrap rounded-full border border-[rgba(90,74,66,0.14)] px-3.5 py-1 text-[0.75rem] font-bold text-[rgba(90,74,66,0.85)] transition hover:border-[rgba(90,74,66,0.30)] hover:text-[var(--ink)]"
                 >
                   <X className="h-3 w-3" /> Clear
                 </button>
               </>
             )}
 
-            <span className="ml-2 shrink-0 text-[0.72rem] text-[rgba(90,74,66,0.38)]">
+            <span className="ml-2 shrink-0 text-[0.72rem] text-[rgba(90,74,66,0.85)]">
               {filtered.length} {activeTab === "photo" ? "photo" : activeTab === "video" ? "video" : "update"}{filtered.length !== 1 ? "s" : ""}
             </span>
           </div>
@@ -461,7 +461,7 @@ function FeaturedCard({
         <div className="mt-1.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <BranchPill branch={item.branch} small />
-            <span className="text-[0.65rem] text-[rgba(90,74,66,0.45)]">{formatDate(item.date)}</span>
+            <span className="text-[0.65rem] text-[rgba(90,74,66,0.85)]">{formatDate(item.date)}</span>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <button
@@ -480,7 +480,7 @@ function FeaturedCard({
             <button
               onClick={onShare}
               aria-label="Share"
-              className="flex h-7 items-center gap-1 rounded-full px-1.5 text-[0.62rem] font-bold text-[rgba(90,74,66,0.38)] transition hover:bg-[rgba(127,216,210,0.10)] hover:text-[#3aada9]"
+              className="flex h-7 items-center gap-1 rounded-full px-1.5 text-[0.62rem] font-bold text-[rgba(90,74,66,0.85)] transition hover:bg-[rgba(127,216,210,0.10)] hover:text-[#3aada9]"
             >
               <Share2 className="h-3 w-3" strokeWidth={1.8} />
               {shared && <span className="text-[#3aada9]">Copied!</span>}
@@ -556,14 +556,14 @@ function PhotoGrid({
                   <button
                     onClick={() => onShare(item)}
                     aria-label="Share"
-                    className="flex h-6 w-6 items-center justify-center rounded-full text-[rgba(90,74,66,0.35)] transition hover:bg-[rgba(127,216,210,0.10)] hover:text-[#3aada9]"
+                    className="flex h-6 w-6 items-center justify-center rounded-full text-[rgba(90,74,66,0.85)] transition hover:bg-[rgba(127,216,210,0.10)] hover:text-[#3aada9]"
                   >
                     {isShared
                       ? <span className="text-[0.55rem] font-bold text-[#3aada9]">✓</span>
                       : <Share2 className="h-3 w-3" strokeWidth={1.8} />
                     }
                   </button>
-                  <span className="text-[0.62rem] text-[rgba(90,74,66,0.40)]">{formatDate(item.date)}</span>
+                  <span className="text-[0.62rem] text-[rgba(90,74,66,0.85)]">{formatDate(item.date)}</span>
                 </div>
               </div>
             </div>
@@ -627,14 +627,14 @@ function VideoGrid({
             <div className="px-5 py-4">
               <p className="font-heading text-[1.15rem] leading-snug text-[var(--ink)]">{item.title}</p>
               {item.description && (
-                <p className="mt-1 line-clamp-2 text-sm leading-[1.6] text-[rgba(90,74,66,0.65)]">
+                <p className="mt-1 line-clamp-2 text-sm leading-[1.6] text-[rgba(90,74,66,0.85)]">
                   {item.description}
                 </p>
               )}
               <div className="mt-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <BranchPill branch={item.branch} small />
-                  <span className="text-[0.65rem] text-[rgba(90,74,66,0.45)]">{formatDate(item.date)}</span>
+                  <span className="text-[0.65rem] text-[rgba(90,74,66,0.85)]">{formatDate(item.date)}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
@@ -649,7 +649,7 @@ function VideoGrid({
                   <button
                     onClick={() => onShare(item)}
                     aria-label="Share"
-                    className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.72rem] font-semibold text-[rgba(90,74,66,0.45)] transition hover:bg-[rgba(127,216,210,0.08)] hover:text-[#3aada9]"
+                    className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.72rem] font-semibold text-[rgba(90,74,66,0.85)] transition hover:bg-[rgba(127,216,210,0.08)] hover:text-[#3aada9]"
                   >
                     <Share2 className="h-3 w-3" strokeWidth={1.8} />
                     <span>{isShared ? "Copied!" : "Share"}</span>
@@ -688,12 +688,12 @@ function UpdatesGrid({ items }: { items: GalleryItem[] }) {
             >
               {CATEGORY_LABELS[item.category]}
             </span>
-            <span className="text-[0.68rem] text-[rgba(90,74,66,0.45)]">{formatDate(item.date)}</span>
+            <span className="text-[0.68rem] text-[rgba(90,74,66,0.85)]">{formatDate(item.date)}</span>
           </div>
           <h3 className="mt-3 font-heading text-[1.3rem] leading-snug text-[var(--ink)]">
             {item.title}
           </h3>
-          <p className="mt-2 line-clamp-3 text-sm leading-[1.7] text-[rgba(90,74,66,0.68)]">
+          <p className="mt-2 line-clamp-3 text-sm leading-[1.7] text-[rgba(90,74,66,0.85)]">
             {item.excerpt}
           </p>
           <div className="mt-4 flex items-center justify-between">
@@ -805,7 +805,7 @@ function MediaPreview({
           <div className="flex min-w-0 items-center gap-2.5">
             <p className="truncate font-heading text-[1.05rem] text-[var(--ink)]">{item.title}</p>
             <BranchPill branch={item.branch} small />
-            <span className="hidden shrink-0 text-[0.72rem] text-[rgba(90,74,66,0.45)] sm:block">
+            <span className="hidden shrink-0 text-[0.72rem] text-[rgba(90,74,66,0.85)] sm:block">
               {formatDate(item.date)}
             </span>
           </div>
@@ -823,7 +823,7 @@ function MediaPreview({
             <button
               onClick={onShare}
               aria-label="Share"
-              className="flex items-center gap-1.5 rounded-full border border-[rgba(90,74,66,0.12)] bg-white px-3 py-1.5 text-[0.75rem] font-semibold text-[rgba(90,74,66,0.50)] shadow-sm transition hover:border-[#7fd8d2] hover:text-[#3aada9]"
+              className="flex items-center gap-1.5 rounded-full border border-[rgba(90,74,66,0.12)] bg-white px-3 py-1.5 text-[0.75rem] font-semibold text-[rgba(90,74,66,0.85)] shadow-sm transition hover:border-[#7fd8d2] hover:text-[#3aada9]"
             >
               <Share2 className="h-3.5 w-3.5" strokeWidth={1.8} />
               <span>{shared ? "Copied!" : "Share"}</span>
@@ -932,9 +932,9 @@ function GalleryCommentsSection({ itemId }: { itemId: string }) {
               <div className="flex-1 rounded-[1rem] rounded-tl-sm bg-[rgba(90,74,66,0.03)] px-4 py-3 ring-1 ring-[rgba(90,74,66,0.05)]">
                 <div className="mb-1 flex items-baseline justify-between gap-3">
                   <span className="text-[0.8rem] font-bold text-[var(--ink)]">{c.name}</span>
-                  <span className="shrink-0 text-[0.65rem] text-[rgba(90,74,66,0.38)]">{fmtDate(c.created_at)}</span>
+                  <span className="shrink-0 text-[0.65rem] text-[rgba(90,74,66,0.85)]">{fmtDate(c.created_at)}</span>
                 </div>
-                <p className="text-[0.82rem] leading-[1.65] text-[rgba(90,74,66,0.70)]">{c.body}</p>
+                <p className="text-[0.82rem] leading-[1.65] text-[rgba(90,74,66,0.85)]">{c.body}</p>
               </div>
             </div>
           ))}
@@ -956,7 +956,7 @@ function GalleryCommentsSection({ itemId }: { itemId: string }) {
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name"
           required
-          className="mb-2.5 w-full rounded-xl border border-[rgba(90,74,66,0.12)] bg-white px-4 py-2 text-[0.85rem] text-[var(--ink)] outline-none placeholder:text-[rgba(90,74,66,0.35)] focus:border-[#7fd8d2] focus:ring-2 focus:ring-[rgba(127,216,210,0.18)]"
+          className="mb-2.5 w-full rounded-xl border border-[rgba(90,74,66,0.12)] bg-white px-4 py-2 text-[0.85rem] text-[var(--ink)] outline-none placeholder:text-[rgba(90,74,66,0.85)] focus:border-[#7fd8d2] focus:ring-2 focus:ring-[rgba(127,216,210,0.18)]"
         />
         <textarea
           value={body}
@@ -964,7 +964,7 @@ function GalleryCommentsSection({ itemId }: { itemId: string }) {
           placeholder="Share your thoughts…"
           required
           rows={3}
-          className="w-full resize-none rounded-xl border border-[rgba(90,74,66,0.12)] bg-white px-4 py-2 text-[0.85rem] text-[var(--ink)] outline-none placeholder:text-[rgba(90,74,66,0.35)] focus:border-[#7fd8d2] focus:ring-2 focus:ring-[rgba(127,216,210,0.18)]"
+          className="w-full resize-none rounded-xl border border-[rgba(90,74,66,0.12)] bg-white px-4 py-2 text-[0.85rem] text-[var(--ink)] outline-none placeholder:text-[rgba(90,74,66,0.85)] focus:border-[#7fd8d2] focus:ring-2 focus:ring-[rgba(127,216,210,0.18)]"
         />
         <div className="mt-2.5 flex justify-end">
           <button

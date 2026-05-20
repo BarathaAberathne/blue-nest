@@ -39,5 +39,29 @@ logs/
 coverage/
 *.coverage
 
+# ── TypeScript incremental build cache ───────────────────────────────────────
+*.tsbuildinfo
+
+# ── Lighthouse / Playwright artefacts ─────────────────────────────────────────
+# Keep REPORT.md (committed documentation), drop the JSON+HTML report runs.
+frontend/lighthouse-reports/*
+!frontend/lighthouse-reports/REPORT.md
+frontend/.lighthouseci/
+frontend/test-results/
+frontend/playwright-report/
+
+# ── Build / runtime artefacts ────────────────────────────────────────────────
+backend/main
+backend/uploads/
+frontend/main
+
+# ── Working-doc audit markdowns (untracked working notes, not docs to ship) ──
+/ARCHITECTURE_SUMMARY.md
+/FIXES_REQUIRED.md
+/FRONTEND_OPTIMIZATION_RESULTS.md
+/PRODUCTION_READINESS_AUDIT.md
+/PRODUCTION_TEST_RESULTS.md
+/blue-nest-all-branch-fee-calculator-data.xlsx
+
 # ── Claude working files ──────────────────────────────────────────────────────
 .claude/

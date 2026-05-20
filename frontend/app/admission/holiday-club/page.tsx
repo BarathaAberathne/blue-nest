@@ -239,7 +239,7 @@ export default function HolidayClubPage() {
                     <p className="font-heading text-[1.05rem] leading-snug" style={{ color: a.color }}>
                       {a.title}
                     </p>
-                    <p className="mt-1 text-sm leading-[1.6] text-[rgba(90,74,66,0.72)]">{a.blurb}</p>
+                    <p className="mt-1 text-sm leading-[1.6] text-[rgba(90,74,66,0.85)]">{a.blurb}</p>
                   </div>
                 </div>
               </Reveal>
@@ -274,7 +274,7 @@ export default function HolidayClubPage() {
                     <h3 className="font-heading text-[1.6rem] leading-tight" style={{ color: b.accent }}>
                       {b.name}
                     </h3>
-                    <p className="mt-2 text-sm leading-[1.6] text-[rgba(90,74,66,0.72)]">{b.locality}</p>
+                    <p className="mt-2 text-sm leading-[1.6] text-[rgba(90,74,66,0.85)]">{b.locality}</p>
                   </div>
                   <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold" style={{ color: b.accent }}>
                     Visit branch page <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
@@ -324,7 +324,7 @@ export default function HolidayClubPage() {
                   </span>
                   <p className="font-heading text-[1.05rem] leading-tight text-[var(--ink)]">{s.label}</p>
                   <p className="mt-1.5 text-sm font-semibold text-[#cf7d9c]">{s.value}</p>
-                  <p className="mt-1 text-xs text-[rgba(90,74,66,0.6)]">{s.note}</p>
+                  <p className="mt-1 text-xs text-[rgba(90,74,66,0.85)]">{s.note}</p>
                 </div>
               </Reveal>
             ))}

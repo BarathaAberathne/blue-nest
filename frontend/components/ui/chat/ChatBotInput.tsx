@@ -82,7 +82,7 @@ export default function ChatBotInput() {
           disabled={isStreaming}
           placeholder={isStreaming ? "Blue Nest Bot is typing…" : "Ask anything about Blue Nest…"}
           aria-label="Type your message"
-          className="flex-1 resize-none bg-transparent text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.4)] focus:outline-none disabled:opacity-50"
+          className="flex-1 resize-none bg-transparent text-sm text-[var(--ink)] placeholder:text-[rgba(90,74,66,0.85)] focus:outline-none disabled:opacity-50"
           style={{ maxHeight: 80 }}
         />
         <button
@@ -96,7 +96,7 @@ export default function ChatBotInput() {
         </button>
       </div>
 
-      <p className="mt-2 text-center text-[10px] text-[rgba(90,74,66,0.35)]">
+      <p className="mt-2 text-center text-[10px] text-[rgba(90,74,66,0.85)]">
         Blue Nest Bot · AI assistant · Not a substitute for professional advice
       </p>
     </div>

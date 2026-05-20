@@ -381,7 +381,7 @@ export default function HomeLearningPage() {
                     <span className="font-heading text-[1.35rem] leading-tight" style={{ color: r.accent }}>
                       {r.label}
                     </span>
-                    <ExternalLink className="h-4 w-4 shrink-0 text-[rgba(90,74,66,0.3)] transition group-hover:text-[rgba(90,74,66,0.55)]" />
+                    <ExternalLink className="h-4 w-4 shrink-0 text-[rgba(90,74,66,0.85)] transition group-hover:text-[rgba(90,74,66,0.85)]" />
                   </div>
                   <p className="body-text text-sm">{r.desc}</p>
                 </a>

@@ -67,7 +67,7 @@ export default function AccountOrdersClient() {
         </div>
       ) : orders.length === 0 ? (
         <div className="rounded-[2rem] bg-[var(--soft-white)] shadow-[0_14px_40px_rgba(90,74,66,0.08)] ring-1 ring-[rgba(90,74,66,0.06)] px-6 py-12 text-center">
-          <Package className="mx-auto mb-3 h-10 w-10 text-[rgba(90,74,66,0.20)]" />
+          <Package className="mx-auto mb-3 h-10 w-10 text-[rgba(90,74,66,0.85)]" />
           <p className="font-heading text-[1.4rem] text-[var(--ink)]">No orders yet</p>
           <p className="mt-1 text-sm text-[var(--muted)]">
             Your orders will appear here once you&apos;ve made a purchase.
@@ -94,7 +94,7 @@ export default function AccountOrdersClient() {
 
               {/* Details */}
               <div className="flex-1 min-w-0">
-                <p className="font-mono text-xs font-semibold text-[rgba(90,74,66,0.50)] truncate">
+                <p className="font-mono text-xs font-semibold text-[rgba(90,74,66,0.85)] truncate">
                   {o.id.slice(0, 16).toUpperCase()}
                 </p>
                 <p className="text-xs text-[var(--muted)] mt-0.5">{fmtDate(o.created_at)}</p>

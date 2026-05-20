@@ -64,7 +64,7 @@ export default function ApplicationFormPage() {
               </Link>
               .
             </p>
-            <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1.5 text-xs font-semibold text-[rgba(90,74,66,0.7)] ring-1 ring-[rgba(90,74,66,0.08)]">
+            <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1.5 text-xs font-semibold text-[rgba(90,74,66,0.85)] ring-1 ring-[rgba(90,74,66,0.08)]">
               <Clock className="h-3.5 w-3.5 text-[#5fc8c7]" strokeWidth={2} />
               We reply within two working days
             </p>

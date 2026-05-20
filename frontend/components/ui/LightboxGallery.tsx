@@ -52,7 +52,7 @@ export function LightboxGallery({ images, columns = 3 }: Props) {
                 />
               </div>
               {img.caption && (
-                <p className="mt-2 text-center font-body text-sm text-[rgba(90,74,66,0.65)]">
+                <p className="mt-2 text-center font-body text-sm text-[rgba(90,74,66,0.85)]">
                   {img.caption}
                 </p>
               )}

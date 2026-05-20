@@ -352,6 +352,7 @@ export default function FeeCalculatorCard({
             type="button"
             role="switch"
             aria-checked={earlyBird}
+            aria-label="Toggle early bird 7:30am drop-off"
             onClick={() => setEarlyBird((v) => !v)}
             className={`relative h-6 w-11 shrink-0 rounded-full overflow-hidden transition-colors duration-200 ${
               earlyBird ? "bg-[#6ecfc9]" : "bg-[rgba(90,74,66,0.15)]"

@@ -391,7 +391,7 @@ export default function BorehamwoodBranchPage() {
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.06)]">
                       <Phone className="h-4 w-4 text-[#5fc8c7]" />
                     </div>
-                    <a href="tel:02089531718" className="text-sm font-semibold text-[rgba(90,74,66,0.72)] transition hover:text-[var(--ink)]">
+                    <a href="tel:02089531718" className="text-sm font-semibold text-[rgba(90,74,66,0.85)] transition hover:text-[var(--ink)]">
                       020 8953 1718
                     </a>
                   </div>
@@ -399,7 +399,7 @@ export default function BorehamwoodBranchPage() {
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.06)]">
                       <Mail className="h-4 w-4 text-[#5fc8c7]" />
                     </div>
-                    <a href="mailto:manager@bluenest.uk" className="text-sm font-semibold text-[rgba(90,74,66,0.72)] transition hover:text-[var(--ink)]">
+                    <a href="mailto:manager@bluenest.uk" className="text-sm font-semibold text-[rgba(90,74,66,0.85)] transition hover:text-[var(--ink)]">
                       manager@bluenest.uk
                     </a>
                   </div>
@@ -407,7 +407,7 @@ export default function BorehamwoodBranchPage() {
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.06)]">
                       <SunMedium className="h-4 w-4 text-[#5fc8c7]" />
                     </div>
-                    <div className="text-sm font-semibold leading-relaxed text-[rgba(90,74,66,0.72)]">
+                    <div className="text-sm font-semibold leading-relaxed text-[rgba(90,74,66,0.85)]">
                       <div>Monday – Friday</div>
                       <div>7:30 am – 6:00 pm</div>
                     </div>

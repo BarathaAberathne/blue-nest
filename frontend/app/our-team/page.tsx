@@ -617,7 +617,7 @@ export default function OurTeamPage() {
                     <p className="font-heading text-[1rem] leading-tight" style={{ color: item.colour }}>
                       {item.label}
                     </p>
-                    <p className="mt-1 text-[0.75rem] leading-[1.55] text-[rgba(90,74,66,0.68)]">
+                    <p className="mt-1 text-[0.75rem] leading-[1.55] text-[rgba(90,74,66,0.85)]">
                       {item.sub}
                     </p>
                   </div>
@@ -681,7 +681,7 @@ export default function OurTeamPage() {
                   <p className="font-heading text-[1.5rem] leading-tight text-[var(--ink)]">
                     Interested in joining our team?
                   </p>
-                  <p className="mt-1.5 max-w-lg text-sm leading-[1.7] text-[rgba(90,74,66,0.65)]">
+                  <p className="mt-1.5 max-w-lg text-sm leading-[1.7] text-[rgba(90,74,66,0.85)]">
                     Send your CV and a short note about why Montessori matters to you, and let us
                     know which branch you&rsquo;re drawn to. We reply to every application.
                   </p>
@@ -733,7 +733,7 @@ function SiteHeading({ site }: { site: SiteName }) {
 
 function CategoryLabel({ label }: { label: string }) {
   return (
-    <p className="mb-3 text-[0.65rem] font-bold uppercase tracking-widest text-[rgba(90,74,66,0.38)]">
+    <p className="mb-3 text-[0.65rem] font-bold uppercase tracking-widest text-[rgba(90,74,66,0.85)]">
       {label}
     </p>
   );
