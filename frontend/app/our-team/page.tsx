@@ -111,22 +111,22 @@ const ALL_STAFF: TeamMember[] = [
 
   // Manager ────────────────────────────────────────────
   {
+    name: "Lakna Gunawardena", role: "Branch Manager / Executive Director",
+    branch: "Harrow", category: "Manager", initial: "L", colour: c(0),
+    photo: "/team/lakna-gunawardena.jpg",
+    qualifications: ["Level 3 Early Years"],
+  },
+  {
     name: "Dolvy Colaco", role: "Nursery Manager",
-    branch: "Harrow", category: "Manager", initial: "D", colour: c(0),
+    branch: "Harrow", category: "Manager", initial: "D", colour: c(1),
     photo: "/team/dolvy-colaco.jpg",
     qualifications: ["Level 5 Early Years"],
   },
   {
     name: "Ioana Pintilei", role: "EYFS Coordinator",
-    branch: "Harrow", category: "Manager", initial: "I", colour: c(1),
+    branch: "Harrow", category: "Manager", initial: "I", colour: c(2),
     photo: "/team/ioana-pintilei.jpg",
     qualifications: [],
-  },
-  {
-    name: "Lakna Gunawardena", role: "Manager",
-    branch: "Harrow", category: "Manager", initial: "L", colour: c(2),
-    photo: "/team/lakna-gunawardena.jpg",
-    qualifications: ["Level 3 Early Years"],
   },
 
   // Deputy ─────────────────────────────────────────────
