@@ -56,6 +56,10 @@ type SMTPConfig struct {
 	Pass    string
 	From    string
 	AdminTo string
+	// ResendAPIKey, when set, makes the mailer send via Resend's HTTPS API
+	// instead of SMTP. Useful on hosts (e.g. DigitalOcean droplets) that
+	// block outbound SMTP by default.
+	ResendAPIKey string
 }
 
 type OAuthProviderConfig struct {
@@ -105,12 +109,13 @@ func Load() *Config {
 		},
 		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
 		SMTP: SMTPConfig{
-			Host:    getEnv("SMTP_HOST", ""),
-			Port:    func() int { p, _ := strconv.Atoi(getEnv("SMTP_PORT", "587")); return p }(),
-			User:    getEnv("SMTP_USER", ""),
-			Pass:    getEnv("SMTP_PASS", ""),
-			From:    getEnv("SMTP_FROM", "noreply@bluenest.uk"),
-			AdminTo: getEnv("SMTP_ADMIN_TO", "ba@bluenest.com"),
+			Host:         getEnv("SMTP_HOST", ""),
+			Port:         func() int { p, _ := strconv.Atoi(getEnv("SMTP_PORT", "587")); return p }(),
+			User:         getEnv("SMTP_USER", ""),
+			Pass:         getEnv("SMTP_PASS", ""),
+			From:         getEnv("SMTP_FROM", "noreply@bluenest.uk"),
+			AdminTo:      getEnv("SMTP_ADMIN_TO", "ba@bluenest.com"),
+			ResendAPIKey: getEnv("RESEND_API_KEY", ""),
 		},
 	}
 }

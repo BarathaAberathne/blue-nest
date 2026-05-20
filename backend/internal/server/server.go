@@ -67,12 +67,13 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 
 	enquiryRepo := repository.NewEnquiryRepository(db)
 	mailer := email.New(email.Config{
-		Host:    cfg.SMTP.Host,
-		Port:    cfg.SMTP.Port,
-		User:    cfg.SMTP.User,
-		Pass:    cfg.SMTP.Pass,
-		From:    cfg.SMTP.From,
-		AdminTo: cfg.SMTP.AdminTo,
+		Host:         cfg.SMTP.Host,
+		Port:         cfg.SMTP.Port,
+		User:         cfg.SMTP.User,
+		Pass:         cfg.SMTP.Pass,
+		From:         cfg.SMTP.From,
+		AdminTo:      cfg.SMTP.AdminTo,
+		ResendAPIKey: cfg.SMTP.ResendAPIKey,
 	})
 
 	// Services

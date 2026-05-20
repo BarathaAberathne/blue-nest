@@ -1,10 +1,15 @@
 package email
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"net/smtp"
 	"strings"
+	"time"
 )
 
 // LogoURL is the publicly accessible logo for use inside HTML email templates.
@@ -16,28 +21,43 @@ import (
 // The asset lives at frontend/public/email/logo.png (360×197 PNG, ~51 KB).
 const LogoURL = "https://raw.githubusercontent.com/BarathaAberathne/blue-nest/main/frontend/public/email/logo.png"
 
+// resendAPIURL is Resend's transactional email endpoint. Documented at
+// https://resend.com/docs/api-reference/emails/send-email.
+const resendAPIURL = "https://api.resend.com/emails"
+
 type Config struct {
-	Host    string
-	Port    int
-	User    string
-	Pass    string
-	From    string
-	AdminTo string
+	Host         string
+	Port         int
+	User         string
+	Pass         string
+	From         string
+	AdminTo      string
+	ResendAPIKey string // optional; when set, sends via HTTPS instead of SMTP
 }
 
 type Mailer struct {
-	cfg Config
+	cfg        Config
+	httpClient *http.Client
 }
 
 func New(cfg Config) *Mailer {
-	return &Mailer{cfg: cfg}
+	return &Mailer{
+		cfg:        cfg,
+		httpClient: &http.Client{Timeout: 15 * time.Second},
+	}
 }
 
-// Send sends an HTML email. Returns nil without error when SMTP is not configured
-// (graceful no-op for local development).
+// Send sends an HTML email. Picks the transport in this order:
+//  1. Resend HTTPS API if RESEND_API_KEY is set (works behind networks that
+//     block outbound SMTP — e.g. DigitalOcean droplets by default).
+//  2. SMTP if a host is configured (local dev with Gmail / Mailpit / etc).
+//  3. No-op log otherwise (graceful skip when nothing is configured).
 func (m *Mailer) Send(to []string, subject, htmlBody string) error {
+	if m.cfg.ResendAPIKey != "" {
+		return m.sendViaResend(to, subject, htmlBody)
+	}
 	if m.cfg.Host == "" {
-		slog.Info("SMTP not configured — skipping email", "to", to, "subject", subject)
+		slog.Info("email not configured — skipping", "to", to, "subject", subject)
 		return nil
 	}
 
@@ -49,6 +69,42 @@ func (m *Mailer) Send(to []string, subject, htmlBody string) error {
 	if err := smtp.SendMail(addr, auth, m.cfg.From, to, []byte(msg)); err != nil {
 		return fmt.Errorf("smtp send: %w", err)
 	}
+	return nil
+}
+
+// sendViaResend posts a single email via Resend's REST API. The "from" field
+// must be on a verified domain — typically configured via SMTP_FROM (e.g.
+// noreply@blue-nest.com when blue-nest.com is the verified Resend domain).
+func (m *Mailer) sendViaResend(to []string, subject, htmlBody string) error {
+	payload := map[string]any{
+		"from":    fmt.Sprintf("Blue Nest Montessori <%s>", m.cfg.From),
+		"to":      to,
+		"subject": subject,
+		"html":    htmlBody,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("resend marshal: %w", err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, resendAPIURL, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("resend new request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+m.cfg.ResendAPIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := m.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("resend post: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("resend send: %d %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+	}
+	slog.Info("email sent via Resend", "to", to, "subject", subject, "status", resp.StatusCode)
 	return nil
 }
 
