@@ -94,7 +94,7 @@ const GALLERY = [
   { src: "/home/children-outdoor-play.jpg",       alt: "Children taking part in a charity fundraising activity", rotate: -2, caption: "Fundraising fun"        },
   { src: "/home/forest-school.jpg",               alt: "Forest school charity day at Blue Nest",                 rotate:  2, caption: "Forest School day"      },
   { src: "/home/outdoor-learning-and-play-area.jpg", alt: "Outdoor learning during a community event",           rotate: -1, caption: "Community event"        },
-  { src: "/home/DSC_0151.jpg",                    alt: "Children engaged in a charity craft activity",           rotate:  2, caption: "Charity craft morning"  },
+  { src: "/home/branches/harrow/harrow-preview-04.jpg", alt: "Children at a Blue Nest charity craft activity",     rotate:  2, caption: "Charity craft morning"  },
   { src: "/home/outdoor-childrens-play-area.jpg", alt: "Outdoor charity event at Blue Nest nursery",             rotate: -2, caption: "Outdoor charity day"    },
   { src: "/home/structured-routine.jpg",          alt: "Blue Nest team at a community initiative",               rotate:  1, caption: "Community initiative"   },
 ];
@@ -111,7 +111,7 @@ export default function OurCharitiesPage() {
       <section className="paper-bg relative flex min-h-[55vh] items-center">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <Image
-            src="/home/branches/harrow/harrow-preview-04.jpg"
+            src="/home/DSC_0151.jpg"
             alt="Children playing together at Blue Nest Montessori"
             fill
             priority

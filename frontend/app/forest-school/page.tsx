@@ -261,7 +261,7 @@ export default function ForestSchoolPage() {
         {/* ── Right: nature photo + floating card ──────────────── */}
         <div className="relative hidden lg:block w-1/2 overflow-hidden">
           <Image
-            src="/home/forest-school.jpg"
+            src="/home/outdoor-childrens-play-area2.jpg"
             alt="Children learning outdoors at Blue Nest Forest School"
             fill
             priority
