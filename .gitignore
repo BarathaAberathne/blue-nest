@@ -53,10 +53,11 @@ frontend/playwright-report/
 # ── Build / runtime artefacts ────────────────────────────────────────────────
 backend/main
 frontend/main
-# Keep the uploads dir trackable (via .gitkeep) so docker build works on a
-# clean checkout, but never commit the runtime uploaded files themselves.
-backend/uploads/*
-!backend/uploads/.gitkeep
+# Keep the uploads dir trackable. Seed product images under
+# backend/uploads/products/ ARE committed (the Dockerfile bakes them into the
+# image so a fresh deploy has product imagery to show). Admin-uploaded runtime
+# files in production live in the docker `uploads_data` volume, not in git.
+# In dev mode, new uploads appear in `git status` — review before committing.
 
 # ── Working-doc audit markdowns (untracked working notes, not docs to ship) ──
 /ARCHITECTURE_SUMMARY.md
