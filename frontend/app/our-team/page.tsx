@@ -512,7 +512,7 @@ export default function OurTeamPage() {
       <section className="paper-bg relative flex min-h-[60vh] items-center">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <Image
-            src="/home/montessori-learning.jpeg"
+            src="/home/home_hero_image.jpeg"
             alt="Blue Nest Montessori educator playing with children"
             fill
             priority
