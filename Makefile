@@ -135,7 +135,13 @@ seed-branches:
 
 seed-users:
 	@echo "→ Seeding default users (admin / test customer)..."
-	cd backend && go run ./cmd/seedusers
+	@if docker compose ps backend --status running --quiet 2>/dev/null | grep -q .; then \
+	  echo "  using running backend container (production-style)"; \
+	  docker compose -f docker-compose.yml -f docker-compose.prod.yml exec backend ./seedusers; \
+	else \
+	  echo "  no backend container running → falling back to local Go toolchain"; \
+	  cd backend && go run ./cmd/seedusers; \
+	fi
 
 seed-all: seed-products seed-branches seed-users
 	@echo "✓ All seeds complete"

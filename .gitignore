@@ -52,8 +52,11 @@ frontend/playwright-report/
 
 # ── Build / runtime artefacts ────────────────────────────────────────────────
 backend/main
-backend/uploads/
 frontend/main
+# Keep the uploads dir trackable (via .gitkeep) so docker build works on a
+# clean checkout, but never commit the runtime uploaded files themselves.
+backend/uploads/*
+!backend/uploads/.gitkeep
 
 # ── Working-doc audit markdowns (untracked working notes, not docs to ship) ──
 /ARCHITECTURE_SUMMARY.md
