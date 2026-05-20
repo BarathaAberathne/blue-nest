@@ -89,7 +89,7 @@ export default function WhyMontessoriPage() {
         {/* Background image + layered overlays */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <Image
-            src="/home/outdoor-learning-and-play-area.jpg"
+            src="/home/branches/harrow/harrow-preview-02.jpg"
             alt="Blue Nest Montessori learning environment"
             fill
             priority

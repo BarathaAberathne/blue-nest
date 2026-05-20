@@ -64,7 +64,7 @@ export default function AdmissionPage() {
       <section className="paper-bg relative flex min-h-[52vh] items-center">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <Image
-            src="/home/outdoor-learning-and-play-area.jpg"
+            src="/home/branches/harrow/harrow-preview-01.jpg"
             alt="Blue Nest Montessori learning environment"
             fill
             priority
