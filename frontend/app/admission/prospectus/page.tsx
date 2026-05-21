@@ -74,6 +74,7 @@ export default function ProspectusPage() {
             alt="Children learning at Blue Nest Montessori"
             fill
             priority
+            fetchPriority="high"
             className="object-cover object-center"
             sizes="100vw"
           />

@@ -89,7 +89,7 @@ export function LightboxGallery({ images, columns = 3 }: Props) {
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 900px"
                 priority
-              />
+                fetchPriority="high"              />
             </div>
             {active.caption && (
               <p className="bg-black/50 px-4 py-2 text-center text-sm text-white">

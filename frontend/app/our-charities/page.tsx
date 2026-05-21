@@ -115,6 +115,7 @@ export default function OurCharitiesPage() {
             alt="Children playing together at Blue Nest Montessori"
             fill
             priority
+            fetchPriority="high"
             className="object-cover object-center"
             sizes="100vw"
           />

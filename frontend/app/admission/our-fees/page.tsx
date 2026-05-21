@@ -126,6 +126,7 @@ export default function OurFeesPage() {
             alt=""
             fill
             priority
+            fetchPriority="high"
             className="object-cover object-center"
             sizes="100vw"
           />

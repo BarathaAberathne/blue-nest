@@ -143,7 +143,7 @@ export default function ProductDetailClient({ slug }: { slug: string }) {
                 sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover"
                 priority
-              />
+                fetchPriority="high"              />
             ) : (
               <div className="flex h-full items-center justify-center text-6xl">
                 {category === "clothing" ? "👕" : "🛍️"}

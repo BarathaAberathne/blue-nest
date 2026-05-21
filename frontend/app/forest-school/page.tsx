@@ -265,6 +265,7 @@ export default function ForestSchoolPage() {
             alt="Children learning outdoors at Blue Nest Forest School"
             fill
             priority
+            fetchPriority="high"
             className="object-cover object-center"
             sizes="50vw"
           />

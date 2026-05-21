@@ -68,6 +68,7 @@ export default function AdmissionPage() {
             alt="Blue Nest Montessori learning environment"
             fill
             priority
+            fetchPriority="high"
             className="object-cover object-center"
             sizes="100vw"
           />

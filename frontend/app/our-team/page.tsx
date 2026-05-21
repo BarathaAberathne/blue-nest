@@ -516,6 +516,7 @@ export default function OurTeamPage() {
             alt="Blue Nest Montessori educator playing with children"
             fill
             priority
+            fetchPriority="high"
             className="object-cover object-center"
             sizes="100vw"
           />

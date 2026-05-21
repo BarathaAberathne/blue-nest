@@ -88,6 +88,7 @@ export default function HomeLearningPage() {
             alt="Children learning outdoors at Blue Nest Montessori"
             fill
             priority
+            fetchPriority="high"
             className="object-cover object-center"
             sizes="100vw"
           />

@@ -229,7 +229,7 @@ export default function Header() {
                     className="object-contain drop-shadow-[0_4px_10px_rgba(90,74,66,0.14)]"
                     sizes="380px"
                     priority
-                  />
+                    fetchPriority="high"                  />
                 </div>
               </Link>
             </div>
@@ -356,7 +356,7 @@ export default function Header() {
                   className="object-contain drop-shadow-[0_4px_10px_rgba(90,74,66,0.14)]"
                   sizes="(min-width: 768px) 212px, (min-width: 640px) 185px, 158px"
                   priority
-                />
+                  fetchPriority="high"                />
               </div>
             </Link>
 

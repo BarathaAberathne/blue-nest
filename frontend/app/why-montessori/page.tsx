@@ -93,6 +93,7 @@ export default function WhyMontessoriPage() {
             alt="Blue Nest Montessori learning environment"
             fill
             priority
+            fetchPriority="high"
             className="object-cover object-right"
             sizes="100vw"
           />

@@ -101,6 +101,7 @@ export default function BranchHero({
           alt={imageAlt}
           fill
           priority
+          fetchPriority="high"
           className="object-cover object-center"
           sizes="50vw"
         />
