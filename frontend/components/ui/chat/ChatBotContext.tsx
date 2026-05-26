@@ -83,11 +83,16 @@ export function ChatBotProvider({ children }: { children: ReactNode }) {
   const isStreamingRef = useRef(false);
   const pageRef = useRef<PageContext>("general");
 
-  // Keep refs in sync
-  messagesRef.current = messages;
-  isOpenRef.current = isOpen;
-  isStreamingRef.current = isStreaming;
-  pageRef.current = getPageContext(pathname);
+  // Keep refs in sync (in an effect — mutating refs during render is a
+  // react-hooks/refs violation). These are read only inside the async
+  // sendMessage, which always runs after mount + effect flush, so updating
+  // them post-render is behaviorally equivalent.
+  useEffect(() => {
+    messagesRef.current = messages;
+    isOpenRef.current = isOpen;
+    isStreamingRef.current = isStreaming;
+    pageRef.current = getPageContext(pathname);
+  });
 
   // Load session on mount
   useEffect(() => {

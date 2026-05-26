@@ -71,7 +71,7 @@ export default function ChatBotLeadForm() {
       <div className="flex items-center justify-between rounded-t-[1.8rem] bg-[linear-gradient(135deg,#8ee2dc,#6ecfc9)] px-5 py-4">
         <div>
           <p className="font-heading text-xl leading-tight text-white">Book a Show Around</p>
-          <p className="mt-0.5 text-xs text-white/85">Leave your details — we'll be in touch soon 😊</p>
+          <p className="mt-0.5 text-xs text-white/85">Leave your details — we&apos;ll be in touch soon 😊</p>
         </div>
         <button
           type="button"
