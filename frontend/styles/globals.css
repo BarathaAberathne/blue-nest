@@ -52,6 +52,30 @@
 }
 
 @layer components {
+  /* ── Sticky-header theme ─────────────────────────────────────
+     Pink by default; the .theme-forest modifier (applied only on
+     /forest-school) swaps these to a soft green tint so the header
+     matches that page. Only the header's own elements read these
+     vars, so every other page renders identically. */
+  .site-header {
+    --hdr-bg:          #fde8f0;
+    --hdr-border:      rgba(207, 125, 156, 0.15);
+    --hdr-border-soft: rgba(207, 125, 156, 0.12);
+    --hdr-shadow:      rgba(207, 125, 156, 0.10);
+    --hdr-accent:      #7fd8d2; /* teal — search btn, phone/mail/cart icons */
+    --hdr-accent-2:    #cf7d9c; /* pink — branch labels, login icon */
+    --hdr-hover:       #f8f1ec;
+  }
+  .site-header.theme-forest {
+    --hdr-bg:          #e6f0e1;
+    --hdr-border:      rgba(58, 92, 56, 0.20);
+    --hdr-border-soft: rgba(58, 92, 56, 0.14);
+    --hdr-shadow:      rgba(58, 92, 56, 0.12);
+    --hdr-accent:      #4e7a4c;
+    --hdr-accent-2:    #3a5c38;
+    --hdr-hover:       #eef3ea;
+  }
+
   /* ── Layout ──────────────────────────────────────────────── */
   .container-site {
     @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
@@ -470,3 +494,80 @@
   color: rgba(90,74,66,0.80);
 }
 .blog-prose tr:last-child td { border-bottom: none; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FOREST SCHOOL — ambient woodland atmosphere (CSS-only, no extra JS)
+   Soft, slow, calming motion: drifting leaves, rising pollen, breathing
+   sunlight, slow mist. All decorative; every animation is disabled under
+   prefers-reduced-motion so the page stays calm and accessible.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes f-leaf-drift {
+  0%   { transform: translate3d(0, -8%, 0) rotate(0deg);     opacity: 0; }
+  10%  { opacity: 0.85; }
+  50%  { transform: translate3d(28px, 55%, 0) rotate(120deg); }
+  90%  { opacity: 0.85; }
+  100% { transform: translate3d(-12px, 115%, 0) rotate(260deg); opacity: 0; }
+}
+
+@keyframes f-pollen-rise {
+  0%   { transform: translate3d(0, 0, 0) scale(1);    opacity: 0; }
+  15%  { opacity: 0.9; }
+  85%  { opacity: 0.6; }
+  100% { transform: translate3d(14px, -70px, 0) scale(0.4); opacity: 0; }
+}
+
+@keyframes f-sun-pulse {
+  0%, 100% { transform: scale(1);    opacity: 0.55; }
+  50%      { transform: scale(1.08); opacity: 0.8; }
+}
+
+@keyframes f-mist-drift {
+  0%   { transform: translateX(-4%); opacity: 0.5; }
+  50%  { opacity: 0.8; }
+  100% { transform: translateX(4%);  opacity: 0.5; }
+}
+
+@keyframes f-float-soft {
+  0%, 100% { transform: translateY(0) rotate(var(--f-rot, 0deg)); }
+  50%      { transform: translateY(-9px) rotate(var(--f-rot, 0deg)); }
+}
+
+@keyframes f-sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(3deg); }
+}
+
+/* Decorative animation utilities — duration/delay set per-element inline. */
+.f-leaf      { animation: f-leaf-drift 16s linear infinite; will-change: transform, opacity; }
+.f-pollen    { animation: f-pollen-rise 9s ease-in infinite;  will-change: transform, opacity; }
+.f-sun       { animation: f-sun-pulse 7s ease-in-out infinite; will-change: transform, opacity; }
+.f-mist      { animation: f-mist-drift 22s ease-in-out infinite alternate; will-change: transform; }
+.f-float     { animation: f-float-soft 6s ease-in-out infinite; will-change: transform; }
+.f-sway      { animation: f-sway 7s ease-in-out infinite; transform-origin: bottom center; will-change: transform; }
+
+/* Soft hover lift shared by forest cards. */
+.f-card { transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s ease; }
+.f-card:hover { transform: translateY(-6px); }
+
+/* Accessible FAQ accordion — native <details> with a smooth height + chevron
+   animation. Content lives in the DOM (good for SEO + FAQ schema). */
+.f-faq { overflow: hidden; }
+.f-faq summary { list-style: none; cursor: pointer; }
+.f-faq summary::-webkit-details-marker { display: none; }
+.f-faq .f-faq-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s cubic-bezier(0.22,1,0.36,1);
+}
+.f-faq[open] .f-faq-body { grid-template-rows: 1fr; }
+.f-faq .f-faq-body > div { overflow: hidden; }
+.f-faq summary .f-faq-chevron { transition: transform 0.3s ease; }
+.f-faq[open] summary .f-faq-chevron { transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .f-leaf, .f-pollen, .f-sun, .f-mist, .f-float, .f-sway { animation: none; }
+  .f-card { transition: none; }
+  .f-card:hover { transform: none; }
+  .f-faq .f-faq-body { transition: none; }
+}

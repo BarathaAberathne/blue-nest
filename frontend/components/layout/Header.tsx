@@ -139,6 +139,7 @@ export default function Header() {
   const [cartCount, setCartCount] = useState(0);
   const [authUser, setAuthUser] = useState<User | null>(null);
   const pathname = usePathname();
+  const forest = pathname === "/forest-school";
   const navLinks: NavLink[] = slideOverLinks;
 
   useEffect(() => {
@@ -208,7 +209,7 @@ export default function Header() {
       {/* ══════════════════════════════════════════════════════════════════════
           STICKY MAIN HEADER
       ══════════════════════════════════════════════════════════════════════ */}
-      <header className="sticky top-0 z-50 overflow-visible border-b border-[rgba(207,125,156,0.15)] bg-[#fde8f0] shadow-[0_2px_12px_rgba(207,125,156,0.1)] backdrop-blur-sm">
+      <header className={`site-header${forest ? " theme-forest" : ""} sticky top-0 z-50 overflow-visible border-b border-[var(--hdr-border)] bg-[var(--hdr-bg)] shadow-[0_2px_12px_var(--hdr-shadow)] backdrop-blur-sm`}>
         <div className="container-site">
 
           {/* DESKTOP LAYOUT — 2-row grid, only at ≥1024px.
@@ -244,7 +245,7 @@ export default function Header() {
                   aria-label="Search"
                   className="h-10 flex-1 bg-transparent px-4 text-sm text-[var(--ink)] outline-none placeholder:text-[rgba(90,74,66,0.85)]"
                 />
-                <span className="flex h-10 w-11 items-center justify-center bg-[#7fd8d2] text-white">
+                <span className="flex h-10 w-11 items-center justify-center bg-[var(--hdr-accent)] text-white">
                   <Search className="h-4 w-4" />
                 </span>
               </div>
@@ -275,7 +276,7 @@ export default function Header() {
                   href={authUser ? "/account" : "/login?next=/account"}
                   className="hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-[var(--ink)] transition hover:bg-white/60 md:flex"
                 >
-                  <CircleUserRound className="h-4 w-4 text-[#cf7d9c]" />
+                  <CircleUserRound className="h-4 w-4 text-[var(--hdr-accent-2)]" />
                   <span className="text-xs font-semibold">{authUser ? (authUser.first_name || "My Account") : "Parents Log In"}</span>
                 </Link>
                 {/* Cart */}
@@ -284,9 +285,9 @@ export default function Header() {
                   aria-label="Open cart"
                   className="relative ml-1 flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-white/60"
                 >
-                  <Handbag className="h-5 w-5 text-[#7fd8d2]" />
+                  <Handbag className="h-5 w-5 text-[var(--hdr-accent)]" />
                   {cartCount > 0 && (
-                    <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[#7fd8d2]">
+                    <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[var(--hdr-accent)]">
                       {cartCount}
                     </span>
                   )}
@@ -295,15 +296,15 @@ export default function Header() {
             </div>
 
             {/* ROW 2: Contact Details + Menu Button */}
-            <div className="col-span-2 flex items-center justify-between gap-3 border-t border-[rgba(207,125,156,0.12)] px-4 py-1.5">
+            <div className="col-span-2 flex items-center justify-between gap-3 border-t border-[var(--hdr-border-soft)] px-4 py-1.5">
               {/* Contact details */}
               <div className="flex items-center">
                 {branches.slice(0, 3).map((branch, i) => (
                   <div key={branch.label} className="flex items-center">
                     <div className="flex items-center gap-1.5 px-3 text-[var(--ink)] first:pl-0">
-                      <Phone className="h-3.5 w-3.5 shrink-0 text-[#7fd8d2]" />
+                      <Phone className="h-3.5 w-3.5 shrink-0 text-[var(--hdr-accent)]" />
                       <div className="leading-tight">
-                        <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.1em] text-[#cf7d9c]">
+                        <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.1em] text-[var(--hdr-accent-2)]">
                           {branch.label}
                         </p>
                         <p className="text-[0.82rem] font-semibold">{branch.phone}</p>
@@ -318,7 +319,7 @@ export default function Header() {
                 <span className="mx-3 h-5 w-px bg-[rgba(90,74,66,0.12)]" aria-hidden="true" />
 
                 <div className="flex items-center gap-1.5 text-[var(--ink)]">
-                  <Mail className="h-3.5 w-3.5 shrink-0 text-[#7fd8d2]" />
+                  <Mail className="h-3.5 w-3.5 shrink-0 text-[var(--hdr-accent)]" />
                   <span className="text-[0.82rem] font-semibold">manager@bluenest.uk</span>
                 </div>
               </div>
@@ -326,7 +327,7 @@ export default function Header() {
               {/* Menu button */}
               <button
                 type="button"
-                className="inline-flex h-12 w-12 shrink-0 flex-col items-center justify-center border-2 border-[var(--ink)] bg-white text-[var(--ink)] transition hover:bg-[#f8f1ec]"
+                className="inline-flex h-12 w-12 shrink-0 flex-col items-center justify-center border-2 border-[var(--ink)] bg-white text-[var(--ink)] transition hover:bg-[var(--hdr-hover)]"
                 onClick={() => setMenuOpen(true)}
                 aria-label="Open navigation menu"
               >
@@ -367,18 +368,18 @@ export default function Header() {
               <Link
                 href={authUser ? "/account" : "/login?next=/account"}
                 aria-label="Open account"
-                className="flex h-9 w-9 items-center justify-center text-[#cf7d9c] transition hover:text-[#ba6d8a]"
+                className="flex h-9 w-9 items-center justify-center text-[var(--hdr-accent-2)] transition hover:opacity-70"
               >
                 <CircleUserRound className="h-5 w-5" />
               </Link>
               <Link
                 href="/cart"
                 aria-label="Open cart"
-                className="relative flex h-9 w-9 items-center justify-center text-[#7fd8d2] transition hover:text-[#6ab5ad]"
+                className="relative flex h-9 w-9 items-center justify-center text-[var(--hdr-accent)] transition hover:opacity-70"
               >
                 <Handbag className="h-5 w-5" />
                 {cartCount > 0 && (
-                  <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[#7fd8d2]">
+                  <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[var(--hdr-accent)]">
                     {cartCount}
                   </span>
                 )}
@@ -386,7 +387,7 @@ export default function Header() {
               {/* Menu button */}
               <button
                 type="button"
-                className="inline-flex h-10 w-10 shrink-0 flex-col items-center justify-center border-2 border-[var(--ink)] bg-white text-[var(--ink)] transition hover:bg-[#f8f1ec]"
+                className="inline-flex h-10 w-10 shrink-0 flex-col items-center justify-center border-2 border-[var(--ink)] bg-white text-[var(--ink)] transition hover:bg-[var(--hdr-hover)]"
                 onClick={() => setMenuOpen(true)}
                 aria-label="Open navigation menu"
               >
