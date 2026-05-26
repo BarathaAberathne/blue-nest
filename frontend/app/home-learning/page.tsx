@@ -101,7 +101,7 @@ export default function HomeLearningPage() {
         <Doodle kind="blue-flower"                  className="absolute left-[3%]  bottom-10 h-10 w-10 opacity-45 hidden sm:block" />
 
         <div className="relative z-10 w-full px-6 sm:px-10 lg:px-16 xl:px-20 py-16 sm:py-20 lg:py-24">
-          <Reveal>
+          <Reveal eager>
             <span className="section-kicker">Blue Nest Montessori School</span>
             <h1 className="mt-4 font-heading text-[2.4rem] leading-[1.15] text-white sm:text-[2.9rem] lg:text-[3.2rem] max-w-3xl">
               Home Learning with Blue Nest

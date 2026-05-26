@@ -94,7 +94,7 @@ export default function ProspectusPage() {
         <Doodle kind="leaf"      className="right-[6%]  top-10   h-10 w-10  opacity-50 hidden sm:block" />
 
         <div className="relative z-10 w-full px-6 sm:px-10 lg:px-16 xl:px-20 py-14 sm:py-18">
-          <Reveal>
+          <Reveal eager>
             <span className="section-kicker">Admissions</span>
             <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-white sm:text-[3rem] lg:text-[3.4rem] max-w-3xl">
               Blue Nest Montessori Prospectus

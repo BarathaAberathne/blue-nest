@@ -23,7 +23,7 @@ export default function LegalPageShell({ kicker, title, intro, lastReviewed, chi
         <Doodle kind="pink-flower" className="right-[7%] top-14 h-8 w-8 opacity-50 hidden sm:block" />
 
         <div className="container-site relative z-10 py-14 sm:py-20">
-          <Reveal>
+          <Reveal eager>
             <span className="section-kicker">{kicker}</span>
             <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-[var(--ink)] sm:text-[3rem] lg:text-[3.4rem] max-w-3xl">
               {title}

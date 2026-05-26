@@ -186,7 +186,7 @@ export default function ForestSchoolPage() {
         {/* ── Left: text panel ─────────────────────────────────── */}
         <div className="relative flex w-full items-center lg:w-1/2" style={{ background: C.bg }}>
           <div className="w-full px-6 py-10 sm:px-10 lg:px-14 xl:px-20 lg:py-12">
-            <Reveal className="flex flex-col gap-4">
+            <Reveal eager className="flex flex-col gap-4">
 
               {/* Breadcrumb — semantic + linked for SEO */}
               <nav aria-label="Breadcrumb">

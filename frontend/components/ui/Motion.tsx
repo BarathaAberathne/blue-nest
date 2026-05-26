@@ -10,7 +10,29 @@ type SharedProps = {
   delay?: number;
 };
 
-export function Reveal({ children, className, delay = 0 }: SharedProps) {
+type RevealProps = SharedProps & {
+  // `eager` is for above-the-fold hero content. It animates on mount with a
+  // transform-only entrance (no opacity:0), so the element is painted
+  // immediately in the SSR HTML and Lighthouse can record it as the LCP at
+  // first paint. The default (scroll-triggered, fades from opacity:0) is for
+  // below-the-fold content and must NOT be used on the LCP element — it
+  // delays LCP until hydration + the IntersectionObserver fires.
+  eager?: boolean;
+};
+
+export function Reveal({ children, className, delay = 0, eager = false }: RevealProps) {
+  if (eager) {
+    return (
+      <motion.div
+        className={clsx(className)}
+        initial={{ y: 12 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.5, delay, ease: "easeOut" }}
+      >
+        {children}
+      </motion.div>
+    );
+  }
   return (
     <motion.div
       className={clsx(className)}

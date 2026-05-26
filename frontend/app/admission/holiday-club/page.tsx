@@ -181,7 +181,7 @@ export default function HolidayClubPage() {
         <Doodle kind="pink-flower" className="left-[8%]  bottom-8 h-9  w-9  opacity-50 hidden lg:block" />
 
         <div className="container-site">
-          <Reveal>
+          <Reveal eager>
             <div className="mx-auto max-w-3xl text-center">
               <span className="section-kicker">Holiday childcare</span>
               <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-[var(--ink)] sm:text-[3rem] lg:text-[3.4rem]">

@@ -227,7 +227,7 @@ export default function OurFeesPage() {
         <Doodle kind="leaf"      className="left-[2%]  bottom-6 h-9 w-9 opacity-42 hidden sm:block" />
 
         <div className="container-site">
-          <Reveal>
+          <Reveal eager>
             <div className="mb-7 text-center">
               <h2 className="font-heading text-[2rem] leading-snug text-[var(--ink)] sm:text-[2.4rem]">
                 Download our fees

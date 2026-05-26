@@ -135,7 +135,7 @@ export default function OurCharitiesPage() {
         <Doodle kind="blue-bird"      className="left-[5%]   bottom-8 h-8  w-8   opacity-55 hidden sm:block" />
 
         <div className="relative z-10 w-full px-6 sm:px-10 lg:px-16 xl:px-20 py-16 sm:py-20 lg:py-24">
-          <Reveal>
+          <Reveal eager>
             <span className="section-kicker">Community &amp; Giving</span>
             <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-white sm:text-[3rem] lg:text-[3.4rem] max-w-3xl">
               Our Charities

@@ -81,7 +81,7 @@ export default function AdmissionPage() {
         <Doodle kind="leaf"        className="right-[4%] bottom-8 h-9 w-9 opacity-40 hidden sm:block" />
 
         <div className="relative z-10 w-full px-6 sm:px-10 lg:px-16 xl:px-20 py-16 sm:py-20 lg:py-24">
-          <Reveal>
+          <Reveal eager>
             <span className="section-kicker">Join Blue Nest</span>
             <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-white sm:text-[3rem] lg:text-[3.4rem] max-w-3xl">
               Admission
