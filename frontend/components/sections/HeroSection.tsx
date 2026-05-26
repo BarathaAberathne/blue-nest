@@ -115,23 +115,27 @@ export default function HeroSection() {
 
         </Reveal>
 
-        {/* ── Right: branch picker (desktop only) ── */}
+        {/* ── Branch picker ──
+            Single card, responsive: stacks full-width in the content flow on
+            mobile/tablet (the grid is one column below lg) and sits on the
+            right pane on desktop. Compact padding/title on small screens so
+            the hero doesn't feel crowded; full styling restored at lg. */}
         <Reveal
           delay={0.14}
-          className="hidden lg:flex lg:justify-end"
+          className="flex w-full lg:justify-end"
         >
-          <div className="w-full max-w-[22rem] rounded-[2rem] bg-white/85 p-6 shadow-[0_18px_48px_rgba(90,74,66,0.18)] ring-1 ring-white/60 backdrop-blur-sm">
+          <div className="w-full max-w-full rounded-[1.6rem] bg-white/85 p-4 shadow-[0_12px_36px_rgba(90,74,66,0.16)] ring-1 ring-white/60 backdrop-blur-sm sm:p-5 lg:max-w-[22rem] lg:rounded-[2rem] lg:p-6 lg:shadow-[0_18px_48px_rgba(90,74,66,0.18)]">
             <span className="section-kicker">Our nurseries</span>
-            <h2 className="mt-3 font-heading text-[1.55rem] leading-snug text-[var(--ink)]">
+            <h2 className="mt-2 font-heading text-[1.2rem] leading-snug text-[var(--ink)] lg:mt-3 lg:text-[1.55rem]">
               Find your nearest Blue Nest
             </h2>
 
-            <ul className="mt-5 flex flex-col gap-2">
+            <ul className="mt-3 flex flex-col gap-1.5 lg:mt-5 lg:gap-2">
               {branches.map((b) => (
                 <li key={b.href}>
                   <Link
                     href={b.href}
-                    className="group flex items-center gap-3 rounded-[1.1rem] bg-[var(--soft-white)] px-4 py-3 ring-1 ring-[rgba(90,74,66,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_8px_22px_rgba(90,74,66,0.10)]"
+                    className="group flex min-h-[44px] items-center gap-3 rounded-[1.1rem] bg-[var(--soft-white)] px-3.5 py-2.5 ring-1 ring-[rgba(90,74,66,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_8px_22px_rgba(90,74,66,0.10)] lg:px-4 lg:py-3"
                   >
                     <span
                       className="h-3 w-3 shrink-0 rounded-full"

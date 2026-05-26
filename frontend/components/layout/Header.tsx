@@ -345,16 +345,17 @@ export default function Header() {
               at 768-1023px viewports. */}
           <div className="lg:hidden flex items-center justify-between gap-2 py-2 px-3 sm:px-4 md:px-6">
             <Link href="/" className="flex shrink-0 items-center min-w-0">
-              {/* Logo scales: 158px on phone → 195px md → 240px just under desktop.
-                  Negative margin grows with size so the header keeps the same
-                  visual rhythm at every breakpoint. */}
-              <div className="relative -my-[22px] h-[84px] w-[158px] sm:-my-[26px] sm:h-[98px] sm:w-[185px] md:-my-[32px] md:h-[112px] md:w-[212px]">
+              {/* Logo scales: 178px on phone → 195px md → 240px just under desktop.
+                  Negative margin grows with size so the logo bleeds evenly into
+                  the bar (≈40px layout footprint) and stays vertically centred
+                  at every breakpoint. */}
+              <div className="relative -my-[28px] h-[95px] w-[178px] sm:-my-[28px] sm:h-[102px] sm:w-[192px] md:-my-[32px] md:h-[112px] md:w-[212px]">
                 <Image
                   src="/home/logo_new.png"
                   alt="Blue Nest Montessori logo"
                   fill
-                  className="object-contain drop-shadow-[0_4px_10px_rgba(90,74,66,0.14)]"
-                  sizes="(min-width: 768px) 212px, (min-width: 640px) 185px, 158px"
+                  className="object-contain object-left drop-shadow-[0_4px_10px_rgba(90,74,66,0.14)]"
+                  sizes="(min-width: 768px) 212px, (min-width: 640px) 192px, 178px"
                   priority
                   fetchPriority="high"                />
               </div>
@@ -412,16 +413,18 @@ export default function Header() {
             onClick={() => setMenuOpen(false)}
             onKeyDown={(e) => e.key === "Escape" && setMenuOpen(false)}
             aria-label="Close navigation menu"
-            className="relative flex w-[38%] shrink-0 flex-col overflow-hidden bg-gradient-to-b from-[#7fd8d2] to-[#4db8b2] px-5 py-7 text-white sm:px-7 sm:py-9"
+            className="relative flex w-[38%] shrink-0 flex-col overflow-hidden bg-gradient-to-b from-[#7fd8d2] to-[#4db8b2] px-4 pb-7 text-white sm:px-7 sm:pb-9"
+            style={{ paddingTop: "max(1.75rem, env(safe-area-inset-top))" }}
           >
-            {/* Logo */}
-            <div className="relative h-[90px] w-[170px] shrink-0 sm:h-[110px] sm:w-[210px]">
+            {/* Logo — icon-only mark (the full horizontal wordmark overflows
+                this narrow column on small phones). Square, centred, capped. */}
+            <div className="relative mx-auto aspect-square w-16 max-w-[72px] shrink-0 sm:w-20">
               <Image
-                src="/home/logo_new.png"
+                src="/home/logo-mark.webp"
                 alt="Blue Nest Montessori"
                 fill
-                className="object-contain object-left drop-shadow-[0_4px_12px_rgba(0,0,0,0.18)]"
-                sizes="210px"
+                className="object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.18)]"
+                sizes="80px"
               />
             </div>
 
