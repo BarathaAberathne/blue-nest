@@ -103,6 +103,7 @@ export default function BranchHero({
           priority
           fetchPriority="high"
           className="object-cover object-center"
+          quality={55}
           sizes="50vw"
         />
 

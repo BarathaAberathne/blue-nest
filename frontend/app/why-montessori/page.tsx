@@ -95,6 +95,7 @@ export default function WhyMontessoriPage() {
             priority
             fetchPriority="high"
             className="object-cover object-right"
+            quality={55}
             sizes="100vw"
           />
           <div className="absolute inset-0 bg-[#fff8f2]/68" />

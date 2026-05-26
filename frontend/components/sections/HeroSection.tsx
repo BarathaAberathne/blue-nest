@@ -43,6 +43,7 @@ export default function HeroSection() {
         fill
         priority
         fetchPriority="high"
+        quality={55}
         sizes="100vw"
         className="object-cover object-center"
         aria-hidden="true"

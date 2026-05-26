@@ -90,6 +90,7 @@ export default function HomeLearningPage() {
             priority
             fetchPriority="high"
             className="object-cover object-center"
+            quality={55}
             sizes="100vw"
           />
           <div className="absolute inset-0 bg-[#fff8f2]/70" />

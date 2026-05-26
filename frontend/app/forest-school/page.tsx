@@ -267,6 +267,7 @@ export default function ForestSchoolPage() {
             priority
             fetchPriority="high"
             className="object-cover object-center"
+            quality={55}
             sizes="50vw"
           />
           {/* Floating card — bottom-right */}
