@@ -8,6 +8,9 @@ const nextConfig = {
   output: "standalone",
   outputFileTracingRoot: __dirname,
   images: {
+    // Next 16 requires non-default quality values to be declared here, or the
+    // `quality={55}` prop on hero images is silently ignored (falls back to 75).
+    qualities: [55, 75],
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "res.cloudinary.com" },
