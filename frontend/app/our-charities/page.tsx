@@ -95,7 +95,7 @@ const GALLERY = [
   { src: "/home/forest-school.jpg",               alt: "Forest school charity day at Blue Nest",                 rotate:  2, caption: "Forest School day"      },
   { src: "/home/outdoor-learning-and-play-area.jpg", alt: "Outdoor learning during a community event",           rotate: -1, caption: "Community event"        },
   { src: "/home/branches/harrow/harrow-preview-04.jpg", alt: "Children at a Blue Nest charity craft activity",     rotate:  2, caption: "Charity craft morning"  },
-  { src: "/home/outdoor-childrens-play-area.jpg", alt: "Outdoor charity event at Blue Nest nursery",             rotate: -2, caption: "Outdoor charity day"    },
+  { src: "/home/outdoor-childrens-play-area2.jpg", alt: "Outdoor charity event at Blue Nest nursery",            rotate: -2, caption: "Outdoor charity day"    },
   { src: "/home/structured-routine.jpg",          alt: "Blue Nest team at a community initiative",               rotate:  1, caption: "Community initiative"   },
 ];
 

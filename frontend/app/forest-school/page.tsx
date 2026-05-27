@@ -676,7 +676,7 @@ export default function ForestSchoolPage() {
 
           <div className="grid grid-cols-2 gap-6 sm:gap-8 lg:grid-cols-4">
             {[
-              { src: "/home/outdoor-childrens-play-area.jpg",    cap: "Building confidence outdoors", rot: "-3deg" },
+              { src: "/home/outdoor-play-for-children.jpg",      cap: "Building confidence outdoors", rot: "-3deg" },
               { src: "/home/children-outdoor-play.jpg",          cap: "Learning through nature",      rot: "2.5deg" },
               { src: "/home/outdoor-learning-and-play-area.jpg",  cap: "Tiny explorers at work",       rot: "-2deg" },
               { src: "/home/outdoor-play-for-children-new.jpg",   cap: "Moments of curiosity",         rot: "3deg" },

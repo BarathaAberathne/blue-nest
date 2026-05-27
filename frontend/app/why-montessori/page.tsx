@@ -349,7 +349,7 @@ export default function WhyMontessoriPage() {
               {/* Image — left */}
               <div className="mx-auto w-full max-w-[300px]">
                 <StickerCard
-                  src="/home/outdoor-childrens-play-area.jpg"
+                  src="/home/outdoor-childrens-play-area2.jpg"
                   alt="Cosy learning space at Blue Nest"
                   rotate={-3}
                   sizes="(max-width: 1024px) 70vw, 26vw"
