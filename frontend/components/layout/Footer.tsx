@@ -57,6 +57,7 @@ const branches = [
 ];
 
 const quickLinks = [
+  { label: "About Us", href: "/about-us" },
   { label: "Admission", href: "/admission" },
   { label: "Why Montessori", href: "/why-montessori" },
   { label: "Forest School", href: "/forest-school" },

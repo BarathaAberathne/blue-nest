@@ -8,6 +8,7 @@ export const revalidate = 3600;
 
 const staticRoutes: { url: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }[] = [
   { url: "/",                               priority: 1.0, changeFrequency: "weekly"  },
+  { url: "/about-us",                       priority: 0.8, changeFrequency: "monthly" },
   { url: "/why-montessori",                 priority: 0.9, changeFrequency: "monthly" },
   { url: "/forest-school",                  priority: 0.8, changeFrequency: "monthly" },
   { url: "/admission",                      priority: 0.9, changeFrequency: "monthly" },

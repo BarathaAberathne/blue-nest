@@ -86,6 +86,7 @@ type NavLink = {
 
 const slideOverLinks: NavLink[] = [
   { label: "Home", href: "/" },
+  { label: "About Us", href: "/about-us" },
   { label: "Why Montessori", href: "/why-montessori" },
   { label: "Forest School", href: "/forest-school" },
   {
