@@ -7,32 +7,47 @@ const cards = [
     title: "Montessori Learning",
     description:
       "Child-led discovery with beautiful Montessori materials that build independence, focus and a genuine love of learning.",
-    image: "/home/branches/harrow/harrow-feature-learning.webp",
-    alt: "Children engaged in a Montessori learning activity at Blue Nest Montessori Harrow",
+    images: [
+      { src: "/home/branches/harrow/harrow-feature-learning.webp", alt: "Children engaged in a Montessori learning activity at Blue Nest Montessori Harrow" },
+      { src: "/home/branches/harrow/harrow-gallery-01.webp",        alt: "Phonics and letter-recognition activity laid out on a table at Blue Nest Montessori Harrow" },
+      { src: "/home/branches/harrow/harrow-preview-06.webp",        alt: "Child practising early pre-writing and mark-making at Blue Nest Montessori Harrow" },
+      { src: "/home/branches/harrow/harrow-gallery-05.webp",        alt: "Children exploring a hands-on science experiment at Blue Nest Montessori Harrow" },
+    ],
     accent: "#ef8cab",
   },
   {
     title: "Forest School",
     description:
       "Outdoor learning adventures that connect children with nature, build resilience and spark curiosity beyond the classroom.",
-    image: "/home/branches/harrow/harrow-feature-forest.webp",
-    alt: "Children exploring outdoor learning and nature at Blue Nest Montessori Harrow",
+    images: [
+      { src: "/home/branches/harrow/harrow-feature-forest.webp", alt: "Children exploring outdoor learning and nature at Blue Nest Montessori Harrow" },
+      { src: "/home/branches/harrow/harrow-gallery-07.webp",     alt: "Child investigating natural materials in an outdoor tray at Blue Nest Montessori Harrow" },
+      { src: "/home/branches/harrow/harrow-preview-03.webp",     alt: "Child playing in an outdoor wooden tunnel at Blue Nest Montessori Harrow" },
+      { src: "/home/branches/harrow/harrow-gallery-02.webp",     alt: "Children enjoying outdoor water play at Blue Nest Montessori Harrow" },
+    ],
     accent: "#82cfc4",
   },
   {
     title: "Healthy Food",
     description:
       "Freshly prepared, nutritious halal meals and menus carefully designed to fuel growing minds and bodies every day.",
-    image: "/home/branches/harrow/harrow-feature-food.webp",
-    alt: "Children sharing fresh, healthy meals at Blue Nest Montessori Harrow",
+    images: [
+      { src: "/home/branches/harrow/harrow-feature-food.webp", alt: "Children sharing fresh, healthy meals at Blue Nest Montessori Harrow" },
+      { src: "/home/branches/harrow/harrow-gallery-08.webp",   alt: "Toddler exploring a bowl of sweetcorn and peas at Blue Nest Montessori Harrow" },
+      { src: "/home/branches/harrow/harrow-preview-04.webp",   alt: "Children enjoying an ice-cream parlour role-play with an educator at Blue Nest Montessori Harrow" },
+    ],
     accent: "#b89bdd",
   },
   {
     title: "Safe Environment",
     description:
       "A warm, home-away-from-home where every child feels valued, secure and gently supported to grow and thrive.",
-    image: "/home/branches/harrow/harrow-feature-safe.webp",
-    alt: "Calm, prepared Montessori classroom at Blue Nest Montessori Harrow",
+    images: [
+      { src: "/home/branches/harrow/harrow-feature-safe.webp", alt: "Calm, prepared Montessori classroom at Blue Nest Montessori Harrow" },
+      { src: "/home/branches/harrow/harrow-gallery-06.webp",   alt: "Educator reading one-to-one with a child at Blue Nest Montessori Harrow" },
+      { src: "/home/branches/harrow/harrow-preview-01.webp",   alt: "Educator supporting a toddler at a sensory tray at Blue Nest Montessori Harrow" },
+      { src: "/home/branches/harrow/harrow-gallery-04.webp",   alt: "Child playing happily in a calm classroom at Blue Nest Montessori Harrow" },
+    ],
     accent: "#f0bd55",
   },
 ];

@@ -1,14 +1,18 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/ui/Motion";
+import CardImageSlider from "@/components/ui/CardImageSlider";
 
 const branches = [
   {
     name:        "Harrow",
     href:        "/branches/harrow",
-    image:       "/home/branches/harrow/harrow-office.webp",
-    alt:         "Blue Nest Montessori Harrow nursery garden and outdoor play area",
+    images: [
+      { src: "/home/branches/harrow/harrow-office.webp",     alt: "Blue Nest Montessori Harrow nursery garden and outdoor play area" },
+      { src: "/home/branches/harrow/harrow-gallery-04.webp", alt: "Children learning in a bright classroom at Blue Nest Montessori Harrow" },
+      { src: "/home/branches/harrow/harrow-gallery-09.webp", alt: "Child enjoying a music activity at Blue Nest Montessori Harrow" },
+      { src: "/home/branches/harrow/harrow-gallery-02.webp", alt: "Children at outdoor water play at Blue Nest Montessori Harrow" },
+    ],
     description: "Our flagship nursery in Harrow offers a warm, Montessori-inspired environment with spacious classrooms, a dedicated outdoor play area, and an award-winning team.",
     tag:         "Most Popular",
     color:       "var(--branch-harrow)",
@@ -17,8 +21,12 @@ const branches = [
   {
     name:        "Pinner",
     href:        "/branches/pinner",
-    image:       "/home/branches/pinner/pinner-office.webp",
-    alt:         "Busy Montessori classroom at Blue Nest Pinner",
+    images: [
+      { src: "/home/branches/pinner/pinner-office.webp",     alt: "Busy Montessori classroom at Blue Nest Pinner" },
+      { src: "/home/branches/pinner/pinner-gallery-01.webp", alt: "Children exploring Montessori materials at Blue Nest Pinner" },
+      { src: "/home/branches/pinner/pinner-gallery-02.webp", alt: "Children learning together at Blue Nest Pinner" },
+      { src: "/home/branches/pinner/pinner-gallery-03.webp", alt: "Activities in the prepared environment at Blue Nest Pinner" },
+    ],
     description: "Nestled in Pinner, this branch combines authentic Montessori learning with a calm, home-away-from-home atmosphere that children and parents love.",
     color:       "var(--branch-pinner)",
     cta:         "View Nursery",
@@ -26,8 +34,12 @@ const branches = [
   {
     name:        "Borehamwood",
     href:        "/branches/borehamwood",
-    image:       "/home/branches/borehamwood/borehamwood-office.webp",
-    alt:         "Blue Nest Montessori Borehamwood nursery",
+    images: [
+      { src: "/home/branches/borehamwood/borehamwood-office.webp",     alt: "Blue Nest Montessori Borehamwood nursery" },
+      { src: "/home/branches/borehamwood/borehamwood-gallery-01.webp", alt: "Children learning in the classroom at Blue Nest Montessori Borehamwood" },
+      { src: "/home/branches/borehamwood/borehamwood-gallery-02.webp", alt: "Indoor play and activities at Blue Nest Montessori Borehamwood" },
+      { src: "/home/branches/borehamwood/borehamwood-gallery-03.webp", alt: "Children enjoying activities at Blue Nest Montessori Borehamwood" },
+    ],
     description: "Our Borehamwood nursery brings the full Blue Nest experience to families in Hertfordshire — the same high standard of Montessori care and learning.",
     color:       "var(--branch-borehamwood)",
     cta:         "View Nursery",
@@ -35,8 +47,12 @@ const branches = [
   {
     name:        "Northwood",
     href:        "/branches/northwood",
-    image:       "/home/outdoor-play-for-children-new.jpg",
-    alt:         "Blue Nest Montessori coming soon to Northwood, HA6",
+    images: [
+      { src: "/home/outdoor-play-for-children-new.jpg",  alt: "Blue Nest Montessori coming soon to Northwood, HA6" },
+      { src: "/home/forest-school.jpg",                  alt: "Woodland forest school setting near Northwood" },
+      { src: "/home/forest-school-2.jpg",                alt: "Children enjoying nature-based outdoor learning near Northwood" },
+      { src: "/home/forest-school-3.jpg",                alt: "Leafy woodland play space near Northwood" },
+    ],
     description: "We're expanding to Northwood, HA6! Register your interest now to be first in line for a place at our newest nursery.",
     comingSoon:  true,
     color:       "var(--branch-northwood)",
@@ -45,8 +61,12 @@ const branches = [
   {
     name:        "Pinner Green",
     href:        "/branches/pinner-green",
-    image:       "/home/outdoor-learning-and-play-area.jpg",
-    alt:         "Blue Nest Montessori coming soon to Pinner Green",
+    images: [
+      { src: "/home/outdoor-learning-and-play-area.jpg", alt: "Blue Nest Montessori coming soon to Pinner Green" },
+      { src: "/home/children-outdoor-play.jpg",          alt: "Children enjoying outdoor play, coming soon to Pinner Green" },
+      { src: "/home/outdoor-childrens-play-area2.jpg",   alt: "Calm outdoor play area, coming soon to Pinner Green" },
+      { src: "/home/outdoor-play-for-children.jpg",      alt: "Outdoor learning space, coming soon to Pinner Green" },
+    ],
     description: "We're expanding to Pinner Green! Register your interest now to be first in line for a place at our newest nursery in the community.",
     comingSoon:  true,
     color:       "var(--branch-pinner-green)",
@@ -81,12 +101,12 @@ export default function NurseriesSection() {
 
                 {/* Image */}
                 <div className="relative aspect-[4/3] w-full overflow-hidden">
-                  <Image
-                    src={branch.image}
-                    alt={branch.alt}
-                    fill
-                    className={`object-cover transition-transform duration-500 group-hover:scale-105 ${branch.comingSoon ? "brightness-90" : ""}`}
+                  <CardImageSlider
+                    images={branch.images}
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
+                    imageClassName={`object-cover transition-transform duration-500 group-hover:scale-105 ${branch.comingSoon ? "brightness-90" : ""}`}
+                    dotColor="#ffffff"
+                    label={`${branch.name} photos`}
                   />
                   {branch.comingSoon ? (
                     <span
