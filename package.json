@@ -1,5 +1,8 @@
 {
   "devDependencies": {
     "@lhci/cli": "^0.15.1"
+  },
+  "overrides": {
+    "tmp": "^0.2.7"
   }
 }
