@@ -139,7 +139,7 @@ const ALL_STAFF: TeamMember[] = [
 
   // Academic ───────────────────────────────────────────
   {
-    name: "Davina Smith", role: "Room Leader",
+    name: "Davina Smith", role: "Room Leader (Toddler Room)",
     branch: "Harrow", category: "Academic", initial: "D", colour: c(0),
     photo: "/team/davina-smith.jpg",
     qualifications: [],
@@ -153,11 +153,11 @@ const ALL_STAFF: TeamMember[] = [
   {
     name: "Jyoti Kothari", role: "Nursery Practitioner",
     branch: "Harrow", category: "Academic", initial: "J", colour: c(2),
-    // photo: "/team/jyoti-kothari.jpg",
+    photo: "/team/jyoti-kothari.png",
     qualifications: [],
   },
   {
-    name: "Krishna Patel", role: "Room Leader",
+    name: "Krishna Patel", role: "Room Leader (Preschool 1)",
     branch: "Harrow", category: "Academic", initial: "K", colour: c(3),
     photo: "/team/krishna-patel.jpg",
     qualifications: [],
@@ -177,23 +177,23 @@ const ALL_STAFF: TeamMember[] = [
   {
     name: "Priyanthi Mala Wijesekara", role: "Nursery Practitioner",
     branch: "Harrow", category: "Academic", initial: "P", colour: c(0),
-    // photo: "/team/priyanthi-mala-wijesekara.jpg",
+    photo: "/team/priyanthi-mala-wijesekara.png",
     qualifications: [],
   },
   {
     name: "Resmi Pathirattil Thankappan", role: "Nursery Practitioner",
     branch: "Harrow", category: "Academic", initial: "R", colour: c(1),
-    // photo: "/team/resmi-pathirattil-thankappan.jpg",
+    photo: "/team/resmi-pathirattil-thankappan.png",
     qualifications: ["Level 3 Early Years"],
   },
   {
-    name: "Shelin Graham Jadav", role: "Nursery Practitioner",
+    name: "Shelin Graham Jadav", role: "Senior Practitioner",
     branch: "Harrow", category: "Academic", initial: "S", colour: c(2),
     photo: "/team/shelin-graham-jadav.jpg",
     qualifications: [],
   },
   {
-    name: "Sophia Agard", role: "Nursery Practitioner",
+    name: "Sophia Agard", role: "Room Leader (Preschool 2)",
     branch: "Harrow", category: "Academic", initial: "S", colour: c(3),
     photo: "/team/sophia-agard.jpg",
     qualifications: ["Level 5 Early Years"],
@@ -205,7 +205,7 @@ const ALL_STAFF: TeamMember[] = [
     qualifications: [],
   },
   {
-    name: "Xhensaura Jenny Bushi", role: "Room Leader",
+    name: "Xhensaura Jenny Bushi", role: "3rd In Charge",
     branch: "Harrow", category: "Academic", initial: "X", colour: c(5),
     photo: "/team/xhensaura-jenny-bushi.jpg",
     qualifications: ["Level 5 Early Years"],
@@ -219,7 +219,7 @@ const ALL_STAFF: TeamMember[] = [
     qualifications: ["Level 3 Early Years"],
   },
   {
-    name: "Dinesha Perera", role: "Room Leader",
+    name: "Dinesha Perera", role: "Room Leader (Baby Room)",
     branch: "Harrow", category: "Support", initial: "D", colour: c(1),
     photo: "/team/dinesha-perera.jpg",
     qualifications: ["Level 3 Early Years"],
@@ -245,13 +245,13 @@ const ALL_STAFF: TeamMember[] = [
   {
     name: "Hansanee Priyalakshika", role: "Nursery Assistant",
     branch: "Harrow", category: "Support", initial: "H", colour: c(5),
-    // photo: "/team/hansanee-priyalakshika.jpg",
+    photo: "/team/hansanee-priyalakshika.jpg",
     qualifications: [],
   },
   {
     name: "Imali Nissanka", role: "SENCO Assistant",
     branch: "Harrow", category: "Support", initial: "I", colour: c(0),
-    // photo: "/team/imali-nissanka.jpg",
+    photo: "/team/imali-nissanka.png",
     qualifications: [],
   },
   {
@@ -269,7 +269,13 @@ const ALL_STAFF: TeamMember[] = [
   {
     name: "Ram Kumar Shrestha", role: "Maintenance",
     branch: "Harrow", category: "Support", initial: "R", colour: c(3),
-    // photo: "/team/ram-kumar-shrestha.jpg",
+    photo: "/team/ram-kumar-shrestha.png",
+    qualifications: [],
+  },
+  {
+    name: "Shannon Christian", role: "Nursery Assistant",
+    branch: "Harrow", category: "Support", initial: "S", colour: c(0),
+    photo: "/team/shannon-christian.png",
     qualifications: [],
   },
   {
@@ -281,7 +287,7 @@ const ALL_STAFF: TeamMember[] = [
   {
     name: "Thisaruni Widanapathirana", role: "Nursery Assistant",
     branch: "Harrow", category: "Support", initial: "T", colour: c(5),
-    // photo: "/team/thisaruni-widanapathirana.jpg",
+    photo: "/team/thisaruni-widanapathirana.png",
     qualifications: [],
   },
 
@@ -289,7 +295,7 @@ const ALL_STAFF: TeamMember[] = [
   {
     name: "Baratha Abeyrathne", role: "Business Analyst",
     branch: "Harrow", category: "BA", initial: "B", colour: c(0),
-    // photo: "/team/baratha-abeyrathne.jpg",
+    photo: "/team/baratha-abeyrathne.png",
     qualifications: [],
   },
   {
@@ -518,7 +524,7 @@ export default function OurTeamPage() {
             priority
             fetchPriority="high"
             className="object-cover object-center"
-            quality={55}
+            quality={75}
             sizes="100vw"
           />
           <div className="absolute inset-0 bg-[#fff8f2]/68" />
