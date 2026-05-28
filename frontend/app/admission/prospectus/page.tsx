@@ -136,10 +136,10 @@ export default function ProspectusPage() {
                     <item.icon className="h-4 w-4" style={{ color: item.color }} strokeWidth={1.8} />
                   </span>
                   <div>
-                    <p className="font-heading text-[1.05rem] leading-snug" style={{ color: item.color }}>
+                    <p className="feature-card-title" style={{ color: item.color }}>
                       {item.label}
                     </p>
-                    <p className="mt-1 text-sm leading-[1.6] text-[rgba(90,74,66,0.85)]">{item.blurb}</p>
+                    <p className="body-text mt-1">{item.blurb}</p>
                   </div>
                 </div>
               ))}

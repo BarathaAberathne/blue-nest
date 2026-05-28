@@ -112,7 +112,7 @@ export default function AdmissionPage() {
               <Reveal key={card.href} delay={i * 0.08} className="h-full">
                 <Link
                   href={card.href}
-                  className="group flex h-full flex-col rounded-[2rem] px-7 py-8 ring-1 shadow-[0_6px_24px_rgba(90,74,66,0.08)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(90,74,66,0.12)]"
+                  className="group flex h-full flex-col rounded-[2rem] px-6 py-7 ring-1 shadow-[0_6px_24px_rgba(90,74,66,0.08)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(90,74,66,0.12)]"
                   style={{ background: card.bg, borderColor: card.border }}
                 >
                   <span
@@ -121,10 +121,10 @@ export default function AdmissionPage() {
                   >
                     <card.icon className="h-6 w-6" style={{ color: card.color }} strokeWidth={1.8} />
                   </span>
-                  <h2 className="font-heading text-[1.6rem] leading-snug" style={{ color: card.color }}>
+                  <h2 className="feature-card-title" style={{ color: card.color }}>
                     {card.label}
                   </h2>
-                  <p className="body-text mt-3 flex-1 text-sm">{card.desc}</p>
+                  <p className="body-text mt-3 flex-1">{card.desc}</p>
                   <div className="mt-6 inline-flex items-center gap-2 text-sm font-bold transition-colors duration-200 group-hover:gap-3" style={{ color: card.color }}>
                     {card.cta}
                     <ArrowRight className="h-4 w-4" />
@@ -163,7 +163,7 @@ export default function AdmissionPage() {
             ].map((s, i) => (
               <Reveal key={s.t} delay={i * 0.06} className="h-full">
                 <article
-                  className="flex h-full flex-col rounded-[2rem] px-6 py-7 ring-1 ring-[rgba(90,74,66,0.07)] shadow-[0_4px_16px_rgba(90,74,66,0.07)]"
+                  className="feature-card"
                   style={{ background: s.bg }}
                 >
                   <div className="flex items-center gap-3">
@@ -172,8 +172,8 @@ export default function AdmissionPage() {
                       <s.icon className="h-4 w-4" style={{ color: s.color }} strokeWidth={1.8} />
                     </span>
                   </div>
-                  <h3 className="mt-4 font-heading text-[1.25rem] leading-snug" style={{ color: s.color }}>{s.t}</h3>
-                  <p className="body-text mt-2 flex-1 text-sm">{s.d}</p>
+                  <h3 className="mt-4 feature-card-title" style={{ color: s.color }}>{s.t}</h3>
+                  <p className="body-text mt-2 flex-1">{s.d}</p>
                 </article>
               </Reveal>
             ))}

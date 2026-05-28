@@ -307,8 +307,8 @@ export default function PinnerBranchPage() {
                   >
                     <f.icon className="h-6 w-6" strokeWidth={1.8} />
                   </div>
-                  <h3 className="font-heading text-[1.5rem] leading-snug text-[var(--ink)]">{f.title}</h3>
-                  <p className="body-text mt-3 flex-1 text-sm">{f.desc}</p>
+                  <h3 className="feature-card-title text-[var(--ink)]">{f.title}</h3>
+                  <p className="body-text mt-3 flex-1">{f.desc}</p>
                 </div>
               </Reveal>
             ))}

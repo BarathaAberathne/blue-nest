@@ -318,16 +318,16 @@ export default function AboutUsPage() {
             {VALUES.map((v, i) => (
               <Reveal key={v.title} delay={i * 0.06} className="h-full">
                 <article
-                  className="flex h-full flex-col rounded-[2rem] px-6 py-7 ring-1 ring-[rgba(90,74,66,0.07)] shadow-[0_4px_16px_rgba(90,74,66,0.07)]"
+                  className="feature-card"
                   style={{ background: v.bg }}
                 >
                   <span className="mb-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 shadow-[0_2px_8px_rgba(90,74,66,0.08)]">
                     <v.icon className="h-5 w-5" style={{ color: v.color }} strokeWidth={1.8} />
                   </span>
-                  <h3 className="font-heading text-[1.25rem] leading-snug" style={{ color: v.color }}>
+                  <h3 className="feature-card-title" style={{ color: v.color }}>
                     {v.title}
                   </h3>
-                  <p className="body-text mt-3 flex-1 text-sm">{v.desc}</p>
+                  <p className="body-text mt-3 flex-1">{v.desc}</p>
                 </article>
               </Reveal>
             ))}

@@ -204,16 +204,16 @@ export default function HomeLearningPage() {
             {kitItems.map((item, i) => (
               <Reveal key={item.title} delay={i * 0.08} className="h-full">
                 <article
-                  className="flex h-full flex-col rounded-[2rem] px-6 py-7 ring-1 ring-[rgba(90,74,66,0.07)] shadow-[0_4px_16px_rgba(90,74,66,0.07)]"
+                  className="feature-card"
                   style={{ background: item.bg }}
                 >
                   <span className="mb-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 shadow-[0_2px_8px_rgba(90,74,66,0.08)]">
                     <item.icon className="h-5 w-5" style={{ color: item.color }} strokeWidth={1.8} />
                   </span>
-                  <h3 className="font-heading text-[1.2rem] leading-snug" style={{ color: item.color }}>
+                  <h3 className="feature-card-title" style={{ color: item.color }}>
                     {item.title}
                   </h3>
-                  <p className="body-text mt-3 flex-1 text-sm">{item.desc}</p>
+                  <p className="body-text mt-3 flex-1">{item.desc}</p>
                 </article>
               </Reveal>
             ))}
@@ -283,17 +283,17 @@ export default function HomeLearningPage() {
             ].map((t, i) => (
               <Reveal key={t.title} delay={i * 0.06} className="h-full">
                 <article
-                  className="flex h-full flex-col rounded-[2rem] px-6 py-7 ring-1 ring-[rgba(90,74,66,0.07)] shadow-[0_4px_16px_rgba(90,74,66,0.07)]"
+                  className="feature-card"
                   style={{ background: t.bg }}
                 >
                   <span className="mb-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 shadow-[0_2px_8px_rgba(90,74,66,0.08)]">
                     <t.icon className="h-5 w-5" style={{ color: t.color }} strokeWidth={1.8} />
                   </span>
-                  <h3 className="font-heading text-[1.2rem] leading-snug" style={{ color: t.color }}>
+                  <h3 className="feature-card-title" style={{ color: t.color }}>
                     {t.title}
                   </h3>
                   <p
-                    className="body-text mt-3 flex-1 text-sm"
+                    className="body-text mt-3 flex-1"
                     dangerouslySetInnerHTML={{ __html: t.desc }}
                   />
                 </article>
@@ -380,12 +380,12 @@ export default function HomeLearningPage() {
                   className="group flex flex-col gap-3 rounded-[1.8rem] bg-white px-6 py-6 shadow-[0_6px_20px_rgba(90,74,66,0.09)] ring-1 ring-[rgba(90,74,66,0.06)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_10px_28px_rgba(90,74,66,0.13)]"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-heading text-[1.35rem] leading-tight" style={{ color: r.accent }}>
+                    <span className="feature-card-title" style={{ color: r.accent }}>
                       {r.label}
                     </span>
                     <ExternalLink className="h-4 w-4 shrink-0 text-[rgba(90,74,66,0.85)] transition group-hover:text-[rgba(90,74,66,0.85)]" />
                   </div>
-                  <p className="body-text text-sm">{r.desc}</p>
+                  <p className="body-text">{r.desc}</p>
                 </a>
               ))}
             </div>

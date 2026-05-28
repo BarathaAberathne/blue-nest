@@ -99,10 +99,10 @@ export default function BlogPage() {
                 <span className="mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/70 shadow-[0_2px_8px_rgba(90,74,66,0.08)]">
                   <t.icon className="h-4 w-4" style={{ color: t.color }} strokeWidth={1.8} />
                 </span>
-                <h2 className="font-heading text-[1.15rem] leading-snug" style={{ color: t.color }}>
+                <h2 className="feature-card-title" style={{ color: t.color }}>
                   {t.title}
                 </h2>
-                <p className="body-text mt-2 flex-1 text-sm">{t.desc}</p>
+                <p className="body-text mt-2 flex-1">{t.desc}</p>
                 <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: t.color }}>
                   Explore <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
                 </span>

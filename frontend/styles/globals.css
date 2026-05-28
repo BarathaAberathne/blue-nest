@@ -124,6 +124,17 @@
            shadow-[0_14px_40px_rgba(90,74,66,0.08)] ring-1 ring-white/80;
   }
 
+  /* Compact feature/info card — the repeated pastel-tinted card used in
+     grids across admission, why-montessori, home-learning, our-charities,
+     about-us, etc. It owns the shared box shape + equal-height behaviour
+     (flex-col + h-full); per-card background tint stays inline. Pair its
+     body paragraph with `body-text mt-3 flex-1 text-sm` so the footer/CTA
+     sits flush to the bottom of every card in the row. */
+  .feature-card {
+    @apply flex h-full flex-col rounded-[2rem] px-6 py-7 ring-1
+           ring-[rgba(90,74,66,0.07)] shadow-[0_4px_16px_rgba(90,74,66,0.07)];
+  }
+
   /* ── Gallery photo tone ──────────────────────────────────── */
   /*
    * Very light global filter for gallery photography. The cream-toned
@@ -159,7 +170,8 @@
    *   .section-kicker   — small uppercase label above a heading
    *   .section-title    — large section heading (h2)
    *   .section-subtitle — introductory body paragraph under a heading
-   *   .card-title       — heading inside a card (h3)
+   *   .card-title       — heading inside a large polaroid card (h3)
+   *   .feature-card-title — heading inside a compact .feature-card (h3)
    *   .body-text        — standard body paragraph
    *   text-sm           — captions, meta labels, footer links
    *
@@ -188,6 +200,13 @@
   .card-title {
     font-family: var(--font-display), cursive;
     @apply text-[2rem] leading-none;
+  }
+
+  /* Heading inside a compact .feature-card (smaller than .card-title).
+     Colour is set inline per card to match its pastel accent. */
+  .feature-card-title {
+    font-family: var(--font-display), cursive;
+    @apply text-[1.25rem] leading-snug;
   }
 
   /* Standard body paragraph — use instead of arbitrary text-[x.xxrem] */

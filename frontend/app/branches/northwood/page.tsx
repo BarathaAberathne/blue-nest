@@ -70,8 +70,8 @@ export default function NorthwoodBranchPage() {
               <Reveal key={item.title} delay={0.07 * i}>
                 <div className="flex h-full flex-col rounded-[2rem] bg-[var(--soft-white)] px-6 py-7 shadow-[0_10px_24px_rgba(90,74,66,0.07)] ring-1 ring-[rgba(90,74,66,0.05)]">
                   <span className="mb-4 text-3xl" aria-hidden="true">{item.emoji}</span>
-                  <h3 className="font-heading text-[1.4rem] leading-snug text-[var(--ink)]">{item.title}</h3>
-                  <p className="body-text mt-3 flex-1 text-sm">{item.desc}</p>
+                  <h3 className="feature-card-title text-[var(--ink)]">{item.title}</h3>
+                  <p className="body-text mt-3 flex-1">{item.desc}</p>
                 </div>
               </Reveal>
             ))}

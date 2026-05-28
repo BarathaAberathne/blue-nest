@@ -609,8 +609,8 @@ export default function ForestSchoolPage() {
                       <Icon className="h-7 w-7" style={{ color: ink }} />
                     </div>
                     <p className="mb-0.5 text-[0.6rem] font-bold uppercase tracking-[0.2em]" style={{ color: ink }}>{label}</p>
-                    <h3 className="mb-2 font-heading text-[1.05rem] leading-snug" style={{ color: C.earth }}>{title}</h3>
-                    <p className="text-[0.85rem] leading-relaxed" style={{ color: C.earthSoft }}>{body}</p>
+                    <h3 className="mb-2 feature-card-title" style={{ color: C.earth }}>{title}</h3>
+                    <p className="text-base leading-relaxed" style={{ color: C.earthSoft }}>{body}</p>
                   </div>
                 </div>
               </Reveal>
@@ -650,8 +650,8 @@ export default function ForestSchoolPage() {
                     <Icon className="h-6 w-6" style={{ color: C.sageDeep }} />
                   </div>
                   <div>
-                    <h3 className="mb-1 font-heading text-[1.02rem] leading-snug" style={{ color: C.earth }}>{title}</h3>
-                    <p className="text-[0.82rem] leading-relaxed" style={{ color: C.earthSoft }}>{desc}</p>
+                    <h3 className="mb-1 feature-card-title" style={{ color: C.earth }}>{title}</h3>
+                    <p className="text-base leading-relaxed" style={{ color: C.earthSoft }}>{desc}</p>
                   </div>
                 </div>
               </Reveal>

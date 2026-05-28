@@ -227,19 +227,19 @@ export default function HolidayClubPage() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {audiences.map((a, i) => (
-              <Reveal key={a.title} delay={0.06 * i}>
+              <Reveal key={a.title} delay={0.06 * i} className="h-full">
                 <div
-                  className="flex items-start gap-3 rounded-[1.6rem] px-5 py-5 ring-1 ring-[rgba(90,74,66,0.07)]"
+                  className="flex h-full items-start gap-3 rounded-[1.6rem] px-5 py-5 ring-1 ring-[rgba(90,74,66,0.07)]"
                   style={{ background: a.bg }}
                 >
                   <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/70">
                     <a.icon className="h-4 w-4" style={{ color: a.color }} strokeWidth={1.8} />
                   </span>
                   <div>
-                    <p className="font-heading text-[1.05rem] leading-snug" style={{ color: a.color }}>
+                    <p className="feature-card-title" style={{ color: a.color }}>
                       {a.title}
                     </p>
-                    <p className="mt-1 text-sm leading-[1.6] text-[rgba(90,74,66,0.85)]">{a.blurb}</p>
+                    <p className="body-text mt-1">{a.blurb}</p>
                   </div>
                 </div>
               </Reveal>
@@ -271,10 +271,10 @@ export default function HolidayClubPage() {
                   style={{ background: b.bg }}
                 >
                   <div>
-                    <h3 className="font-heading text-[1.6rem] leading-tight" style={{ color: b.accent }}>
+                    <h3 className="feature-card-title" style={{ color: b.accent }}>
                       {b.name}
                     </h3>
-                    <p className="mt-2 text-sm leading-[1.6] text-[rgba(90,74,66,0.85)]">{b.locality}</p>
+                    <p className="body-text mt-2">{b.locality}</p>
                   </div>
                   <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold" style={{ color: b.accent }}>
                     Visit branch page <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
@@ -361,10 +361,10 @@ export default function HolidayClubPage() {
                   >
                     <a.icon className="h-5 w-5" strokeWidth={1.8} />
                   </div>
-                  <h3 className="font-heading text-[1.35rem] leading-snug" style={{ color: a.color }}>
+                  <h3 className="feature-card-title" style={{ color: a.color }}>
                     {a.title}
                   </h3>
-                  <p className="body-text mt-2 flex-1 text-sm">{a.blurb}</p>
+                  <p className="body-text mt-2 flex-1">{a.blurb}</p>
                 </div>
               </Reveal>
             ))}

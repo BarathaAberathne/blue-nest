@@ -213,10 +213,10 @@ export default function OurCharitiesPage() {
                     </div>
                   </div>
                   <div className="flex flex-1 flex-col px-6 py-5">
-                    <h3 className="font-heading text-[1.25rem] leading-snug" style={{ color: charity.color }}>
+                    <h3 className="feature-card-title" style={{ color: charity.color }}>
                       {charity.name}
                     </h3>
-                    <p className="body-text mt-2 flex-1 text-sm">{charity.desc}</p>
+                    <p className="body-text mt-2 flex-1">{charity.desc}</p>
                   </div>
                 </article>
               </Reveal>
@@ -304,16 +304,16 @@ export default function OurCharitiesPage() {
             {HIGHLIGHTS.map((item, i) => (
               <Reveal key={item.title} delay={i * 0.07} className="h-full">
                 <article
-                  className="flex h-full flex-col rounded-[2rem] px-6 py-7 ring-1 ring-[rgba(90,74,66,0.07)] shadow-[0_4px_16px_rgba(90,74,66,0.07)]"
+                  className="feature-card"
                   style={{ background: item.bg }}
                 >
                   <span className="mb-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 shadow-[0_2px_8px_rgba(90,74,66,0.08)]">
                     <item.icon className="h-5 w-5" style={{ color: item.color }} strokeWidth={1.8} />
                   </span>
-                  <h3 className="font-heading text-[1.2rem] leading-snug" style={{ color: item.color }}>
+                  <h3 className="feature-card-title" style={{ color: item.color }}>
                     {item.title}
                   </h3>
-                  <p className="body-text mt-3 flex-1 text-sm">{item.desc}</p>
+                  <p className="body-text mt-3 flex-1">{item.desc}</p>
                 </article>
               </Reveal>
             ))}

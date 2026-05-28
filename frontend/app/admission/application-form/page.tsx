@@ -89,16 +89,16 @@ export default function ApplicationFormPage() {
             {NEXT_STEPS.map((s) => (
               <article
                 key={s.title}
-                className="flex h-full flex-col rounded-[2rem] px-6 py-7 ring-1 ring-[rgba(90,74,66,0.07)] shadow-[0_4px_16px_rgba(90,74,66,0.07)]"
+                className="feature-card"
                 style={{ background: s.bg }}
               >
                 <span className="mb-4 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/70 shadow-[0_2px_8px_rgba(90,74,66,0.08)]">
                   <s.icon className="h-5 w-5" style={{ color: s.color }} strokeWidth={1.8} />
                 </span>
-                <h3 className="font-heading text-[1.2rem] leading-snug" style={{ color: s.color }}>
+                <h3 className="feature-card-title" style={{ color: s.color }}>
                   {s.title}
                 </h3>
-                <p className="body-text mt-3 flex-1 text-sm" dangerouslySetInnerHTML={{ __html: s.desc }} />
+                <p className="body-text mt-3 flex-1" dangerouslySetInnerHTML={{ __html: s.desc }} />
               </article>
             ))}
           </div>

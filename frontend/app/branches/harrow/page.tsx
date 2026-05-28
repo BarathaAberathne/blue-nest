@@ -341,12 +341,12 @@ export default function HarrowBranchPage() {
                     <f.icon className="h-6 w-6" strokeWidth={1.8} />
                   </div>
                   <h3
-                    className="font-heading text-[1.5rem] leading-snug"
+                    className="feature-card-title"
                     style={{ color: f.accent }}
                   >
                     {f.title}
                   </h3>
-                  <p className="body-text mt-3 flex-1 text-sm">{f.desc}</p>
+                  <p className="body-text mt-3 flex-1">{f.desc}</p>
                 </div>
               </Reveal>
             ))}
