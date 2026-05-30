@@ -26,6 +26,7 @@ import { LightboxGallery } from "@/components/ui/LightboxGallery";
 import BranchMap from "@/components/contact/BranchMap";
 import BranchEnrichmentSection, { type EnrichmentActivity } from "@/components/sections/BranchEnrichmentSection";
 import BranchHero from "@/components/sections/BranchHero";
+import FeeCalculatorCard from "@/components/ui/FeeCalculatorCard";
 
 // Pinner branch JSON-LD. Preschool is the most-recognised early-years
 // schema type — used alongside ChildCare and LocalBusiness. Linked to
@@ -218,7 +219,6 @@ export default function PinnerBranchPage() {
       />
 
       <BranchHero
-        branch="pinner"
         location="Pinner, London"
         heading="Montessori Nursery in Pinner"
         description="At Blue Nest Montessori School Pinner, we combine authentic Montessori learning with a calm, home-away-from-home atmosphere. Set in leafy Pinner, our nursery offers spacious outdoor spaces and a dedicated Forest School programme."
@@ -264,7 +264,7 @@ export default function PinnerBranchPage() {
                   Looking for a Montessori nursery in Pinner with its own outdoor space and a
                   proper forest school programme? That&rsquo;s us. We accept 15 and 30 hours of
                   funded childcare — use our{" "}
-                  <Link href="/admission/our-fees" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                  <Link href="#fee-calculator" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
                     fee calculator
                   </Link>{" "}
                   to estimate weekly fees,{" "}
@@ -354,7 +354,25 @@ export default function PinnerBranchPage() {
       {/* ══════════════════════════════════════════════════════
           3.6 — WEEKLY ENRICHMENT ACTIVITIES
       ══════════════════════════════════════════════════════ */}
-      <BranchEnrichmentSection activities={enrichmentActivities} branchName="Pinner" />
+      <BranchEnrichmentSection
+        activities={enrichmentActivities}
+        branchName="Pinner"
+        rightSlot={
+          <div id="fee-calculator">
+            <Reveal>
+              <div className="mb-8 text-center">
+                <span className="section-kicker">Fees made simple</span>
+                <h2 className="section-title mt-4">Estimate Your Pinner Fees</h2>
+              </div>
+            </Reveal>
+            <Reveal delay={0.08}>
+              <div className="mx-auto w-full max-w-[27rem]">
+                <FeeCalculatorCard defaultBranch="pinner" />
+              </div>
+            </Reveal>
+          </div>
+        }
+      />
 
       {/* ══════════════════════════════════════════════════════
           4 — GALLERY

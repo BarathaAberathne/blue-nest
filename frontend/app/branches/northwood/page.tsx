@@ -3,6 +3,7 @@ import { ArrowRight, Clock, Mail, MapPin } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import PastelButton from "@/components/ui/PastelButton";
 import { Reveal } from "@/components/ui/Motion";
+import BranchFeeCalculatorSection from "@/components/sections/BranchFeeCalculatorSection";
 import BranchHero from "@/components/sections/BranchHero";
 
 export const metadata: Metadata = {
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
     description:
       "Blue Nest Montessori is coming to Northwood, HA6. Register your interest now to be first in line.",
     url: "/branches/northwood",
-    images: [{ url: "/home/outdoor-play-for-children-new.jpg", width: 1280, height: 854, alt: "Blue Nest Montessori coming to Northwood" }],
+    images: [{ url: "/home/branches/northwood/northwood-hero.jpg", width: 1346, height: 1010, alt: "Children exploring a sunlit woodland nursery at Blue Nest Montessori Northwood, with timber forest classroom buildings, a teepee, log balance trail and signposts to Nature Station, Forest Classroom and Garden" }],
     type: "website",
   },
 };
@@ -31,12 +32,11 @@ export default function NorthwoodBranchPage() {
     <PublicLayout>
 
       <BranchHero
-        branch="northwood"
         location="Northwood, London · HA6"
         heading="Blue Nest Montessori is Coming to Northwood"
         description="We're excited to be expanding to Northwood. Our newest branch will bring the same outstanding Montessori education and warm, nurturing care to HA6 families. Register your interest to be first in line for a place."
-        image="/home/outdoor-play-for-children-new.jpg"
-        imageAlt="Blue Nest Montessori coming to Northwood"
+        image="/home/branches/northwood/northwood-hero.jpg"
+        imageAlt="Children exploring a sunlit woodland nursery at Blue Nest Montessori Northwood, with timber forest classroom buildings, a teepee, log balance trail and signposts to Nature Station, Forest Classroom and Garden"
         badge="Coming Soon"
         primaryCta={{ label: "Register Your Interest", href: "/contact?enquiry=northwood-interest", variant: "blush" }}
         secondaryCta={{ label: "Learn About Admissions", href: "/admission", variant: "mint" }}
@@ -78,6 +78,11 @@ export default function NorthwoodBranchPage() {
           </div>
         </div>
       </section>
+
+      {/* ══════════════════════════════════════════════════════
+          FEE CALCULATOR
+      ══════════════════════════════════════════════════════ */}
+      <BranchFeeCalculatorSection branch="northwood" branchName="Northwood" />
 
       {/* ══════════════════════════════════════════════════════
           REGISTER INTEREST

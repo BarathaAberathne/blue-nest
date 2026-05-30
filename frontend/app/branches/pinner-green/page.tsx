@@ -20,6 +20,7 @@ import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
 import { LightboxGallery } from "@/components/ui/LightboxGallery";
 import BranchMap from "@/components/contact/BranchMap";
+import BranchFeeCalculatorSection from "@/components/sections/BranchFeeCalculatorSection";
 import BranchHero from "@/components/sections/BranchHero";
 
 export const metadata: Metadata = {
@@ -128,7 +129,6 @@ export default function PinnerGreenBranchPage() {
     <PublicLayout>
 
       <BranchHero
-        branch="pinner-green"
         location="Pinner Green, London"
         heading="Montessori Nursery in Pinner Green"
         description="At Blue Nest Montessori School Pinner Green, child-led learning meets a beautifully natural setting. Authentic Montessori principles with rich outdoor experiences — where every child's curiosity and confidence can truly flourish."
@@ -225,6 +225,11 @@ export default function PinnerGreenBranchPage() {
           </div>
         </div>
       </section>
+
+      {/* ══════════════════════════════════════════════════════
+          3.5 — FEE CALCULATOR
+      ══════════════════════════════════════════════════════ */}
+      <BranchFeeCalculatorSection branch="pinner-green" branchName="Pinner Green" />
 
       {/* ══════════════════════════════════════════════════════
           4 — GALLERY

@@ -26,6 +26,7 @@ import { LightboxGallery } from "@/components/ui/LightboxGallery";
 import BranchMap from "@/components/contact/BranchMap";
 import BranchEnrichmentSection, { type EnrichmentActivity } from "@/components/sections/BranchEnrichmentSection";
 import BranchHero from "@/components/sections/BranchHero";
+import FeeCalculatorCard from "@/components/ui/FeeCalculatorCard";
 
 // Borehamwood branch JSON-LD. Preschool + ChildCare + LocalBusiness for
 // schema breadth; linked to the site-wide org via parentOrganization @id.
@@ -238,7 +239,6 @@ export default function BorehamwoodBranchPage() {
       />
 
       <BranchHero
-        branch="borehamwood"
         location="Borehamwood, Hertfordshire"
         heading="Montessori Nursery in Borehamwood"
         description="At Blue Nest Montessori School Borehamwood, we bring the same outstanding Montessori experience to families in Hertfordshire. A warm, stimulating environment where children aged 3 months to 5 years can learn, play and truly thrive."
@@ -283,7 +283,7 @@ export default function BorehamwoodBranchPage() {
                 <p>
                   We accept 15 and 30 hours of funded childcare for eligible families and welcome
                   childcare vouchers and Tax-Free Childcare. Use our{" "}
-                  <Link href="/admission/our-fees" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
+                  <Link href="#fee-calculator" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
                     fee calculator
                   </Link>{" "}
                   to estimate weekly fees,{" "}
@@ -342,7 +342,25 @@ export default function BorehamwoodBranchPage() {
       {/* ══════════════════════════════════════════════════════
           3.5 — WEEKLY ENRICHMENT ACTIVITIES
       ══════════════════════════════════════════════════════ */}
-      <BranchEnrichmentSection activities={enrichmentActivities} branchName="Borehamwood" />
+      <BranchEnrichmentSection
+        activities={enrichmentActivities}
+        branchName="Borehamwood"
+        rightSlot={
+          <div id="fee-calculator">
+            <Reveal>
+              <div className="mb-8 text-center">
+                <span className="section-kicker">Fees made simple</span>
+                <h2 className="section-title mt-4">Estimate Your Borehamwood Fees</h2>
+              </div>
+            </Reveal>
+            <Reveal delay={0.08}>
+              <div className="mx-auto w-full max-w-[27rem]">
+                <FeeCalculatorCard defaultBranch="borehamwood" />
+              </div>
+            </Reveal>
+          </div>
+        }
+      />
 
       {/* ══════════════════════════════════════════════════════
           4 — GALLERY
