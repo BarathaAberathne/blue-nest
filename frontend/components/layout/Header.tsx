@@ -6,10 +6,10 @@ import {
   Mail,
   Menu,
   Phone,
-  Search,
   ShieldCheck,
   X,
 } from "lucide-react";
+import SiteSearch from "@/components/layout/SiteSearch";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -239,17 +239,7 @@ export default function Header() {
             {/* ROW 1: Search + Action Icons */}
             <div className="col-span-2 flex items-center justify-between gap-4 px-4 py-2">
               {/* Search bar */}
-              <div className="hidden md:flex flex-1 max-w-sm items-center overflow-hidden rounded-full bg-white shadow-[0_2px_10px_rgba(90,74,66,0.07)]">
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  aria-label="Search"
-                  className="h-10 flex-1 bg-transparent px-4 text-sm text-[var(--ink)] outline-none placeholder:text-[rgba(90,74,66,0.85)]"
-                />
-                <span className="flex h-10 w-11 items-center justify-center bg-[var(--hdr-accent)] text-white">
-                  <Search className="h-4 w-4" />
-                </span>
-              </div>
+              <SiteSearch className="hidden md:flex flex-1 max-w-sm" />
 
               {/* Social + Action icons */}
               <div className="flex items-center gap-0.5">
