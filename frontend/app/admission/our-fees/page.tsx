@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { ArrowRight, CalendarDays, Clock, Download, Info, Phone, Star, Sun, Sunset } from "lucide-react";
+import { ArrowRight, Clock, Download, Info, Star, Sun, Sunset } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import Doodle from "@/components/ui/Doodle";
 import FeeCalculatorCard from "@/components/ui/FeeCalculatorCard";
+import PastelButton from "@/components/ui/PastelButton";
+import ZigzagBand from "@/components/ui/ZigzagBand";
 import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
@@ -152,41 +154,33 @@ export default function OurFeesPage() {
             <Reveal className="lg:pt-2">
               <div>
                 <span className="section-kicker">Admissions</span>
-                <h1 className="mt-3 font-heading text-[2.4rem] leading-[1.05] text-[var(--ink)] sm:text-[2.9rem] lg:text-[3.3rem]">
+                <h1 className="mt-4 font-heading text-[2.2rem] leading-[1.12] text-[var(--ink)] sm:text-[2.7rem] lg:text-[3rem]">
                   Our Nursery Fees
                 </h1>
-                {/* Pink dotted underline */}
-                <div className="mt-2 flex gap-1" aria-hidden="true">
-                  {Array.from({ length: 14 }).map((_, i) => (
-                    <div key={i} className="h-[3px] w-3 rounded-full bg-[#f1a8ca]" />
-                  ))}
-                </div>
 
-                <p className="body-text mt-4 max-w-md text-[1.05rem]">
-                  Flexible childcare options tailored to your family&rsquo;s needs across all
-                  Blue Nest branches.
-                </p>
-                <p className="body-text mt-3 max-w-md">
-                  Estimate your weekly and monthly nursery fees instantly using our interactive
-                  calculator. Funding support and flexible sessions are built in.
+                <p className="body-text mt-5 max-w-md">
+                  Flexible childcare options tailored to your family&rsquo;s needs across every
+                  Blue Nest branch. Estimate your weekly and monthly fees instantly with our
+                  interactive calculator &mdash; funding support, sibling discounts and
+                  flexible sessions are all built in.
                 </p>
 
                 {/* CTAs */}
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <a
+                <div className="mt-6 flex flex-nowrap gap-2 pt-1 sm:flex-wrap sm:gap-3">
+                  <PastelButton
                     href="/contact?enquiry=arrange-a-visit"
-                    className="inline-flex items-center gap-2 rounded-full bg-[#7fd8d2] px-5 py-2.5 font-heading text-[1.05rem] leading-none tracking-[0.04em] text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#6ecfc9]"
+                    variant="rose"
+                    className="flex-1 min-w-0 whitespace-nowrap !px-3 !text-sm sm:flex-initial sm:!px-6 sm:!text-[1.45rem]"
                   >
-                    <CalendarDays className="h-4 w-4" strokeWidth={2} />
-                    Book a Visit
-                  </a>
-                  <a
+                    Book a Visit <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </PastelButton>
+                  <PastelButton
                     href="/contact?enquiry=fees"
-                    className="inline-flex items-center gap-2 rounded-full bg-[#ef8cab] px-5 py-2.5 font-heading text-[1.05rem] leading-none tracking-[0.04em] text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#e8719a]"
+                    variant="mint"
+                    className="flex-1 min-w-0 whitespace-nowrap !px-3 !text-sm sm:flex-initial sm:!px-6 sm:!text-[1.45rem]"
                   >
-                    <Phone className="h-4 w-4" strokeWidth={2} />
-                    Contact Us
-                  </a>
+                    Contact Us <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  </PastelButton>
                 </div>
 
                 {/* Trust pills — compact, two columns on mobile, single row on sm+ */}
@@ -223,16 +217,17 @@ export default function OurFeesPage() {
       {/* ══════════════════════════════════════════════════════
           DOWNLOAD FEES BY BRANCH
       ══════════════════════════════════════════════════════ */}
-      <section className="relative px-4 py-10 sm:px-6 lg:px-8 lg:py-14" style={{ backgroundColor: "rgba(246,213,223,0.22)" }}>
+      <section className="blush-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <Doodle kind="leaf"      className="left-[2%]  bottom-6 h-9 w-9 opacity-42 hidden sm:block" />
 
         <div className="container-site">
           <Reveal eager>
-            <div className="mb-7 text-center">
-              <h2 className="font-heading text-[2rem] leading-snug text-[var(--ink)] sm:text-[2.4rem]">
-                Download our fees
+            <div className="mx-auto mb-10 max-w-2xl text-center">
+              <span className="section-kicker">Branch fee sheets</span>
+              <h2 className="section-title mt-4 text-[#cf7d9c]">
+                Download Our Fees
               </h2>
-              <p className="body-text mx-auto mt-2 max-w-md">
+              <p className="body-text mx-auto mt-5 max-w-md">
                 You can download our fees for each of our nurseries using the links below.
               </p>
             </div>
@@ -271,27 +266,24 @@ export default function OurFeesPage() {
       {/* ══════════════════════════════════════════════════════
           SESSIONS TABLE
       ══════════════════════════════════════════════════════ */}
-      <section className="paper-bg relative px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+      <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <Doodle kind="pink-flower"    className="right-[4%] top-8    h-9 w-9 opacity-42 hidden sm:block" />
 
         <div className="container-site">
           <Reveal>
-            <h2 className="font-heading text-[2rem] leading-snug text-[var(--ink)] sm:text-[2.4rem]">
-              Our Sessions
-            </h2>
-            {/* Pink dotted underline */}
-            <div className="mt-2 flex gap-1" aria-hidden="true">
-              {Array.from({ length: 10 }).map((_, i) => (
-                <div key={i} className="h-[3px] w-3 rounded-full bg-[#f1a8ca]" />
-              ))}
+            <div className="mx-auto mb-10 max-w-2xl text-center">
+              <span className="section-kicker">Times that fit your week</span>
+              <h2 className="section-title mt-4 text-[#58c5c7]">
+                Our Sessions
+              </h2>
+              <p className="body-text mt-5">
+                We offer a variety of sessions to suit your child&rsquo;s needs.
+              </p>
             </div>
-            <p className="body-text mt-3">
-              We offer a variety of sessions to suit your child&rsquo;s needs.
-            </p>
           </Reveal>
 
           <Reveal delay={0.08}>
-            <div className="mt-6 overflow-hidden rounded-[1.8rem] shadow-[0_8px_28px_rgba(90,74,66,0.08)] ring-1 ring-[rgba(90,74,66,0.07)]">
+            <div className="overflow-hidden rounded-[1.8rem] shadow-[0_8px_28px_rgba(90,74,66,0.08)] ring-1 ring-[rgba(90,74,66,0.07)]">
 
               {/* Table header */}
               <div className="grid grid-cols-2 bg-[#ef8cab] px-6 py-3.5 sm:px-8">
@@ -324,7 +316,7 @@ export default function OurFeesPage() {
 
           {/* Notes panel */}
           <Reveal delay={0.12}>
-            <div className="mt-5 flex gap-4 rounded-[1.4rem] bg-[rgba(247,215,116,0.14)] px-5 py-5 ring-1 ring-[rgba(247,215,116,0.35)]">
+            <div className="mx-auto mt-6 flex max-w-3xl gap-4 rounded-[1.4rem] bg-[rgba(247,215,116,0.14)] px-5 py-5 ring-1 ring-[rgba(247,215,116,0.35)]">
               <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgba(127,216,210,0.25)]">
                 <Info className="h-4 w-4 text-[#5a8c9c]" strokeWidth={2} />
               </span>
@@ -341,6 +333,45 @@ export default function OurFeesPage() {
         </div>
       </section>
 
+
+      {/* ══════════════════════════════════════════════════════
+          FINAL CTA
+      ══════════════════════════════════════════════════════ */}
+      <ZigzagBand className="px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <Doodle kind="pink-bird"   animated="float" className="absolute left-[4%]  top-10   h-10 w-10 opacity-50 hidden lg:block" />
+        <Doodle kind="blue-flower"                  className="absolute right-[3%] bottom-8 h-9  w-9  opacity-45 hidden sm:block" />
+
+        <div className="container-site">
+          <Reveal>
+            <div className="mx-auto max-w-2xl text-center">
+              <span className="section-kicker">Ready when you are</span>
+              <h2 className="section-title mt-4 text-[var(--ink)]">
+                Have Questions About Fees?
+              </h2>
+              <p className="body-text mx-auto mt-5 max-w-lg">
+                Our team is happy to talk through funded hours, sibling discounts and what your
+                weekly invoice will look like &mdash; or you can come and see us in person.
+              </p>
+              <div className="mt-8 flex flex-nowrap justify-center gap-2 sm:flex-wrap sm:gap-3">
+                <PastelButton
+                  href="/contact?enquiry=arrange-a-visit"
+                  variant="rose"
+                  className="whitespace-nowrap !px-3 !text-sm sm:!px-6 sm:!text-[1.45rem]"
+                >
+                  Book a Visit <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </PastelButton>
+                <PastelButton
+                  href="/contact?enquiry=fees"
+                  variant="mint"
+                  className="whitespace-nowrap !px-3 !text-sm sm:!px-6 sm:!text-[1.45rem]"
+                >
+                  Contact Us <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                </PastelButton>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </ZigzagBand>
 
     </PublicLayout>
   );
