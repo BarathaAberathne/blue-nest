@@ -33,29 +33,38 @@ export default function BranchHero({
   badge,
 }: BranchHeroProps) {
   return (
-    <section className="flex flex-col lg:flex-row lg:items-start">
+    <section className="relative flex flex-col lg:flex-row lg:items-start">
 
-      {/* ── LEFT — text on paper background (desktop) / over photo (mobile) ─ */}
-      <div className="paper-bg relative flex w-full items-start overflow-hidden lg:w-1/2">
-
-        {/* Mobile-only background photo */}
+      {/* ── Single hero photo — full-bleed behind text on mobile, right half on
+           desktop. One <Image> with a responsive `sizes` so the browser fetches
+           exactly one candidate (≈50vw on desktop, 100vw on mobile). ─ */}
+      <div className="absolute inset-0 overflow-hidden lg:left-1/2">
         <Image
           src={image}
-          alt=""
-          aria-hidden="true"
+          alt={imageAlt}
           fill
           priority
           fetchPriority="high"
-          className="object-cover object-center lg:hidden"
+          className="object-cover object-center"
           quality={55}
-          sizes="100vw"
+          sizes="(min-width: 1024px) 50vw, 100vw"
         />
+        <Doodle
+          kind="blue-bird"
+          animated="float"
+          className="absolute right-6 top-8 h-10 w-10 opacity-45 hidden lg:block pointer-events-none"
+        />
+      </div>
 
-        {/* Mobile-only dark overlay for text legibility */}
-        <div
-          className="absolute inset-0 bg-black/40 lg:hidden"
-          aria-hidden="true"
-        />
+      {/* Mobile-only dark overlay for text legibility (over the photo) */}
+      <div
+        className="absolute inset-0 bg-black/40 lg:hidden"
+        aria-hidden="true"
+      />
+
+      {/* ── LEFT — text. Transparent over the photo on mobile; opaque cream
+           paper (masking the photo's left half) on desktop. ─ */}
+      <div className="lg:paper-bg relative flex w-full items-start overflow-hidden lg:w-1/2">
 
         <Doodle
           kind="pink-flower"
@@ -106,27 +115,9 @@ export default function BranchHero({
         </div>
       </div>
 
-      {/* ── RIGHT — branch image (desktop only) ────────────────── */}
-      <div className="relative hidden lg:flex lg:self-stretch w-1/2 overflow-x-hidden">
-
-        {/* Branch photo fills the right pane */}
-        <Image
-          src={image}
-          alt={imageAlt}
-          fill
-          priority
-          fetchPriority="high"
-          className="object-cover object-center"
-          quality={55}
-          sizes="50vw"
-        />
-
-        <Doodle
-          kind="blue-bird"
-          animated="float"
-          className="absolute right-6 top-8 h-10 w-10 opacity-45 pointer-events-none"
-        />
-      </div>
+      {/* ── RIGHT — spacer reserving the desktop right half; the hero photo
+           sits behind it via the absolute layer above. ─ */}
+      <div className="hidden lg:block lg:w-1/2 lg:self-stretch" aria-hidden="true" />
 
     </section>
   );
