@@ -13,12 +13,12 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
  */
 export type PastelVariant =
   | "blush"    // soft pink      #f4aac8
-  | "mint"     // teal           #6ecfc9
+  | "mint"     // deep teal      #237a74
   | "lavender" // soft purple    #7fd8d2
   | "peach"    // coral orange   #f9a078
   | "butter"   // sunny yellow   #f5c842  (ink text)
   | "sky"      // powder blue    #79c9ea
-  | "rose"     // deeper pink    #e8719a
+  | "rose"     // deep pink      #b23a63
   | "sage"     // muted green    #8ecb9b
   | "cream";   // warm cream     #e8cba4  (ink text)
 
@@ -27,8 +27,8 @@ const styles: Record<PastelVariant, string> = {
     "bg-[#f4aac8]   border-2 border-transparent text-white      " +
     "hover:bg-transparent hover:border-[#f4aac8]   hover:text-[#f4aac8]",
   mint:
-    "bg-[#6ecfc9]   border-2 border-transparent text-white      " +
-    "hover:bg-transparent hover:border-[#6ecfc9]   hover:text-[#6ecfc9]",
+    "bg-[#237a74]   border-2 border-transparent text-white      " +
+    "hover:bg-transparent hover:border-[#237a74]   hover:text-[#237a74]",
   lavender:
     "bg-[#7fd8d2]   border-2 border-transparent text-white      " +
     "hover:bg-transparent hover:border-[#7fd8d2]   hover:text-[#7fd8d2]",
@@ -42,8 +42,8 @@ const styles: Record<PastelVariant, string> = {
     "bg-[#79c9ea]   border-2 border-transparent text-white      " +
     "hover:bg-transparent hover:border-[#79c9ea]   hover:text-[#79c9ea]",
   rose:
-    "bg-[#e8719a]   border-2 border-transparent text-white      " +
-    "hover:bg-transparent hover:border-[#e8719a]   hover:text-[#e8719a]",
+    "bg-[#b23a63]   border-2 border-transparent text-white      " +
+    "hover:bg-transparent hover:border-[#b23a63]   hover:text-[#b23a63]",
   sage:
     "bg-[#8ecb9b]   border-2 border-transparent text-white      " +
     "hover:bg-transparent hover:border-[#8ecb9b]   hover:text-[#8ecb9b]",

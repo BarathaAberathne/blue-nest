@@ -136,7 +136,7 @@ export default function Footer() {
 
           {/* Col 2 — Accreditation badges */}
           <div>
-            <ColLabel color="#cf7d9c" top>
+            <ColLabel color="#9e466f" top>
               Accreditations
             </ColLabel>
 
@@ -161,7 +161,7 @@ export default function Footer() {
 
           {/* Col 3 — Contact + Branches */}
           <div>
-            <ColLabel color="#5fc8c7" top>Contact Us</ColLabel>
+            <ColLabel color="#237a74" top>Contact Us</ColLabel>
             <ul className="space-y-3 text-[0.88rem]">
               <li className="flex items-start gap-2.5">
                 <Phone className="mt-0.5 h-4 w-4 shrink-0 text-[#7fd8d2]" aria-hidden="true" />
@@ -181,7 +181,7 @@ export default function Footer() {
               </li>
             </ul>
 
-            <ColLabel color="#7fd8d2">Our Branches</ColLabel>
+            <ColLabel color="#237a74">Our Branches</ColLabel>
             <ul className="space-y-1.5 text-[0.88rem]">
               {branches.map((b) => (
                 <li key={b.href}>
@@ -195,7 +195,7 @@ export default function Footer() {
 
           {/* Col 4 — Head office + Quick links */}
           <div>
-            <ColLabel color="#f0bd55" top>Head Office</ColLabel>
+            <ColLabel color="#8a6d00" top>Head Office</ColLabel>
             <address className="not-italic">
               <div className="flex items-start gap-2.5 text-[0.88rem] text-[rgba(90,74,66,0.85)]">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#7fd8d2]" aria-hidden="true" />
@@ -207,7 +207,7 @@ export default function Footer() {
               </div>
             </address>
 
-            <ColLabel color="#ef8cab">Quick Links</ColLabel>
+            <ColLabel color="#9e466f">Quick Links</ColLabel>
             <ul className="space-y-1.5 text-[0.88rem]">
               {quickLinks.map((l) => (
                 <li key={l.href}>
