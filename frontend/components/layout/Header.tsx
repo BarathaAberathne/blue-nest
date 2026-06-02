@@ -273,12 +273,12 @@ export default function Header() {
                 {/* Cart */}
                 <Link
                   href="/cart"
-                  aria-label="Open cart"
+                  aria-label={cartCount > 0 ? `Open cart, ${cartCount} item${cartCount === 1 ? "" : "s"}` : "Open cart"}
                   className="relative ml-1 flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-white/60"
                 >
                   <Handbag className="h-5 w-5 text-[var(--hdr-accent)]" />
                   {cartCount > 0 && (
-                    <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[var(--hdr-accent)]">
+                    <span aria-hidden="true" className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[var(--hdr-accent)]">
                       {cartCount}
                     </span>
                   )}
@@ -365,12 +365,12 @@ export default function Header() {
               </Link>
               <Link
                 href="/cart"
-                aria-label="Open cart"
+                aria-label={cartCount > 0 ? `Open cart, ${cartCount} item${cartCount === 1 ? "" : "s"}` : "Open cart"}
                 className="relative flex h-9 w-9 items-center justify-center text-[var(--hdr-accent)] transition hover:opacity-70"
               >
                 <Handbag className="h-5 w-5" />
                 {cartCount > 0 && (
-                  <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[var(--hdr-accent)]">
+                  <span aria-hidden="true" className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[var(--hdr-accent)]">
                     {cartCount}
                   </span>
                 )}
