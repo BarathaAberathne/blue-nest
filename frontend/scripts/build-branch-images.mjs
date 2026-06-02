@@ -81,6 +81,23 @@ const BRANCHES = {
       { name: "harrow-preview-04", src: "IMG_2787.JPG", preset: "gallery" },
       { name: "harrow-preview-05", src: "IMG_2790.JPG", preset: "gallery" },
       { name: "harrow-preview-06", src: "IMG_2654.JPG", preset: "gallery" },
+      // 2026-06 refresh — additional gallery tiles (iPhone 17 Pro Max set).
+      // Picked for variety (outdoor / classroom / learning); none reuse a
+      // source already mapped above.
+      { name: "harrow-gallery-11", src: "IMG_2611.JPG", preset: "gallery" },
+      { name: "harrow-gallery-12", src: "IMG_2804.JPG", preset: "gallery" },
+      { name: "harrow-gallery-13", src: "IMG_2620.JPG", preset: "gallery" },
+      { name: "harrow-gallery-14", src: "IMG_2624.JPG", preset: "gallery" },
+      { name: "harrow-gallery-15", src: "IMG_2636.JPG", preset: "gallery" },
+      { name: "harrow-gallery-16", src: "IMG_2647.JPG", preset: "gallery" },
+      { name: "harrow-gallery-17", src: "IMG_2681.JPG", preset: "gallery" },
+      { name: "harrow-gallery-18", src: "IMG_2716.JPG", preset: "gallery" },
+      { name: "harrow-gallery-19", src: "IMG_2726.JPG", preset: "gallery" },
+      { name: "harrow-gallery-20", src: "IMG_2739.JPG", preset: "gallery" },
+      { name: "harrow-gallery-21", src: "IMG_2746.JPG", preset: "gallery" },
+      { name: "harrow-gallery-22", src: "IMG_2764.JPG", preset: "gallery" },
+      { name: "harrow-gallery-23", src: "IMG_2785.JPG", preset: "gallery" },
+      { name: "harrow-gallery-24", src: "IMG_2757.JPG", preset: "gallery" },
     ],
   },
 

@@ -230,6 +230,90 @@ const gallery = [
     rotate: 1,
     caption: "Imaginative play",
   },
+  {
+    src: "/home/branches/harrow/harrow-gallery-11.webp",
+    alt: "Children gathered around an outdoor activity table in the Blue Nest Montessori Harrow garden",
+    rotate: -2,
+    caption: "Outdoor activities",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-12.webp",
+    alt: "The outdoor play area with a slide, climbing toys and pergola at Blue Nest Montessori Harrow",
+    rotate: 2,
+    caption: "Our garden",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-13.webp",
+    alt: "Children exploring colourful dough and craft materials at Blue Nest Montessori Harrow",
+    rotate: -1,
+    caption: "Creative craft",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-14.webp",
+    alt: "A colourful small-world village and animal display set up for imaginative play at Blue Nest Montessori Harrow",
+    rotate: 1,
+    caption: "Small-world play",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-15.webp",
+    alt: "An educator guiding two children through a tabletop Montessori activity at Blue Nest Montessori Harrow",
+    rotate: -2,
+    caption: "Guided learning",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-16.webp",
+    alt: "An educator supporting a small group at the activity table at Blue Nest Montessori Harrow",
+    rotate: 2,
+    caption: "Working together",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-17.webp",
+    alt: "Children busy at activity tables across the bright Montessori classroom at Blue Nest Montessori Harrow",
+    rotate: -1,
+    caption: "Our classroom",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-18.webp",
+    alt: "Close-up of a child and educator working on a craft activity at Blue Nest Montessori Harrow",
+    rotate: 1,
+    caption: "Hands-on making",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-19.webp",
+    alt: "Toddler concentrating on a colourful threading activity at Blue Nest Montessori Harrow",
+    rotate: -2,
+    caption: "Fine-motor focus",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-20.webp",
+    alt: "Children together at a group snack-time table at Blue Nest Montessori Harrow",
+    rotate: 2,
+    caption: "Mealtimes together",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-21.webp",
+    alt: "Children using laptops during an ICT session at Blue Nest Montessori Harrow",
+    rotate: -1,
+    caption: "ICT lessons",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-22.webp",
+    alt: "Children gathered for group circle time at Blue Nest Montessori Harrow",
+    rotate: 1,
+    caption: "Circle time",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-23.webp",
+    alt: "A child building words on a letter board with an educator at Blue Nest Montessori Harrow",
+    rotate: -2,
+    caption: "Early literacy",
+  },
+  {
+    src: "/home/branches/harrow/harrow-gallery-24.webp",
+    alt: "A well-prepared Montessori classroom with natural materials and open shelves at Blue Nest Montessori Harrow",
+    rotate: 2,
+    caption: "Prepared environment",
+  },
 ];
 
 // ── Page ───────────────────────────────────────────────────────────────────────
