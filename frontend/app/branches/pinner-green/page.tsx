@@ -247,9 +247,7 @@ export default function PinnerGreenBranchPage() {
               </h2>
             </div>
           </Reveal>
-          <Reveal delay={0.08} amount="some">
-            <LightboxGallery images={gallery} columns={3} />
-          </Reveal>
+          <LightboxGallery images={gallery} columns={3} />
         </div>
       </section>
 

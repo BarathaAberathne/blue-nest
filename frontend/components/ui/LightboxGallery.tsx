@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRef, useState } from "react";
 import { X } from "lucide-react";
 import { clsx } from "clsx";
+import { Reveal } from "@/components/ui/Motion";
 import { useOrientationReflow } from "@/lib/use-orientation-reflow";
 
 type GalleryImage = {
@@ -26,6 +27,12 @@ export function LightboxGallery({ images, columns = 3 }: Props) {
 
   return (
     <>
+      {/* Self-contained entrance reveal. `amount="some"` (fire when any part is
+          in view) is height-independent, so the gallery reveals correctly no
+          matter how many tiles it has or how short the viewport is (e.g. iPad
+          landscape). Keeping this inside the component means pages never need to
+          wrap <LightboxGallery> in their own <Reveal> — it can't be forgotten. */}
+      <Reveal amount="some" delay={0.08}>
       <div
         ref={gridRef}
         className={clsx(
@@ -65,6 +72,7 @@ export function LightboxGallery({ images, columns = 3 }: Props) {
           </button>
         ))}
       </div>
+      </Reveal>
 
       {/* Lightbox overlay */}
       {active && (
