@@ -341,13 +341,13 @@ export default function Header() {
                   Negative margin grows with size so the logo bleeds evenly into
                   the bar (≈40px layout footprint) and stays vertically centred
                   at every breakpoint. */}
-              <div className="relative -my-[28px] h-[95px] w-[178px] sm:-my-[28px] sm:h-[102px] sm:w-[192px] md:-my-[32px] md:h-[112px] md:w-[212px]">
+              <div className="relative -my-[33px] h-[110px] w-[206px] sm:-my-[36px] sm:h-[120px] sm:w-[226px] md:-my-[40px] md:h-[132px] md:w-[248px]">
                 <Image
                   src="/home/logo_new.png"
                   alt="Blue Nest Montessori logo"
                   fill
                   className="object-contain object-left drop-shadow-[0_4px_10px_rgba(90,74,66,0.14)]"
-                  sizes="(min-width: 768px) 212px, (min-width: 640px) 192px, 178px"
+                  sizes="(min-width: 768px) 248px, (min-width: 640px) 226px, 206px"
                   priority
                   fetchPriority="high"                />
               </div>
@@ -359,16 +359,16 @@ export default function Header() {
               <Link
                 href={authUser ? "/account" : "/login?next=/account"}
                 aria-label="Open account"
-                className="flex h-9 w-9 items-center justify-center text-[var(--hdr-accent-2)] transition hover:opacity-70"
+                className="flex h-11 w-11 items-center justify-center text-[var(--hdr-accent-2)] transition hover:opacity-70"
               >
-                <CircleUserRound className="h-5 w-5" />
+                <CircleUserRound className="h-6 w-6" />
               </Link>
               <Link
                 href="/cart"
                 aria-label={cartCount > 0 ? `Open cart, ${cartCount} item${cartCount === 1 ? "" : "s"}` : "Open cart"}
-                className="relative flex h-9 w-9 items-center justify-center text-[var(--hdr-accent)] transition hover:opacity-70"
+                className="relative flex h-11 w-11 items-center justify-center text-[var(--hdr-accent)] transition hover:opacity-70"
               >
-                <Handbag className="h-5 w-5" />
+                <Handbag className="h-6 w-6" />
                 {cartCount > 0 && (
                   <span aria-hidden="true" className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-white px-0.5 text-[10px] font-bold text-[var(--hdr-accent)]">
                     {cartCount}
@@ -378,11 +378,11 @@ export default function Header() {
               {/* Menu button */}
               <button
                 type="button"
-                className="inline-flex h-10 w-10 shrink-0 flex-col items-center justify-center border-2 border-[var(--ink)] bg-white text-[var(--ink)] transition hover:bg-[var(--hdr-hover)]"
+                className="inline-flex h-12 w-12 shrink-0 flex-col items-center justify-center border-2 border-[var(--ink)] bg-white text-[var(--ink)] transition hover:bg-[var(--hdr-hover)]"
                 onClick={() => setMenuOpen(true)}
                 aria-label="Open navigation menu"
               >
-                <Menu className="mb-0.5 h-4 w-4" />
+                <Menu className="mb-0.5 h-5 w-5" />
                 <span className="text-[0.6rem] font-extrabold leading-none tracking-[0.18em]">
                   MENU
                 </span>
