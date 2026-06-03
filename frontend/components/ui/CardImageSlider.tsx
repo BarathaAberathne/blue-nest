@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useOrientationReflow } from "@/lib/use-orientation-reflow";
 
 export type SlideImage = { src: string; alt: string };
 
@@ -47,6 +48,11 @@ export default function CardImageSlider({
     (next: number) => setIndex((next + count) % count),
     [count],
   );
+
+  // Re-trigger lazy images across the page after an orientation change
+  // (iPad/Safari). No ref needed — the global scroll nudge covers the home-page
+  // gallery surfaces (card sliders + preview strip).
+  useOrientationReflow();
 
   // Auto-advance — paused on hover/focus, when the tab is hidden, or when the
   // user prefers reduced motion. Effect only runs client-side, and the first

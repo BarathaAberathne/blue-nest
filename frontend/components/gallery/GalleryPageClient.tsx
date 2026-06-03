@@ -19,6 +19,7 @@ import {
 import Doodle from "@/components/ui/Doodle";
 import PastelButton from "@/components/ui/PastelButton";
 import { Reveal } from "@/components/ui/Motion";
+import { useOrientationReflow } from "@/lib/use-orientation-reflow";
 import {
   GALLERY_ITEMS,
   BRANCH_COLOURS,
@@ -504,8 +505,12 @@ function PhotoGrid({
   onLike:       (id: string) => void;
   onShare:      (item: GalleryItem) => void;
 }) {
+  // Recompute the multi-column masonry + re-trigger lazy images after an
+  // orientation change (WebKit/Safari doesn't re-balance columns on rotation).
+  const gridRef = useRef<HTMLDivElement>(null);
+  useOrientationReflow(gridRef);
   return (
-    <div className="columns-2 gap-4 sm:columns-3 lg:columns-4 [column-fill:_balance]">
+    <div ref={gridRef} className="columns-2 gap-4 sm:columns-3 lg:columns-4 [column-fill:_balance]">
       {items.map((item) => {
         const isLiked  = likedItems.has(item.id);
         const isShared = sharedItemId === item.id;

@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { X } from "lucide-react";
 import { clsx } from "clsx";
+import { useOrientationReflow } from "@/lib/use-orientation-reflow";
 
 type GalleryImage = {
   src: string;
@@ -19,10 +20,14 @@ type Props = {
 
 export function LightboxGallery({ images, columns = 3 }: Props) {
   const [active, setActive] = useState<GalleryImage | null>(null);
+  // Re-trigger lazy tiles after an orientation change (iPad/Safari).
+  const gridRef = useRef<HTMLDivElement>(null);
+  useOrientationReflow(gridRef);
 
   return (
     <>
       <div
+        ref={gridRef}
         className={clsx(
           "grid gap-6",
           columns === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3",
