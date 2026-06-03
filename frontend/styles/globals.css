@@ -590,3 +590,26 @@
   .f-card:hover { transform: none; }
   .f-faq .f-faq-body { transition: none; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   aspect-ratio fallback for Safari < 15 (e.g. iPhone 7 Plus on iOS <= 14).
+   Those WebKit versions don't support the CSS `aspect-ratio` property, so any
+   relative box whose height comes only from it collapses to 0 height — and the
+   absolutely-positioned Next/Image `fill` inside disappears (text still renders,
+   but images / cards / galleries go blank). The classic padding-top percentage
+   hack rebuilds the box height. Scoped with `@supports not (aspect-ratio: …)`
+   so it is a complete no-op on every browser that DOES support aspect-ratio
+   (Safari 15+, Chrome, Firefox) and only activates on the old engines.
+   Containers using these are media boxes with absolute `fill` children, so the
+   padding never displaces real content.
+   ───────────────────────────────────────────────────────────────────────────── */
+@supports not (aspect-ratio: 1 / 1) {
+  .aspect-square    { height: 0; padding-top: 100%; }
+  .aspect-video     { height: 0; padding-top: 56.25%; }
+  .aspect-\[4\/3\]  { height: 0; padding-top: 75%; }
+  .aspect-\[16\/9\] { height: 0; padding-top: 56.25%; }
+  .aspect-\[4\/5\]  { height: 0; padding-top: 125%; }
+  /* opt-in hooks for components that set aspect-ratio via inline style */
+  .ar-fallback-4-3  { height: 0; padding-top: 75%; }
+  .ar-fallback-4-5  { height: 0; padding-top: 125%; }
+}

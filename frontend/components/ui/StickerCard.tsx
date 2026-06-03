@@ -20,6 +20,12 @@ export default function StickerCard({
   className,
   aspectRatio = "4/5",
 }: Props) {
+  // Fallback hook so the box keeps its height on Safari < 15 (no aspect-ratio
+  // support); pairs with the @supports rule in globals.css. Inline style still
+  // drives modern browsers.
+  const arFallback =
+    aspectRatio === "4/3" ? "ar-fallback-4-3" :
+    aspectRatio === "4/5" ? "ar-fallback-4-5" : "";
   return (
     <div
       className={clsx(
@@ -28,7 +34,7 @@ export default function StickerCard({
       )}
       style={{ transform: `rotate(${rotate}deg)` }}
     >
-      <div className="relative overflow-hidden rounded-[1rem]" style={{ aspectRatio }}>
+      <div className={clsx("relative overflow-hidden rounded-[1rem]", arFallback)} style={{ aspectRatio }}>
         <Image src={src} alt={alt} fill className="object-cover" sizes={sizes} />
       </div>
       {caption && (

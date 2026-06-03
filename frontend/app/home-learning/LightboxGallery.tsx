@@ -41,7 +41,7 @@ export function LightboxGallery({ images, columns = 3 }: Props) {
               className="rounded-[1.4rem] bg-white px-2.5 pb-6 pt-2.5 shadow-[3px_5px_16px_rgba(90,74,66,0.11)]"
               style={{ transform: `rotate(${img.rotate ?? 0}deg)` }}
             >
-              <div className="relative overflow-hidden rounded-[1rem]" style={{ aspectRatio: "4/3" }}>
+              <div className="relative aspect-[4/3] overflow-hidden rounded-[1rem]">
                 <Image
                   src={img.src}
                   alt={img.alt}
