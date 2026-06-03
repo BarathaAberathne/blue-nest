@@ -68,7 +68,11 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        # Baked into the browser bundle at build time. Falls back to the live
+        # API origin so a rebuild never bakes the dev localhost default (which
+        # makes the browser hit http://localhost:8080 → 'Failed to fetch') if
+        # NEXT_PUBLIC_API_URL is missing from .env. Override in .env to change.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.blue-nest.com}
         NEXT_PUBLIC_API_INTERNAL_URL: http://backend:8080
     ports: !override
       - "127.0.0.1:3000:3000"
