@@ -376,7 +376,7 @@ export default function BorehamwoodBranchPage() {
               <h2 className="section-title mt-4">Our Borehamwood Nursery</h2>
             </div>
           </Reveal>
-          <Reveal delay={0.08}>
+          <Reveal delay={0.08} amount="some">
             <LightboxGallery images={gallery} columns={2} />
           </Reveal>
         </div>

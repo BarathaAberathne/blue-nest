@@ -388,7 +388,7 @@ export default function PinnerBranchPage() {
               <h2 className="section-title mt-4">Our Pinner Nursery</h2>
             </div>
           </Reveal>
-          <Reveal delay={0.08}>
+          <Reveal delay={0.08} amount="some">
             <LightboxGallery images={gallery} columns={2} />
           </Reveal>
         </div>

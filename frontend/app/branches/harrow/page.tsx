@@ -475,7 +475,7 @@ export default function HarrowBranchPage() {
               <h2 className="section-title mt-4 text-[#58c5c7]">Our Harrow Nursery</h2>
             </div>
           </Reveal>
-          <Reveal delay={0.08}>
+          <Reveal delay={0.08} amount="some">
             <LightboxGallery images={gallery} columns={3} />
           </Reveal>
         </div>

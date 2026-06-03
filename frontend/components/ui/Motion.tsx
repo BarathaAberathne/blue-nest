@@ -18,9 +18,16 @@ type RevealProps = SharedProps & {
   // below-the-fold content and must NOT be used on the LCP element — it
   // delays LCP until hydration + the IntersectionObserver fires.
   eager?: boolean;
+  // IntersectionObserver threshold for the scroll-triggered reveal. Defaults to
+  // 0.2 (20% of the element visible). For a block that can be TALLER than the
+  // viewport — e.g. a multi-row gallery — pass "some" so the reveal still fires
+  // when only part of it is on screen. With a fraction like 0.2, a tall element
+  // (24-tile gallery ≈ 5000px → needs ~1000px visible) can never satisfy the
+  // threshold in a short landscape viewport, leaving it stuck at opacity:0.
+  amount?: number | "some" | "all";
 };
 
-export function Reveal({ children, className, delay = 0, eager = false }: RevealProps) {
+export function Reveal({ children, className, delay = 0, eager = false, amount = 0.2 }: RevealProps) {
   if (eager) {
     return (
       <motion.div
@@ -38,7 +45,7 @@ export function Reveal({ children, className, delay = 0, eager = false }: Reveal
       className={clsx(className)}
       initial={{ opacity: 0, y: 28 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
+      viewport={{ once: true, amount }}
       transition={{ duration: 0.6, delay, ease: "easeOut" }}
     >
       {children}
