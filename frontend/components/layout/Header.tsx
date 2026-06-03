@@ -335,19 +335,19 @@ export default function Header() {
               the bar itself so we never have to compete with the logo for room.
               Logo scales up on larger phones / tablets so it doesn't look lost
               at 768-1023px viewports. */}
-          <div className="lg:hidden flex items-center justify-between gap-2 py-2 px-3 sm:px-4 md:px-6">
+          <div className="lg:hidden flex items-center justify-between gap-2 py-2 px-2 sm:px-4 md:px-6">
             <Link href="/" className="flex shrink-0 items-center min-w-0">
               {/* Logo scales: 178px on phone → 195px md → 240px just under desktop.
                   Negative margin grows with size so the logo bleeds evenly into
                   the bar (≈40px layout footprint) and stays vertically centred
                   at every breakpoint. */}
-              <div className="relative -my-[33px] h-[110px] w-[206px] sm:-my-[36px] sm:h-[120px] sm:w-[226px] md:-my-[40px] md:h-[132px] md:w-[248px]">
+              <div className="relative -my-[28px] h-[96px] w-[180px] min-[390px]:-my-[33px] min-[390px]:h-[112px] min-[390px]:w-[210px] sm:-my-[38px] sm:h-[126px] sm:w-[234px] md:-my-[42px] md:h-[138px] md:w-[256px]">
                 <Image
                   src="/home/logo_new.png"
                   alt="Blue Nest Montessori logo"
                   fill
                   className="object-contain object-left drop-shadow-[0_4px_10px_rgba(90,74,66,0.14)]"
-                  sizes="(min-width: 768px) 248px, (min-width: 640px) 226px, 206px"
+                  sizes="(min-width: 768px) 256px, (min-width: 640px) 234px, (min-width: 390px) 210px, 180px"
                   priority
                   fetchPriority="high"                />
               </div>
@@ -355,7 +355,7 @@ export default function Header() {
 
             {/* Search + account text are accessible via MENU at <1024px so the
                 bar stays free of overflow risk on any phone or tablet width. */}
-            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
               <Link
                 href={authUser ? "/account" : "/login?next=/account"}
                 aria-label="Open account"
@@ -382,7 +382,7 @@ export default function Header() {
                 onClick={() => setMenuOpen(true)}
                 aria-label="Open navigation menu"
               >
-                <Menu className="mb-0.5 h-5 w-5" />
+                <Menu className="mb-0.5 h-6 w-6" />
                 <span className="text-[0.6rem] font-extrabold leading-none tracking-[0.18em]">
                   MENU
                 </span>
