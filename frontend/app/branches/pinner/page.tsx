@@ -107,7 +107,7 @@ export const metadata: Metadata = {
     description:
       "Montessori day nursery in Pinner for ages 3 months to 5 years. Ofsted Good · funded childcare · forest school · holiday club. Book a visit today.",
     url: "/branches/pinner",
-    images: [{ url: "/home/branches/pinner/pinner-office.jpg", width: 1200, height: 800, alt: "Wide view of a busy Montessori classroom at Blue Nest Pinner" }],
+    images: [{ url: "/home/branches/pinner/pinner-office.jpg", width: 1200, height: 800, alt: "An educator and children at a busy activity table at Blue Nest Pinner" }],
     type: "website",
   },
 };
@@ -164,129 +164,87 @@ const enrichmentActivities: EnrichmentActivity[] = [
 const gallery = [
   {
     src: "/home/branches/pinner/pinner-gallery-01.webp",
-    alt: "Children at a real-food prep table with the Pink Tower at Blue Nest Pinner",
+    alt: "An educator and children at a tabletop snack and craft activity at Blue Nest Pinner",
     rotate: -2,
-    caption: "Real-food prep",
+    caption: "Tabletop activity",
   },
   {
     src: "/home/branches/pinner/pinner-gallery-02.webp",
-    alt: "Outdoor miniature village and animal models in the Blue Nest Pinner garden",
+    alt: "Children exploring a small-world village and animal display in the Blue Nest Pinner garden",
     rotate: 2,
-    caption: "Outdoor village",
+    caption: "Small-world garden",
   },
   {
     src: "/home/branches/pinner/pinner-gallery-03.webp",
-    alt: "Practical-life dough activity with a teacher and three children at Blue Nest Pinner",
+    alt: "An educator with children at an outdoor activity table at Blue Nest Pinner",
     rotate: -1,
-    caption: "Practical life",
+    caption: "Outdoor activity",
   },
   {
     src: "/home/branches/pinner/pinner-gallery-04.webp",
-    alt: "Cozy reading nook with animal cushions at Blue Nest Pinner",
+    alt: "Children at a reading and letters activity at Blue Nest Pinner",
     rotate: 2,
-    caption: "Reading corner",
+    caption: "Reading & letters",
   },
   {
     src: "/home/branches/pinner/pinner-gallery-05.webp",
-    alt: "Blue Nest Pinner teacher working one-to-one with a child on a Montessori puzzle",
-    rotate: -2,
-    caption: "One-to-one learning",
-  },
-  {
-    src: "/home/branches/pinner/pinner-gallery-06.webp",
-    alt: "A busy Montessori classroom with children at independent learning stations at Blue Nest Pinner",
-    rotate: 1,
-    caption: "Independent work",
-  },
-  {
-    src: "/home/branches/pinner/pinner-gallery-07.webp",
-    alt: "Reading corner with picture-book caddy and sensory-play backdrop at Blue Nest Pinner",
-    rotate: -1,
-    caption: "Quiet reading corner",
-  },
-  {
-    src: "/home/branches/pinner/pinner-gallery-08.webp",
-    alt: "Children exploring a nature and flower craft table in the Blue Nest Pinner garden",
-    rotate: 2,
-    caption: "Nature craft",
-  },
-  {
-    src: "/home/branches/pinner/pinner-gallery-09.webp",
-    alt: "An educator guiding children through an activity at an outdoor table at Blue Nest Pinner",
+    alt: "A child working on a tabletop activity with an educator at Blue Nest Pinner",
     rotate: -2,
     caption: "Guided learning",
   },
   {
-    src: "/home/branches/pinner/pinner-gallery-10.webp",
-    alt: "Children and an educator at a busy craft table at Blue Nest Pinner",
-    rotate: 1,
-    caption: "Creative craft",
-  },
-  {
-    src: "/home/branches/pinner/pinner-gallery-11.webp",
-    alt: "Children working at a tabletop learning activity at Blue Nest Pinner",
-    rotate: -1,
-    caption: "Tabletop learning",
-  },
-  {
-    src: "/home/branches/pinner/pinner-gallery-12.webp",
-    alt: "Children at outdoor water and sand play at Blue Nest Pinner",
-    rotate: 2,
-    caption: "Water & sand play",
-  },
-  {
-    src: "/home/branches/pinner/pinner-gallery-13.webp",
-    alt: "An educator with children gathered at the activity table at Blue Nest Pinner",
-    rotate: -2,
-    caption: "Working together",
-  },
-  {
-    src: "/home/branches/pinner/pinner-gallery-14.webp",
+    src: "/home/branches/pinner/pinner-gallery-06.webp",
     alt: "Children gathered around the outdoor water-play table at Blue Nest Pinner",
     rotate: 1,
     caption: "Water play",
   },
   {
-    src: "/home/branches/pinner/pinner-gallery-15.webp",
-    alt: "Children playing in the leafy outdoor garden at Blue Nest Pinner",
+    src: "/home/branches/pinner/pinner-gallery-07.webp",
+    alt: "An educator and children at the outdoor water-play table at Blue Nest Pinner",
     rotate: -1,
-    caption: "Our garden",
-  },
-  {
-    src: "/home/branches/pinner/pinner-gallery-16.webp",
-    alt: "Children gathered on a mat for outdoor group play at Blue Nest Pinner",
-    rotate: 2,
-    caption: "Outdoor play",
-  },
-  {
-    src: "/home/branches/pinner/pinner-gallery-17.webp",
-    alt: "Children building and exploring with toys on the play mat at Blue Nest Pinner",
-    rotate: -2,
-    caption: "Small-world play",
-  },
-  {
-    src: "/home/branches/pinner/pinner-gallery-18.webp",
-    alt: "An educator supporting a child at the water-play table at Blue Nest Pinner",
-    rotate: 1,
     caption: "Sensory water play",
   },
   {
-    src: "/home/branches/pinner/pinner-gallery-19.webp",
-    alt: "A child exploring the garden with a bucket at Blue Nest Pinner",
+    src: "/home/branches/pinner/pinner-gallery-08.webp",
+    alt: "Children at an outdoor floor activity on a colourful mat at Blue Nest Pinner",
+    rotate: 2,
+    caption: "Outdoor learning",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-09.webp",
+    alt: "Children gathered for a group activity on the mat outdoors at Blue Nest Pinner",
+    rotate: -2,
+    caption: "Group time outdoors",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-10.webp",
+    alt: "Children playing with toys on a mat in the Blue Nest Pinner garden",
+    rotate: 1,
+    caption: "Garden play",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-11.webp",
+    alt: "A child exploring the outdoor garden at Blue Nest Pinner",
     rotate: -1,
     caption: "Outdoor exploration",
   },
   {
-    src: "/home/branches/pinner/pinner-gallery-20.webp",
+    src: "/home/branches/pinner/pinner-gallery-12.webp",
     alt: "Children at the outdoor Mud Cafe mud-kitchen station at Blue Nest Pinner",
     rotate: 2,
     caption: "Mud kitchen",
   },
   {
-    src: "/home/branches/pinner/pinner-gallery-21.webp",
-    alt: "A child concentrating on a hands-on activity at Blue Nest Pinner",
+    src: "/home/branches/pinner/pinner-gallery-13.webp",
+    alt: "A child playing at the outdoor mud kitchen at Blue Nest Pinner",
     rotate: -2,
-    caption: "Focused discovery",
+    caption: "Mud play",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-14.webp",
+    alt: "A small-world nature display with plants and toy animals in the Blue Nest Pinner garden",
+    rotate: 1,
+    caption: "Nature display",
   },
 ];
 
@@ -307,7 +265,7 @@ export default function PinnerBranchPage() {
         heading="Montessori Nursery in Pinner"
         description="At Blue Nest Montessori School Pinner, we combine authentic Montessori learning with a calm, home-away-from-home atmosphere. Set in leafy Pinner, our nursery offers spacious outdoor spaces and a dedicated Forest School programme."
         image="/home/branches/pinner/pinner-hero.webp"
-        imageAlt="Children playing with a wooden village in the Blue Nest Montessori Pinner outdoor garden"
+        imageAlt="An educator engaging two young children in a hands-on Montessori activity at Blue Nest Montessori Pinner"
         primaryCta={{ label: "Book a Visit", href: "/contact?enquiry=book-visit&branch=pinner", variant: "rose" }}
         secondaryCta={{ label: "Contact Us", href: "#visit", variant: "mint" }}
       />
@@ -325,7 +283,7 @@ export default function PinnerBranchPage() {
               <div className="mx-auto w-full max-w-[420px]">
                 <StickerCard
                   src="/home/branches/pinner/pinner-welcome.webp"
-                  alt="Teacher and child exploring a Montessori dollhouse activity at Blue Nest Pinner"
+                  alt="An educator and child watering bean plants at a nature and plant-growing activity at Blue Nest Pinner"
                   rotate={-3}
                   sizes="(max-width: 1024px) 80vw, 38vw"
                   className="w-full"

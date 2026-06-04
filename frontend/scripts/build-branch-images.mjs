@@ -102,47 +102,27 @@ const BRANCHES = {
   },
 
   pinner: {
-    // Absolute path — script joins with SRC_ROOT only when relative.
-    sourceDir: "/Users/barathaabeyrathne/Documents/Montessori Pictures 2026:05/pinner pic",
-    // Multiplier applied via sharp.modulate({ saturation }). 1.0 = source
-    // unchanged. Pinner photos were shot under mixed indoor lighting and
-    // read greyish next to the Blue Nest pastel UI, so we bake +40%
-    // saturation into the optimised outputs to push past the cream-cast
-    // from the global `.photo-tone` filter.
-    saturation: 1.40,
+    // 2026-06: fully refreshed with the vibrant iPhone 17 Pro Max set (replaces
+    // the older greyish DSC camera shots, so no saturation boost is needed).
+    sourceDir: "pinner-iphone",
     slots: [
-      { name: "pinner-hero",       src: "DSC01067.JPG", preset: "hero"    },
-      { name: "pinner-office",     src: "DSC00973.JPG", preset: "card"    },
-      { name: "pinner-welcome",    src: "DSC01058.JPG", preset: "sticker" },
-      { name: "pinner-gallery-01", src: "DSC01060.JPG", preset: "gallery" },
-      { name: "pinner-gallery-02", src: "DSC01066.JPG", preset: "gallery" },
-      { name: "pinner-gallery-03", src: "DSC00945.JPG", preset: "gallery" },
-      { name: "pinner-gallery-04", src: "DSC00892.JPG", preset: "gallery" },
-      // Swapped from DSC01062 → DSC01049 to avoid showing the same
-      // grey-haired teacher as gallery-01 twice in the Pinner gallery.
-      { name: "pinner-gallery-05", src: "DSC01049.JPG", preset: "gallery" },
-      { name: "pinner-gallery-06", src: "DSC00982.JPG", preset: "gallery" },
-      // Extra tile so the Pinner gallery has more variety than the
-      // original 6-tile set. DSC00879 is the reading-corner empty
-      // prepared environment.
-      { name: "pinner-gallery-07", src: "DSC00879.JPG", preset: "gallery" },
-      // 2026-06 refresh — vibrant iPhone 17 Pro Max set. Read from a separate
-      // staged dir; saturation:1 (no +40% boost — these are already vibrant,
-      // unlike the older DSC camera shots above).
-      { name: "pinner-gallery-08", src: "IMG_3090.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
-      { name: "pinner-gallery-09", src: "IMG_3097.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
-      { name: "pinner-gallery-10", src: "IMG_3109.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
-      { name: "pinner-gallery-11", src: "IMG_3118.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
-      { name: "pinner-gallery-12", src: "IMG_3132.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
-      { name: "pinner-gallery-13", src: "IMG_3144.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
-      { name: "pinner-gallery-14", src: "IMG_3151.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
-      { name: "pinner-gallery-15", src: "IMG_3165.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
-      { name: "pinner-gallery-16", src: "IMG_3170.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
-      { name: "pinner-gallery-17", src: "IMG_3181.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
-      { name: "pinner-gallery-18", src: "IMG_3190.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
-      { name: "pinner-gallery-19", src: "IMG_3204.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
-      { name: "pinner-gallery-20", src: "IMG_3208.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
-      { name: "pinner-gallery-21", src: "IMG_3136.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
+      { name: "pinner-hero",       src: "IMG_3151.JPG", preset: "hero"    },
+      { name: "pinner-office",     src: "IMG_3097.JPG", preset: "card"    },
+      { name: "pinner-welcome",    src: "IMG_3136.JPG", preset: "sticker" },
+      { name: "pinner-gallery-01", src: "IMG_3090.JPG", preset: "gallery" },
+      { name: "pinner-gallery-02", src: "IMG_3109.JPG", preset: "gallery" },
+      { name: "pinner-gallery-03", src: "IMG_3118.JPG", preset: "gallery" },
+      { name: "pinner-gallery-04", src: "IMG_3132.JPG", preset: "gallery" },
+      { name: "pinner-gallery-05", src: "IMG_3144.JPG", preset: "gallery" },
+      { name: "pinner-gallery-06", src: "IMG_3159.JPG", preset: "gallery" },
+      { name: "pinner-gallery-07", src: "IMG_3190.JPG", preset: "gallery" },
+      { name: "pinner-gallery-08", src: "IMG_3165.JPG", preset: "gallery" },
+      { name: "pinner-gallery-09", src: "IMG_3170.JPG", preset: "gallery" },
+      { name: "pinner-gallery-10", src: "IMG_3181.JPG", preset: "gallery" },
+      { name: "pinner-gallery-11", src: "IMG_3204.JPG", preset: "gallery" },
+      { name: "pinner-gallery-12", src: "IMG_3208.JPG", preset: "gallery" },
+      { name: "pinner-gallery-13", src: "IMG_3210.JPG", preset: "gallery" },
+      { name: "pinner-gallery-14", src: "IMG_3091.JPG", preset: "gallery" },
     ],
   },
 
