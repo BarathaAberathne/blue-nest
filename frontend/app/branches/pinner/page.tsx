@@ -204,6 +204,90 @@ const gallery = [
     rotate: -1,
     caption: "Quiet reading corner",
   },
+  {
+    src: "/home/branches/pinner/pinner-gallery-08.webp",
+    alt: "Children exploring a nature and flower craft table in the Blue Nest Pinner garden",
+    rotate: 2,
+    caption: "Nature craft",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-09.webp",
+    alt: "An educator guiding children through an activity at an outdoor table at Blue Nest Pinner",
+    rotate: -2,
+    caption: "Guided learning",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-10.webp",
+    alt: "Children and an educator at a busy craft table at Blue Nest Pinner",
+    rotate: 1,
+    caption: "Creative craft",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-11.webp",
+    alt: "Children working at a tabletop learning activity at Blue Nest Pinner",
+    rotate: -1,
+    caption: "Tabletop learning",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-12.webp",
+    alt: "Children at outdoor water and sand play at Blue Nest Pinner",
+    rotate: 2,
+    caption: "Water & sand play",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-13.webp",
+    alt: "An educator with children gathered at the activity table at Blue Nest Pinner",
+    rotate: -2,
+    caption: "Working together",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-14.webp",
+    alt: "Children gathered around the outdoor water-play table at Blue Nest Pinner",
+    rotate: 1,
+    caption: "Water play",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-15.webp",
+    alt: "Children playing in the leafy outdoor garden at Blue Nest Pinner",
+    rotate: -1,
+    caption: "Our garden",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-16.webp",
+    alt: "Children gathered on a mat for outdoor group play at Blue Nest Pinner",
+    rotate: 2,
+    caption: "Outdoor play",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-17.webp",
+    alt: "Children building and exploring with toys on the play mat at Blue Nest Pinner",
+    rotate: -2,
+    caption: "Small-world play",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-18.webp",
+    alt: "An educator supporting a child at the water-play table at Blue Nest Pinner",
+    rotate: 1,
+    caption: "Sensory water play",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-19.webp",
+    alt: "A child exploring the garden with a bucket at Blue Nest Pinner",
+    rotate: -1,
+    caption: "Outdoor exploration",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-20.webp",
+    alt: "Children at the outdoor Mud Cafe mud-kitchen station at Blue Nest Pinner",
+    rotate: 2,
+    caption: "Mud kitchen",
+  },
+  {
+    src: "/home/branches/pinner/pinner-gallery-21.webp",
+    alt: "A child concentrating on a hands-on activity at Blue Nest Pinner",
+    rotate: -2,
+    caption: "Focused discovery",
+  },
 ];
 
 export default function PinnerBranchPage() {

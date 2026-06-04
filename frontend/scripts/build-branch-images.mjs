@@ -126,6 +126,23 @@ const BRANCHES = {
       // original 6-tile set. DSC00879 is the reading-corner empty
       // prepared environment.
       { name: "pinner-gallery-07", src: "DSC00879.JPG", preset: "gallery" },
+      // 2026-06 refresh — vibrant iPhone 17 Pro Max set. Read from a separate
+      // staged dir; saturation:1 (no +40% boost — these are already vibrant,
+      // unlike the older DSC camera shots above).
+      { name: "pinner-gallery-08", src: "IMG_3090.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
+      { name: "pinner-gallery-09", src: "IMG_3097.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
+      { name: "pinner-gallery-10", src: "IMG_3109.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
+      { name: "pinner-gallery-11", src: "IMG_3118.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
+      { name: "pinner-gallery-12", src: "IMG_3132.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
+      { name: "pinner-gallery-13", src: "IMG_3144.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
+      { name: "pinner-gallery-14", src: "IMG_3151.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
+      { name: "pinner-gallery-15", src: "IMG_3165.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
+      { name: "pinner-gallery-16", src: "IMG_3170.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
+      { name: "pinner-gallery-17", src: "IMG_3181.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
+      { name: "pinner-gallery-18", src: "IMG_3190.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
+      { name: "pinner-gallery-19", src: "IMG_3204.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
+      { name: "pinner-gallery-20", src: "IMG_3208.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
+      { name: "pinner-gallery-21", src: "IMG_3136.JPG", preset: "gallery", sourceDir: "pinner-iphone", saturation: 1 },
     ],
   },
 
@@ -181,7 +198,12 @@ function fmtKb(n) { return `${(n / 1024).toFixed(0)} KB`; }
 let totalBytes = 0;
 for (const slot of branch.slots) {
   const preset = PRESETS[slot.preset];
-  const srcPath = join(sourceDir, slot.src);
+  // Per-slot sourceDir override (absolute, or relative → joined onto SRC_ROOT)
+  // so one branch can pull from more than one shoot; falls back to branch dir.
+  const slotSourceDir = slot.sourceDir
+    ? (isAbsolute(slot.sourceDir) ? slot.sourceDir : join(SRC_ROOT, slot.sourceDir))
+    : sourceDir;
+  const srcPath = join(slotSourceDir, slot.src);
   if (!existsSync(srcPath)) {
     // iPhone exports inconsistently capitalise the extension. Try the other case.
     const alt = srcPath.replace(/\.JPG$/, ".jpg").replace(/\.jpg$/, ".JPG");
@@ -193,12 +215,12 @@ for (const slot of branch.slots) {
     }
   }
 
-  const input = readFileSync(join(sourceDir, slot.src));
+  const input = readFileSync(join(slotSourceDir, slot.src));
   const meta  = await sharp(input, { failOn: "none" }).rotate().metadata();
   // Per-branch saturation multiplier. 1.0 = unchanged. Applied via
   // sharp.modulate before resize so the colour adjustment is baked into
   // both the .webp and .jpg outputs.
-  const saturation = branch.saturation ?? 1;
+  const saturation = slot.saturation ?? branch.saturation ?? 1;
   const baseW = Math.min(preset.width, meta.width || preset.width);
 
   const webpPath = join(outDir, `${slot.name}.webp`);

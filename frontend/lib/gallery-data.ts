@@ -442,6 +442,92 @@ export const GALLERY_ITEMS: GalleryItem[] = [
     aspectRatio: 0.67,
   },
 
+  // Pinner — 2026-06 refresh (14 new photos)
+  {
+    id: "p-p11", type: "photo", title: "Nature craft", description: "A nature and flower craft table in the garden.",
+    branch: "pinner", category: "outdoor", date: "2026-05-28", featured: false, source: "manual", isPublic: true,
+    src: "/home/branches/pinner/pinner-gallery-08.webp",
+    alt: "Children exploring a nature and flower craft table in the Blue Nest Pinner garden", aspectRatio: 0.75,
+  },
+  {
+    id: "p-p12", type: "photo", title: "Guided learning", description: "An educator guiding an outdoor table activity.",
+    branch: "pinner", category: "learning", date: "2026-05-28", featured: false, source: "manual", isPublic: true,
+    src: "/home/branches/pinner/pinner-gallery-09.webp",
+    alt: "An educator guiding children through an activity at an outdoor table at Blue Nest Pinner", aspectRatio: 0.75,
+  },
+  {
+    id: "p-p13", type: "photo", title: "Creative craft", description: "A busy craft table with an educator.",
+    branch: "pinner", category: "learning", date: "2026-05-28", featured: false, source: "manual", isPublic: true,
+    src: "/home/branches/pinner/pinner-gallery-10.webp",
+    alt: "Children and an educator at a busy craft table at Blue Nest Pinner", aspectRatio: 0.75,
+  },
+  {
+    id: "p-p14", type: "photo", title: "Tabletop learning", description: "Children at a tabletop learning activity.",
+    branch: "pinner", category: "learning", date: "2026-05-28", featured: false, source: "manual", isPublic: true,
+    src: "/home/branches/pinner/pinner-gallery-11.webp",
+    alt: "Children working at a tabletop learning activity at Blue Nest Pinner", aspectRatio: 0.75,
+  },
+  {
+    id: "p-p15", type: "photo", title: "Water & sand play", description: "Outdoor water and sand play.",
+    branch: "pinner", category: "outdoor", date: "2026-05-28", featured: false, source: "manual", isPublic: true,
+    src: "/home/branches/pinner/pinner-gallery-12.webp",
+    alt: "Children at outdoor water and sand play at Blue Nest Pinner", aspectRatio: 0.75,
+  },
+  {
+    id: "p-p16", type: "photo", title: "Working together", description: "An educator with children at the activity table.",
+    branch: "pinner", category: "classroom", date: "2026-05-28", featured: false, source: "manual", isPublic: true,
+    src: "/home/branches/pinner/pinner-gallery-13.webp",
+    alt: "An educator with children gathered at the activity table at Blue Nest Pinner", aspectRatio: 0.75,
+  },
+  {
+    id: "p-p17", type: "photo", title: "Water play", description: "Children around the outdoor water-play table.",
+    branch: "pinner", category: "outdoor", date: "2026-05-28", featured: false, source: "manual", isPublic: true,
+    src: "/home/branches/pinner/pinner-gallery-14.webp",
+    alt: "Children gathered around the outdoor water-play table at Blue Nest Pinner", aspectRatio: 0.75,
+  },
+  {
+    id: "p-p18", type: "photo", title: "Our garden", description: "Children playing in the leafy garden.",
+    branch: "pinner", category: "outdoor", date: "2026-05-28", featured: false, source: "manual", isPublic: true,
+    src: "/home/branches/pinner/pinner-gallery-15.webp",
+    alt: "Children playing in the leafy outdoor garden at Blue Nest Pinner", aspectRatio: 0.75,
+  },
+  {
+    id: "p-p19", type: "photo", title: "Outdoor play", description: "Group play on the mat outdoors.",
+    branch: "pinner", category: "outdoor", date: "2026-05-28", featured: false, source: "manual", isPublic: true,
+    src: "/home/branches/pinner/pinner-gallery-16.webp",
+    alt: "Children gathered on a mat for outdoor group play at Blue Nest Pinner", aspectRatio: 0.75,
+  },
+  {
+    id: "p-p20", type: "photo", title: "Small-world play", description: "Building and exploring with toys on the mat.",
+    branch: "pinner", category: "learning", date: "2026-05-28", featured: false, source: "manual", isPublic: true,
+    src: "/home/branches/pinner/pinner-gallery-17.webp",
+    alt: "Children building and exploring with toys on the play mat at Blue Nest Pinner", aspectRatio: 0.75,
+  },
+  {
+    id: "p-p21", type: "photo", title: "Sensory water play", description: "An educator supporting a child at the water table.",
+    branch: "pinner", category: "outdoor", date: "2026-05-28", featured: false, source: "manual", isPublic: true,
+    src: "/home/branches/pinner/pinner-gallery-18.webp",
+    alt: "An educator supporting a child at the water-play table at Blue Nest Pinner", aspectRatio: 0.75,
+  },
+  {
+    id: "p-p22", type: "photo", title: "Outdoor exploration", description: "Exploring the garden with a bucket.",
+    branch: "pinner", category: "outdoor", date: "2026-05-28", featured: false, source: "manual", isPublic: true,
+    src: "/home/branches/pinner/pinner-gallery-19.webp",
+    alt: "A child exploring the garden with a bucket at Blue Nest Pinner", aspectRatio: 0.75,
+  },
+  {
+    id: "p-p23", type: "photo", title: "Mud kitchen", description: "The outdoor Mud Cafe mud-kitchen station.",
+    branch: "pinner", category: "outdoor", date: "2026-05-28", featured: false, source: "manual", isPublic: true,
+    src: "/home/branches/pinner/pinner-gallery-20.webp",
+    alt: "Children at the outdoor Mud Cafe mud-kitchen station at Blue Nest Pinner", aspectRatio: 0.75,
+  },
+  {
+    id: "p-p24", type: "photo", title: "Focused discovery", description: "A child concentrating on a hands-on activity.",
+    branch: "pinner", category: "learning", date: "2026-05-28", featured: false, source: "manual", isPublic: true,
+    src: "/home/branches/pinner/pinner-gallery-21.webp",
+    alt: "A child concentrating on a hands-on activity at Blue Nest Pinner", aspectRatio: 0.75,
+  },
+
   // Borehamwood (5)
   {
     id: "p-b1",
