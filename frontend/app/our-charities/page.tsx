@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight, BookOpen, Gift, Globe, Users } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import PastelButton from "@/components/ui/PastelButton";
@@ -82,11 +83,11 @@ const CHARITIES = [
   },
   {
     name:  "Headstone Green",
-    desc:  "A local community initiative close to our Harrow nursery. We work alongside Headstone Green to support community events, green spaces and activities that bring local families together.",
-    logo:  "/site-images/charity/headstone-green.jpg",
-    color: "#5fc8c7",
-    bg:    "rgba(127,216,210,0.18)",
-    href:  "#",
+    desc:  "A local community park we care for, close to our Harrow nursery. We work alongside Headstone Green to support community events, green spaces and activities that bring local families together.",
+    logo:  "/site-images/charity/headstone-green-logo.png",
+    color: "#3d8a52",
+    bg:    "rgba(142,203,155,0.22)",
+    href:  "/headstone-green-community-park",
   },
 ];
 
@@ -195,9 +196,10 @@ export default function OurCharitiesPage() {
           </Reveal>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4">
-            {CHARITIES.map((charity, i) => (
-              <Reveal key={charity.name} delay={i * 0.08} className="h-full">
-                <article className="flex h-full flex-col overflow-hidden rounded-[2rem] bg-white shadow-[0_4px_16px_rgba(90,74,66,0.08)] ring-1 ring-[rgba(90,74,66,0.06)]">
+            {CHARITIES.map((charity, i) => {
+              const isLink = charity.href.startsWith("/");
+              const card = (
+                <article className={`flex h-full flex-col overflow-hidden rounded-[2rem] bg-white shadow-[0_4px_16px_rgba(90,74,66,0.08)] ring-1 ring-[rgba(90,74,66,0.06)] ${isLink ? "transition-shadow hover:shadow-[0_8px_24px_rgba(61,138,82,0.18)]" : ""}`}>
                   <div
                     className="flex h-[110px] w-full items-center justify-center px-6"
                     style={{ background: charity.bg }}
@@ -217,10 +219,26 @@ export default function OurCharitiesPage() {
                       {charity.name}
                     </h3>
                     <p className="body-text mt-2 flex-1">{charity.desc}</p>
+                    {isLink && (
+                      <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold" style={{ color: charity.color }}>
+                        Visit the park <ArrowRight className="h-4 w-4" />
+                      </span>
+                    )}
                   </div>
                 </article>
-              </Reveal>
-            ))}
+              );
+              return (
+                <Reveal key={charity.name} delay={i * 0.08} className="h-full">
+                  {isLink ? (
+                    <Link href={charity.href} className="block h-full" aria-label={`Visit ${charity.name}`}>
+                      {card}
+                    </Link>
+                  ) : (
+                    card
+                  )}
+                </Reveal>
+              );
+            })}
           </div>
         </div>
       </section>

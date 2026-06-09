@@ -24,6 +24,7 @@ const staticRoutes: { url: string; priority: number; changeFrequency: MetadataRo
   { url: "/gallery",                        priority: 0.7, changeFrequency: "weekly"  },
   { url: "/our-team",                       priority: 0.7, changeFrequency: "monthly" },
   { url: "/our-charities",                  priority: 0.6, changeFrequency: "monthly" },
+  { url: "/headstone-green-community-park",  priority: 0.6, changeFrequency: "monthly" },
   { url: "/home-learning",                  priority: 0.6, changeFrequency: "monthly" },
   { url: "/nursery-store",                  priority: 0.7, changeFrequency: "weekly"  },
   { url: "/blog",                           priority: 0.7, changeFrequency: "weekly"  },
