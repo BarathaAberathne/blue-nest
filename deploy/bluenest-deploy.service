@@ -1,0 +1,22 @@
+# systemd unit that runs one auto-deploy pass. Triggered by bluenest-deploy.timer.
+# Install: see docs/DEPLOYMENT.md (copy to /etc/systemd/system/, daemon-reload,
+# enable the .timer).
+[Unit]
+Description=Blue Nest production auto-deploy (poll origin/main + GHCR, recreate on change)
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+WorkingDirectory=/home/deploy/app
+# Keep this in sync with the defaults in auto-deploy.sh if you relocate things.
+Environment=APP_DIR=/home/deploy/app
+Environment=DEPLOY_BRANCH=main
+Environment=LOG_FILE=/var/log/bluenest-deploy.log
+ExecStart=/home/deploy/app/deploy/auto-deploy.sh
+# A failed deploy (e.g. failed health check + rollback) should be visible in
+# `systemctl status` but must not stop the timer from trying again next tick.
+TimeoutStartSec=600

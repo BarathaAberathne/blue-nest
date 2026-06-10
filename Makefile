@@ -4,6 +4,7 @@
         mongo-shell setup \
         seed seed-products seed-branches seed-users seed-all \
         wait-api \
+        staging-up staging-verify staging-logs staging-down staging-clean \
         optimize-images optimize-images-dry
 
 # ── Build ─────────────────────────────────────────────────────────────────────
@@ -162,3 +163,37 @@ setup: install
 	@cp -n .env.example .env 2>/dev/null || true
 	@echo "✓ .env created — edit it with your secrets before starting"
 	@echo "Run 'make dev' for local dev or 'make docker-up' for Docker."
+
+# ── Local staging (prod-image QA gate) ────────────────────────────────────────
+# Builds the PRODUCTION images locally and runs them as an isolated compose
+# project (bluenest-staging) for pre-prod verification. Pure docker compose —
+# deliberately does NOT chain seed-* (which drop prod-shaped data; see ops
+# notes). Browse the stack at http://localhost:3000 and QA before promoting
+# the `staging` branch → `main`.
+STAGING := docker compose --env-file .env.staging -p bluenest-staging -f docker-compose.yml -f docker-compose.staging.yml
+
+staging-up:
+	@test -f .env.staging || { echo "✗ Missing .env.staging — run: cp .env.staging.example .env.staging  (then edit it)"; exit 1; }
+	bash scripts/check-env.sh .env.staging
+	$(STAGING) up -d --build
+	@$(MAKE) --no-print-directory staging-verify
+
+staging-verify:
+	bash scripts/check-env.sh .env.staging
+	@echo "→ Waiting for staging health (web :3000, api :8080)..."
+	@for i in $$(seq 1 45); do \
+	  if curl -fsS http://localhost:8080/api/v1/health >/dev/null 2>&1 && curl -fsS http://localhost:3000 >/dev/null 2>&1; then \
+	    echo "✓ staging healthy — QA at http://localhost:3000"; exit 0; \
+	  fi; \
+	  sleep 2; \
+	done; \
+	echo "✗ staging did not become healthy — check 'make staging-logs'"; exit 1
+
+staging-logs:
+	$(STAGING) logs -f --tail=100
+
+staging-down:
+	$(STAGING) down
+
+staging-clean:
+	$(STAGING) down -v

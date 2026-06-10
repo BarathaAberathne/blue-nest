@@ -1,0 +1,74 @@
+# Local staging overlay — the pre-prod QA gate.
+#
+# Builds the SAME production Dockerfiles locally (no GHCR pull) and runs them as
+# an isolated compose project so you verify the exact images that ship to prod,
+# with the full production env surface (chat, email, Stripe, Mongo auth). This
+# is what would have surfaced the 2026-06-09 chat 503 (missing ANTHROPIC_API_KEY)
+# before it reached the live site.
+#
+# Driven by the Makefile staging-* targets, which is the supported entrypoint:
+#   make staging-up        # build + run + verify
+#   make staging-logs
+#   make staging-down      # stop (keep DB)
+#   make staging-clean     # stop + wipe DB volume
+#
+# Equivalent raw command:
+#   docker compose --env-file .env.staging -p bluenest-staging \
+#     -f docker-compose.yml -f docker-compose.staging.yml up -d --build
+#
+# Isolation: the `-p bluenest-staging` project name namespaces containers and
+# volumes (bluenest-staging_mongo_data, …) so this never touches your `make dev`
+# data. Ports bind to 127.0.0.1 only, mirroring the prod overlay.
+
+services:
+  mongodb:
+    container_name: blue-nest-mongo-staging
+    # Internal-only on the staging network, like prod (no host port).
+    ports: !override []
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE:-blue_nest_montessori}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
+    volumes:
+      - mongo_data:/data/db
+      - ./deploy/mongo-init:/docker-entrypoint-initdb.d:ro
+
+  backend:
+    container_name: blue-nest-api-staging
+    image: blue-nest-backend:staging-local
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    # Replace the base [.env] list so dev secrets never leak into staging.
+    env_file: !override
+      - .env.staging
+    environment:
+      APP_ENV: production
+      APP_PORT: "8080"
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      MONGODB_URI: mongodb://${MONGO_APP_USERNAME}:${MONGO_APP_PASSWORD}@mongodb:27017/${MONGODB_DATABASE:-blue_nest_montessori}?authSource=${MONGODB_DATABASE:-blue_nest_montessori}
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-blue_nest_montessori}
+    ports: !override
+      - "127.0.0.1:8080:8080"
+
+  frontend:
+    container_name: blue-nest-web-staging
+    image: blue-nest-frontend:staging-local
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Browser → host:8080 → backend. Staging exercises runtime config; it
+        # does NOT validate the prod-baked domain value (known gap of the
+        # local-staging model — env-parity + prod smoke test cover the rest).
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+        NEXT_PUBLIC_API_INTERNAL_URL: http://backend:8080
+    env_file: !override
+      - .env.staging
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_INTERNAL_URL: http://backend:8080
+    ports: !override
+      - "127.0.0.1:3000:3000"

@@ -13,6 +13,9 @@ name: Build & push images
 on:
   push:
     branches: [main]
+    # A semver tag (e.g. v1.4.0) cut when promoting staging → main also builds
+    # an immutable :vX.Y.Z image for deterministic rollback on the droplet.
+    tags: ["v*"]
     paths-ignore:
       - "**.md"
       - "frontend/lighthouse-reports/**"
@@ -55,6 +58,8 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=short
+            type=semver,pattern=v{{version}}
+            type=ref,event=tag
 
       - name: Build & push frontend image
         uses: docker/build-push-action@v6
@@ -94,6 +99,8 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=short
+            type=semver,pattern=v{{version}}
+            type=ref,event=tag
 
       - name: Build & push backend image
         uses: docker/build-push-action@v6

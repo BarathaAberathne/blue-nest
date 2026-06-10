@@ -1,0 +1,16 @@
+# Runs bluenest-deploy.service every ~2 minutes (the "cron" that makes prod
+# auto-deploy when main changes). Enable with:
+#   sudo systemctl enable --now bluenest-deploy.timer
+[Unit]
+Description=Poll for new Blue Nest production deploys every ~2 minutes
+
+[Timer]
+# First run shortly after boot, then every 2 minutes. The service is a cheap
+# no-op when nothing changed, so a tight interval is fine.
+OnBootSec=2min
+OnUnitActiveSec=2min
+AccuracySec=15s
+Unit=bluenest-deploy.service
+
+[Install]
+WantedBy=timers.target
