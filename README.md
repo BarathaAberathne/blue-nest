@@ -13,8 +13,10 @@ Production-ready monorepo for the Blue Nest Montessori school website: a pastel-
 | Database | MongoDB 7 |
 | Payments | Stripe (scaffolded — session + webhook) |
 | Auth | JWT (`golang-jwt`) — backend wired, frontend guards in place |
-| Email | SMTP via `platform/email` (SendGrid-compatible) |
-| Containers | Docker, Docker Compose |
+| Email | SMTP (dev) / Resend HTTPS API (production) via `platform/email` |
+| AI Chat | Anthropic Claude (Haiku) via the Next.js `/api/chat` route |
+| Containers | Docker, Docker Compose; images published to GHCR |
+| CI/CD | GitHub Actions (CI + image build) → branch-based deploy to a DigitalOcean droplet |
 
 ---
 
@@ -105,10 +107,17 @@ blue-nest-montessori/
 │   ├── Dockerfile
 │   └── package.json
 │
-├── docs/api.md                     # API endpoint reference
-├── scripts/                        # Image processing utilities (Python)
-├── .env.example
-├── docker-compose.yml
+├── docs/
+│   ├── api.md                      # API endpoint reference
+│   └── DEPLOYMENT.md               # Sandbox → staging → prod runbook
+├── deploy/                         # auto-deploy.sh, systemd unit/timer, nginx, mongo-init
+├── scripts/                        # Image utilities (Python) + check-env.sh (env-parity gate)
+├── .env.example                    # local dev template
+├── .env.staging.example            # local staging template
+├── .env.production.example         # prod required-keys contract
+├── docker-compose.yml              # base (dev)
+├── docker-compose.staging.yml      # local prod-image staging overlay
+├── docker-compose.prod.yml         # production overlay (GHCR images)
 ├── Makefile
 └── swagger.yaml
 ```
@@ -143,6 +152,8 @@ Edit `.env` with your secrets:
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Same key for Next.js |
 | `NEXT_PUBLIC_API_URL` | Backend URL seen by the browser (default: `http://localhost:8080`) |
 | `FRONTEND_URL` | Allowed CORS origin (default: `http://localhost:3000`) |
+| `ANTHROPIC_API_KEY` | **Required** for the chat assistant — without it `/api/chat` returns 503 |
+| `CHAT_MODEL` | Claude model for chat (default: `claude-haiku-4-5-20251001`) |
 | `SMTP_HOST` | SMTP host — leave blank to skip sending in local dev |
 | `SMTP_PORT` | SMTP port (default: 587) |
 | `SMTP_USER` / `SMTP_PASS` | SMTP credentials |
@@ -150,6 +161,8 @@ Edit `.env` with your secrets:
 | `SMTP_ADMIN_TO` | Admin recipient for enquiry emails |
 
 MongoDB has sensible defaults (`mongodb://localhost:27017`, DB `blue_nest_montessori`).
+
+For production, `.env.production.example` is the authoritative list of required keys, and `scripts/check-env.sh` enforces it before any staging or prod deploy. See [Deployment & Environments](#deployment--environments).
 
 ---
 
@@ -202,8 +215,36 @@ make dev-frontend  # Next.js dev server (npm run dev)
 | `make docker-build` | Rebuild Docker images |
 | `make docker-logs` | Stream logs from all containers |
 | `make docker-restart` | Rebuild images and restart containers |
+| `make staging-up` | Build the **production images locally** and run them for pre-prod QA (http://localhost:3000) |
+| `make staging-verify` | Env-parity check + health probe of the running staging stack |
+| `make staging-logs` | Tail staging logs |
+| `make staging-down` | Stop the staging stack (keeps its DB volume) |
+| `make staging-clean` | Stop staging and delete its volumes |
 | `make mongo-shell` | Open `mongosh` in the running MongoDB container |
 | `make clean` | Remove build artifacts (`backend/bin`, `.next`, `out`) |
+
+---
+
+## Deployment & Environments
+
+A lightweight, git-branch promotion flow (no external CI/CD server). Full runbook in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+| Environment | What it is | How |
+|---|---|---|
+| **sandbox** | localhost dev | `make dev` on a `feature/*` branch |
+| **staging** | the **production images, built & run locally** | `make staging-up`, QA at http://localhost:3000 |
+| **prod** | the `main` branch on the DigitalOcean droplet | merge → GitHub Actions builds GHCR images → droplet auto-pulls |
+
+```
+feature/* ──PR──▶ staging ──(local prod-image QA gate)──▶ PR ──▶ main ──▶ GHCR build ──▶ droplet auto-deploy
+```
+
+- **CI** (`.github/workflows/ci.yml`) runs lint/test/build on PRs into `staging` and `main`.
+- **Image build** (`.github/workflows/build-images.yml`) pushes `blue-nest-frontend` / `blue-nest-backend` to GHCR on every `main` push, plus an immutable `:vX.Y.Z` image on a release tag.
+- **Env parity:** `.env.production.example` is the authoritative required-keys contract; `scripts/check-env.sh` blocks a staging run or prod deploy when a required key is missing or empty — this guards against a repeat of the missing-`ANTHROPIC_API_KEY` chat outage.
+- **Prod auto-deploy:** a systemd timer (`deploy/bluenest-deploy.timer` → `deploy/auto-deploy.sh`) polls `main` + GHCR every ~2 min and, on change, runs the env-parity preflight, recreates the stack with `docker compose`, health-checks, and rolls back on failure. Droplet deploys use **plain `docker compose`** only — never `make docker-up`/`seed-*` (those run a host seed that drops data).
+
+Cut a release by promoting `staging → main` (optionally tagging `vX.Y.Z`).
 
 ---
 
@@ -339,7 +380,7 @@ The frontend uses a hand-crafted pastel design system defined in `styles/globals
 | `Reveal` | `ui/Motion` | Scroll-triggered fade-up animation wrapper |
 | `FeeCalculatorCard` | `ui/FeeCalculatorCard` | Interactive fee calculator — reads from `lib/fee-data.json` |
 | `ChatBotCard` | `ui/ChatBotCard` | Hero chatbot UI panel (visual only — not yet connected) |
-| `ChatBotFAB` | `ui/ChatBotFAB` | Sticky floating chatbot button in `PublicLayout` |
+| `ChatBotFAB` | `ui/ChatBotFAB` | Sticky floating chat assistant in `PublicLayout` — wired to Anthropic Claude via `/api/chat` |
 | `LightboxGallery` | `ui/LightboxGallery` | Full-screen image lightbox (used in branch pages) |
 
 ---
@@ -479,7 +520,7 @@ To add a new branch: create the DB document, add the frontend page, and add it t
 5. **Stripe checkout** — implement `POST /checkout/session`, handle `checkout.session.completed` webhook to mark orders paid and send confirmation email
 6. **Product image upload** — integrate Cloudinary or S3; hook into admin products page
 7. **Blog rich text editor** — connect admin blog to API; add Tiptap or Slate
-8. **ChatBot** — connect `ChatBotCard` / `ChatBotFAB` to a real AI endpoint or third-party (Tidio / Crisp)
+8. **ChatBot** — ✅ Done — the floating assistant (`ChatBotFAB`) is wired to Anthropic Claude (Haiku) via `/api/chat`. Requires `ANTHROPIC_API_KEY` in the environment.
 9. **SEO metadata** — ✅ Done across every public page (canonical, OG, Twitter, JSON-LD). Re-verify after content changes via `npm run lh:all` from `frontend/`
 10. **Gallery comments API** — current gallery comments are localStorage-only (per device); wire to a real backend endpoint so comments persist and are shareable
 11. **Staff photos** — 16 staff members still need profile photos (see Our Team page — commented-out `photo:` lines)
