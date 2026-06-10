@@ -218,7 +218,7 @@ func (h *StripeWebhookHandler) handleCheckoutCompleted(r *http.Request, event st
 		}
 		if shouldSend {
 			if err := h.mailer.Send(
-				[]string{h.adminTo},
+				email.Recipients(h.adminTo),
 				"New Paid Store Order — Blue Nest Montessori",
 				buildAdminOrderEmail(orderID, session.ID, paymentIntentID, customerEmail, shippingAddr, order.Items, order.TotalAmount),
 			); err != nil {
