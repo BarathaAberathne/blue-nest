@@ -108,6 +108,20 @@ func (m *Mailer) sendViaResend(to []string, subject, htmlBody string) error {
 	return nil
 }
 
+// Recipients splits a comma-separated address list (e.g.
+// SMTP_ADMIN_TO="a@x.com, b@y.com, c@z.com") into a clean slice — trimming
+// whitespace and dropping empties. A single address yields a one-element slice.
+// Used so admin notifications can fan out to several managers from one env var.
+func Recipients(list string) []string {
+	var out []string
+	for _, p := range strings.Split(list, ",") {
+		if a := strings.TrimSpace(p); a != "" {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
 func buildMessage(from string, to []string, subject, htmlBody string) string {
 	var b strings.Builder
 	b.WriteString("From: Blue Nest Montessori <" + from + ">\r\n")
