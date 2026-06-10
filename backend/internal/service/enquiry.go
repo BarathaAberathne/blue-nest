@@ -65,7 +65,8 @@ func (s *enquiryService) Submit(ctx context.Context, req models.EnquiryRequest) 
 	// Send emails asynchronously so they don't delay the HTTP response.
 	go func() {
 		if recipients := email.Recipients(s.adminTo); len(recipients) > 0 {
-			if err := s.mailer.Send(recipients, adminNotificationSubject(req), adminNotificationHTML(req)); err != nil {
+			// Reply-To = the parent's email so a manager can reply directly to them.
+			if err := s.mailer.SendWithReplyTo(recipients, req.Email, adminNotificationSubject(req), adminNotificationHTML(req)); err != nil {
 				slog.Error("failed to send admin notification email", "error", err)
 			}
 		}
