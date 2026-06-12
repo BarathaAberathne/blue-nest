@@ -1,4 +1,5 @@
 .PHONY: all build run dev test lint install clean \
+        _guard-not-prod \
         docker-up docker-down docker-build docker-logs docker-restart docker-stop \
         dev-backend dev-frontend run-backend run-frontend \
         mongo-shell setup \
@@ -70,6 +71,21 @@ install:
 	cd frontend && npm install
 
 # ── Docker ────────────────────────────────────────────────────────────────────
+# Production safety guard. The docker-*/seed-* targets below run the DEV (base)
+# compose, which publishes MongoDB on 0.0.0.0:27017 with auth disabled. They must
+# never run on a production host (APP_ENV=production in ./.env). Production
+# deploys go through deploy/auto-deploy.sh (both compose files). Override for a
+# genuine local exception with: make <target> ALLOW_DEV=1
+_guard-not-prod:
+	@if [ "$(ALLOW_DEV)" != "1" ] && grep -qsE '^[[:space:]]*APP_ENV=production' .env 2>/dev/null; then \
+	  echo "✗ Refusing dev Docker target on production. Use deploy/auto-deploy.sh instead."; \
+	  exit 1; \
+	fi
+
+# Attach the guard as a prerequisite to the dev-only targets (prereqs accumulate;
+# the recipes are defined below).
+docker-up docker-restart docker-build seed-products seed-branches seed-all: _guard-not-prod
+
 docker-up:
 	docker compose up -d
 	@$(MAKE) wait-api
