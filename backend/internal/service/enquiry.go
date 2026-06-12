@@ -90,6 +90,18 @@ func (s *enquiryService) UpdateStatus(ctx context.Context, id, status string) er
 
 // ── Email templates ───────────────────────────────────────────────────────────
 
+// formatBranch turns a stored branch value ("harrow", "borehamwood",
+// "pinner-green") into a human display label for emails ("Harrow",
+// "Borehamwood", "Pinner Green"). Display-only — the stored enquiry.Branch slug
+// is left unchanged so admin filtering/matching still works.
+func formatBranch(b string) string {
+	parts := strings.FieldsFunc(b, func(r rune) bool { return r == ' ' || r == '-' || r == '_' })
+	for i, p := range parts {
+		parts[i] = strings.ToUpper(p[:1]) + strings.ToLower(p[1:])
+	}
+	return strings.Join(parts, " ")
+}
+
 func feeQuoteHTML(q *models.FeeQuote) string {
 	if q == nil {
 		return ""
@@ -108,7 +120,7 @@ func feeQuoteHTML(q *models.FeeQuote) string {
 		)
 	}
 
-	rows := row("Branch", q.Branch) +
+	rows := row("Branch", formatBranch(q.Branch)) +
 		row("Age Group", q.AgeGroup) +
 		row("Session", q.Session)
 	if q.Days > 0 {
@@ -176,7 +188,7 @@ func applicationHTML(a *models.Application) string {
 	rows := row("Child Name", a.Child.Name) +
 		row("Child DOB", a.Child.Dob) +
 		row("Child Gender", gender) +
-		row("Branch", a.Branch) +
+		row("Branch", formatBranch(a.Branch)) +
 		row("Parent Name", a.Parent.Name) +
 		row("Parent Email", a.Parent.Email) +
 		row("Parent Phone", a.Parent.Phone) +
@@ -266,7 +278,7 @@ func adminNotificationHTML(req models.EnquiryRequest) string {
 		row("Name", req.Name),
 		row("Email", req.Email),
 		row("Phone", req.Phone),
-		row("Branch", req.Branch),
+		row("Branch", formatBranch(req.Branch)),
 		row("Child's Age", req.ChildAge),
 		row("Enquiry Type", req.EnquiryType),
 		row("Message", req.Message),
@@ -336,7 +348,7 @@ func userConfirmationHTML(req models.EnquiryRequest) string {
 		email.LogoURL,
 		req.Name,
 		req.EnquiryType,
-		req.Branch,
+		formatBranch(req.Branch),
 		req.EnquiryType,
 		func() string {
 			if req.Message == "" {
