@@ -52,6 +52,7 @@ fi
 OPTIONAL_KEYS="
 CHAT_MODEL
 MONGODB_URI
+COMPOSE_FILE
 IMAGE_PREFIX
 SMTP_HOST SMTP_PORT SMTP_USER SMTP_PASS
 DEFAULT_CUSTOMER_EMAIL DEFAULT_CUSTOMER_PASSWORD DEFAULT_CUSTOMER_FIRST_NAME DEFAULT_CUSTOMER_LAST_NAME
@@ -110,6 +111,26 @@ for key in $(required_keys); do
       ;;
   esac
 done
+
+# ── Production safety: never allow a base/dev-only compose on an APP_ENV=production
+# environment. The base docker-compose.yml publishes MongoDB and runs it without
+# auth, so a prod-mode env MUST pin a production-grade overlay via COMPOSE_FILE
+# (docker-compose.prod.yml on the server; docker-compose.staging.yml for the
+# local prod-image gate, which also runs APP_ENV=production).
+app_env="$(val_of APP_ENV "$TARGET")"
+if [ "$app_env" = "production" ]; then
+  compose_file="$(val_of COMPOSE_FILE "$TARGET")"
+  case "$compose_file" in
+    *docker-compose.prod.yml*|*docker-compose.staging.yml*)
+      : ;; # pinned to a production-grade overlay — safe
+    "")
+      echo "  ✗ APP_ENV=production but COMPOSE_FILE is missing — a bare 'docker compose' would start the dev/base config and expose MongoDB (0.0.0.0:27017, no auth). Set COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml"
+      missing=$((missing + 1)) ;;
+    *)
+      echo "  ✗ APP_ENV=production but COMPOSE_FILE does not include docker-compose.prod.yml (got: '$compose_file') — refusing dev/base compose on production."
+      missing=$((missing + 1)) ;;
+  esac
+fi
 
 echo "----"
 if [ "$missing" -gt 0 ]; then

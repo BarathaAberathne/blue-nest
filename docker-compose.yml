@@ -4,8 +4,12 @@ services:
     image: mongo:7
     container_name: blue-nest-mongo
     restart: unless-stopped
+    # Dev convenience only, bound to LOOPBACK so MongoDB is never reachable from
+    # the public internet (native `make dev` connects via localhost:27017). The
+    # prod overlay (docker-compose.prod.yml) removes this mapping entirely.
+    # NEVER use "27017:27017" here — that binds 0.0.0.0 (all interfaces).
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       - mongo_data:/data/db
     environment:
