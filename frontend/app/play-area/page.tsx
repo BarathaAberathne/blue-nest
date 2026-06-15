@@ -4,6 +4,9 @@ import { ArrowRight, Sparkles, Clock } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { Reveal } from "@/components/ui/Motion";
 import { Bird, Twigs, Leaf, Feather, Grass, Flower } from "../build-the-blue-nest/illustrations";
+import { TreasureIcon } from "@/components/games/treasure-hunt/icons";
+import { PlantFull, SunIcon, WateringCan } from "@/components/games/garden/icons";
+import { AnimalIcon } from "@/components/games/animals/icons";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/play-area" },
@@ -48,10 +51,58 @@ const games: Game[] = [
       </div>
     ),
   },
+  {
+    title: "Forest School Treasure Hunt",
+    href: "/games/forest-school-treasure-hunt",
+    blurb: "Explore a calm woodland scene and find six hidden treasures — acorn, pinecone, feather, ladybird, bird and oak leaf.",
+    ages: "Ages 2–6",
+    accent: "from-[#eef4ef] to-[#dfe9e1]",
+    thumb: (
+      <div className="relative flex h-full w-full items-center justify-center">
+        <TreasureIcon id="acorn" className="absolute left-6 top-6 h-9 w-9 -rotate-6 opacity-90" />
+        <TreasureIcon id="leaf" className="absolute right-7 top-7 h-9 w-9 rotate-12 opacity-90" />
+        <TreasureIcon id="ladybird" className="absolute right-10 bottom-7 h-8 w-8 opacity-90" />
+        <TreasureIcon id="bird" className="relative z-10 h-28 w-28 sm:h-32 sm:w-32" />
+        <TreasureIcon id="pinecone" className="absolute left-9 bottom-6 h-8 w-8 opacity-80" />
+        <TreasureIcon id="feather" className="absolute left-1/2 top-4 h-9 w-9 -translate-x-1/2 -rotate-12 opacity-80" />
+      </div>
+    ),
+  },
+  {
+    title: "Grow Your Own Garden",
+    href: "/games/grow-your-garden",
+    blurb: "Choose a plant, sow the seed, water it and give it sunshine — then watch your garden grow strong and healthy.",
+    ages: "Ages 2–6",
+    accent: "from-[#eef4ef] to-[#e3ecdf]",
+    thumb: (
+      <div className="relative flex h-full w-full items-end justify-center">
+        <SunIcon className="absolute right-7 top-5 h-10 w-10 opacity-90" />
+        <WateringCan className="absolute left-6 top-8 h-10 w-10 -rotate-6 opacity-90" />
+        <PlantFull id="sunflower" className="relative z-10 h-28 w-20 sm:h-32 sm:w-24" />
+      </div>
+    ),
+  },
+  {
+    title: "Match the Animals",
+    href: "/games/match-the-animals",
+    blurb: "Help each woodland animal find its home — robin, hedgehog, squirrel, duck, bee and rabbit — and learn a fun fact.",
+    ages: "Ages 2–6",
+    accent: "from-[#eaf3ec] to-[#dcebe0]",
+    thumb: (
+      <div className="relative grid h-full w-full grid-cols-3 items-center justify-items-center gap-1 px-6 py-4">
+        <AnimalIcon id="robin" className="h-12 w-12" />
+        <AnimalIcon id="duck" className="h-14 w-14" />
+        <AnimalIcon id="squirrel" className="h-12 w-12" />
+        <AnimalIcon id="bee" className="h-11 w-11" />
+        <AnimalIcon id="rabbit" className="h-12 w-12" />
+        <AnimalIcon id="hedgehog" className="h-11 w-11" />
+      </div>
+    ),
+  },
 ];
 
 /* Teasers for the games still being made — keeps the area feeling alive. */
-const comingSoon = ["Match the Animals", "Count the Acorns", "Colour the Garden"];
+const comingSoon: string[] = [];
 
 export default function PlayAreaPage() {
   return (
