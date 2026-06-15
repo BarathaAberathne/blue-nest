@@ -92,16 +92,16 @@ export default function HeroSection() {
             aged 3 months to 5 years, combining Montessori learning with the EYFS framework.
           </p>
 
-          {/* CTAs */}
-          <div className="flex flex-wrap gap-3 pt-1 sm:gap-4 sm:pt-2">
-            <PastelButton href="/contact?enquiry=book-visit" variant="blush">
+          {/* CTAs — wrap on mobile/tablet; single row on desktop */}
+          <div className="flex flex-wrap gap-3 pt-1 sm:gap-4 sm:pt-2 lg:flex-nowrap lg:gap-2.5">
+            <PastelButton href="/contact?enquiry=book-visit" variant="blush" className="whitespace-nowrap lg:px-4 lg:text-[1.2rem]">
               Book a Visit
               <ArrowRight className="h-4 w-4" />
             </PastelButton>
-            <PastelButton href="/admission/our-fees#fee-calculator" variant="mint">
+            <PastelButton href="/admission/our-fees#fee-calculator" variant="mint" className="whitespace-nowrap lg:px-4 lg:text-[1.2rem]">
               Fee Calculator
             </PastelButton>
-            <PastelButton href="/play-area" variant="sky">
+            <PastelButton href="/play-area" variant="sky" className="whitespace-nowrap lg:px-4 lg:text-[1.2rem]">
               <Sparkles className="h-4 w-4" />
               Play Area
             </PastelButton>
