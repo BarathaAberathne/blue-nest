@@ -37,8 +37,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: "/site-images/headstone-green/hero-community-day.jpg",
-        width: 1379,
-        height: 1034,
+        width: 2400,
+        height: 1800,
         alt: "Community volunteers caring for the green at Headstone Green Park, Harrow",
       },
     ],
@@ -71,13 +71,6 @@ const EVENTS = [
     featured: true,
   },
   {
-    tag: "Family",
-    title: "Family Picnic Weekend",
-    date: "13 – 14 June 2026",
-    time: "All day",
-    desc: "Bring a blanket and enjoy live music, games and food stalls with the community.",
-  },
-  {
     tag: "Conservation",
     title: "Tree Planting Day",
     date: "Saturday 9 August 2026",
@@ -94,12 +87,29 @@ const EVENTS = [
 ];
 
 const GALLERY = [
-  { src: "/site-images/headstone-green/community-day.jpg", alt: "Children and families filling holes in the grass together during the September 2025 community day", caption: "Community Day" },
-  { src: "/site-images/headstone-green/volunteers.jpg", alt: "Volunteers moving soil with a wheelbarrow across the green at Headstone Green Park", caption: "Volunteers at Work" },
-  { src: "/site-images/headstone-green/restoring-the-green.jpg", alt: "Fresh soil being used to fill and level a hole in the grass", caption: "Restoring the Green" },
-  { src: "/site-images/headstone-green/families.jpg", alt: "Families walking and playing together on the open green", caption: "Families Together" },
-  { src: "/site-images/headstone-green/open-green-spaces.jpg", alt: "Wide open grassland at Headstone Green Park with homes beyond", caption: "Open Green Spaces" },
-  { src: "/site-images/headstone-green/bench.jpg", alt: "A wooden bench beside the path at Headstone Green Park", caption: "Somewhere to Rest" },
+  { src: "/site-images/headstone-green/hgug-05.jpg", alt: "Children and families filling holes in the grass together during the September 2025 community day", caption: "Community Day" },
+  { src: "/site-images/headstone-green/hgug-01.jpg", alt: "Volunteers with a wheelbarrow and spade filling holes on the green", caption: "Volunteers at Work" },
+  { src: "/site-images/headstone-green/hgug-06.jpg", alt: "Volunteers loading soil into a wheelbarrow on the green", caption: "Lending a Hand" },
+  { src: "/site-images/headstone-green/hgug-07.jpg", alt: "Volunteers wheeling soil across the green", caption: "Moving the Soil" },
+  { src: "/site-images/headstone-green/hgug-08.jpg", alt: "Families walking and playing together on the open green", caption: "Families Together" },
+  { src: "/site-images/headstone-green/hgug-21.jpg", alt: "Filling a hole in the lawn with fresh soil by hand", caption: "Filling the Holes" },
+  { src: "/site-images/headstone-green/hgug-22.jpg", alt: "Levelling fresh soil into a hole in the grass", caption: "Restoring the Green" },
+  { src: "/site-images/headstone-green/hgug-04.jpg", alt: "Wide open grassland at Headstone Green Park with homes beyond", caption: "Open Green Spaces" },
+  { src: "/site-images/headstone-green/hgug-09.jpg", alt: "A bench and bin beside the woodland path in the park", caption: "Around the Park" },
+  { src: "/site-images/headstone-green/hgug-10.jpg", alt: "A wooden bench on the green", caption: "Somewhere to Rest" },
+  { src: "/site-images/headstone-green/hgug-19.jpg", alt: "A bench among the long grass at the edge of the green", caption: "A Quiet Corner" },
+  { src: "/site-images/headstone-green/hgug-02.jpg", alt: "A hole in the grass before being filled", caption: "Before the Work" },
+  { src: "/site-images/headstone-green/hgug-03.jpg", alt: "A small hole in the lawn marked for filling", caption: "Spotting the Holes" },
+  { src: "/site-images/headstone-green/hgug-11.jpg", alt: "A worn path across the grass of the green", caption: "The Worn Green" },
+  { src: "/site-images/headstone-green/hgug-12.jpg", alt: "A path winding through the grass", caption: "Across the Green" },
+  { src: "/site-images/headstone-green/hgug-13.jpg", alt: "Holes and tracks worn into the grass", caption: "Marking the Spots" },
+  { src: "/site-images/headstone-green/hgug-14.jpg", alt: "Worn tracks across the lawn", caption: "Worn Tracks" },
+  { src: "/site-images/headstone-green/hgug-15.jpg", alt: "The open green with homes beyond", caption: "The Common" },
+  { src: "/site-images/headstone-green/hgug-16.jpg", alt: "A worn path through the park grass", caption: "Park Paths" },
+  { src: "/site-images/headstone-green/hgug-17.jpg", alt: "Tracks across the green near the homes", caption: "The Open Green" },
+  { src: "/site-images/headstone-green/hgug-18.jpg", alt: "Holes in the grass waiting to be filled", caption: "Holes to Fill" },
+  { src: "/site-images/headstone-green/hgug-20.jpg", alt: "Holes dug into the lawn being restored", caption: "Restoring the Ground" },
+  { src: "/site-images/headstone-green/hgug-23.jpg", alt: "A line of holes across the grass on the green", caption: "Caring for the Green" },
 ];
 
 const NOTICES = [
@@ -141,7 +151,7 @@ export default function HeadstoneGreenParkPage() {
               fill
               priority
               fetchPriority="high"
-              quality={55}
+              quality={75}
               sizes="100vw"
               className="object-cover object-center"
             />
