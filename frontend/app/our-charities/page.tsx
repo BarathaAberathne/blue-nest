@@ -112,16 +112,16 @@ export default function OurCharitiesPage() {
       <section className="paper-bg relative flex min-h-[55vh] items-center">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <Image
-            src="/home/DSC_0151.jpg"
-            alt="Children playing together at Blue Nest Montessori"
+            src="/site-images/charity/community-giving-hero.jpg"
+            alt="Volunteers and families caring for Headstone Green together during a Blue Nest community day"
             fill
             priority
             fetchPriority="high"
-            className="object-cover object-center"
-            quality={55}
+            className="object-cover object-[center_25%]"
+            quality={75}
             sizes="100vw"
           />
-          <div className="absolute inset-0 bg-[#fff8f2]/10" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/25 to-transparent" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_18%_58%,rgba(246,213,223,0.50),transparent_48%),radial-gradient(ellipse_at_80%_20%,rgba(127,216,210,0.22),transparent_40%)]" />
           <div
             className="absolute inset-0 opacity-28"
