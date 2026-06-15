@@ -36,10 +36,10 @@ export const metadata: Metadata = {
     url: "/headstone-green-community-park",
     images: [
       {
-        url: "/site-images/charity/headstone-green.jpg",
-        width: 1280,
-        height: 854,
-        alt: "Headstone Green Park, Harrow",
+        url: "/site-images/headstone-green/hero-community-day.jpg",
+        width: 1379,
+        height: 1034,
+        alt: "Community volunteers caring for the green at Headstone Green Park, Harrow",
       },
     ],
   },
@@ -94,12 +94,12 @@ const EVENTS = [
 ];
 
 const GALLERY = [
-  { src: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1100&q=70", alt: "Sunlit woodland path through tall trees", caption: "Woodland Paths" },
-  { src: "https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=1100&q=70", alt: "Wildflowers blooming in a meadow", caption: "Wildflowers" },
-  { src: "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1100&q=70", alt: "Sunlight streaming through green woodland", caption: "Open Green Spaces" },
-  { src: "https://images.unsplash.com/photo-1526772662000-3f88f10405ff?auto=format&fit=crop&w=1100&q=70", alt: "Trail winding through trees and hills", caption: "Nature & Trails" },
-  { src: "https://images.unsplash.com/photo-1444464666168-49d633b86797?auto=format&fit=crop&w=1100&q=70", alt: "A small bird perched on a branch", caption: "Wildlife" },
-  { src: "https://images.unsplash.com/photo-1507783548227-544c3b8fc065?auto=format&fit=crop&w=1100&q=70", alt: "Golden autumn scenery in the park", caption: "Seasonal Scenery" },
+  { src: "/site-images/headstone-green/community-day.jpg", alt: "Children and families filling holes in the grass together during the September 2025 community day", caption: "Community Day" },
+  { src: "/site-images/headstone-green/volunteers.jpg", alt: "Volunteers moving soil with a wheelbarrow across the green at Headstone Green Park", caption: "Volunteers at Work" },
+  { src: "/site-images/headstone-green/restoring-the-green.jpg", alt: "Fresh soil being used to fill and level a hole in the grass", caption: "Restoring the Green" },
+  { src: "/site-images/headstone-green/families.jpg", alt: "Families walking and playing together on the open green", caption: "Families Together" },
+  { src: "/site-images/headstone-green/open-green-spaces.jpg", alt: "Wide open grassland at Headstone Green Park with homes beyond", caption: "Open Green Spaces" },
+  { src: "/site-images/headstone-green/bench.jpg", alt: "A wooden bench beside the path at Headstone Green Park", caption: "Somewhere to Rest" },
 ];
 
 const NOTICES = [
@@ -136,8 +136,8 @@ export default function HeadstoneGreenParkPage() {
         <section className="relative flex min-h-[86vh] items-center">
           <div className="absolute inset-0 overflow-hidden">
             <Image
-              src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=2000&q=70"
-              alt="Lush green parkland and woodland at Headstone Green Park in Harrow"
+              src="/site-images/headstone-green/hero-community-day.jpg"
+              alt="Community volunteers caring for the open green at Headstone Green Park on the September 2025 community day"
               fill
               priority
               fetchPriority="high"
@@ -333,7 +333,8 @@ export default function HeadstoneGreenParkPage() {
                 <span className={kicker}>Gallery</span>
                 <h2 className={heading}>Moments from the park</h2>
                 <p className={`${lead} mt-4`}>
-                  A glimpse of the seasons, wildlife and community life at Headstone Green.
+                  Real moments from our community — including the September 2025 hole-filling
+                  day, when local families came together to care for the green.
                 </p>
               </div>
             </Reveal>
