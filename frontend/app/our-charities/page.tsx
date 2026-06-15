@@ -112,8 +112,8 @@ export default function OurCharitiesPage() {
       <section className="paper-bg relative flex min-h-[55vh] items-center">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <Image
-            src="/site-images/charity/community-giving-hero.jpg"
-            alt="Volunteers and families caring for Headstone Green together during a Blue Nest community day"
+            src="/site-images/charity/charity-community-day.jpg"
+            alt="Children and families taking part in a Blue Nest community day on the green at Headstone Green Park"
             fill
             priority
             fetchPriority="high"
