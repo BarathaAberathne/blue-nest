@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
 import { Reveal } from "@/components/ui/Motion";
 import PastelButton from "@/components/ui/PastelButton";
 
@@ -100,6 +100,10 @@ export default function HeroSection() {
             </PastelButton>
             <PastelButton href="/admission/our-fees#fee-calculator" variant="mint">
               Fee Calculator
+            </PastelButton>
+            <PastelButton href="/play-area" variant="sky">
+              <Sparkles className="h-4 w-4" />
+              Play Area
             </PastelButton>
           </div>
 

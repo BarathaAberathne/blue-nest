@@ -26,6 +26,8 @@ const staticRoutes: { url: string; priority: number; changeFrequency: MetadataRo
   { url: "/our-charities",                  priority: 0.6, changeFrequency: "monthly" },
   { url: "/headstone-green-community-park",  priority: 0.6, changeFrequency: "monthly" },
   { url: "/home-learning",                  priority: 0.6, changeFrequency: "monthly" },
+  { url: "/play-area",                      priority: 0.6, changeFrequency: "monthly" },
+  { url: "/build-the-blue-nest",            priority: 0.5, changeFrequency: "yearly"  },
   { url: "/nursery-store",                  priority: 0.7, changeFrequency: "weekly"  },
   { url: "/blog",                           priority: 0.7, changeFrequency: "weekly"  },
   { url: "/contact",                        priority: 0.8, changeFrequency: "monthly" },
