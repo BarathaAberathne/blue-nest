@@ -162,3 +162,66 @@ export interface ApiEnvelope<T> {
   error?: string;
   message?: string;
 }
+
+// ── Enquiries (website inquiry tracker) ─────────────────────────────────────────
+export type EnquiryStatus = "new" | "read" | "responded";
+
+export interface FeeQuote {
+  branch?: string;
+  age_group?: string;
+  session?: string;
+  days?: number;
+  early_bird?: boolean;
+  discount?: string;
+  discount_amount?: number;
+  funding?: string;
+  year_weeks?: number;
+  gross_weekly: number;
+  funding_offset?: number;
+  net_weekly: number;
+  net_monthly: number;
+}
+
+export interface ApplicationChild {
+  name: string;
+  dob: string;
+  gender?: string;
+}
+
+export interface ApplicationParent {
+  name: string;
+  email: string;
+  phone: string;
+}
+
+export interface ApplicationSession {
+  day: string;
+  type: string;
+  label?: string;
+  time?: string;
+}
+
+export interface Application {
+  child: ApplicationChild;
+  parent: ApplicationParent;
+  branch: string;
+  settling_in?: string;
+  waiting_list: boolean;
+  sessions?: ApplicationSession[];
+  signature_data_url?: string;
+}
+
+export interface Enquiry {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  branch: string;
+  child_age: string;
+  enquiry_type: string;
+  message: string;
+  fee_quote?: FeeQuote;
+  application?: Application;
+  status: EnquiryStatus;
+  created_at: string;
+}

@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { User } from "@/types";
+import type { Enquiry, User } from "@/types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -147,6 +147,15 @@ export const api = {
   // Contact / Enquiries
   submitEnquiry: (body: unknown) =>
     apiFetch("/api/v1/contact", { method: "POST", body: JSON.stringify(body) }),
+  adminGetEnquiries: (token: string) => apiFetch<Enquiry[]>("/api/v1/admin/enquiries", { token }),
+  adminGetEnquiry: (token: string, id: string) =>
+    apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}`, { token }),
+  adminUpdateEnquiryStatus: (token: string, id: string, status: string) =>
+    apiFetch(`/api/v1/admin/enquiries/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+      token,
+    }),
 
   // Admin
   adminGetOrders: (token: string) => apiFetch("/api/v1/admin/orders", { token }),
