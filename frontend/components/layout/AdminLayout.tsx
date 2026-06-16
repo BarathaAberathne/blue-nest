@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import {
   BookOpen,
   ExternalLink,
+  Inbox,
   LayoutDashboard,
   LogOut,
   Package,
@@ -18,6 +19,7 @@ import { clearAuthSession } from "@/lib/auth";
 
 const NAV_ITEMS = [
   { label: "Dashboard",  href: "/admin/dashboard",  icon: LayoutDashboard },
+  { label: "Inquiries",  href: "/admin/inquiries",   icon: Inbox           },
   { label: "Orders",     href: "/admin/orders",      icon: ShoppingCart    },
   { label: "Products",   href: "/admin/products",    icon: Package         },
   { label: "Categories", href: "/admin/categories",  icon: Tag             },

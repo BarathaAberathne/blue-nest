@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   BookOpen,
+  Inbox,
   Package,
   PoundSterling,
   ShoppingCart,
@@ -13,7 +14,7 @@ import {
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import Badge from "@/components/ui/Badge";
-import type { BlogPost, Order, OrderStatus, Product } from "@/types";
+import type { BlogPost, Enquiry, Order, OrderStatus, Product } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -97,6 +98,7 @@ export default function DashboardClient() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [inquiries, setInquiries] = useState<Enquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -112,16 +114,21 @@ export default function DashboardClient() {
       api.adminGetOrders(token),
       api.adminGetProducts(token),
       api.adminGetBlogPosts(token),
-    ]).then(([ordersRes, productsRes, postsRes]) => {
+      api.adminGetEnquiries(token),
+    ]).then(([ordersRes, productsRes, postsRes, inquiriesRes]) => {
       if (ordersRes.status === "fulfilled")
         setOrders((ordersRes.value as Order[]) ?? []);
       if (productsRes.status === "fulfilled")
         setProducts((productsRes.value as Product[]) ?? []);
       if (postsRes.status === "fulfilled")
         setPosts((postsRes.value as BlogPost[]) ?? []);
+      if (inquiriesRes.status === "fulfilled")
+        setInquiries((inquiriesRes.value as Enquiry[]) ?? []);
       setLoading(false);
     });
   }, []);
+
+  const newInquiries = inquiries.filter((e) => e.status === "new");
 
   const paidOrders = orders.filter(
     (o) => o.status === "paid" || o.status === "delivered" || o.status === "shipped",
@@ -138,6 +145,15 @@ export default function DashboardClient() {
   );
 
   const kpis = [
+    {
+      label: "New Inquiries",
+      value: String(newInquiries.length),
+      sub: `${inquiries.length} total received`,
+      icon: Inbox,
+      color: "#2563eb",
+      bg: "rgba(37,99,235,0.10)",
+      href: "/admin/inquiries",
+    },
     {
       label: "Total Orders",
       value: String(orders.length),

@@ -141,6 +141,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 
 			adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries)
 			r.Get("/admin/enquiries", adminEnquiryH.List)
+			r.Get("/admin/enquiries/{id}", adminEnquiryH.Get)
 			r.Patch("/admin/enquiries/{id}/status", adminEnquiryH.UpdateStatus)
 
 			r.Group(func(r chi.Router) {
