@@ -14,6 +14,7 @@ import (
 type EnquiryRepository interface {
 	Create(ctx context.Context, e *models.Enquiry) error
 	FindAll(ctx context.Context) ([]models.Enquiry, error)
+	FindByID(ctx context.Context, id string) (*models.Enquiry, error)
 	UpdateStatus(ctx context.Context, id, status string) error
 }
 
@@ -40,6 +41,18 @@ func (r *enquiryRepository) FindAll(ctx context.Context) ([]models.Enquiry, erro
 	}
 	results := make([]models.Enquiry, 0)
 	return results, cursor.All(ctx, &results)
+}
+
+func (r *enquiryRepository) FindByID(ctx context.Context, id string) (*models.Enquiry, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	var e models.Enquiry
+	if err = r.col.FindOne(ctx, bson.M{"_id": oid}).Decode(&e); err != nil {
+		return nil, err
+	}
+	return &e, nil
 }
 
 func (r *enquiryRepository) UpdateStatus(ctx context.Context, id, status string) error {

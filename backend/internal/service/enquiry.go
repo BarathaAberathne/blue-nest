@@ -15,6 +15,7 @@ import (
 type EnquiryService interface {
 	Submit(ctx context.Context, req models.EnquiryRequest) (*models.Enquiry, error)
 	ListAll(ctx context.Context) ([]models.Enquiry, error)
+	GetByID(ctx context.Context, id string) (*models.Enquiry, error)
 	UpdateStatus(ctx context.Context, id, status string) error
 }
 
@@ -82,6 +83,10 @@ func (s *enquiryService) Submit(ctx context.Context, req models.EnquiryRequest) 
 
 func (s *enquiryService) ListAll(ctx context.Context) ([]models.Enquiry, error) {
 	return s.repo.FindAll(ctx)
+}
+
+func (s *enquiryService) GetByID(ctx context.Context, id string) (*models.Enquiry, error) {
+	return s.repo.FindByID(ctx, id)
 }
 
 func (s *enquiryService) UpdateStatus(ctx context.Context, id, status string) error {

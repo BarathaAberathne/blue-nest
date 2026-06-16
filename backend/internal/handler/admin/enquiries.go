@@ -26,6 +26,16 @@ func (h *AdminEnquiryHandler) List(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, enquiries)
 }
 
+func (h *AdminEnquiryHandler) Get(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	enquiry, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "enquiry not found")
+		return
+	}
+	response.OK(w, enquiry)
+}
+
 func (h *AdminEnquiryHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
