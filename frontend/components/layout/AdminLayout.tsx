@@ -30,7 +30,7 @@ const NAV_ITEMS = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { ready, isAuthenticated, user, hasAnyRole, ensureAuthenticated } = useAuthGuard();
+  const { ready, isAuthenticated, user, hasAnyRole, ensureAuthenticated } = useAuthGuard("/admin/login");
   const isAdminLike = hasAnyRole(["admin", "branch_manager"]);
   const navItems =
     user?.role === "admin"
