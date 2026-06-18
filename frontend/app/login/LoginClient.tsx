@@ -5,8 +5,10 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageWrapper from "@/components/ui/PageWrapper";
 import { api } from "@/lib/api";
-import { setAuthSession } from "@/lib/auth";
-import type { AuthResponse } from "@/types";
+import { getAuthUser, setAuthSession } from "@/lib/auth";
+import type { AuthResponse, UserRole } from "@/types";
+
+const isAdminRole = (role: UserRole) => role === "admin" || role === "branch_manager";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -22,7 +24,12 @@ export default function LoginClient() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setNext(params.get("next") || "/account");
-  }, []);
+    // An admin who lands on the customer login belongs in the admin area.
+    const existing = getAuthUser();
+    if (existing && isAdminRole(existing.role)) {
+      router.push("/admin/dashboard");
+    }
+  }, [router]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -32,7 +39,8 @@ export default function LoginClient() {
     try {
       const auth = await api.login({ email, password }) as AuthResponse;
       setAuthSession(auth.access_token, auth.user);
-      router.push(next);
+      // Staff signing in here still belong in the admin area, not /account.
+      router.push(isAdminRole(auth.user.role) ? "/admin/dashboard" : next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in");
     } finally {
