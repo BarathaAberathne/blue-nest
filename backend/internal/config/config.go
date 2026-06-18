@@ -17,7 +17,6 @@ type Config struct {
 	Stripe      StripeConfig
 	CORS        CORSConfig
 	SMTP        SMTPConfig
-	Google      OAuthProviderConfig
 	FrontendURL string
 }
 
@@ -59,12 +58,6 @@ type SMTPConfig struct {
 	// instead of SMTP. Useful on hosts (e.g. DigitalOcean droplets) that
 	// block outbound SMTP by default.
 	ResendAPIKey string
-}
-
-type OAuthProviderConfig struct {
-	ClientID     string
-	ClientSecret string
-	RedirectURL  string
 }
 
 // normalizeOrigins splits a comma-separated FRONTEND_URL into trimmed origins,
@@ -120,11 +113,6 @@ func Load() *Config {
 		},
 		CORS: CORSConfig{
 			AllowedOrigins: frontendOrigins,
-		},
-		Google: OAuthProviderConfig{
-			ClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
-			ClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
-			RedirectURL:  getEnv("GOOGLE_REDIRECT_URL", "http://localhost:8080/api/v1/auth/google/callback"),
 		},
 		FrontendURL: frontendOrigins[0],
 		SMTP: SMTPConfig{

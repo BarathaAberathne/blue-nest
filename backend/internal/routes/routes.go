@@ -55,10 +55,6 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		r.Post("/auth/logout", authH.Logout)
 		r.Post("/auth/refresh", authH.Refresh)
 
-		// ── OAuth ──────────────────────────────────────────────────────────
-		r.Get("/auth/google", authH.GoogleLogin)
-		r.Get("/auth/google/callback", authH.GoogleCallback)
-
 		// ── Products & categories (public) ────────────────────────────────
 		productH := handler.NewProductHandler(svc.Products)
 		r.Get("/products", productH.List)
