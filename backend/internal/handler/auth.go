@@ -16,20 +16,17 @@ import (
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/blue-nest-montessori/api/pkg/validator"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/facebook"
 	"golang.org/x/oauth2/google"
 )
 
 type AuthHandler struct {
 	svc         service.AuthService
 	googleCfg   *oauth2.Config
-	facebookCfg *oauth2.Config
 	frontendURL string
 }
 
 func NewAuthHandler(svc service.AuthService, cfg *config.Config) *AuthHandler {
 	var googleOAuth *oauth2.Config
-	var facebookOAuth *oauth2.Config
 
 	if cfg.Google.ClientID != "" {
 		googleOAuth = &oauth2.Config{
@@ -50,28 +47,9 @@ func NewAuthHandler(svc service.AuthService, cfg *config.Config) *AuthHandler {
 		}
 	}
 
-	if cfg.Facebook.ClientID != "" {
-		facebookOAuth = &oauth2.Config{
-			ClientID:     cfg.Facebook.ClientID,
-			ClientSecret: cfg.Facebook.ClientSecret,
-			RedirectURL:  cfg.Facebook.RedirectURL,
-			Scopes:       []string{"email", "public_profile"},
-			Endpoint:     facebook.Endpoint,
-		}
-	} else {
-		facebookOAuth = &oauth2.Config{
-			ClientID:     "placeholder-facebook-client-id",
-			ClientSecret: "placeholder-facebook-client-secret",
-			RedirectURL:  cfg.Facebook.RedirectURL,
-			Scopes:       []string{"email", "public_profile"},
-			Endpoint:     facebook.Endpoint,
-		}
-	}
-
 	return &AuthHandler{
 		svc:         svc,
 		googleCfg:   googleOAuth,
-		facebookCfg: facebookOAuth,
 		frontendURL: cfg.FrontendURL,
 	}
 }
@@ -192,10 +170,10 @@ func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 type googleUserInfo struct {
-	ID        string `json:"sub"`
-	Email     string `json:"email"`
-	Name      string `json:"name"`
-	GivenName string `json:"given_name"`
+	ID         string `json:"sub"`
+	Email      string `json:"email"`
+	Name       string `json:"name"`
+	GivenName  string `json:"given_name"`
 	FamilyName string `json:"family_name"`
 }
 
@@ -252,79 +230,3 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		h.frontendURL, authResp.AccessToken, authResp.RefreshToken)
 	http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
 }
-
-// ── Facebook OAuth ────────────────────────────────────────────────────────────
-
-func (h *AuthHandler) FacebookLogin(w http.ResponseWriter, r *http.Request) {
-	state, err := generateState()
-	if err != nil {
-		response.InternalError(w, "failed to generate state")
-		return
-	}
-	setStateCookie(w, state)
-	url := h.facebookCfg.AuthCodeURL(state)
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-}
-
-type facebookUserInfo struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-}
-
-func (h *AuthHandler) FacebookCallback(w http.ResponseWriter, r *http.Request) {
-	if !verifyState(r) {
-		response.BadRequest(w, "state mismatch — possible CSRF")
-		return
-	}
-	clearStateCookie(w)
-
-	code := r.URL.Query().Get("code")
-	if code == "" {
-		response.BadRequest(w, "missing code parameter")
-		return
-	}
-
-	token, err := h.facebookCfg.Exchange(context.Background(), code)
-	if err != nil {
-		response.BadRequest(w, fmt.Sprintf("failed to exchange code: %v", err))
-		return
-	}
-
-	apiURL := fmt.Sprintf(
-		"https://graph.facebook.com/me?fields=id,name,email&access_token=%s",
-		token.AccessToken,
-	)
-	resp, err := http.Get(apiURL) //nolint:noctx
-	if err != nil {
-		response.InternalError(w, "failed to fetch user info")
-		return
-	}
-	defer resp.Body.Close()
-
-	var info facebookUserInfo
-	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-		response.InternalError(w, "failed to decode user info")
-		return
-	}
-
-	firstName, lastName := "", ""
-	if info.Name != "" {
-		parts := strings.SplitN(info.Name, " ", 2)
-		firstName = parts[0]
-		if len(parts) > 1 {
-			lastName = parts[1]
-		}
-	}
-
-	authResp, err := h.svc.UpsertOAuthUser(r.Context(), info.Email, firstName, lastName, "facebook", info.ID)
-	if err != nil {
-		response.InternalError(w, "failed to upsert user")
-		return
-	}
-
-	redirectURL := fmt.Sprintf("%s/auth/callback?token=%s&refresh=%s",
-		h.frontendURL, authResp.AccessToken, authResp.RefreshToken)
-	http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
-}
-
