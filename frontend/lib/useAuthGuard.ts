@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { getAccessToken, getAuthUpdatedEventName, getAuthUser } from "@/lib/auth";
 import type { User, UserRole } from "@/types";
 
-function loginPath(nextPath: string) {
-  return `/login?next=${encodeURIComponent(nextPath)}`;
-}
-
-export function useAuthGuard() {
+/**
+ * @param loginBasePath where to send unauthenticated users — defaults to the
+ * parent/customer login (`/login`). Admin areas pass `/admin/login` so they
+ * never bounce staff to the customer sign-in screen.
+ */
+export function useAuthGuard(loginBasePath: string = "/login") {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [token, setToken] = useState("");
@@ -33,8 +34,8 @@ export function useAuthGuard() {
   }, []);
 
   const redirectToLogin = useCallback((nextPath: string) => {
-    router.push(loginPath(nextPath));
-  }, [router]);
+    router.push(`${loginBasePath}?next=${encodeURIComponent(nextPath)}`);
+  }, [router, loginBasePath]);
 
   const ensureAuthenticated = useCallback((nextPath: string) => {
     const isAuthenticated = Boolean(token && user);
