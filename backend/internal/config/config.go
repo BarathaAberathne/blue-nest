@@ -67,11 +67,36 @@ type OAuthProviderConfig struct {
 	RedirectURL  string
 }
 
+// normalizeOrigins splits a comma-separated FRONTEND_URL into trimmed origins,
+// prepending https:// to any entry missing a scheme. Always returns at least
+// one entry; the first is treated as the canonical site URL.
+func normalizeOrigins(raw string) []string {
+	out := make([]string, 0)
+	for _, p := range strings.Split(raw, ",") {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		if !strings.HasPrefix(p, "http://") && !strings.HasPrefix(p, "https://") {
+			p = "https://" + p
+		}
+		out = append(out, p)
+	}
+	if len(out) == 0 {
+		out = append(out, "http://localhost:3000")
+	}
+	return out
+}
+
 func Load() *Config {
 	loadDotenv()
 
 	jwtHours, _ := strconv.Atoi(getEnv("JWT_EXPIRY_HOURS", "24"))
 	jwtRefreshDays, _ := strconv.Atoi(getEnv("JWT_REFRESH_EXPIRY_DAYS", "30"))
+
+	// FRONTEND_URL may be a comma-separated list (for CORS). The first normalized
+	// origin is the canonical site URL used for OAuth post-login redirects.
+	frontendOrigins := normalizeOrigins(getEnv("FRONTEND_URL", "http://localhost:3000"))
 
 	return &Config{
 		App: AppConfig{
@@ -94,14 +119,14 @@ func Load() *Config {
 			PublishableKey: getEnv("STRIPE_PUBLISHABLE_KEY", ""),
 		},
 		CORS: CORSConfig{
-			AllowedOrigins: strings.Split(getEnv("FRONTEND_URL", "http://localhost:3000"), ","),
+			AllowedOrigins: frontendOrigins,
 		},
 		Google: OAuthProviderConfig{
 			ClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
 			ClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
 			RedirectURL:  getEnv("GOOGLE_REDIRECT_URL", "http://localhost:8080/api/v1/auth/google/callback"),
 		},
-		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
+		FrontendURL: frontendOrigins[0],
 		SMTP: SMTPConfig{
 			Host:         getEnv("SMTP_HOST", ""),
 			Port:         func() int { p, _ := strconv.Atoi(getEnv("SMTP_PORT", "587")); return p }(),
