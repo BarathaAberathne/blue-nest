@@ -136,7 +136,7 @@ export interface Comment {
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
-export type UserRole = "customer" | "admin" | "branch_manager";
+export type UserRole = "customer" | "staff" | "branch_manager" | "admin" | "super_admin";
 
 export interface User {
   id: string;

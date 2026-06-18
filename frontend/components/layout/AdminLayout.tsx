@@ -31,9 +31,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const { ready, isAuthenticated, user, hasAnyRole, ensureAuthenticated } = useAuthGuard("/admin/login");
-  const isAdminLike = hasAnyRole(["admin", "branch_manager"]);
+  const isAdminLike = hasAnyRole(["super_admin", "admin", "branch_manager"]);
+  // Account management (Users) is super-admin only.
   const navItems =
-    user?.role === "admin"
+    user?.role === "super_admin"
       ? NAV_ITEMS
       : NAV_ITEMS.filter((item) => item.href !== "/admin/users");
 

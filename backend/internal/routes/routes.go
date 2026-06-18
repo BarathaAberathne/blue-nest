@@ -144,6 +144,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Get("/admin/users", adminUserH.List)
 				r.Post("/admin/users", adminUserH.Create)
 				r.Put("/admin/users/{id}", adminUserH.Update)
+				r.Post("/admin/users/{id}/reset-password", adminUserH.ResetPassword)
 				r.Delete("/admin/users/{id}", adminUserH.Delete)
 			})
 		})

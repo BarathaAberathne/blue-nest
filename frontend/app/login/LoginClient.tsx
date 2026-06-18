@@ -8,7 +8,8 @@ import { api } from "@/lib/api";
 import { getAuthUser, setAuthSession } from "@/lib/auth";
 import type { AuthResponse, UserRole } from "@/types";
 
-const isAdminRole = (role: UserRole) => role === "admin" || role === "branch_manager";
+const isAdminRole = (role: UserRole) =>
+  role === "super_admin" || role === "admin" || role === "branch_manager";
 
 export default function LoginClient() {
   const router = useRouter();

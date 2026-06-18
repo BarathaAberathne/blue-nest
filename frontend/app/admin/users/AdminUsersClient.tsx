@@ -3,9 +3,17 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
-import type { User } from "@/types";
+import type { User, UserRole } from "@/types";
 
-type Role = "customer" | "admin" | "branch_manager";
+type Role = UserRole;
+
+const ROLE_BADGE: Record<Role, string> = {
+  super_admin: "bg-rose-100 text-rose-700",
+  admin: "bg-purple-100 text-purple-700",
+  branch_manager: "bg-blue-100 text-blue-700",
+  staff: "bg-emerald-100 text-emerald-700",
+  customer: "bg-gray-100 text-gray-600",
+};
 
 type CreatePayload = {
   email: string;
@@ -22,7 +30,7 @@ type EditState = {
   role: Role;
 };
 
-const ROLES: Role[] = ["customer", "admin", "branch_manager"];
+const ROLES: Role[] = ["staff", "branch_manager", "admin", "super_admin", "customer"];
 
 export default function AdminUsersClient() {
   const [users, setUsers] = useState<User[]>([]);
@@ -96,6 +104,23 @@ export default function AdminUsersClient() {
       setError(err instanceof Error ? err.message : "Failed to update user");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const onResetPassword = async (id: string) => {
+    if (!token) return;
+    const pw = window.prompt("Enter a new password for this user (min 8 characters):");
+    if (!pw) return;
+    if (pw.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    setError(null);
+    try {
+      await api.adminResetPassword(token, id, pw);
+      window.alert("Password updated.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to reset password");
     }
   };
 
@@ -247,14 +272,10 @@ export default function AdminUsersClient() {
                       ) : (
                         <span
                           className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                            user.role === "admin"
-                              ? "bg-purple-100 text-purple-700"
-                              : user.role === "branch_manager"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-gray-100 text-gray-600"
+                            ROLE_BADGE[user.role as Role] ?? "bg-gray-100 text-gray-600"
                           }`}
                         >
-                          {user.role}
+                          {user.role.replace("_", " ")}
                         </span>
                       )}
                     </td>
@@ -298,6 +319,13 @@ export default function AdminUsersClient() {
                               className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline"
                             >
                               Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void onResetPassword(user.id)}
+                              className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline"
+                            >
+                              Reset password
                             </button>
                             <button
                               type="button"

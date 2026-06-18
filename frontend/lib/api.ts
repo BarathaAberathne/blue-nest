@@ -204,6 +204,12 @@ export const api = {
     apiFetch("/api/v1/admin/users", { method: "POST", body: JSON.stringify(body), token }),
   adminUpdateUser: (token: string, id: string, body: unknown) =>
     apiFetch(`/api/v1/admin/users/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminResetPassword: (token: string, id: string, password: string) =>
+    apiFetch(`/api/v1/admin/users/${id}/reset-password`, {
+      method: "POST",
+      body: JSON.stringify({ password }),
+      token,
+    }),
   adminDeleteUser: (token: string, id: string) =>
     apiFetch(`/api/v1/admin/users/${id}`, { method: "DELETE", token }),
 };

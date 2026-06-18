@@ -13,6 +13,7 @@ type contextKey string
 
 const UserIDKey contextKey = "userID"
 const UserRoleKey contextKey = "userRole"
+const UserEmailKey contextKey = "userEmail"
 
 func Auth(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -43,6 +44,7 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 
 			userID, _ := claims["sub"].(string)
 			role, _ := claims["role"].(string)
+			email, _ := claims["email"].(string)
 			if userID == "" || role == "" {
 				response.Unauthorized(w, "invalid token claims")
 				return
@@ -50,29 +52,37 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 
 			ctx := context.WithValue(r.Context(), UserIDKey, userID)
 			ctx = context.WithValue(ctx, UserRoleKey, role)
+			ctx = context.WithValue(ctx, UserEmailKey, email)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-func AdminOnly(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		role, _ := r.Context().Value(UserRoleKey).(string)
-		if role != "admin" && role != "branch_manager" {
-			response.Forbidden(w, "admin access required")
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+// RequireRole returns middleware that allows only the given roles. Centralizing
+// the check here keeps route guards declarative as the role set grows.
+func RequireRole(allowed ...string) func(http.Handler) http.Handler {
+	allowedSet := make(map[string]struct{}, len(allowed))
+	for _, role := range allowed {
+		allowedSet[role] = struct{}{}
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			role, _ := r.Context().Value(UserRoleKey).(string)
+			if _, ok := allowedSet[role]; !ok {
+				response.Forbidden(w, "insufficient permissions")
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
+// AdminOnly permits the management roles (everything above staff/customer).
+func AdminOnly(next http.Handler) http.Handler {
+	return RequireRole("super_admin", "admin", "branch_manager")(next)
+}
+
+// SuperAdminOnly permits only the top-level super admin (account management).
 func SuperAdminOnly(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		role, _ := r.Context().Value(UserRoleKey).(string)
-		if role != "admin" {
-			response.Forbidden(w, "super admin access required")
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+	return RequireRole("super_admin")(next)
 }
