@@ -123,6 +123,9 @@ export const api = {
     token,
   }),
 
+  // Current user
+  getMe: (token: string) => apiFetch<User>("/api/v1/users/me", { token }),
+
   // Orders
   getMyOrders: (token: string) => apiFetch("/api/v1/orders/me", { token }),
   getOrder: (token: string, id: string) => apiFetch(`/api/v1/orders/${id}`, { token }),

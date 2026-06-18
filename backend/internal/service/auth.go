@@ -160,6 +160,7 @@ type AuthService interface {
 	Login(ctx context.Context, req models.LoginRequest) (*models.AuthResponse, error)
 	AdminLogin(ctx context.Context, req models.LoginRequest) (*models.AuthResponse, error)
 	Refresh(ctx context.Context, refreshToken string) (*models.AuthResponse, error)
+	GetUser(ctx context.Context, id string) (*models.User, error)
 	CreateAdminUser(ctx context.Context, req models.AdminCreateUserRequest) (*models.User, error)
 	ListAdminUsers(ctx context.Context) ([]models.User, error)
 	ListAllUsers(ctx context.Context) ([]models.User, error)
@@ -412,6 +413,10 @@ func (s *authService) issueTokenPair(user models.User) (accessToken, refreshToke
 	}
 	refreshToken, err = s.issueToken(user, "refresh", s.refreshTokenExpiry)
 	return
+}
+
+func (s *authService) GetUser(ctx context.Context, id string) (*models.User, error) {
+	return s.users.FindByID(ctx, id)
 }
 
 func (s *authService) issueToken(user models.User, tokenType string, expiry time.Duration) (string, error) {

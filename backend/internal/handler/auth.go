@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/blue-nest-montessori/api/internal/config"
+	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
@@ -100,6 +101,22 @@ func (h *AuthHandler) AdminLogin(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, map[string]string{"message": "logged out"})
+}
+
+// Me returns the currently-authenticated user (used by the OAuth callback to
+// hydrate the client session, since the redirect only carries tokens).
+func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(middleware.UserIDKey).(string)
+	if userID == "" {
+		response.Unauthorized(w, "not authenticated")
+		return
+	}
+	user, err := h.svc.GetUser(r.Context(), userID)
+	if err != nil {
+		response.NotFound(w, "user not found")
+		return
+	}
+	response.OK(w, user)
 }
 
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {

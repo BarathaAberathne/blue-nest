@@ -89,6 +89,9 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtSecret))
 
+			// Current user
+			r.Get("/users/me", authH.Me)
+
 			// Cart
 			cartH := handler.NewCartHandler(svc.Cart)
 			r.Get("/cart", cartH.Get)
