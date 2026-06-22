@@ -4,12 +4,16 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import {
+  Activity,
   BookOpen,
+  ClipboardList,
   ExternalLink,
   Inbox,
   LayoutDashboard,
+  Library,
   LogOut,
   Package,
+  ShoppingBag,
   ShoppingCart,
   Tag,
   Users,
@@ -18,22 +22,27 @@ import { useAuthGuard } from "@/lib/useAuthGuard";
 import { clearAuthSession } from "@/lib/auth";
 
 const NAV_ITEMS = [
-  { label: "Dashboard",  href: "/admin/dashboard",  icon: LayoutDashboard },
-  { label: "Inquiries",  href: "/admin/inquiries",   icon: Inbox           },
-  { label: "Orders",     href: "/admin/orders",      icon: ShoppingCart    },
-  { label: "Products",   href: "/admin/products",    icon: Package         },
-  { label: "Categories", href: "/admin/categories",  icon: Tag             },
-  { label: "Blog",       href: "/admin/blog",        icon: BookOpen        },
-  { label: "Users",      href: "/admin/users",       icon: Users           },
+  { label: "Dashboard",      href: "/admin/dashboard",      icon: LayoutDashboard },
+  { label: "Inquiries",      href: "/admin/inquiries",      icon: Inbox           },
+  { label: "Orders",         href: "/admin/orders",         icon: ShoppingCart    },
+  { label: "Supply Requests", href: "/admin/order-requests", icon: ClipboardList   },
+  { label: "Generated Carts", href: "/admin/purchase-carts", icon: ShoppingBag    },
+  { label: "Catalogue",      href: "/admin/catalogue",      icon: Library         },
+  { label: "Products",       href: "/admin/products",       icon: Package         },
+  { label: "Categories",     href: "/admin/categories",     icon: Tag             },
+  { label: "Blog",           href: "/admin/blog",           icon: BookOpen        },
+  { label: "Activity",       href: "/admin/activity",       icon: Activity        },
+  { label: "Users",          href: "/admin/users",          icon: Users           },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { ready, isAuthenticated, user, hasAnyRole, ensureAuthenticated } = useAuthGuard("/admin/login");
-  const isAdminLike = hasAnyRole(["admin", "branch_manager"]);
+  const isAdminLike = hasAnyRole(["super_admin", "admin", "branch_manager"]);
+  // Account management (Users) is super-admin only.
   const navItems =
-    user?.role === "admin"
+    user?.role === "super_admin"
       ? NAV_ITEMS
       : NAV_ITEMS.filter((item) => item.href !== "/admin/users");
 

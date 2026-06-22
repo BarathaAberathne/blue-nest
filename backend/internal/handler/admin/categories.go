@@ -11,11 +11,12 @@ import (
 )
 
 type AdminCategoryHandler struct {
-	svc service.ProductService
+	svc   service.ProductService
+	audit service.AuditService
 }
 
-func NewAdminCategoryHandler(svc service.ProductService) *AdminCategoryHandler {
-	return &AdminCategoryHandler{svc: svc}
+func NewAdminCategoryHandler(svc service.ProductService, audit service.AuditService) *AdminCategoryHandler {
+	return &AdminCategoryHandler{svc: svc, audit: audit}
 }
 
 func (h *AdminCategoryHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -39,6 +40,8 @@ func (h *AdminCategoryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		response.InternalError(w, err.Error())
 		return
 	}
+	h.audit.Record(r, "create", "category", created.ID.Hex(),
+		"Created category "+created.Name, nil)
 	response.Created(w, created)
 }
 
@@ -55,6 +58,8 @@ func (h *AdminCategoryHandler) Update(w http.ResponseWriter, r *http.Request) {
 		response.InternalError(w, err.Error())
 		return
 	}
+	h.audit.Record(r, "update", "category", id,
+		"Updated category "+updated.Name, nil)
 	response.OK(w, updated)
 }
 
@@ -64,5 +69,6 @@ func (h *AdminCategoryHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		response.InternalError(w, err.Error())
 		return
 	}
+	h.audit.Record(r, "delete", "category", id, "Deleted category", nil)
 	response.NoContent(w)
 }

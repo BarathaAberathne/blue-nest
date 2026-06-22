@@ -12,6 +12,7 @@ import (
 	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/platform/email"
 	mongoPlatform "github.com/blue-nest-montessori/api/internal/platform/mongo"
+	"github.com/blue-nest-montessori/api/internal/platform/sourcing"
 	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/internal/routes"
 	"github.com/blue-nest-montessori/api/internal/service"
@@ -66,6 +67,10 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	commentRepo := repository.NewCommentRepository(db)
 
 	enquiryRepo := repository.NewEnquiryRepository(db)
+	auditRepo := repository.NewAuditLogRepository(db)
+	orderRequestRepo := repository.NewOrderRequestRepository(db)
+	catalogueRepo := repository.NewCatalogueItemRepository(db)
+	purchaseCartRepo := repository.NewPurchaseCartRepository(db)
 	mailer := email.New(email.Config{
 		Host:         cfg.SMTP.Host,
 		Port:         cfg.SMTP.Port,
@@ -78,16 +83,35 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 
 	// Services
 	svc := routes.Services{
-		Auth:      service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays),
-		Products:  service.NewProductService(productRepo),
-		Cart:      service.NewCartService(cartRepo, productRepo),
-		Checkout:  service.NewCheckoutService(orderRepo, cartRepo, productRepo, cfg.Stripe.SecretKey),
-		Orders:    service.NewOrderService(orderRepo),
-		Blog:      service.NewBlogService(blogRepo),
-		Branches:  service.NewBranchService(branchRepo),
-		Enquiries: service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo),
-		Comments:  service.NewCommentService(commentRepo),
+		Auth:          service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays),
+		Products:      service.NewProductService(productRepo),
+		Cart:          service.NewCartService(cartRepo, productRepo),
+		Checkout:      service.NewCheckoutService(orderRepo, cartRepo, productRepo, cfg.Stripe.SecretKey),
+		Orders:        service.NewOrderService(orderRepo),
+		Blog:          service.NewBlogService(blogRepo),
+		Branches:      service.NewBranchService(branchRepo),
+		Enquiries:     service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo),
+		Comments:      service.NewCommentService(commentRepo),
+		Audit:         service.NewAuditService(auditRepo),
+		OrderRequests: service.NewOrderRequestService(orderRequestRepo, userRepo),
+		Catalogue:     service.NewCatalogueService(catalogueRepo),
 	}
+
+	// Sourcing engine: enable supplier adapters per config (off by default; the
+	// catalogue cache is the primary, deterministic source of offers).
+	var sourceAdapters []sourcing.SupplierSearch
+	if cfg.Sourcing.GompelsSearchEnabled {
+		sourceAdapters = append(sourceAdapters, sourcing.NewGompelsAdapter(cfg.Sourcing.GompelsSearchURL))
+	}
+	if cfg.Sourcing.AmazonBusinessEnabled {
+		sourceAdapters = append(sourceAdapters, sourcing.NewAmazonAdapter())
+	}
+	sourcingEngine := sourcing.NewEngine(sourceAdapters...)
+	supplierEmails := map[string]string{
+		"Gompels": cfg.Sourcing.GompelsOrderEmail,
+		"Other":   cfg.Sourcing.OtherOrderEmail,
+	}
+	svc.PurchaseCarts = service.NewPurchaseCartService(purchaseCartRepo, orderRequestRepo, catalogueRepo, sourcingEngine, mailer, supplierEmails)
 
 	r := chi.NewRouter()
 	r.Use(middleware.CORS(cfg.CORS.AllowedOrigins))

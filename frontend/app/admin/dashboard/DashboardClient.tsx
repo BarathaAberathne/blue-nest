@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   BookOpen,
+  ClipboardList,
   Inbox,
   Package,
   PoundSterling,
@@ -14,7 +15,7 @@ import {
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import Badge from "@/components/ui/Badge";
-import type { BlogPost, Enquiry, Order, OrderStatus, Product } from "@/types";
+import type { BlogPost, Enquiry, Order, OrderRequest, OrderStatus, Product } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -99,6 +100,7 @@ export default function DashboardClient() {
   const [products, setProducts] = useState<Product[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [inquiries, setInquiries] = useState<Enquiry[]>([]);
+  const [orderRequests, setOrderRequests] = useState<OrderRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -115,7 +117,8 @@ export default function DashboardClient() {
       api.adminGetProducts(token),
       api.adminGetBlogPosts(token),
       api.adminGetEnquiries(token),
-    ]).then(([ordersRes, productsRes, postsRes, inquiriesRes]) => {
+      api.adminGetOrderRequests(token),
+    ]).then(([ordersRes, productsRes, postsRes, inquiriesRes, orderReqRes]) => {
       if (ordersRes.status === "fulfilled")
         setOrders((ordersRes.value as Order[]) ?? []);
       if (productsRes.status === "fulfilled")
@@ -124,11 +127,14 @@ export default function DashboardClient() {
         setPosts((postsRes.value as BlogPost[]) ?? []);
       if (inquiriesRes.status === "fulfilled")
         setInquiries((inquiriesRes.value as Enquiry[]) ?? []);
+      if (orderReqRes.status === "fulfilled")
+        setOrderRequests((orderReqRes.value as OrderRequest[]) ?? []);
       setLoading(false);
     });
   }, []);
 
   const newInquiries = inquiries.filter((e) => e.status === "new");
+  const pendingRequests = orderRequests.filter((r) => r.status === "pending");
 
   const paidOrders = orders.filter(
     (o) => o.status === "paid" || o.status === "delivered" || o.status === "shipped",
@@ -153,6 +159,15 @@ export default function DashboardClient() {
       color: "#2563eb",
       bg: "rgba(37,99,235,0.10)",
       href: "/admin/inquiries",
+    },
+    {
+      label: "Pending Requests",
+      value: String(pendingRequests.length),
+      sub: `${orderRequests.length} supply requests total`,
+      icon: ClipboardList,
+      color: "#db2777",
+      bg: "rgba(219,39,119,0.10)",
+      href: "/admin/order-requests",
     },
     {
       label: "Total Orders",

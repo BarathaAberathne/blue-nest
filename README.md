@@ -1,6 +1,8 @@
 # Blue Nest Montessori — Platform
 
-Production-ready monorepo for the Blue Nest Montessori school website: a pastel-design public marketing site, parent-facing eCommerce store, blog, contact/enquiry system, and admin dashboard. Supports four branches (Harrow, Borehamwood, Pinner, Northwood).
+Production-ready monorepo for the Blue Nest Montessori school website: a pastel-design public marketing site, parent-facing eCommerce store, blog, contact/enquiry system, and an admin dashboard being grown into a full nursery-management system. Supports four branches (Harrow, Borehamwood, Pinner, Northwood).
+
+The management layer uses a five-tier role hierarchy — `super_admin` > `admin` > `branch_manager` > `staff` > `customer`. Super-admins manage all accounts and passwords; an append-only **activity/audit log** records every admin mutation; and **staff supply requests** let practitioners submit the items they need for management to order (the foundation for inventory).
 
 ---
 
@@ -333,12 +335,18 @@ Base URL: `http://localhost:8080`
 | Comments | `GET /blog/posts/:slug/comments`, `POST /blog/posts/:slug/comments` |
 | Branches | `GET /branches`, `GET /branches/:slug` |
 | Contact | `POST /contact` |
+| Order requests (staff) | `POST /order-requests`, `GET /order-requests/me`, `GET /order-requests/:id`, `PATCH /order-requests/:id/cancel` |
+| Catalogue (staff read) | `GET /catalogue` |
 | Admin — Orders | `GET /admin/orders`, `PATCH /admin/orders/:id` |
 | Admin — Products | `GET/POST/PUT/DELETE /admin/products/:id` |
 | Admin — Categories | `GET/POST/PUT/DELETE /admin/categories/:id` |
 | Admin — Blog | `GET/POST/PUT/DELETE /admin/blog/posts/:id` |
-| Admin — Users | `GET /admin/users`, `PATCH /admin/users/:id` |
-| Admin — Enquiries | `GET /admin/enquiries` |
+| Admin — Users | `GET /admin/users`, `POST /admin/users`, `PUT /admin/users/:id`, `POST /admin/users/:id/reset-password`, `DELETE /admin/users/:id` (super-admin) |
+| Admin — Enquiries | `GET /admin/enquiries`, `PATCH /admin/enquiries/:id/status` |
+| Admin — Order requests | `GET /admin/order-requests`, `GET /admin/order-requests/:id`, `PATCH /admin/order-requests/:id/status` |
+| Admin — Catalogue | `GET/POST /admin/catalogue`, `GET/PUT/DELETE /admin/catalogue/:id` |
+| Admin — Purchase carts | `POST /admin/purchase-carts/generate`, `GET /admin/purchase-carts[/:id]`, `PUT /admin/purchase-carts/:id`, `POST /admin/purchase-carts/:id/send` |
+| Admin — Activity (audit log) | `GET /admin/audit-logs` |
 
 See [docs/api.md](docs/api.md) for full request/response contracts.
 
