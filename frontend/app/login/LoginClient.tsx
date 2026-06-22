@@ -11,6 +11,13 @@ import type { AuthResponse, UserRole } from "@/types";
 const isAdminRole = (role: UserRole) =>
   role === "super_admin" || role === "admin" || role === "branch_manager";
 
+// Where a user lands after signing in, by role.
+const landingFor = (role: UserRole, fallback: string) => {
+  if (isAdminRole(role)) return "/admin/dashboard";
+  if (role === "staff") return "/order-requests";
+  return fallback;
+};
+
 export default function LoginClient() {
   const router = useRouter();
   const [next, setNext] = useState("/account");
@@ -38,8 +45,8 @@ export default function LoginClient() {
     try {
       const auth = await api.login({ email, password }) as AuthResponse;
       setAuthSession(auth.access_token, auth.user);
-      // Staff signing in here still belong in the admin area, not /account.
-      router.push(isAdminRole(auth.user.role) ? "/admin/dashboard" : next);
+      // Route by role: management → admin, staff → supply requests, parents → next.
+      router.push(landingFor(auth.user.role, next));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in");
     } finally {

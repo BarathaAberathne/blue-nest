@@ -50,8 +50,37 @@ methods + `getAccessToken()`.
 ## Modules (current)
 Store (products/categories/cart/checkout/orders), Blog, Branches, Contact/**Enquiries** (inquiry
 tracker at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Area (4 games).
-Planned: **audit log**, **order/supply requests** (staff request items; management reviews + CSV),
-then inventory/HR.
+- **Audit log** (`models/audit_log.go`, collection `audit_logs`): append-only record of admin
+  mutations. `service.AuditService.Record(r, action, entityType, entityID, summary, details)` is
+  called from admin handlers after a successful mutation (best-effort — never blocks the operation;
+  pulls actor id/email/role from the JWT context + client IP). Viewable by **all** management roles
+  at `/admin/activity` (`GET /admin/audit-logs`, filters: `actor`, `entity_type`, `action`, `limit`).
+- **Order/supply requests** (`models/order_request.go`, collection `order_requests`): staff submit
+  a list of items they need (name, supplier=Gompels|Amazon|Other, qty, notes, optional
+  `catalogue_item_id`) at `/order-requests`; they can also **cancel** their own pending requests
+  (`PATCH /order-requests/{id}/cancel`). Management reviews the aggregated list at
+  `/admin/order-requests` (labelled **Supply Requests**), filters, exports the buy-list CSV, and
+  moves status pending→ordered→received (or cancelled). Staff routes under `Auth` +
+  `RequireRole(super_admin,admin,branch_manager,staff)` (customers excluded); admin routes under `AdminOnly`.
+- **Catalogue** (`models/catalogue_item.go`, collection `catalogue_items`): known products with
+  per-supplier offers (`{supplier, code/ASIN, pack_size, price, price_per_unit}`). It's the
+  cache + curation layer the sourcing engine writes to. Admin CRUD at `/admin/catalogue`
+  (`AdminOnly`); staff read-only at `GET /catalogue` (for the request picker / datalist).
+- **Order creation tool** (`models/purchase_cart.go`, collection `purchase_carts`): admin selects
+  supply requests on `/admin/order-requests` → **Generate cart** → the **sourcing engine**
+  (`internal/platform/sourcing`) finds the best & cheapest offer per item (catalogue cache first,
+  then live supplier search), aggregates + splits by supplier into draft carts at
+  `/admin/purchase-carts` (**Generated Carts**). Admin reviews/overrides lines + recipient on the
+  detail page, then **Send** emails the order (HTML table + CSV attachment via
+  `Mailer.SendWithAttachments`) to the supplier and flips covered requests to `ordered`.
+  Routes (`AdminOnly`): `POST /admin/purchase-carts/generate`, `GET /admin/purchase-carts[/{id}]`,
+  `PUT /admin/purchase-carts/{id}`, `POST /admin/purchase-carts/{id}/send`. Sourcing adapters:
+  `GompelsAdapter` (HTML scrape, best-effort, off unless `GOMPELS_SEARCH_ENABLED=true`),
+  `AmazonAdapter` (stub, gated by `AMAZON_BUSINESS_ENABLED`; Amazon Business API is a later phase).
+  Env: `GOMPELS_ORDER_EMAIL`, `SUPPLIES_ORDER_EMAIL`, `GOMPELS_SEARCH_ENABLED`, `GOMPELS_SEARCH_URL`,
+  `AMAZON_BUSINESS_ENABLED`.
+
+Planned next: Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 
 ## Dev / staging / prod workflow
 Branch model: **feature → staging → main**. `staging` is the pre-prod QA branch; `main` is prod.

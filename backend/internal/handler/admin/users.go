@@ -12,11 +12,12 @@ import (
 )
 
 type AdminUserHandler struct {
-	auth service.AuthService
+	auth  service.AuthService
+	audit service.AuditService
 }
 
-func NewAdminUserHandler(auth service.AuthService) *AdminUserHandler {
-	return &AdminUserHandler{auth: auth}
+func NewAdminUserHandler(auth service.AuthService, audit service.AuditService) *AdminUserHandler {
+	return &AdminUserHandler{auth: auth, audit: audit}
 }
 
 func (h *AdminUserHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -46,6 +47,8 @@ func (h *AdminUserHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.audit.Record(r, "create", "user", created.ID.Hex(),
+		"Created user "+created.Email+" ("+string(created.Role)+")", nil)
 	response.Created(w, created)
 }
 
@@ -75,6 +78,8 @@ func (h *AdminUserHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.audit.Record(r, "update", "user", id,
+		"Updated user "+updated.Email, map[string]interface{}{"role": string(updated.Role)})
 	response.OK(w, updated)
 }
 
@@ -96,6 +101,7 @@ func (h *AdminUserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.audit.Record(r, "delete", "user", id, "Deleted user", nil)
 	response.OK(w, map[string]string{"message": "user deleted"})
 }
 
@@ -117,5 +123,6 @@ func (h *AdminUserHandler) ResetPassword(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	h.audit.Record(r, "reset_password", "user", id, "Reset user password", nil)
 	response.OK(w, map[string]string{"message": "password updated"})
 }

@@ -10,11 +10,12 @@ import (
 )
 
 type AdminEnquiryHandler struct {
-	svc service.EnquiryService
+	svc   service.EnquiryService
+	audit service.AuditService
 }
 
-func NewAdminEnquiryHandler(svc service.EnquiryService) *AdminEnquiryHandler {
-	return &AdminEnquiryHandler{svc: svc}
+func NewAdminEnquiryHandler(svc service.EnquiryService, audit service.AuditService) *AdminEnquiryHandler {
+	return &AdminEnquiryHandler{svc: svc, audit: audit}
 }
 
 func (h *AdminEnquiryHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -51,5 +52,7 @@ func (h *AdminEnquiryHandler) UpdateStatus(w http.ResponseWriter, r *http.Reques
 		response.InternalError(w, "failed to update status")
 		return
 	}
+	h.audit.Record(r, "update_status", "enquiry", id,
+		"Set enquiry status to "+body.Status, map[string]interface{}{"status": body.Status})
 	response.OK(w, map[string]string{"status": body.Status})
 }

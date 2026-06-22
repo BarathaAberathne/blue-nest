@@ -225,3 +225,97 @@ export interface Enquiry {
   status: EnquiryStatus;
   created_at: string;
 }
+
+// ── Audit log (admin activity) ──────────────────────────────────────────────────
+export interface AuditLog {
+  id: string;
+  actor_id: string;
+  actor_email: string;
+  actor_role: string;
+  action: string;
+  entity_type: string;
+  entity_id?: string;
+  summary: string;
+  details?: Record<string, unknown>;
+  ip_address?: string;
+  created_at: string;
+}
+
+// ── Order / supply requests ─────────────────────────────────────────────────────
+export type OrderRequestStatus = "pending" | "ordered" | "received" | "cancelled";
+
+export interface OrderRequestItem {
+  item_name: string;
+  supplier: string; // Gompels | Amazon | Other
+  qty: number;
+  notes?: string;
+  catalogue_item_id?: string;
+}
+
+// ── Catalogue (sourcing cache / curation) ───────────────────────────────────────
+export interface CatalogueOffer {
+  supplier: string; // Gompels | Amazon | Other
+  code: string; // Gompels SKU or Amazon ASIN
+  offer_id?: string;
+  pack_size?: string;
+  unit?: string;
+  price: number; // pence
+  price_per_unit?: number; // pence
+  source_url?: string;
+  last_seen_at?: string;
+}
+
+export interface CatalogueItem {
+  id: string;
+  name: string;
+  category?: string;
+  offers: CatalogueOffer[];
+  aliases?: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ── Purchase carts (generated supplier orders) ──────────────────────────────────
+export type PurchaseCartStatus = "draft" | "sent" | "failed";
+
+export interface PurchaseCartLine {
+  catalogue_item_id?: string;
+  name: string;
+  code?: string;
+  pack_size?: string;
+  qty: number;
+  unit_price: number; // pence
+  line_total: number; // pence
+  matched: boolean;
+  source_request_ids?: string[];
+}
+
+export interface PurchaseCart {
+  id: string;
+  supplier: string;
+  status: PurchaseCartStatus;
+  recipient_email?: string;
+  lines: PurchaseCartLine[];
+  subtotal: number; // pence
+  source_request_ids: string[];
+  generated_by?: string;
+  sent_at?: string;
+  email_ref?: string;
+  error?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderRequest {
+  id: string;
+  user_id: string;
+  requested_by_name: string;
+  requested_by_email: string;
+  branch_slug: string;
+  items: OrderRequestItem[];
+  status: OrderRequestStatus;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}

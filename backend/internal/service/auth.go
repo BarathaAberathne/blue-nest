@@ -311,7 +311,10 @@ func (s *authService) loginWithRoleGuard(ctx context.Context, req models.LoginRe
 			}
 		}
 		if !allowed {
-			return nil, errors.New("admin credentials required")
+			// The credentials were valid, but this account isn't a management
+			// role. Make that explicit so staff/parents who land on the admin
+			// login don't think their password is wrong.
+			return nil, errors.New("this account doesn't have admin access — staff and parents sign in at the main login page")
 		}
 	}
 
