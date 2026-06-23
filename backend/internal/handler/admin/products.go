@@ -13,11 +13,12 @@ import (
 )
 
 type AdminProductHandler struct {
-	svc service.ProductService
+	svc   service.ProductService
+	audit service.AuditService
 }
 
-func NewAdminProductHandler(svc service.ProductService) *AdminProductHandler {
-	return &AdminProductHandler{svc: svc}
+func NewAdminProductHandler(svc service.ProductService, audit service.AuditService) *AdminProductHandler {
+	return &AdminProductHandler{svc: svc, audit: audit}
 }
 
 func (h *AdminProductHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -71,6 +72,8 @@ func (h *AdminProductHandler) ImportCSV(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	h.audit.Record(r, "import", "product", "",
+		"Imported products from CSV", map[string]interface{}{"summary": summary})
 	response.OK(w, summary)
 }
 
@@ -85,6 +88,8 @@ func (h *AdminProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 		response.InternalError(w, err.Error())
 		return
 	}
+	h.audit.Record(r, "create", "product", created.ID.Hex(),
+		"Created product "+created.Name, nil)
 	response.Created(w, created)
 }
 
@@ -100,6 +105,8 @@ func (h *AdminProductHandler) Update(w http.ResponseWriter, r *http.Request) {
 		response.InternalError(w, err.Error())
 		return
 	}
+	h.audit.Record(r, "update", "product", id,
+		"Updated product "+updated.Name, nil)
 	response.OK(w, updated)
 }
 
@@ -109,5 +116,6 @@ func (h *AdminProductHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		response.InternalError(w, err.Error())
 		return
 	}
+	h.audit.Record(r, "delete", "product", id, "Deleted product", nil)
 	response.NoContent(w)
 }

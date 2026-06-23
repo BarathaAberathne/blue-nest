@@ -17,7 +17,18 @@ type Config struct {
 	Stripe      StripeConfig
 	CORS        CORSConfig
 	SMTP        SMTPConfig
+	Sourcing    SourcingConfig
 	FrontendURL string
+}
+
+// SourcingConfig drives the order-creation tool: per-supplier default order
+// recipients and the live-search feature flags.
+type SourcingConfig struct {
+	GompelsOrderEmail     string
+	OtherOrderEmail       string
+	GompelsSearchEnabled  bool
+	GompelsSearchURL      string
+	AmazonBusinessEnabled bool
 }
 
 type AppConfig struct {
@@ -123,6 +134,13 @@ func Load() *Config {
 			From:         getEnv("SMTP_FROM", "noreply@bluenest.uk"),
 			AdminTo:      getEnv("SMTP_ADMIN_TO", "ba@bluenest.com"),
 			ResendAPIKey: getEnv("RESEND_API_KEY", ""),
+		},
+		Sourcing: SourcingConfig{
+			GompelsOrderEmail:     getEnv("GOMPELS_ORDER_EMAIL", ""),
+			OtherOrderEmail:       getEnv("SUPPLIES_ORDER_EMAIL", ""),
+			GompelsSearchEnabled:  strings.EqualFold(getEnv("GOMPELS_SEARCH_ENABLED", "false"), "true"),
+			GompelsSearchURL:      getEnv("GOMPELS_SEARCH_URL", ""),
+			AmazonBusinessEnabled: strings.EqualFold(getEnv("AMAZON_BUSINESS_ENABLED", "false"), "true"),
 		},
 	}
 }

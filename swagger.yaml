@@ -40,6 +40,10 @@ tags:
     description: Order checkout and payment
   - name: Orders
     description: Order management
+  - name: Order Requests
+    description: Staff supply requests (foundation for inventory)
+  - name: Order Creation
+    description: Catalogue, sourcing, and generated supplier carts (order creation tool)
   - name: Admin
     description: Administrative operations (admin only)
   - name: Webhooks
@@ -948,6 +952,355 @@ paths:
                 $ref: '#/components/schemas/BlogPost'
         '404':
           description: Blog post not found
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Admin - Users (super-admin account management)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: List all users (super-admin)
+      operationId: adminListUsers
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: List of users }
+        '403': { description: Super-admin only }
+    post:
+      tags: [Admin]
+      summary: Create a user (super-admin)
+      operationId: adminCreateUser
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, first_name, last_name, role]
+              properties:
+                email: { type: string }
+                password: { type: string, minLength: 8 }
+                first_name: { type: string }
+                last_name: { type: string }
+                role:
+                  type: string
+                  enum: [super_admin, admin, branch_manager, staff, customer]
+      responses:
+        '201': { description: User created }
+        '400': { description: Invalid input }
+
+  /admin/users/{id}:
+    put:
+      tags: [Admin]
+      summary: Update a user (super-admin). Optional password field also resets the password.
+      operationId: adminUpdateUser
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                first_name: { type: string }
+                last_name: { type: string }
+                role:
+                  type: string
+                  enum: [super_admin, admin, branch_manager, staff, customer]
+                password: { type: string, minLength: 8 }
+      responses:
+        '200': { description: User updated }
+        '400': { description: Invalid input or self-demotion blocked }
+    delete:
+      tags: [Admin]
+      summary: Delete a user (super-admin). Cannot delete your own account.
+      operationId: adminDeleteUser
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: User deleted }
+        '400': { description: Self-delete blocked }
+
+  /admin/users/{id}/reset-password:
+    post:
+      tags: [Admin]
+      summary: Reset a user's password (super-admin)
+      operationId: adminResetPassword
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, minLength: 8 }
+      responses:
+        '200': { description: Password updated }
+        '400': { description: Invalid password }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Admin - Activity (audit log)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/audit-logs:
+    get:
+      tags: [Admin]
+      summary: List admin activity (audit log)
+      description: Append-only record of admin mutations. Visible to all management roles.
+      operationId: adminListAuditLogs
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: actor, in: query, required: false, schema: { type: string } }
+        - { name: entity_type, in: query, required: false, schema: { type: string } }
+        - { name: action, in: query, required: false, schema: { type: string } }
+        - { name: limit, in: query, required: false, schema: { type: integer, default: 200 } }
+      responses:
+        '200': { description: List of audit log entries }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Order requests (staff supply requests)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /order-requests:
+    post:
+      tags: [Order Requests]
+      summary: Submit a supply request (staff + management)
+      operationId: createOrderRequest
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                branch_slug: { type: string }
+                notes: { type: string }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [item_name, qty]
+                    properties:
+                      item_name: { type: string }
+                      supplier: { type: string, enum: [Gompels, Amazon, Other] }
+                      qty: { type: integer, minimum: 1 }
+                      notes: { type: string }
+      responses:
+        '201': { description: Request submitted }
+        '400': { description: No items / invalid input }
+        '403': { description: Customers cannot submit requests }
+
+  /order-requests/me:
+    get:
+      tags: [Order Requests]
+      summary: List my supply requests
+      operationId: listMyOrderRequests
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: List of the caller's requests }
+
+  /order-requests/{id}:
+    get:
+      tags: [Order Requests]
+      summary: Get one of my supply requests (own-only)
+      operationId: getOrderRequest
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: The request }
+        '403': { description: Not your request }
+        '404': { description: Not found }
+
+  /admin/order-requests:
+    get:
+      tags: [Admin]
+      summary: List all supply requests (management)
+      operationId: adminListOrderRequests
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: List of all requests }
+
+  /admin/order-requests/{id}:
+    get:
+      tags: [Admin]
+      summary: Get any supply request (management)
+      operationId: adminGetOrderRequest
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: The request }
+        '404': { description: Not found }
+
+  /admin/order-requests/{id}/status:
+    patch:
+      tags: [Admin]
+      summary: Update supply request status (management). Audit-logged.
+      operationId: adminUpdateOrderRequestStatus
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [pending, ordered, received, cancelled]
+      responses:
+        '200': { description: Status updated }
+        '400': { description: Invalid status }
+
+  /order-requests/{id}/cancel:
+    patch:
+      tags: [Order Requests]
+      summary: Cancel your own pending supply request
+      operationId: cancelOrderRequest
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        '200': { description: Request cancelled }
+        '400': { description: Not pending / not your request }
+
+  /catalogue:
+    get:
+      tags: [Order Creation]
+      summary: List active catalogue items (staff read-only picker)
+      operationId: listCatalogue
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: Active catalogue items }
+
+  /admin/catalogue:
+    get:
+      tags: [Admin]
+      summary: List catalogue items
+      operationId: adminListCatalogue
+      security: [{ BearerAuth: [] }]
+      responses: { '200': { description: Catalogue items } }
+    post:
+      tags: [Admin]
+      summary: Create a catalogue item
+      operationId: adminCreateCatalogueItem
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                category: { type: string }
+                is_active: { type: boolean }
+                offers:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      supplier: { type: string, enum: [Gompels, Amazon, Other] }
+                      code: { type: string }
+                      pack_size: { type: string }
+                      price: { type: integer, description: pence }
+      responses: { '201': { description: Created }, '400': { description: Invalid } }
+
+  /admin/catalogue/{id}:
+    put:
+      tags: [Admin]
+      summary: Update a catalogue item
+      operationId: adminUpdateCatalogueItem
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: Updated } }
+    delete:
+      tags: [Admin]
+      summary: Delete a catalogue item
+      operationId: adminDeleteCatalogueItem
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { '204': { description: Deleted } }
+
+  /admin/purchase-carts/generate:
+    post:
+      tags: [Order Creation]
+      summary: Generate per-supplier carts from selected supply requests
+      description: Sources the best & cheapest offer per item, aggregates, and splits by supplier into draft carts.
+      operationId: generatePurchaseCarts
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [request_ids]
+              properties:
+                request_ids: { type: array, items: { type: string } }
+      responses: { '201': { description: Draft carts created }, '400': { description: No requests selected } }
+
+  /admin/purchase-carts:
+    get:
+      tags: [Order Creation]
+      summary: List generated carts
+      operationId: adminListPurchaseCarts
+      security: [{ BearerAuth: [] }]
+      responses: { '200': { description: Carts } }
+
+  /admin/purchase-carts/{id}:
+    get:
+      tags: [Order Creation]
+      summary: Get a generated cart
+      operationId: adminGetPurchaseCart
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: Cart }, '404': { description: Not found } }
+    put:
+      tags: [Order Creation]
+      summary: Edit a draft cart (override lines + recipient)
+      operationId: adminUpdatePurchaseCart
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipient_email: { type: string }
+                lines: { type: array, items: { type: object } }
+      responses: { '200': { description: Updated }, '400': { description: Sent carts cannot be edited } }
+
+  /admin/purchase-carts/{id}/send:
+    post:
+      tags: [Order Creation]
+      summary: Email the cart to the supplier; mark covered requests ordered
+      operationId: sendPurchaseCart
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipient_email: { type: string, description: optional override }
+      responses: { '200': { description: Sent }, '400': { description: No recipient / already sent } }
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Webhooks

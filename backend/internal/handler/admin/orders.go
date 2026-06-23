@@ -10,11 +10,12 @@ import (
 )
 
 type AdminOrderHandler struct {
-	svc service.OrderService
+	svc   service.OrderService
+	audit service.AuditService
 }
 
-func NewAdminOrderHandler(svc service.OrderService) *AdminOrderHandler {
-	return &AdminOrderHandler{svc: svc}
+func NewAdminOrderHandler(svc service.OrderService, audit service.AuditService) *AdminOrderHandler {
+	return &AdminOrderHandler{svc: svc, audit: audit}
 }
 
 func (h *AdminOrderHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -49,5 +50,7 @@ func (h *AdminOrderHandler) UpdateStatus(w http.ResponseWriter, r *http.Request)
 		response.InternalError(w, err.Error())
 		return
 	}
+	h.audit.Record(r, "update_status", "order", id,
+		"Set order status to "+body.Status, map[string]interface{}{"status": body.Status})
 	response.OK(w, map[string]string{"message": "status updated"})
 }

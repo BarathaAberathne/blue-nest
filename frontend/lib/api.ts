@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { Enquiry, User } from "@/types";
+import type { AuditLog, CatalogueItem, Enquiry, OrderRequest, PurchaseCart, User } from "@/types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -204,6 +204,81 @@ export const api = {
     apiFetch("/api/v1/admin/users", { method: "POST", body: JSON.stringify(body), token }),
   adminUpdateUser: (token: string, id: string, body: unknown) =>
     apiFetch(`/api/v1/admin/users/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminResetPassword: (token: string, id: string, password: string) =>
+    apiFetch(`/api/v1/admin/users/${id}/reset-password`, {
+      method: "POST",
+      body: JSON.stringify({ password }),
+      token,
+    }),
   adminDeleteUser: (token: string, id: string) =>
     apiFetch(`/api/v1/admin/users/${id}`, { method: "DELETE", token }),
+
+  // Audit log (admin activity)
+  adminGetAuditLogs: (token: string, params?: { actor?: string; entity_type?: string; action?: string; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.actor) qs.set("actor", params.actor);
+    if (params?.entity_type) qs.set("entity_type", params.entity_type);
+    if (params?.action) qs.set("action", params.action);
+    if (params?.limit) qs.set("limit", String(params.limit));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return apiFetch<AuditLog[]>(`/api/v1/admin/audit-logs${suffix}`, { token });
+  },
+
+  // Order / supply requests — staff
+  createOrderRequest: (token: string, body: unknown) =>
+    apiFetch<OrderRequest>("/api/v1/order-requests", { method: "POST", body: JSON.stringify(body), token }),
+  getMyOrderRequests: (token: string) =>
+    apiFetch<OrderRequest[]>("/api/v1/order-requests/me", { token }),
+  getOrderRequest: (token: string, id: string) =>
+    apiFetch<OrderRequest>(`/api/v1/order-requests/${id}`, { token }),
+  cancelOrderRequest: (token: string, id: string) =>
+    apiFetch<OrderRequest>(`/api/v1/order-requests/${id}/cancel`, { method: "PATCH", token }),
+
+  // Order / supply requests — admin
+  adminGetOrderRequests: (token: string) =>
+    apiFetch<OrderRequest[]>("/api/v1/admin/order-requests", { token }),
+  adminGetOrderRequest: (token: string, id: string) =>
+    apiFetch<OrderRequest>(`/api/v1/admin/order-requests/${id}`, { token }),
+  adminUpdateOrderRequestStatus: (token: string, id: string, status: string) =>
+    apiFetch(`/api/v1/admin/order-requests/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+      token,
+    }),
+
+  // Catalogue (staff read-only picker)
+  getCatalogue: (token: string) =>
+    apiFetch<CatalogueItem[]>("/api/v1/catalogue", { token }),
+
+  // Catalogue (admin)
+  adminGetCatalogue: (token: string) =>
+    apiFetch<CatalogueItem[]>("/api/v1/admin/catalogue", { token }),
+  adminGetCatalogueItem: (token: string, id: string) =>
+    apiFetch<CatalogueItem>(`/api/v1/admin/catalogue/${id}`, { token }),
+  adminCreateCatalogueItem: (token: string, body: unknown) =>
+    apiFetch<CatalogueItem>("/api/v1/admin/catalogue", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateCatalogueItem: (token: string, id: string, body: unknown) =>
+    apiFetch<CatalogueItem>(`/api/v1/admin/catalogue/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminDeleteCatalogueItem: (token: string, id: string) =>
+    apiFetch(`/api/v1/admin/catalogue/${id}`, { method: "DELETE", token }),
+
+  // Purchase carts (generated supplier orders)
+  adminGenerateCart: (token: string, requestIds: string[]) =>
+    apiFetch<PurchaseCart[]>("/api/v1/admin/purchase-carts/generate", {
+      method: "POST",
+      body: JSON.stringify({ request_ids: requestIds }),
+      token,
+    }),
+  adminGetPurchaseCarts: (token: string) =>
+    apiFetch<PurchaseCart[]>("/api/v1/admin/purchase-carts", { token }),
+  adminGetPurchaseCart: (token: string, id: string) =>
+    apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}`, { token }),
+  adminUpdatePurchaseCart: (token: string, id: string, body: unknown) =>
+    apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminSendPurchaseCart: (token: string, id: string, recipientEmail?: string) =>
+    apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}/send`, {
+      method: "POST",
+      body: JSON.stringify({ recipient_email: recipientEmail ?? "" }),
+      token,
+    }),
 };

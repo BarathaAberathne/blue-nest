@@ -17,11 +17,12 @@ import (
 )
 
 type AdminBlogHandler struct {
-	svc service.BlogService
+	svc   service.BlogService
+	audit service.AuditService
 }
 
-func NewAdminBlogHandler(svc service.BlogService) *AdminBlogHandler {
-	return &AdminBlogHandler{svc: svc}
+func NewAdminBlogHandler(svc service.BlogService, audit service.AuditService) *AdminBlogHandler {
+	return &AdminBlogHandler{svc: svc, audit: audit}
 }
 
 func (h *AdminBlogHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -44,6 +45,8 @@ func (h *AdminBlogHandler) Create(w http.ResponseWriter, r *http.Request) {
 		response.InternalError(w, err.Error())
 		return
 	}
+	h.audit.Record(r, "create", "blog_post", created.ID.Hex(),
+		"Created blog post "+created.Title, nil)
 	response.Created(w, created)
 }
 
@@ -59,6 +62,8 @@ func (h *AdminBlogHandler) Update(w http.ResponseWriter, r *http.Request) {
 		response.InternalError(w, err.Error())
 		return
 	}
+	h.audit.Record(r, "update", "blog_post", id,
+		"Updated blog post "+updated.Title, nil)
 	response.OK(w, updated)
 }
 
@@ -68,6 +73,7 @@ func (h *AdminBlogHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		response.InternalError(w, err.Error())
 		return
 	}
+	h.audit.Record(r, "delete", "blog_post", id, "Deleted blog post", nil)
 	response.NoContent(w)
 }
 

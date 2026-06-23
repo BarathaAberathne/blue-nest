@@ -3,6 +3,7 @@ package admin
 import (
 	"net/http"
 
+	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
@@ -11,11 +12,12 @@ import (
 )
 
 type AdminUserHandler struct {
-	auth service.AuthService
+	auth  service.AuthService
+	audit service.AuditService
 }
 
-func NewAdminUserHandler(auth service.AuthService) *AdminUserHandler {
-	return &AdminUserHandler{auth: auth}
+func NewAdminUserHandler(auth service.AuthService, audit service.AuditService) *AdminUserHandler {
+	return &AdminUserHandler{auth: auth, audit: audit}
 }
 
 func (h *AdminUserHandler) List(w http.ResponseWriter, r *http.Request) {
@@ -45,6 +47,8 @@ func (h *AdminUserHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.audit.Record(r, "create", "user", created.ID.Hex(),
+		"Created user "+created.Email+" ("+string(created.Role)+")", nil)
 	response.Created(w, created)
 }
 
@@ -61,12 +65,21 @@ func (h *AdminUserHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Lockout guard: a super-admin can't demote their own account out of super_admin.
+	if actorID, _ := r.Context().Value(middleware.UserIDKey).(string); actorID == id &&
+		req.Role != "" && req.Role != models.RoleSuperAdmin {
+		response.BadRequest(w, "you cannot change your own role")
+		return
+	}
+
 	updated, err := h.auth.UpdateUser(r.Context(), id, req)
 	if err != nil {
 		response.InternalError(w, err.Error())
 		return
 	}
 
+	h.audit.Record(r, "update", "user", id,
+		"Updated user "+updated.Email, map[string]interface{}{"role": string(updated.Role)})
 	response.OK(w, updated)
 }
 
@@ -77,10 +90,39 @@ func (h *AdminUserHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Lockout guard: don't let a super-admin delete their own account.
+	if actorID, _ := r.Context().Value(middleware.UserIDKey).(string); actorID == id {
+		response.BadRequest(w, "you cannot delete your own account")
+		return
+	}
+
 	if err := h.auth.DeleteUser(r.Context(), id); err != nil {
 		response.InternalError(w, err.Error())
 		return
 	}
 
+	h.audit.Record(r, "delete", "user", id, "Deleted user", nil)
 	response.OK(w, map[string]string{"message": "user deleted"})
+}
+
+func (h *AdminUserHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		response.BadRequest(w, "missing user id")
+		return
+	}
+
+	var req models.AdminResetPasswordRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+
+	if err := h.auth.ResetPassword(r.Context(), id, req.Password); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+
+	h.audit.Record(r, "reset_password", "user", id, "Reset user password", nil)
+	response.OK(w, map[string]string{"message": "password updated"})
 }
