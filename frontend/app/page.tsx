@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Script from "next/script";
+import { faqPageJsonLd, generalFaqs } from "@/lib/faq";
 import PublicLayout from "@/components/layout/PublicLayout";
 import HeroSection          from "@/components/sections/HeroSection";
 import QuickInfoStrip       from "@/components/sections/QuickInfoStrip";
@@ -25,54 +25,17 @@ export const metadata: Metadata = {
   },
 };
 
-const organizationJsonLd = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": ["LocalBusiness", "ChildCare"],
-      "@id": "https://bluenest.uk/#organization",
-      name: "Blue Nest Montessori School",
-      url: "https://bluenest.uk",
-      logo: "https://bluenest.uk/home/logo_new.png",
-      image: "https://bluenest.uk/home/branches/harrow/harrow-home-hero.jpg",
-      description:
-        "Award-winning Montessori nursery for children aged 3 months to 5 years in Harrow, Pinner and Borehamwood. Ofsted Good provider with government funding available.",
-      telephone: "02088615574",
-      email: "manager@bluenest.uk",
-      priceRange: "££",
-      openingHours: "Mo-Fr 07:30-18:00",
-      address: {
-        "@type": "PostalAddress",
-        streetAddress: "29 Churchfield Close",
-        addressLocality: "Harrow",
-        postalCode: "HA2 6BD",
-        addressCountry: "GB",
-      },
-      geo: {
-        "@type": "GeoCoordinates",
-        latitude: 51.5795,
-        longitude: -0.3668,
-      },
-      areaServed: [
-        { "@type": "City", name: "Harrow" },
-        { "@type": "City", name: "Pinner" },
-        { "@type": "City", name: "Borehamwood" },
-      ],
-      award: "Montessori School of the Year 2019–2025 (London Prestige Awards)",
-      sameAs: [
-        "https://www.yell.com/biz/blue-nest-montessori-school-harrow-341644/",
-      ],
-    },
-  ],
-};
+// The organisation/LocalBusiness entity lives sitewide in app/layout.tsx (a
+// single canonical #organization node). The homepage instead carries FAQ
+// structured data — one of the most-cited formats by AI engines and Google.
+const faqJsonLd = faqPageJsonLd(generalFaqs);
 
 export default function HomePage() {
   return (
     <PublicLayout>
-      <Script
-        id="org-jsonld"
+      <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <HeroSection />
       <QuickInfoStrip />

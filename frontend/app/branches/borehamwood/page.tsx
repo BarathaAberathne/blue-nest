@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { faqPageJsonLd, branchFaqs } from "@/lib/faq";
 import PastelButton from "@/components/ui/PastelButton";
 import StickerCard from "@/components/ui/StickerCard";
 import Doodle from "@/components/ui/Doodle";
@@ -236,6 +237,10 @@ export default function BorehamwoodBranchPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageJsonLd(branchFaqs.borehamwood)) }}
       />
 
       <BranchHero

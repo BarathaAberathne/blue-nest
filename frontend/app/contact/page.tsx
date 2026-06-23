@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import PublicLayout from "@/components/layout/PublicLayout";
 import ContactPageClient from "@/components/contact/ContactPageClient";
+import { faqPageJsonLd, generalFaqs } from "@/lib/faq";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
@@ -18,9 +19,15 @@ export const metadata: Metadata = {
   },
 };
 
+const faqJsonLd = faqPageJsonLd(generalFaqs);
+
 export default function ContactPage() {
   return (
     <PublicLayout>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <Suspense>
         <ContactPageClient />
       </Suspense>

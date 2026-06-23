@@ -76,8 +76,7 @@ export const metadata: Metadata = {
 // this one is the parent organisation node so Google can tie everything
 // together. `Preschool` is the most recognised type for early-years
 // settings; we also list `ChildCare` and `LocalBusiness` for breadth.
-const organisationJsonLd = {
-  "@context": "https://schema.org",
+const organisationNode = {
   "@type": ["Preschool", "ChildCare", "LocalBusiness"],
   "@id": "https://bluenest.uk/#organization",
   name: "Blue Nest Montessori School",
@@ -123,10 +122,31 @@ const organisationJsonLd = {
     postalCode: "HA2 6BD",
     addressCountry: "GB",
   },
+  award: "Montessori School of the Year 2019–2025 (London Prestige Awards)",
   sameAs: [
     "https://www.facebook.com/BlueNestMontessorischool",
     "https://www.instagram.com/bluenest_montessori",
     "https://www.yell.com/biz/blue-nest-montessori-school-harrow-341644/",
+  ],
+};
+
+// Sitewide JSON-LD graph: the organisation entity + a WebSite node, so engines
+// have a single clean, linkable site identity (the homepage no longer ships a
+// second, conflicting #organization node). aggregateRating is intentionally
+// omitted until real, verifiable review data (e.g. Google) exists — we never
+// fabricate ratings.
+const siteJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    organisationNode,
+    {
+      "@type": "WebSite",
+      "@id": "https://bluenest.uk/#website",
+      url: "https://bluenest.uk",
+      name: "Blue Nest Montessori School",
+      inLanguage: "en-GB",
+      publisher: { "@id": "https://bluenest.uk/#organization" },
+    },
   ],
 };
 
@@ -142,7 +162,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script
           type="application/ld+json"
           // JSON.stringify is safe here — the object is fully literal and trusted.
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organisationJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
         />
         {ga4Id ? (
           <>
