@@ -24,6 +24,10 @@ type OrderRequestItem struct {
 	Supplier string `bson:"supplier"         json:"supplier"`
 	Qty      int    `bson:"qty"              json:"qty"`
 	Notes    string `bson:"notes,omitempty"  json:"notes,omitempty"`
+	// Code is the supplier product code (e.g. Gompels SKU) when the staff member
+	// picked a known catalogue item — denormalised so management sees the exact
+	// SKU without a lookup. Empty for free-text items.
+	Code string `bson:"code,omitempty" json:"code,omitempty"`
 	// CatalogueItemID optionally links this line to a catalogue item (when the
 	// staff member picked a known item). Empty for free-text/unknown items, which
 	// the sourcing engine resolves at cart-generation time. Non-breaking.
@@ -42,8 +46,12 @@ type OrderRequest struct {
 	Items            []OrderRequestItem `bson:"items"              json:"items"`
 	Status           OrderRequestStatus `bson:"status"             json:"status"`
 	Notes            string             `bson:"notes,omitempty"    json:"notes,omitempty"`
-	CreatedAt        time.Time          `bson:"created_at"         json:"created_at"`
-	UpdatedAt        time.Time          `bson:"updated_at"         json:"updated_at"`
+	// Delivery feedback for the requesting staff member (set from the covering
+	// purchase order). Staff see status + these dates — never prices/invoices.
+	ExpectedDeliveryDate *time.Time `bson:"expected_delivery_date,omitempty" json:"expected_delivery_date,omitempty"`
+	DeliveredAt          *time.Time `bson:"delivered_at,omitempty"           json:"delivered_at,omitempty"`
+	CreatedAt            time.Time  `bson:"created_at"         json:"created_at"`
+	UpdatedAt            time.Time  `bson:"updated_at"         json:"updated_at"`
 }
 
 // CreateOrderRequestRequest is the staff submission payload.

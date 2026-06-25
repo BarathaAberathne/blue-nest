@@ -119,7 +119,7 @@ export default function AdminOrderRequestDetailClient({ id }: { id: string }) {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
             <tr>
-              {["Item", "Supplier", "Qty", "Notes"].map((h) => (
+              {["Code", "Item", "Supplier", "Qty", "Notes"].map((h) => (
                 <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>
               ))}
             </tr>
@@ -127,6 +127,7 @@ export default function AdminOrderRequestDetailClient({ id }: { id: string }) {
           <tbody className="divide-y divide-gray-100">
             {req.items.map((it, i) => (
               <tr key={i}>
+                <td className="px-4 py-3 font-mono text-xs text-gray-700">{it.code || "—"}</td>
                 <td className="px-4 py-3 text-gray-900 font-medium">{it.item_name}</td>
                 <td className="px-4 py-3 text-gray-700">{it.supplier}</td>
                 <td className="px-4 py-3 text-gray-700">{it.qty}</td>

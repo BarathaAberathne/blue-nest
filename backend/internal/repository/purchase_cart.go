@@ -17,7 +17,13 @@ type PurchaseCartRepository interface {
 	FindByID(ctx context.Context, id string) (*models.PurchaseCart, error)
 	Update(ctx context.Context, id string, c models.PurchaseCart) (*models.PurchaseCart, error)
 	MarkSent(ctx context.Context, id, emailRef string) error
+	MarkExported(ctx context.Context, id string, results []models.PurchaseCartExportResult, supplierOrderRef string) error
 	MarkFailed(ctx context.Context, id, errMsg string) error
+	// SetFulfillment records the supplier order ref + expected delivery date.
+	SetFulfillment(ctx context.Context, id, supplierOrderRef string, expected *time.Time) error
+	// SetReceived persists per-line received quantities + the resulting status
+	// (partially_received | received) and, when fully received, the delivered time.
+	SetReceived(ctx context.Context, id string, lines []models.PurchaseCartLine, status models.PurchaseCartStatus, deliveredAt *time.Time) error
 }
 
 type purchaseCartRepository struct {
@@ -85,11 +91,58 @@ func (r *purchaseCartRepository) MarkSent(ctx context.Context, id, emailRef stri
 	}
 	now := time.Now()
 	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": bson.M{
-		"status":     string(models.PurchaseCartSent),
+		"status":     string(models.PurchaseCartOrdered),
 		"sent_at":    now,
 		"email_ref":  emailRef,
 		"error":      "",
 		"updated_at": now,
+	}})
+	return err
+}
+
+func (r *purchaseCartRepository) MarkExported(ctx context.Context, id string, results []models.PurchaseCartExportResult, supplierOrderRef string) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	set := bson.M{
+		"status":         string(models.PurchaseCartOrdered),
+		"sent_at":        now,
+		"export_results": results,
+		"error":          "",
+		"updated_at":     now,
+	}
+	if supplierOrderRef != "" {
+		set["supplier_order_ref"] = supplierOrderRef
+	}
+	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": set})
+	return err
+}
+
+func (r *purchaseCartRepository) SetFulfillment(ctx context.Context, id, supplierOrderRef string, expected *time.Time) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": bson.M{
+		"supplier_order_ref":     supplierOrderRef,
+		"expected_delivery_date": expected,
+		"updated_at":             time.Now(),
+	}})
+	return err
+}
+
+func (r *purchaseCartRepository) SetReceived(ctx context.Context, id string, lines []models.PurchaseCartLine, status models.PurchaseCartStatus, deliveredAt *time.Time) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": bson.M{
+		"lines":        lines,
+		"status":       string(status),
+		"delivered_at": deliveredAt,
+		"updated_at":   time.Now(),
 	}})
 	return err
 }

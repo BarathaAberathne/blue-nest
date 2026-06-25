@@ -1092,6 +1092,8 @@ paths:
                       supplier: { type: string, enum: [Gompels, Amazon, Other] }
                       qty: { type: integer, minimum: 1 }
                       notes: { type: string }
+                      code: { type: string, description: supplier product code (e.g. Gompels SKU) when picked from the catalogue }
+                      catalogue_item_id: { type: string, description: links the line to a catalogue item/variant }
       responses:
         '201': { description: Request submitted }
         '400': { description: No items / invalid input }
@@ -1301,6 +1303,134 @@ paths:
               properties:
                 recipient_email: { type: string, description: optional override }
       responses: { '200': { description: Sent }, '400': { description: No recipient / already sent } }
+
+  /admin/purchase-carts/{id}/exported:
+    post:
+      tags: [Order Creation]
+      summary: Record the browser extension's Gompels fill results; mark cart sent
+      description: Posted by the extension after filling the Gompels cart — marks the cart sent, flips covered requests to ordered, stores per-line results.
+      operationId: exportedPurchaseCart
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                results:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string }
+                      status: { type: string, enum: [added, failed, not_found] }
+                      resolved_code: { type: string }
+                      catalogue_item_id: { type: string }
+                      picked_name: { type: string }
+                      searched: { type: boolean }
+                      substituted: { type: boolean }
+                      qty: { type: integer }
+                supplier_order_ref: { type: string, description: best-effort Gompels basket/order ref }
+      responses: { '200': { description: Recorded } }
+
+  /admin/purchase-carts/{id}/fulfillment:
+    patch:
+      tags: [Order Creation]
+      summary: Set supplier order ref + expected delivery date on a placed order
+      description: Records delivery tracking and propagates the expected date to the covered staff requests. Only valid once the order has been placed.
+      operationId: updatePurchaseCartFulfillment
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                supplier_order_ref: { type: string }
+                expected_delivery_date: { type: string, format: date-time, nullable: true }
+      responses: { '200': { description: Updated }, '400': { description: Order not yet placed } }
+
+  /admin/purchase-carts/{id}/receive:
+    post:
+      tags: [Order Creation]
+      summary: Record per-line goods received; advance status
+      description: Sets per-line received quantities and moves the order to partially_received or received (flipping covered requests to received on full receipt).
+      operationId: receivePurchaseCart
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      code: { type: string }
+                      name: { type: string }
+                      qty_received: { type: integer }
+      responses: { '200': { description: Recorded }, '400': { description: Order not yet placed } }
+
+  /admin/catalogue/learn:
+    post:
+      tags: [Admin]
+      summary: Save a confirmed Gompels code for a product name (self-improving catalogue)
+      operationId: learnCatalogue
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, code]
+              properties:
+                name: { type: string }
+                code: { type: string }
+                price: { type: integer, description: pence, optional }
+      responses: { '200': { description: Saved/updated }, '400': { description: name and code required } }
+
+  /order-templates:
+    get:
+      tags: [Order Requests]
+      summary: List shared standing-order templates
+      operationId: listOrderTemplates
+      security: [{ BearerAuth: [] }]
+      responses: { '200': { description: Templates } }
+    post:
+      tags: [Order Requests]
+      summary: Save a standing-order template
+      operationId: createOrderTemplate
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, items]
+              properties:
+                name: { type: string }
+                branch_slug: { type: string }
+                items: { type: array, items: { type: object } }
+      responses: { '201': { description: Created }, '400': { description: Invalid } }
+
+  /order-templates/{id}:
+    delete:
+      tags: [Order Requests]
+      summary: Delete a standing-order template
+      operationId: deleteOrderTemplate
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: Deleted } }
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Webhooks

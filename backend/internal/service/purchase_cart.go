@@ -19,9 +19,19 @@ type PurchaseCartService interface {
 	List(ctx context.Context) ([]models.PurchaseCart, error)
 	GetByID(ctx context.Context, id string) (*models.PurchaseCart, error)
 	Update(ctx context.Context, id string, req models.UpdateCartRequest) (*models.PurchaseCart, error)
-	// Send emails the cart to the supplier, marks it sent, and flips the covered
+	// Send emails the cart to the supplier, marks it ordered, and flips the covered
 	// requests to "ordered". recipientOverride wins over the stored recipient.
 	Send(ctx context.Context, id, recipientOverride string) (*models.PurchaseCart, error)
+	// MarkExported records the browser extension's per-line fill results, marks the
+	// cart ordered, and flips the covered requests to "ordered" (no email).
+	MarkExported(ctx context.Context, id string, results []models.PurchaseCartExportResult, supplierOrderRef string) (*models.PurchaseCart, error)
+	// UpdateFulfillment records the supplier order ref + expected delivery date on a
+	// placed order, and propagates the expected date to the covered requests.
+	UpdateFulfillment(ctx context.Context, id string, req models.UpdateFulfillmentRequest) (*models.PurchaseCart, error)
+	// Receive records per-line goods-received quantities, sets the cart to
+	// partially_received / received, and (when fully received) flips the covered
+	// requests to "received" with a delivered timestamp.
+	Receive(ctx context.Context, id string, items []models.ReceiveItem) (*models.PurchaseCart, error)
 }
 
 type purchaseCartService struct {
@@ -254,8 +264,8 @@ func (s *purchaseCartService) Update(ctx context.Context, id string, req models.
 	if err != nil {
 		return nil, err
 	}
-	if existing.Status == models.PurchaseCartSent {
-		return nil, errors.New("a sent cart cannot be edited")
+	if existing.IsPlaced() {
+		return nil, errors.New("an order that has been placed cannot be edited")
 	}
 	existing.RecipientEmail = strings.TrimSpace(req.RecipientEmail)
 	existing.Lines = req.Lines
@@ -272,8 +282,8 @@ func (s *purchaseCartService) Send(ctx context.Context, id, recipientOverride st
 	if err != nil {
 		return nil, err
 	}
-	if cart.Status == models.PurchaseCartSent {
-		return nil, errors.New("cart already sent")
+	if cart.IsPlaced() {
+		return nil, errors.New("order already placed")
 	}
 	recipient := strings.TrimSpace(recipientOverride)
 	if recipient == "" {
@@ -305,9 +315,126 @@ func (s *purchaseCartService) Send(ctx context.Context, id, recipientOverride st
 		_ = s.requests.UpdateStatus(ctx, rid, string(models.OrderRequestOrdered))
 	}
 	cart.RecipientEmail = recipient
-	cart.Status = models.PurchaseCartSent
+	cart.Status = models.PurchaseCartOrdered
 	now := time.Now()
 	cart.SentAt = &now
+	return cart, nil
+}
+
+func (s *purchaseCartService) MarkExported(ctx context.Context, id string, results []models.PurchaseCartExportResult, supplierOrderRef string) (*models.PurchaseCart, error) {
+	cart, err := s.carts.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.carts.MarkExported(ctx, id, results, supplierOrderRef); err != nil {
+		return nil, err
+	}
+	// Flip the covered requests to "ordered" (same as Send, without the email).
+	for _, rid := range cart.SourceRequestIDs {
+		_ = s.requests.UpdateStatus(ctx, rid, string(models.OrderRequestOrdered))
+	}
+	cart.Status = models.PurchaseCartOrdered
+	cart.ExportResults = results
+	if supplierOrderRef != "" {
+		cart.SupplierOrderRef = supplierOrderRef
+	}
+	now := time.Now()
+	cart.SentAt = &now
+	return cart, nil
+}
+
+// UpdateFulfillment sets the supplier order ref + expected delivery date on a
+// placed order and propagates the expected date to the covered staff requests.
+func (s *purchaseCartService) UpdateFulfillment(ctx context.Context, id string, req models.UpdateFulfillmentRequest) (*models.PurchaseCart, error) {
+	cart, err := s.carts.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if !cart.IsPlaced() {
+		return nil, errors.New("place the order before adding delivery details")
+	}
+	ref := strings.TrimSpace(req.SupplierOrderRef)
+	if err := s.carts.SetFulfillment(ctx, id, ref, req.ExpectedDeliveryDate); err != nil {
+		return nil, err
+	}
+	for _, rid := range cart.SourceRequestIDs {
+		_ = s.requests.SetExpectedDelivery(ctx, rid, req.ExpectedDeliveryDate)
+	}
+	cart.SupplierOrderRef = ref
+	cart.ExpectedDeliveryDate = req.ExpectedDeliveryDate
+	return cart, nil
+}
+
+// Receive records per-line goods-received quantities and advances the order to
+// partially_received / received, flipping covered requests on full receipt.
+func (s *purchaseCartService) Receive(ctx context.Context, id string, items []models.ReceiveItem) (*models.PurchaseCart, error) {
+	cart, err := s.carts.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if !cart.IsPlaced() {
+		return nil, errors.New("place the order before receiving goods")
+	}
+
+	// Index received quantities by code (name fallback) for matching.
+	byCode := map[string]int{}
+	byName := map[string]int{}
+	for _, it := range items {
+		if c := strings.TrimSpace(it.Code); c != "" {
+			byCode[c] = it.QtyReceived
+		}
+		if n := strings.ToLower(strings.TrimSpace(it.Name)); n != "" {
+			byName[n] = it.QtyReceived
+		}
+	}
+
+	allReceived := len(cart.Lines) > 0
+	anyReceived := false
+	for i := range cart.Lines {
+		line := &cart.Lines[i]
+		qty := line.QtyReceived
+		if v, ok := byCode[strings.TrimSpace(line.Code)]; ok && line.Code != "" {
+			qty = v
+		} else if v, ok := byName[strings.ToLower(strings.TrimSpace(line.Name))]; ok {
+			qty = v
+		}
+		if qty < 0 {
+			qty = 0
+		}
+		if qty > line.Qty {
+			qty = line.Qty
+		}
+		line.QtyReceived = qty
+		if qty > 0 {
+			anyReceived = true
+		}
+		if qty < line.Qty {
+			allReceived = false
+		}
+	}
+
+	status := models.PurchaseCartPartiallyReceived
+	var deliveredAt *time.Time
+	if allReceived {
+		status = models.PurchaseCartReceived
+		now := time.Now()
+		deliveredAt = &now
+	} else if !anyReceived {
+		// Nothing received yet — keep it at "ordered".
+		status = models.PurchaseCartOrdered
+	}
+
+	if err := s.carts.SetReceived(ctx, id, cart.Lines, status, deliveredAt); err != nil {
+		return nil, err
+	}
+	if allReceived {
+		for _, rid := range cart.SourceRequestIDs {
+			_ = s.requests.UpdateStatus(ctx, rid, string(models.OrderRequestReceived))
+			_ = s.requests.SetDelivered(ctx, rid, *deliveredAt)
+		}
+	}
+	cart.Status = status
+	cart.DeliveredAt = deliveredAt
 	return cart, nil
 }
 

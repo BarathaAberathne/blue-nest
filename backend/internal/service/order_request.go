@@ -52,10 +52,12 @@ func (s *orderRequestService) Submit(ctx context.Context, userID string, req mod
 			qty = 1
 		}
 		items = append(items, models.OrderRequestItem{
-			ItemName: name,
-			Supplier: supplier,
-			Qty:      qty,
-			Notes:    strings.TrimSpace(it.Notes),
+			ItemName:        name,
+			Supplier:        supplier,
+			Qty:             qty,
+			Notes:           strings.TrimSpace(it.Notes),
+			Code:            strings.TrimSpace(it.Code),
+			CatalogueItemID: strings.TrimSpace(it.CatalogueItemID),
 		})
 	}
 	if len(items) == 0 {

@@ -235,7 +235,12 @@ func (s *authService) Login(ctx context.Context, req models.LoginRequest) (*mode
 }
 
 func (s *authService) AdminLogin(ctx context.Context, req models.LoginRequest) (*models.AuthResponse, error) {
-	return s.loginWithRoleGuard(ctx, req, []models.Role{models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager})
+	// Staff are allowed in: they sign into the same back-office shell (a
+	// restricted "Staff Portal" — see AdminLayout) as management. Only customers
+	// are excluded from the admin login.
+	return s.loginWithRoleGuard(ctx, req, []models.Role{
+		models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager, models.RoleStaff,
+	})
 }
 
 func (s *authService) CreateAdminUser(ctx context.Context, req models.AdminCreateUserRequest) (*models.User, error) {
@@ -314,7 +319,7 @@ func (s *authService) loginWithRoleGuard(ctx context.Context, req models.LoginRe
 			// The credentials were valid, but this account isn't a management
 			// role. Make that explicit so staff/parents who land on the admin
 			// login don't think their password is wrong.
-			return nil, errors.New("this account doesn't have admin access — staff and parents sign in at the main login page")
+			return nil, errors.New("this account doesn't have staff or admin access — parents sign in at the main login page")
 		}
 	}
 

@@ -249,7 +249,18 @@ export interface OrderRequestItem {
   supplier: string; // Gompels | Amazon | Other
   qty: number;
   notes?: string;
+  code?: string; // supplier product code (Gompels SKU) when picked from catalogue
   catalogue_item_id?: string;
+}
+
+// ── Order templates (standing orders) ───────────────────────────────────────────
+export interface OrderTemplate {
+  id: string;
+  name: string;
+  branch_slug?: string;
+  items: OrderRequestItem[];
+  created_by_name?: string;
+  created_at: string;
 }
 
 // ── Catalogue (sourcing cache / curation) ───────────────────────────────────────
@@ -268,6 +279,8 @@ export interface CatalogueOffer {
 export interface CatalogueItem {
   id: string;
   name: string;
+  base_name?: string; // product without the option suffix (for grouping variants)
+  option?: string; // variant label, e.g. "Colour: Green"
   category?: string;
   offers: CatalogueOffer[];
   aliases?: string[];
@@ -277,7 +290,15 @@ export interface CatalogueItem {
 }
 
 // ── Purchase carts (generated supplier orders) ──────────────────────────────────
-export type PurchaseCartStatus = "draft" | "sent" | "failed";
+// "sent" is the legacy value for "ordered".
+export type PurchaseCartStatus =
+  | "draft"
+  | "sent"
+  | "ordered"
+  | "partially_received"
+  | "received"
+  | "cancelled"
+  | "failed";
 
 export interface PurchaseCartLine {
   catalogue_item_id?: string;
@@ -288,7 +309,19 @@ export interface PurchaseCartLine {
   unit_price: number; // pence
   line_total: number; // pence
   matched: boolean;
+  qty_received?: number;
   source_request_ids?: string[];
+}
+
+export interface PurchaseCartExportResult {
+  name: string;
+  status: string; // added | failed | not_found
+  resolved_code?: string;
+  catalogue_item_id?: string;
+  picked_name?: string;
+  searched?: boolean;
+  substituted?: boolean;
+  qty?: number;
 }
 
 export interface PurchaseCart {
@@ -302,6 +335,10 @@ export interface PurchaseCart {
   generated_by?: string;
   sent_at?: string;
   email_ref?: string;
+  supplier_order_ref?: string;
+  expected_delivery_date?: string;
+  delivered_at?: string;
+  export_results?: PurchaseCartExportResult[];
   error?: string;
   created_at: string;
   updated_at: string;
@@ -316,6 +353,8 @@ export interface OrderRequest {
   items: OrderRequestItem[];
   status: OrderRequestStatus;
   notes?: string;
+  expected_delivery_date?: string;
+  delivered_at?: string;
   created_at: string;
   updated_at: string;
 }

@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Download, ShoppingCart } from "lucide-react";
+import { Download, ShoppingCart, Wand2, X, Zap } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import Badge from "@/components/ui/Badge";
-import type { OrderRequest, OrderRequestStatus } from "@/types";
+import type { OrderRequest, OrderRequestStatus, PurchaseCart } from "@/types";
 
 const STATUS_VARIANT: Record<OrderRequestStatus, "blue" | "amber" | "green" | "gray"> = {
   pending: "amber",
@@ -25,9 +25,11 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
+const money = (pence: number) => `£${(pence / 100).toFixed(2)}`;
+
 /** Flatten requests to one CSV row per item — the buy list to place real orders from. */
 function exportCsv(rows: OrderRequest[]) {
-  const headers = ["Date", "Requested By", "Branch", "Status", "Item", "Supplier", "Qty", "Item Notes"];
+  const headers = ["Date", "Requested By", "Branch", "Status", "Code", "Item", "Supplier", "Qty", "Item Notes"];
   const escape = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const lines: string[] = [];
   rows.forEach((req) => {
@@ -38,6 +40,7 @@ function exportCsv(rows: OrderRequest[]) {
           req.requested_by_name || req.requested_by_email,
           fmtBranch(req.branch_slug),
           req.status,
+          it.code ?? "",
           it.item_name,
           it.supplier,
           String(it.qty),
@@ -65,6 +68,10 @@ export default function AdminOrderRequestsClient() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [generating, setGenerating] = useState(false);
+
+  // Guided "New order" wizard.
+  const [wizardStep, setWizardStep] = useState<"closed" | "review" | "done">("closed");
+  const [generatedCarts, setGeneratedCarts] = useState<PurchaseCart[]>([]);
 
   const [search, setSearch] = useState("");
   const [branch, setBranch] = useState("");
@@ -137,6 +144,93 @@ export default function AdminOrderRequestsClient() {
     }
   };
 
+  // Generate the carts and immediately hand the Gompels one to the extension,
+  // then open it so the admin can review on the basket page.
+  const generateAndPush = async () => {
+    const token = getAccessToken();
+    if (!token || selected.size === 0) return;
+    setGenerating(true);
+    setError(null);
+    try {
+      const carts = (await api.adminGenerateCart(token, [...selected])) as PurchaseCart[];
+      const gompels = (carts || []).find((c) => c.supplier === "Gompels");
+      if (!gompels) {
+        router.push("/admin/purchase-carts");
+        return;
+      }
+      const lines = gompels.lines
+        .filter((l) => (l.name || "").trim())
+        .map((l) => ({ code: l.code || "", qty: l.qty, name: l.name, catalogue_item_id: l.catalogue_item_id || "" }));
+      window.postMessage(
+        { source: "bluenest-app", type: "BLUENEST_GOMPELS_ORDER", cart_id: gompels.id, lines },
+        window.location.origin,
+      );
+      router.push(`/admin/purchase-carts/${gompels.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate & push");
+      setGenerating(false);
+    }
+  };
+
+  // ── Guided "New order" wizard ──────────────────────────────────
+  const selectedRequests = useMemo(
+    () => requests.filter((r) => selected.has(r.id)),
+    [requests, selected],
+  );
+
+  // Preview the selected items aggregated by their requested supplier (dedup +
+  // sum qty). The sourcing engine may re-route to the cheapest supplier when the
+  // cart is generated — this is the "as requested" view.
+  const wizardPreview = useMemo(() => {
+    const bySupplier = new Map<string, Map<string, { name: string; code: string; qty: number }>>();
+    for (const r of selectedRequests) {
+      for (const it of r.items) {
+        const supplier = it.supplier || "Other";
+        const key = it.code || it.item_name.toLowerCase();
+        const items = bySupplier.get(supplier) ?? new Map();
+        const prev = items.get(key);
+        if (prev) prev.qty += it.qty;
+        else items.set(key, { name: it.item_name, code: it.code || "", qty: it.qty });
+        bySupplier.set(supplier, items);
+      }
+    }
+    return [...bySupplier.entries()].map(([supplier, items]) => ({ supplier, items: [...items.values()] }));
+  }, [selectedRequests]);
+
+  const wizardRunGenerate = async () => {
+    const token = getAccessToken();
+    if (!token || selected.size === 0) return;
+    setGenerating(true);
+    setError(null);
+    try {
+      const carts = (await api.adminGenerateCart(token, [...selected])) as PurchaseCart[];
+      setGeneratedCarts(carts || []);
+      setWizardStep("done");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate orders");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // Push a generated Gompels cart to the extension and open it.
+  const wizardPushCart = (cart: PurchaseCart) => {
+    const lines = cart.lines
+      .filter((l) => (l.name || "").trim())
+      .map((l) => ({ code: l.code || "", qty: l.qty, name: l.name, catalogue_item_id: l.catalogue_item_id || "" }));
+    window.postMessage(
+      { source: "bluenest-app", type: "BLUENEST_GOMPELS_ORDER", cart_id: cart.id, lines },
+      window.location.origin,
+    );
+    router.push(`/admin/purchase-carts/${cart.id}`);
+  };
+
+  const closeWizard = () => {
+    setWizardStep("closed");
+    setGeneratedCarts([]);
+    setSelected(new Set());
+  };
+
   return (
     <>
       <div className="flex items-center justify-between mb-6">
@@ -149,12 +243,32 @@ export default function AdminOrderRequestsClient() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={generateCart}
-            disabled={selected.size === 0 || generating}
+            onClick={() => setWizardStep("review")}
+            disabled={selected.size === 0}
+            title="Guided order creation — review the items, generate per-supplier orders, then place them"
             className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
+            <Wand2 className="h-4 w-4" />
+            {`New order${selected.size ? ` (${selected.size})` : ""}`}
+          </button>
+          <button
+            type="button"
+            onClick={generateCart}
+            disabled={selected.size === 0 || generating}
+            title="Quick: generate the draft cart(s) and go to Purchase Orders"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <ShoppingCart className="h-4 w-4" />
-            {generating ? "Generating…" : `Generate cart${selected.size ? ` (${selected.size})` : ""}`}
+            {generating ? "Generating…" : "Generate cart"}
+          </button>
+          <button
+            type="button"
+            onClick={generateAndPush}
+            disabled={selected.size === 0 || generating}
+            title="Quick: generate the cart and push it straight to Gompels (needs the extension)"
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Zap className="h-4 w-4" /> Generate &amp; push
           </button>
           <button
             type="button"
@@ -267,6 +381,108 @@ export default function AdminOrderRequestsClient() {
           </tbody>
         </table>
       </div>
+
+      {/* ── Guided New-order wizard ─────────────────────────────── */}
+      {wizardStep !== "closed" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl max-h-[85vh] overflow-auto rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <div>
+                <h2 className="text-lg font-heading font-bold text-gray-900">
+                  {wizardStep === "review" ? "Review order" : "Orders generated"}
+                </h2>
+                <p className="text-xs text-gray-500">
+                  {wizardStep === "review"
+                    ? `Step 1 of 2 · ${selected.size} request(s) selected`
+                    : "Step 2 of 2 · place each order with its supplier"}
+                </p>
+              </div>
+              <button type="button" onClick={closeWizard} aria-label="Close" className="text-gray-400 hover:text-gray-700">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-5">
+              {wizardStep === "review" && (
+                <>
+                  <p className="mb-4 text-sm text-gray-600">
+                    These items will be aggregated and split into one order per supplier. Sourcing picks the
+                    cheapest known supplier per item, so the final split may differ from the requested supplier.
+                  </p>
+                  <div className="space-y-4">
+                    {wizardPreview.map((group) => (
+                      <div key={group.supplier} className="rounded-lg border border-gray-200">
+                        <div className="bg-gray-50 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                          {group.supplier} · {group.items.length} item(s)
+                        </div>
+                        <ul className="divide-y divide-gray-100 text-sm">
+                          {group.items.map((it, i) => (
+                            <li key={i} className="flex items-center justify-between px-4 py-2">
+                              <span className="text-gray-800">
+                                {it.name}
+                                {it.code ? <span className="text-gray-400"> · {it.code}</span> : null}
+                              </span>
+                              <span className="text-gray-500">×{it.qty}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                    {wizardPreview.length === 0 && (
+                      <p className="text-sm text-gray-400">No items in the selected requests.</p>
+                    )}
+                  </div>
+                  <div className="mt-5 flex items-center justify-end gap-2">
+                    <button type="button" onClick={closeWizard} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                      Cancel
+                    </button>
+                    <button type="button" onClick={wizardRunGenerate} disabled={generating || wizardPreview.length === 0} className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">
+                      <Wand2 className="h-4 w-4" /> {generating ? "Generating…" : "Generate orders"}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {wizardStep === "done" && (
+                <>
+                  <p className="mb-4 text-sm text-gray-600">
+                    {generatedCarts.length} order(s) created as drafts. Place each with its supplier — push a
+                    Gompels order to your logged-in cart, or open it to email / track.
+                  </p>
+                  <div className="space-y-2">
+                    {generatedCarts.map((c) => (
+                      <div key={c.id} className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{c.supplier}</p>
+                          <p className="text-xs text-gray-500">{c.lines.length} line(s) · {money(c.subtotal)}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {c.supplier === "Gompels" && (
+                            <button type="button" onClick={() => wizardPushCart(c)} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800">
+                              <Zap className="h-3.5 w-3.5" /> Push to Gompels
+                            </button>
+                          )}
+                          <Link href={`/admin/purchase-carts/${c.id}`} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                            Open
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-5 flex items-center justify-end gap-2">
+                    <button type="button" onClick={() => router.push("/admin/purchase-carts")} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                      Go to Purchase Orders
+                    </button>
+                    <button type="button" onClick={closeWizard} className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
+                      Done
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

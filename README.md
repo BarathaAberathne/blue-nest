@@ -113,6 +113,7 @@ blue-nest-montessori/
 │   ├── api.md                      # API endpoint reference
 │   └── DEPLOYMENT.md               # Sandbox → staging → prod runbook
 ├── deploy/                         # auto-deploy.sh, systemd unit/timer, nginx, mongo-init
+├── gompels-extension/              # MV3 Chrome extension: "Add to Gompels cart" from a generated order
 ├── scripts/                        # Image utilities (Python) + check-env.sh (env-parity gate)
 ├── .env.example                    # local dev template
 ├── .env.staging.example            # local staging template
@@ -217,6 +218,8 @@ make dev-frontend  # Next.js dev server (npm run dev)
 | `make docker-build` | Rebuild Docker images |
 | `make docker-logs` | Stream logs from all containers |
 | `make docker-restart` | Rebuild images and restart containers |
+| `make seed-all` | Run every seed in order (products, branches, catalogue, users) — idempotent |
+| `make seed-catalogue` | Seed the supply catalogue from Gompels order CSVs in `backend/cmd/seedcatalogue/orders/` |
 | `make staging-up` | Build the **production images locally** and run them for pre-prod QA (http://localhost:3000) |
 | `make staging-verify` | Env-parity check + health probe of the running staging stack |
 | `make staging-logs` | Tail staging logs |
@@ -336,6 +339,7 @@ Base URL: `http://localhost:8080`
 | Branches | `GET /branches`, `GET /branches/:slug` |
 | Contact | `POST /contact` |
 | Order requests (staff) | `POST /order-requests`, `GET /order-requests/me`, `GET /order-requests/:id`, `PATCH /order-requests/:id/cancel` |
+| Order templates (staff) | `GET/POST /order-templates`, `DELETE /order-templates/:id` |
 | Catalogue (staff read) | `GET /catalogue` |
 | Admin — Orders | `GET /admin/orders`, `PATCH /admin/orders/:id` |
 | Admin — Products | `GET/POST/PUT/DELETE /admin/products/:id` |
@@ -344,8 +348,8 @@ Base URL: `http://localhost:8080`
 | Admin — Users | `GET /admin/users`, `POST /admin/users`, `PUT /admin/users/:id`, `POST /admin/users/:id/reset-password`, `DELETE /admin/users/:id` (super-admin) |
 | Admin — Enquiries | `GET /admin/enquiries`, `PATCH /admin/enquiries/:id/status` |
 | Admin — Order requests | `GET /admin/order-requests`, `GET /admin/order-requests/:id`, `PATCH /admin/order-requests/:id/status` |
-| Admin — Catalogue | `GET/POST /admin/catalogue`, `GET/PUT/DELETE /admin/catalogue/:id` |
-| Admin — Purchase carts | `POST /admin/purchase-carts/generate`, `GET /admin/purchase-carts[/:id]`, `PUT /admin/purchase-carts/:id`, `POST /admin/purchase-carts/:id/send` |
+| Admin — Catalogue | `GET/POST /admin/catalogue`, `GET/PUT/DELETE /admin/catalogue/:id`, `POST /admin/catalogue/learn` |
+| Admin — Purchase carts | `POST /admin/purchase-carts/generate`, `GET /admin/purchase-carts[/:id]`, `PUT /admin/purchase-carts/:id`, `POST /admin/purchase-carts/:id/send`, `POST /admin/purchase-carts/:id/exported` |
 | Admin — Activity (audit log) | `GET /admin/audit-logs` |
 
 See [docs/api.md](docs/api.md) for full request/response contracts.

@@ -26,14 +26,21 @@ type CatalogueOffer struct {
 // known items resolve instantly, and the sourcing engine upserts new offers as
 // it discovers them. Foundation for the future inventory module.
 type CatalogueItem struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Name      string             `bson:"name"          json:"name"`
-	Category  string             `bson:"category,omitempty" json:"category,omitempty"`
-	Offers    []CatalogueOffer   `bson:"offers"        json:"offers"`
-	Aliases   []string           `bson:"aliases,omitempty" json:"aliases,omitempty"` // search terms that mapped here
-	IsActive  bool               `bson:"is_active"     json:"is_active"`
-	CreatedAt time.Time          `bson:"created_at"    json:"created_at"`
-	UpdatedAt time.Time          `bson:"updated_at"    json:"updated_at"`
+	ID   primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Name string             `bson:"name"          json:"name"`
+	// BaseName + Option let the UI group variants (Colour/Size/Type) of the same
+	// product into a product → variant picker. Each variant is its own doc (with
+	// its own Gompels code) so the sourcing engine's per-supplier Offers logic is
+	// unaffected. BaseName falls back to Name when empty; Option is "" for
+	// single-variant products.
+	BaseName  string           `bson:"base_name,omitempty" json:"base_name,omitempty"`
+	Option    string           `bson:"option,omitempty"    json:"option,omitempty"`
+	Category  string           `bson:"category,omitempty"  json:"category,omitempty"`
+	Offers    []CatalogueOffer `bson:"offers"        json:"offers"`
+	Aliases   []string         `bson:"aliases,omitempty" json:"aliases,omitempty"` // search terms that mapped here
+	IsActive  bool             `bson:"is_active"     json:"is_active"`
+	CreatedAt time.Time        `bson:"created_at"    json:"created_at"`
+	UpdatedAt time.Time        `bson:"updated_at"    json:"updated_at"`
 }
 
 // CatalogueItemRequest is the admin create/update payload.

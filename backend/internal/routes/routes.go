@@ -16,19 +16,20 @@ import (
 )
 
 type Services struct {
-	Auth          service.AuthService
-	Products      service.ProductService
-	Cart          service.CartService
-	Checkout      service.CheckoutService
-	Orders        service.OrderService
-	Blog          service.BlogService
-	Branches      service.BranchService
-	Enquiries     service.EnquiryService
-	Comments      service.CommentService
-	Audit         service.AuditService
-	OrderRequests service.OrderRequestService
-	Catalogue     service.CatalogueService
-	PurchaseCarts service.PurchaseCartService
+	Auth           service.AuthService
+	Products       service.ProductService
+	Cart           service.CartService
+	Checkout       service.CheckoutService
+	Orders         service.OrderService
+	Blog           service.BlogService
+	Branches       service.BranchService
+	Enquiries      service.EnquiryService
+	Comments       service.CommentService
+	Audit          service.AuditService
+	OrderRequests  service.OrderRequestService
+	Catalogue      service.CatalogueService
+	PurchaseCarts  service.PurchaseCartService
+	OrderTemplates service.OrderTemplateService
 }
 
 type Repos struct {
@@ -120,6 +121,12 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			// Read-only catalogue for the staff request picker.
 			catalogueH := handler.NewCatalogueHandler(svc.Catalogue)
 			r.Get("/catalogue", catalogueH.List)
+
+			// Shared standing-order templates.
+			templateH := handler.NewOrderTemplateHandler(svc.OrderTemplates)
+			r.Get("/order-templates", templateH.List)
+			r.Post("/order-templates", templateH.Create)
+			r.Delete("/order-templates/{id}", templateH.Delete)
 		})
 
 		// ── Admin routes ───────────────────────────────────────────────────
@@ -170,6 +177,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/admin/catalogue", adminCatalogueH.List)
 			r.Get("/admin/catalogue/{id}", adminCatalogueH.Get)
 			r.Post("/admin/catalogue", adminCatalogueH.Create)
+			r.Post("/admin/catalogue/learn", adminCatalogueH.Learn)
 			r.Put("/admin/catalogue/{id}", adminCatalogueH.Update)
 			r.Delete("/admin/catalogue/{id}", adminCatalogueH.Delete)
 
@@ -179,6 +187,9 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/admin/purchase-carts/{id}", adminCartH.Get)
 			r.Put("/admin/purchase-carts/{id}", adminCartH.Update)
 			r.Post("/admin/purchase-carts/{id}/send", adminCartH.Send)
+			r.Post("/admin/purchase-carts/{id}/exported", adminCartH.Exported)
+			r.Patch("/admin/purchase-carts/{id}/fulfillment", adminCartH.UpdateFulfillment)
+			r.Post("/admin/purchase-carts/{id}/receive", adminCartH.Receive)
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.SuperAdminOnly)
