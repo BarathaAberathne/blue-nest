@@ -144,6 +144,7 @@ export interface User {
   first_name: string;
   last_name: string;
   role: UserRole;
+  branch_slugs?: string[];
   oauth_provider?: string;
   oauth_id?: string;
   created_at?: string;

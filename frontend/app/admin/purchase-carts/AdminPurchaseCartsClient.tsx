@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Columns3, Table2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
+import ProcurementTabs from "@/components/admin/procurement/ProcurementTabs";
 import KanbanBoard from "@/components/admin/ui/KanbanBoard";
 import KanbanCard from "@/components/admin/ui/KanbanCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
@@ -89,6 +90,7 @@ export default function AdminPurchaseCartsClient() {
 
   return (
     <>
+      <ProcurementTabs />
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-bold text-slate-900">Purchase Orders</h1>

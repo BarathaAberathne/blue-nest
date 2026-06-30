@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Columns3, Download, ShoppingCart, Table2, Wand2, X, Zap } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
+import ProcurementTabs from "@/components/admin/procurement/ProcurementTabs";
 import KanbanBoard from "@/components/admin/ui/KanbanBoard";
 import KanbanCard from "@/components/admin/ui/KanbanCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
@@ -248,6 +249,7 @@ export default function AdminOrderRequestsClient() {
 
   return (
     <>
+      <ProcurementTabs />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-heading font-bold text-gray-900">Supply Requests</h1>

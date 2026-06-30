@@ -6,12 +6,14 @@ import {
   ArrowRight, BookOpen, ClipboardList, Inbox, Package, PoundSterling, ShoppingCart,
 } from "lucide-react";
 import { api } from "@/lib/api";
-import { getAccessToken } from "@/lib/auth";
+import { getAccessToken, getAuthUser } from "@/lib/auth";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { ORDER_STATUS_META } from "@/lib/admin-status";
 import type { AccentName } from "@/lib/admin-theme";
-import type { BlogPost, Enquiry, Order, OrderRequest, Product } from "@/types";
+import type { BlogPost, Enquiry, Order, OrderRequest, Product, UserRole } from "@/types";
+
+const fmtBranch = (b: string) => (b ? b.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "");
 
 function fmt(pence: number) { return `£${(pence / 100).toFixed(2)}`; }
 function fmtDate(iso: string) { return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); }
@@ -42,8 +44,19 @@ export default function DashboardClient() {
     });
   }, []);
 
-  const newInquiries = inquiries.filter((e) => e.status === "new");
-  const pendingRequests = orderRequests.filter((r) => r.status === "pending");
+  // Role/branch-aware: branch managers see their branch(es) only and a focused
+  // widget set; super_admin/admin see everything. (Static — no customisation yet.)
+  const user = getAuthUser();
+  const role: UserRole = user?.role ?? "admin";
+  const branchSlugs = user?.branch_slugs ?? [];
+  const branchManager = role === "branch_manager" && branchSlugs.length > 0;
+  const inBranch = (slug?: string) => !branchManager || (!!slug && branchSlugs.includes(slug));
+
+  const scopedInquiries = branchManager ? inquiries.filter((e) => inBranch(e.branch)) : inquiries;
+  const scopedRequests = branchManager ? orderRequests.filter((r) => inBranch(r.branch_slug)) : orderRequests;
+
+  const newInquiries = scopedInquiries.filter((e) => e.status === "new");
+  const pendingRequests = scopedRequests.filter((r) => r.status === "pending");
   const paidOrders = orders.filter((o) => o.status === "paid" || o.status === "delivered" || o.status === "shipped");
   const revenue = paidOrders.reduce((sum, o) => sum + (o.total_amount ?? 0), 0);
   const activeProducts = products.filter((p) => p.is_active);
@@ -51,24 +64,31 @@ export default function DashboardClient() {
   const recentOrders = [...orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
   const lowStockProducts = products.filter((p) => p.stock_qty < (p.reorder_point ?? 100));
 
-  const kpis: { label: string; value: string; sub?: string; icon: React.ElementType; accent: AccentName; href: string; progress?: number }[] = [
-    { label: "New Inquiries", value: String(newInquiries.length), sub: `${inquiries.length} total received`, icon: Inbox, accent: "blue", href: "/admin/inquiries" },
-    { label: "Pending Requests", value: String(pendingRequests.length), sub: `${orderRequests.length} supply requests total`, icon: ClipboardList, accent: "rose", href: "/admin/order-requests" },
-    { label: "Total Orders", value: String(orders.length), sub: `${paidOrders.length} paid / fulfilled`, icon: ShoppingCart, accent: "teal", href: "/admin/orders", progress: pct(paidOrders.length, orders.length) },
-    { label: "Revenue", value: fmt(revenue), sub: "from paid & fulfilled orders", icon: PoundSterling, accent: "violet", href: "/admin/orders" },
-    { label: "Active Products", value: String(activeProducts.length), sub: `${products.length} total in catalogue`, icon: Package, accent: "amber", href: "/admin/products", progress: pct(activeProducts.length, products.length) },
-    { label: "Blog Posts", value: String(publishedPosts.length), sub: `${posts.length} total (incl. drafts)`, icon: BookOpen, accent: "sky", href: "/admin/blog" },
+  const ALL: UserRole[] = ["super_admin", "admin", "branch_manager"];
+  const FULL: UserRole[] = ["super_admin", "admin"];
+  const kpis: { label: string; value: string; sub?: string; icon: React.ElementType; accent: AccentName; href: string; progress?: number; roles: UserRole[] }[] = [
+    { label: "New Inquiries", value: String(newInquiries.length), sub: `${scopedInquiries.length} total received`, icon: Inbox, accent: "blue", href: "/admin/inquiries", roles: ALL },
+    { label: "Pending Requests", value: String(pendingRequests.length), sub: `${scopedRequests.length} supply requests total`, icon: ClipboardList, accent: "rose", href: "/admin/order-requests", roles: ALL },
+    { label: "Total Orders", value: String(orders.length), sub: `${paidOrders.length} paid / fulfilled`, icon: ShoppingCart, accent: "teal", href: "/admin/orders", progress: pct(paidOrders.length, orders.length), roles: ALL },
+    { label: "Revenue", value: fmt(revenue), sub: "from paid & fulfilled orders", icon: PoundSterling, accent: "violet", href: "/admin/orders", roles: FULL },
+    { label: "Active Products", value: String(activeProducts.length), sub: `${products.length} total in catalogue`, icon: Package, accent: "amber", href: "/admin/products", progress: pct(activeProducts.length, products.length), roles: FULL },
+    { label: "Blog Posts", value: String(publishedPosts.length), sub: `${posts.length} total (incl. drafts)`, icon: BookOpen, accent: "sky", href: "/admin/blog", roles: FULL },
   ];
+  const visibleKpis = kpis.filter((k) => k.roles.includes(role));
 
   return (
     <div className="space-y-8">
       {error && <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 
-      {/* KPI grid */}
+      {branchManager && (
+        <p className="text-sm text-slate-500">Showing data for your branch{branchSlugs.length > 1 ? "es" : ""}: <span className="font-medium text-slate-700">{branchSlugs.map(fmtBranch).join(", ")}</span></p>
+      )}
+
+      {/* KPI grid — role-aware */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {loading
           ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-32 animate-pulse rounded-2xl bg-slate-100" />)
-          : kpis.map((k) => <StatCard key={k.label} {...k} />)}
+          : visibleKpis.map(({ roles: _roles, ...k }) => <StatCard key={k.label} {...k} />)}
       </div>
 
       {/* Low-stock alerts */}

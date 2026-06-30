@@ -5,17 +5,20 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import {
   Activity,
+  BarChart3,
   BookOpen,
   ClipboardList,
   ExternalLink,
   Inbox,
   LayoutDashboard,
+  LayoutGrid,
   Library,
   LogOut,
   Package,
   ShoppingBag,
   ShoppingCart,
   Tag,
+  Truck,
   Users,
 } from "lucide-react";
 import { useAuthGuard } from "@/lib/useAuthGuard";
@@ -23,16 +26,17 @@ import { clearAuthSession } from "@/lib/auth";
 import NotificationBell from "@/components/admin/NotificationBell";
 
 // Sidebar is grouped into labelled sections so related tools sit together. The
-// SUPPLIES group makes the procurement flow self-evident:
-// Requests (staff demand) → Purchase Orders (supplier carts) → Catalogue.
-type NavItem = { label: string; href: string; icon: typeof LayoutDashboard };
+// PROCUREMENT group makes the purchasing flow self-evident as one connected
+// process: Overview → Supply Requests → Purchase Orders → Suppliers → Catalogue
+// → Analytics.
+type NavItem = { label: string; href: string; icon: typeof LayoutDashboard; exact?: boolean };
 type NavSection = { heading: string | null; items: NavItem[] };
 
 const NAV_SECTIONS: NavSection[] = [
   {
     heading: null,
     items: [
-      { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+      { label: "Main Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
       { label: "Inquiries", href: "/admin/inquiries", icon: Inbox },
     ],
   },
@@ -45,11 +49,14 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    heading: "Supplies",
+    heading: "Procurement",
     items: [
-      { label: "Requests",        href: "/admin/order-requests", icon: ClipboardList },
-      { label: "Purchase Orders", href: "/admin/purchase-carts", icon: ShoppingBag },
-      { label: "Catalogue",       href: "/admin/catalogue",      icon: Library },
+      { label: "Overview",        href: "/admin/procurement",            icon: LayoutGrid, exact: true },
+      { label: "Supply Requests", href: "/admin/order-requests",         icon: ClipboardList },
+      { label: "Purchase Orders", href: "/admin/purchase-carts",         icon: ShoppingBag },
+      { label: "Suppliers",       href: "/admin/procurement/suppliers",  icon: Truck },
+      { label: "Catalogue",       href: "/admin/catalogue",              icon: Library },
+      { label: "Analytics",       href: "/admin/procurement/analytics",  icon: BarChart3 },
     ],
   },
   {
@@ -151,7 +158,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               )}
               {section.items.map((item) => {
                 const Icon = item.icon;
-                const active = pathname.startsWith(item.href);
+                const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
                 return (
                   <Link
                     key={item.href}

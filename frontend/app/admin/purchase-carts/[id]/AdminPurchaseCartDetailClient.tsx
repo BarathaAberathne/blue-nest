@@ -5,28 +5,10 @@ import Link from "next/link";
 import { ArrowLeft, Check, PackageCheck, Send, ShoppingCart, Truck } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
-import Badge from "@/components/ui/Badge";
+import StageBadge from "@/components/admin/ui/StageBadge";
+import { PURCHASE_CART_STATUS_META } from "@/lib/admin-status";
+import type { AccentName } from "@/lib/admin-theme";
 import type { PurchaseCart, PurchaseCartLine, PurchaseCartStatus } from "@/types";
-
-const STATUS_VARIANT: Record<PurchaseCartStatus, "amber" | "green" | "gray" | "blue"> = {
-  draft: "amber",
-  sent: "blue",
-  ordered: "blue",
-  partially_received: "amber",
-  received: "green",
-  cancelled: "gray",
-  failed: "gray",
-};
-
-const STATUS_LABEL: Record<PurchaseCartStatus, string> = {
-  draft: "draft",
-  sent: "ordered",
-  ordered: "ordered",
-  partially_received: "partially received",
-  received: "received",
-  cancelled: "cancelled",
-  failed: "failed",
-};
 
 const money = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 const poundsToPence = (s: string) => Math.round(parseFloat(s || "0") * 100) || 0;
@@ -51,6 +33,7 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
   const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [extDetected, setExtDetected] = useState(false);
+  const [placedLocally, setPlacedLocally] = useState(false);
   const [learned, setLearned] = useState<Set<string>>(new Set());
 
   // Stepper + fulfillment/receive state.
@@ -116,11 +99,18 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
     [lines],
   );
 
-  const hasUnmatched = lines.some((l) => !(l.code ?? "").trim());
+  const unmatchedCount = lines.filter((l) => !(l.code ?? "").trim()).length;
+  const hasUnmatched = unmatchedCount > 0;
   const status = cart?.status ?? "draft";
   const isPlaced = PLACED.includes(status);
   const isReceived = status === "received";
-  const reached = status === "draft" ? 1 : status === "ordered" || status === "sent" ? 2 : 3;
+  // Once an order is placed — via email (status advances to ordered) OR the
+  // Gompels push (status stays draft until the extension confirms server-side,
+  // so we also track it locally) — both Track and Receive unlock. A draft order
+  // only exposes Review + Place order. This fixes the bug where a Gompels-pushed
+  // order left Track/Receive permanently disabled.
+  const placed = isPlaced || placedLocally;
+  const reached = placed ? 3 : 1;
 
   const payloadLines = (): PurchaseCartLine[] =>
     lines.map((l) => ({
@@ -202,7 +192,8 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
       if (e.source === window && e.data?.source === "bluenest-ext" && e.data?.type === "BLUENEST_GOMPELS_ACK") {
         acked = true;
         window.removeEventListener("message", onAck);
-        setNotice(`Sent ${e.data.count} item(s) to the Gompels extension — switch to the Gompels tab and click “Fill cart now”, then review & pay there.`);
+        setPlacedLocally(true);
+        setNotice(`Items sent to the Gompels extension. Open the Gompels tab and click “Fill cart now”, then review & pay there. Track and Receive are now unlocked.`);
       }
     };
     window.addEventListener("message", onAck);
@@ -290,12 +281,12 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
         <ArrowLeft className="h-4 w-4" /> Back to purchase orders
       </Link>
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-gray-900">{cart.supplier} order</h1>
-          <p className="text-sm text-gray-500">Subtotal {money(subtotal)} · {lines.length} lines</p>
+          <p className="font-mono text-2xl font-extrabold tracking-tight text-slate-900">PO-{cart.id.slice(0, 8).toUpperCase()}</p>
+          <p className="mt-0.5 text-sm text-slate-500">{cart.supplier} · {lines.length} line{lines.length !== 1 ? "s" : ""} · {money(subtotal)}{cart.expected_delivery_date ? ` · expected ${fmtDate(cart.expected_delivery_date)}` : ""}</p>
         </div>
-        <Badge label={STATUS_LABEL[cart.status] ?? cart.status} variant={STATUS_VARIANT[cart.status] ?? "gray"} />
+        <StageBadge label={PURCHASE_CART_STATUS_META[cart.status]?.label ?? cart.status} accent={PURCHASE_CART_STATUS_META[cart.status]?.accent ?? "slate"} />
       </div>
 
       {/* ── Stepper ───────────────────────────────────────────── */}
@@ -309,6 +300,7 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
               <button
                 type="button"
                 disabled={!clickable}
+                title={!clickable ? (i >= 2 && !placed ? "Place the order first" : "Complete the previous step first") : undefined}
                 onClick={() => clickable && setActiveStep(i)}
                 className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
                   active
@@ -450,6 +442,12 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
                 Place the {cart.supplier} order — email it to the supplier, or push it straight into your
                 logged-in Gompels cart with the browser extension.
               </p>
+              {/* Pre-push review: how the lines will resolve + estimated value. */}
+              <div className="mb-4 grid max-w-md grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg bg-slate-50 px-3 py-2"><p className="text-lg font-bold text-slate-900">{lines.length - unmatchedCount}</p><p className="text-xs text-slate-500">matched by code</p></div>
+                <div className="rounded-lg bg-amber-50 px-3 py-2"><p className="text-lg font-bold text-amber-700">{unmatchedCount}</p><p className="text-xs text-amber-600">searched by name</p></div>
+                <div className="rounded-lg bg-teal-50 px-3 py-2"><p className="text-lg font-bold text-teal-700">{money(subtotal)}</p><p className="text-xs text-teal-600">est. value</p></div>
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 {cart.supplier === "Gompels" && (
                   <button type="button" onClick={onAddToGompels} className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
@@ -544,17 +542,10 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
                           )}
                         </td>
                         <td className="px-4 py-2">
-                          <Badge
+                          <StageBadge
                             label={res.substituted && res.status === "added" ? "substituted" : res.status}
-                            variant={
-                              res.status === "added"
-                                ? res.substituted
-                                  ? "amber"
-                                  : "green"
-                                : res.status === "not_found"
-                                  ? "amber"
-                                  : "gray"
-                            }
+                            accent={(res.status === "added" ? (res.substituted ? "amber" : "green") : res.status === "not_found" ? "amber" : "slate") as AccentName}
+                            withDot={false}
                           />
                           {res.status === "added" && (res.qty ?? 0) > 0 && (
                             <span className="block text-xs text-gray-400">qty {res.qty}</span>

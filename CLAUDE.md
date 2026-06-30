@@ -154,6 +154,38 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
 
 Planned next: Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 
+## Procurement Management module — roadmap (end goal)
+Goal: turn the procurement pieces into one connected **Procurement Management** module so the journey
+feels like a single process: **Supply Request → Approve → Purchase Order → Place → Track → Receive →
+Complete**. The full vision is phased; only Phase 1 is built so far.
+
+- **Phase 1 — structure, workflow, usability (DONE / frontend-only, no schema change):** sidebar renamed
+  `Dashboard`→**Main Dashboard** and a **Procurement** sidebar group (Overview · Supply Requests ·
+  Purchase Orders · Suppliers · Catalogue · Analytics); a unified procurement area via a shared
+  `ProcurementTabs` bar over the existing routes; a **Procurement Overview** (`/admin/procurement`),
+  a **read-only derived Suppliers** view (`/admin/procurement/suppliers`) and **client-side
+  Procurement Analytics** (`/admin/procurement/analytics`), all computed from existing carts/requests/
+  products; the **Main Dashboard made role-aware** (widgets shown per existing role, branch-filtered by
+  `user.branch_slugs`, no customisation); the PO detail **Track/Receive bug fixed** (stepper gating was
+  status-only and the Gompels push never advanced status — now placed-aware with tooltips); improved
+  Gompels-cart messaging + matched/unmatched summary. All on the shared design system
+  (`lib/admin-theme.ts` ACCENT, `lib/admin-status.ts`, `components/admin/ui/*`).
+- **Phase 2 — workflow statuses & fields (backend):** add SR statuses `approved`, `converted_to_po`
+  and PO statuses `placed`, `tracking`, `dispatched`, `completed` (extend the `OrderRequestStatus` /
+  `PurchaseCartStatus` enums + `UpdateStatus` whitelists + the Kanban lanes); **priority** + **classroom**
+  fields on requests/POs; human **sequential IDs** (`SR-2026-000045`, `PO-2026-000123`) via a counter
+  collection; full Track/Receive **state machine** + a tracking-number field; Approve/Reject/Convert
+  actions on the SR board.
+- **Phase 3 — Suppliers entity + analytics (backend):** a real **Supplier** model/repo/service/handler/
+  routes + admin CRUD (contact, terms, lead-time, account #), replacing the free-text supplier string;
+  server-side **procurement analytics** aggregation endpoints (monthly/branch/classroom spend, request→
+  order & order→delivery times, supplier performance, low-stock trends).
+- **Phase 4 — roles, permissions, customisable dashboards (backend, largest):** a **granular permission
+  system** (view procurement, create/approve SR, convert to PO, place/track/receive/cancel, view supplier
+  spend, all-branches vs own-branch) layered over the JWT; new **finance / admissions / procurement**
+  roles; a **per-user drag-drop, resize, hide/show, save-layout** dashboard (new settings store + DnD grid)
+  with widget-level role/branch/permission gating and reset-to-default.
+
 ## Dev / staging / prod workflow
 Branch model: **feature → staging → main**. `staging` is the pre-prod QA branch; `main` is prod.
 - Local dev: `make dev` (or `make docker-restart`) → seeds + runs on :3000/:8080. Default admin is
