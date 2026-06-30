@@ -44,7 +44,6 @@ interface LocalComment {
 const TAB_CONFIG: { type: ContentType; label: string; activeClass: string }[] = [
   { type: "photo",  label: "Photos",  activeClass: "bg-[#f4aac8] text-white shadow-md" },
   { type: "video",  label: "Videos",  activeClass: "bg-[#5fc8c7] text-white shadow-md" },
-  { type: "update", label: "Updates", activeClass: "bg-[#7fd8d2] text-white shadow-md" },
 ];
 
 const BRANCHES: { value: BranchFilter; label: string }[] = [
@@ -217,7 +216,7 @@ export default function GalleryPageClient() {
         <div className="container-site">
           <h1 className="font-heading text-[2.2rem] leading-none text-[var(--ink)]">Gallery</h1>
           <p className="mt-1.5 text-sm text-[rgba(90,74,66,0.85)]">
-            Photos, videos and updates from our nurseries
+            Photos and videos from our nurseries
           </p>
         </div>
       </div>
