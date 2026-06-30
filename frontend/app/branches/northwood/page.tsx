@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 const details = [
-  { icon: MapPin, label: "Location", value: "Northwood, London, HA6"  },
+  { icon: MapPin, label: "Location", value: "Sandy Lane, Northwood, HA6 3DA"  },
   { icon: Clock,  label: "Hours",   value: "Mon–Fri, 7:30am–6:00pm"  },
   { icon: Mail,   label: "Email",   value: "manager@bluenest.uk"       },
 ];

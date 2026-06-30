@@ -7,6 +7,7 @@ import {
   Leaf,
   Lightbulb,
   Mail,
+  MapPin,
   Monitor,
   Music,
   Phone,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { faqPageJsonLd, branchFaqs } from "@/lib/faq";
 import PastelButton from "@/components/ui/PastelButton";
 import StickerCard from "@/components/ui/StickerCard";
 import Doodle from "@/components/ui/Doodle";
@@ -42,9 +44,10 @@ const branchJsonLd = {
   priceRange: "££",
   address: {
     "@type": "PostalAddress",
+    streetAddress: "31-33 Farriers Way",
     addressLocality: "Borehamwood",
     addressRegion: "Hertfordshire",
-    postalCode: "WD6",
+    postalCode: "WD6 2TB",
     addressCountry: "GB",
   },
   geo: {
@@ -166,63 +169,135 @@ const enrichmentActivities: EnrichmentActivity[] = [
 const gallery = [
   {
     src: "/home/branches/borehamwood/borehamwood-gallery-01.webp",
-    alt: "Teacher with two children building with red Montessori cubes by the cherry-blossom reading area at Blue Nest Borehamwood",
+    alt: "Children exploring a small-world sand sensory tray at Blue Nest Montessori Borehamwood",
     rotate: -2,
-    caption: "Montessori cubes",
+    caption: "Small-world play",
   },
   {
     src: "/home/branches/borehamwood/borehamwood-gallery-02.webp",
-    alt: "Imaginative wisteria-and-foliage reading nook at Blue Nest Borehamwood",
+    alt: "Child practising early mark-making with a practitioner at Blue Nest Montessori Borehamwood",
     rotate: 2,
-    caption: "Imagination corner",
+    caption: "Mark-making",
   },
   {
     src: "/home/branches/borehamwood/borehamwood-gallery-03.webp",
-    alt: "Calm baby room with cot, book caddy and sensory mat at Blue Nest Borehamwood",
+    alt: "Children exploring the immersive underwater sensory projection room at Blue Nest Montessori Borehamwood",
     rotate: -1,
-    caption: "Baby room",
+    caption: "Sensory room",
   },
   {
     src: "/home/branches/borehamwood/borehamwood-gallery-04.webp",
-    alt: "Two babies in the wooden reading arch with fairy lights at Blue Nest Borehamwood",
+    alt: "Children and a practitioner watching the erupting volcano science experiment at Blue Nest Montessori Borehamwood",
     rotate: 2,
-    caption: "Reading arch",
+    caption: "Volcano science",
   },
   {
     src: "/home/branches/borehamwood/borehamwood-gallery-05.webp",
-    alt: "Outdoor mud kitchen with chalkboard menu at Blue Nest Borehamwood",
+    alt: "Child learning about the human body on the anatomy floor mat at Blue Nest Montessori Borehamwood",
     rotate: -2,
-    caption: "Mud kitchen",
+    caption: "Human body",
   },
   {
     src: "/home/branches/borehamwood/borehamwood-gallery-06.webp",
-    alt: "Creation Station art area with chalkboard and crayon labels at Blue Nest Borehamwood",
+    alt: "Children exploring the life-size skeleton model during the Human Body topic at Blue Nest Montessori Borehamwood",
     rotate: 1,
-    caption: "Creation Station",
+    caption: "Our skeleton",
   },
   {
     src: "/home/branches/borehamwood/borehamwood-gallery-07.webp",
-    alt: "Outdoor reading rug with picture books and soft toys at Blue Nest Borehamwood",
+    alt: "Children playing together in the role-play shop at Blue Nest Montessori Borehamwood",
     rotate: -1,
-    caption: "Outdoor reading rug",
+    caption: "Role-play shop",
   },
   {
     src: "/home/branches/borehamwood/borehamwood-gallery-08.webp",
-    alt: "Africa-themed cultural sensory bin with globe and figurines at Blue Nest Borehamwood",
+    alt: "Arctic small-world display with igloos and polar animals at Blue Nest Montessori Borehamwood",
     rotate: 2,
-    caption: "Cultural discovery",
+    caption: "Arctic world",
   },
   {
     src: "/home/branches/borehamwood/borehamwood-gallery-09.webp",
-    alt: "Spring reading area with pink cherry-blossom tree and triangle rug at Blue Nest Borehamwood",
+    alt: "Children and a practitioner laughing during a hands-on sensory activity at Blue Nest Montessori Borehamwood",
     rotate: -2,
-    caption: "Spring reading area",
+    caption: "Sensory fun",
   },
   {
     src: "/home/branches/borehamwood/borehamwood-gallery-10.webp",
-    alt: "Baby exploring the wooden reading arch at Blue Nest Borehamwood",
+    alt: "Child delighted by the colourful sensory light projection at Blue Nest Montessori Borehamwood",
     rotate: 1,
-    caption: "Baby explorers",
+    caption: "Light play",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-11.webp",
+    alt: "Friends enjoying a healthy snack together at Blue Nest Montessori Borehamwood",
+    rotate: -1,
+    caption: "Snack time",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-12.webp",
+    alt: "Children investigating the volcano experiment by the Explore board at Blue Nest Montessori Borehamwood",
+    rotate: 2,
+    caption: "Exploring volcanoes",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-13.webp",
+    alt: "Children and a practitioner exploring the human body organs learning mat at Blue Nest Montessori Borehamwood",
+    rotate: -2,
+    caption: "Body explorers",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-14.webp",
+    alt: "Child reaching up to the skeleton model with a practitioner at Blue Nest Montessori Borehamwood",
+    rotate: 1,
+    caption: "Skeleton discovery",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-15.webp",
+    alt: "The home-corner role-play kitchen at Blue Nest Montessori Borehamwood",
+    rotate: -1,
+    caption: "Home corner",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-16.webp",
+    alt: "Child mark-making in the blue sensory writing tray at Blue Nest Montessori Borehamwood",
+    rotate: 2,
+    caption: "Sensory writing",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-17.webp",
+    alt: "Children gathered at the colourful sensory light table at Blue Nest Montessori Borehamwood",
+    rotate: -2,
+    caption: "Light table",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-18.webp",
+    alt: "Little Artists display board of children's artwork at Blue Nest Montessori Borehamwood",
+    rotate: 1,
+    caption: "Little Artists",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-19.webp",
+    alt: "Children playing at the role-play market stall at Blue Nest Montessori Borehamwood",
+    rotate: -1,
+    caption: "Market stall",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-20.webp",
+    alt: "Children and a practitioner at the water exploration tray at Blue Nest Montessori Borehamwood",
+    rotate: 2,
+    caption: "Water play",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-21.webp",
+    alt: "Child exploring the human body organs activity at Blue Nest Montessori Borehamwood",
+    rotate: -2,
+    caption: "Inside the body",
+  },
+  {
+    src: "/home/branches/borehamwood/borehamwood-gallery-22.webp",
+    alt: "Child delighted while exploring the skeleton model at Blue Nest Montessori Borehamwood",
+    rotate: 1,
+    caption: "Big discovery",
   },
 ];
 
@@ -237,13 +312,17 @@ export default function BorehamwoodBranchPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageJsonLd(branchFaqs.borehamwood)) }}
+      />
 
       <BranchHero
         location="Borehamwood, Hertfordshire"
         heading="Montessori Nursery in Borehamwood"
         description="At Blue Nest Montessori School Borehamwood, we bring the same outstanding Montessori experience to families in Hertfordshire. A warm, stimulating environment where children aged 3 months to 5 years can learn, play and truly thrive."
         image="/home/branches/borehamwood/borehamwood-hero.webp"
-        imageAlt="Outdoor learning playground under the pergola at Blue Nest Montessori Borehamwood"
+        imageAlt="Children exploring the role-play farm shop at Blue Nest Montessori Borehamwood"
         primaryCta={{ label: "Book a Visit", href: "/contact?enquiry=book-visit&branch=borehamwood", variant: "rose" }}
         secondaryCta={{ label: "Contact Us", href: "#visit", variant: "mint" }}
       />
@@ -261,7 +340,7 @@ export default function BorehamwoodBranchPage() {
               <div className="mx-auto w-full max-w-[420px]">
                 <StickerCard
                   src="/home/branches/borehamwood/borehamwood-welcome.webp"
-                  alt="Two babies playing with wooden trains by the fairy-light teepee at Blue Nest Montessori Borehamwood"
+                  alt="A practitioner smiling with a toddler at the dinosaur sand sensory tray at Blue Nest Montessori Borehamwood"
                   rotate={-3}
                   sizes="(max-width: 1024px) 80vw, 38vw"
                   className="w-full"
@@ -376,7 +455,7 @@ export default function BorehamwoodBranchPage() {
               <h2 className="section-title mt-4">Our Borehamwood Nursery</h2>
             </div>
           </Reveal>
-          <LightboxGallery images={gallery} columns={2} />
+          <LightboxGallery images={gallery} columns={3} />
         </div>
       </section>
 
@@ -403,6 +482,14 @@ export default function BorehamwoodBranchPage() {
                 <p className="body-text mt-1 text-sm font-semibold">Borehamwood Branch</p>
 
                 <div className="mt-7 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.06)]">
+                      <MapPin className="h-4 w-4 text-[#5fc8c7]" />
+                    </div>
+                    <address className="not-italic text-sm font-semibold leading-relaxed text-[rgba(90,74,66,0.85)]">
+                      31-33 Farriers Way<br />Borehamwood WD6 2TB
+                    </address>
+                  </div>
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.06)]">
                       <Phone className="h-4 w-4 text-[#5fc8c7]" />

@@ -73,7 +73,10 @@ func main() {
 	col := client.Database(cfg.Mongo.Database).Collection("users")
 
 	specs := []seedSpec{
-		{envPrefix: "DEFAULT_ADMIN", role: models.RoleAdmin, defaultFN: "Admin", defaultLN: "User"},
+		// The default admin is the system owner → super_admin. Re-running the seed
+		// idempotently promotes an existing admin@... account from admin to
+		// super_admin (see upsertUser role-fix below) — this is the migration.
+		{envPrefix: "DEFAULT_ADMIN", role: models.RoleSuperAdmin, defaultFN: "Admin", defaultLN: "User"},
 		{envPrefix: "DEFAULT_CUSTOMER", role: models.RoleCustomer, defaultFN: "Test", defaultLN: "Customer"},
 	}
 

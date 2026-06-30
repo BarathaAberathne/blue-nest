@@ -28,17 +28,17 @@ Our mission is to nurture curious, independent, and confident children through a
 - Catchment: Harrow, South Harrow, Rayners Lane, North Harrow
 
 ### Pinner
-- Located in the Pinner area of London
+- Address: Cuckoo Hill Road, Pinner, HA5 1AY
 - Serves Pinner, Pinner Green, Eastcote, and surrounding areas
 - Contact via manager@bluenest.uk
 
 ### Borehamwood
-- Located in Borehamwood, Hertfordshire
+- Address: 31-33 Farriers Way, Borehamwood, WD6 2TB
 - Serves Borehamwood, Elstree, Radlett, and surrounding areas
 - Contact via manager@bluenest.uk
 
 ### Northwood (Opening Soon)
-- New branch opening in Northwood, Hertfordshire
+- Address: Sandy Lane, Northwood, HA6 3DA
 - Pre-registration enquiries welcome
 - Contact via manager@bluenest.uk to express interest
 

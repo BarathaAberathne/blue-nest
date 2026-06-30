@@ -164,6 +164,7 @@ type AuthService interface {
 	ListAdminUsers(ctx context.Context) ([]models.User, error)
 	ListAllUsers(ctx context.Context) ([]models.User, error)
 	UpdateUser(ctx context.Context, id string, req models.AdminUpdateUserRequest) (*models.User, error)
+	ResetPassword(ctx context.Context, id, newPassword string) error
 	DeleteUser(ctx context.Context, id string) error
 	UpsertOAuthUser(ctx context.Context, email, firstName, lastName, provider, providerID string) (*models.AuthResponse, error)
 }
@@ -234,7 +235,7 @@ func (s *authService) Login(ctx context.Context, req models.LoginRequest) (*mode
 }
 
 func (s *authService) AdminLogin(ctx context.Context, req models.LoginRequest) (*models.AuthResponse, error) {
-	return s.loginWithRoleGuard(ctx, req, []models.Role{models.RoleAdmin, models.RoleBranchManager})
+	return s.loginWithRoleGuard(ctx, req, []models.Role{models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager})
 }
 
 func (s *authService) CreateAdminUser(ctx context.Context, req models.AdminCreateUserRequest) (*models.User, error) {
@@ -243,12 +244,7 @@ func (s *authService) CreateAdminUser(ctx context.Context, req models.AdminCreat
 		role = models.RoleCustomer
 	}
 
-	validRoles := map[models.Role]bool{
-		models.RoleAdmin:         true,
-		models.RoleBranchManager: true,
-		models.RoleCustomer:      true,
-	}
-	if !validRoles[role] {
+	if !isAssignableRole(role) {
 		return nil, errors.New("invalid role")
 	}
 
@@ -315,7 +311,10 @@ func (s *authService) loginWithRoleGuard(ctx context.Context, req models.LoginRe
 			}
 		}
 		if !allowed {
-			return nil, errors.New("admin credentials required")
+			// The credentials were valid, but this account isn't a management
+			// role. Make that explicit so staff/parents who land on the admin
+			// login don't think their password is wrong.
+			return nil, errors.New("this account doesn't have admin access — staff and parents sign in at the main login page")
 		}
 	}
 
@@ -372,11 +371,40 @@ func (s *authService) ListAllUsers(ctx context.Context) ([]models.User, error) {
 }
 
 func (s *authService) UpdateUser(ctx context.Context, id string, req models.AdminUpdateUserRequest) (*models.User, error) {
+	if req.Role != "" && !isAssignableRole(req.Role) {
+		return nil, errors.New("invalid role")
+	}
+	if req.Password != "" {
+		if err := s.ResetPassword(ctx, id, req.Password); err != nil {
+			return nil, err
+		}
+	}
 	return s.users.Update(ctx, id, req)
+}
+
+func (s *authService) ResetPassword(ctx context.Context, id, newPassword string) error {
+	if len(newPassword) < 8 || len(newPassword) > 72 {
+		return errors.New("password must be between 8 and 72 characters")
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	return s.users.UpdatePassword(ctx, id, string(hash))
 }
 
 func (s *authService) DeleteUser(ctx context.Context, id string) error {
 	return s.users.Delete(ctx, id)
+}
+
+// isAssignableRole reports whether a role can be assigned to a user account.
+func isAssignableRole(role models.Role) bool {
+	switch role {
+	case models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager, models.RoleStaff, models.RoleCustomer:
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *authService) UpsertOAuthUser(ctx context.Context, email, firstName, lastName, provider, providerID string) (*models.AuthResponse, error) {

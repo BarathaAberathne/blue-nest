@@ -16,15 +16,19 @@ import (
 )
 
 type Services struct {
-	Auth      service.AuthService
-	Products  service.ProductService
-	Cart      service.CartService
-	Checkout  service.CheckoutService
-	Orders    service.OrderService
-	Blog      service.BlogService
-	Branches  service.BranchService
-	Enquiries service.EnquiryService
-	Comments  service.CommentService
+	Auth          service.AuthService
+	Products      service.ProductService
+	Cart          service.CartService
+	Checkout      service.CheckoutService
+	Orders        service.OrderService
+	Blog          service.BlogService
+	Branches      service.BranchService
+	Enquiries     service.EnquiryService
+	Comments      service.CommentService
+	Audit         service.AuditService
+	OrderRequests service.OrderRequestService
+	Catalogue     service.CatalogueService
+	PurchaseCarts service.PurchaseCartService
 }
 
 type Repos struct {
@@ -102,30 +106,46 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/orders/{id}", orderH.Get)
 		})
 
+		// ── Staff supply requests (staff + management, not customers) ───────
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(jwtSecret))
+			r.Use(middleware.RequireRole("super_admin", "admin", "branch_manager", "staff"))
+
+			orderReqH := handler.NewOrderRequestHandler(svc.OrderRequests, svc.Audit)
+			r.Post("/order-requests", orderReqH.Create)
+			r.Get("/order-requests/me", orderReqH.ListMine)
+			r.Get("/order-requests/{id}", orderReqH.Get)
+			r.Patch("/order-requests/{id}/cancel", orderReqH.Cancel)
+
+			// Read-only catalogue for the staff request picker.
+			catalogueH := handler.NewCatalogueHandler(svc.Catalogue)
+			r.Get("/catalogue", catalogueH.List)
+		})
+
 		// ── Admin routes ───────────────────────────────────────────────────
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtSecret))
 			r.Use(middleware.AdminOnly)
 
-			adminOrderH := adminHandler.NewAdminOrderHandler(svc.Orders)
+			adminOrderH := adminHandler.NewAdminOrderHandler(svc.Orders, svc.Audit)
 			r.Get("/admin/orders", adminOrderH.List)
 			r.Get("/admin/orders/{id}", adminOrderH.Get)
 			r.Patch("/admin/orders/{id}/status", adminOrderH.UpdateStatus)
 
-			adminProductH := adminHandler.NewAdminProductHandler(svc.Products)
+			adminProductH := adminHandler.NewAdminProductHandler(svc.Products, svc.Audit)
 			r.Get("/admin/products", adminProductH.List)
 			r.Post("/admin/products/import", adminProductH.ImportCSV)
 			r.Post("/admin/products", adminProductH.Create)
 			r.Put("/admin/products/{id}", adminProductH.Update)
 			r.Delete("/admin/products/{id}", adminProductH.Delete)
 
-			adminCategoryH := adminHandler.NewAdminCategoryHandler(svc.Products)
+			adminCategoryH := adminHandler.NewAdminCategoryHandler(svc.Products, svc.Audit)
 			r.Get("/admin/categories", adminCategoryH.List)
 			r.Post("/admin/categories", adminCategoryH.Create)
 			r.Put("/admin/categories/{id}", adminCategoryH.Update)
 			r.Delete("/admin/categories/{id}", adminCategoryH.Delete)
 
-			adminBlogH := adminHandler.NewAdminBlogHandler(svc.Blog)
+			adminBlogH := adminHandler.NewAdminBlogHandler(svc.Blog, svc.Audit)
 			r.Get("/admin/blog/posts", adminBlogH.List)
 			r.Post("/admin/blog/posts", adminBlogH.Create)
 			r.Put("/admin/blog/posts/{id}", adminBlogH.Update)
@@ -133,17 +153,40 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Post("/admin/blog/publish-scheduled", adminBlogH.TriggerPublishScheduled)
 			r.Post("/admin/uploads/image", adminBlogH.UploadImage)
 
-			adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries)
+			adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Audit)
 			r.Get("/admin/enquiries", adminEnquiryH.List)
 			r.Get("/admin/enquiries/{id}", adminEnquiryH.Get)
 			r.Patch("/admin/enquiries/{id}/status", adminEnquiryH.UpdateStatus)
 
+			adminAuditH := adminHandler.NewAdminAuditLogHandler(svc.Audit)
+			r.Get("/admin/audit-logs", adminAuditH.List)
+
+			adminOrderReqH := adminHandler.NewAdminOrderRequestHandler(svc.OrderRequests, svc.Audit)
+			r.Get("/admin/order-requests", adminOrderReqH.List)
+			r.Get("/admin/order-requests/{id}", adminOrderReqH.Get)
+			r.Patch("/admin/order-requests/{id}/status", adminOrderReqH.UpdateStatus)
+
+			adminCatalogueH := adminHandler.NewAdminCatalogueHandler(svc.Catalogue, svc.Audit)
+			r.Get("/admin/catalogue", adminCatalogueH.List)
+			r.Get("/admin/catalogue/{id}", adminCatalogueH.Get)
+			r.Post("/admin/catalogue", adminCatalogueH.Create)
+			r.Put("/admin/catalogue/{id}", adminCatalogueH.Update)
+			r.Delete("/admin/catalogue/{id}", adminCatalogueH.Delete)
+
+			adminCartH := adminHandler.NewAdminPurchaseCartHandler(svc.PurchaseCarts, svc.Audit)
+			r.Post("/admin/purchase-carts/generate", adminCartH.Generate)
+			r.Get("/admin/purchase-carts", adminCartH.List)
+			r.Get("/admin/purchase-carts/{id}", adminCartH.Get)
+			r.Put("/admin/purchase-carts/{id}", adminCartH.Update)
+			r.Post("/admin/purchase-carts/{id}/send", adminCartH.Send)
+
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.SuperAdminOnly)
-				adminUserH := adminHandler.NewAdminUserHandler(svc.Auth)
+				adminUserH := adminHandler.NewAdminUserHandler(svc.Auth, svc.Audit)
 				r.Get("/admin/users", adminUserH.List)
 				r.Post("/admin/users", adminUserH.Create)
 				r.Put("/admin/users/{id}", adminUserH.Update)
+				r.Post("/admin/users/{id}/reset-password", adminUserH.ResetPassword)
 				r.Delete("/admin/users/{id}", adminUserH.Delete)
 			})
 		})

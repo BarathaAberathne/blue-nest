@@ -19,6 +19,7 @@ type UserRepository interface {
 	FindByRoles(ctx context.Context, roles []models.Role) ([]models.User, error)
 	FindAll(ctx context.Context) ([]models.User, error)
 	Update(ctx context.Context, id string, update models.AdminUpdateUserRequest) (*models.User, error)
+	UpdatePassword(ctx context.Context, id, passwordHash string) error
 	Delete(ctx context.Context, id string) error
 	UpsertByEmail(ctx context.Context, email string, user *models.User) (*models.User, error)
 }
@@ -132,6 +133,16 @@ func (r *userRepository) Update(ctx context.Context, id string, req models.Admin
 		return nil, err
 	}
 	return &updated, nil
+}
+
+func (r *userRepository) UpdatePassword(ctx context.Context, id, passwordHash string) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid},
+		bson.M{"$set": bson.M{"password_hash": passwordHash, "updated_at": time.Now()}})
+	return err
 }
 
 func (r *userRepository) Delete(ctx context.Context, id string) error {

@@ -8,6 +8,7 @@ import {
   Leaf,
   Lightbulb,
   Mail,
+  MapPin,
   Monitor,
   Music,
   Phone,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
+import { faqPageJsonLd, branchFaqs } from "@/lib/faq";
 import PastelButton from "@/components/ui/PastelButton";
 import StickerCard from "@/components/ui/StickerCard";
 import ZigzagBand from "@/components/ui/ZigzagBand";
@@ -329,6 +331,10 @@ export default function HarrowBranchPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageJsonLd(branchFaqs.harrow)) }}
+      />
 
       <BranchHero
         location="Harrow, London"
@@ -571,6 +577,14 @@ export default function HarrowBranchPage() {
                 <p className="body-text mt-1 text-sm font-semibold">Harrow Branch</p>
 
                 <div className="mt-7 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.06)]">
+                      <MapPin className="h-4 w-4 text-[#5fc8c7]" />
+                    </div>
+                    <address className="not-italic text-sm font-semibold leading-relaxed text-[rgba(90,74,66,0.85)]">
+                      29 Churchfield Close<br />Harrow HA2 6BD
+                    </address>
+                  </div>
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.06)]">
                       <Phone className="h-4 w-4 text-[#5fc8c7]" />

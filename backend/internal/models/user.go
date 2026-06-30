@@ -10,8 +10,10 @@ type Role string
 
 const (
 	RoleCustomer      Role = "customer"
-	RoleAdmin         Role = "admin"
+	RoleStaff         Role = "staff"
 	RoleBranchManager Role = "branch_manager"
+	RoleAdmin         Role = "admin"
+	RoleSuperAdmin    Role = "super_admin"
 )
 
 type User struct {
@@ -54,6 +56,13 @@ type AdminUpdateUserRequest struct {
 	LastName    string   `json:"last_name,omitempty"`
 	Role        Role     `json:"role,omitempty"`
 	BranchSlugs []string `json:"branch_slugs,omitempty"`
+	// Optional: when non-empty, the user's password is reset to this value.
+	Password string `json:"password,omitempty"`
+}
+
+// AdminResetPasswordRequest is the body for POST /admin/users/{id}/reset-password.
+type AdminResetPasswordRequest struct {
+	Password string `json:"password" validate:"required,min=8"`
 }
 
 type RefreshRequest struct {
