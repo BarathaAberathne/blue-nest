@@ -52,8 +52,26 @@ procurement lives under **Supplies** = Requests → Purchase Orders → Catalogu
 methods + `getAccessToken()`.
 
 ## Modules (current)
-Store (products/categories/cart/checkout/orders), Blog, Branches, Contact/**Enquiries** (inquiry
-tracker at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Area (4 games).
+Store (products/categories/cart/checkout/orders), Blog, Branches, Contact/**Enquiries** (admissions
+CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Area (4 games).
+- **Enquiries / admissions CRM** (`models/enquiry.go`, collection `enquiries`): the public contact
+  form (`POST /contact`) feeds an admissions pipeline. Status workflow (constants in `enquiry.go`,
+  `NormalizeStatus` migrates legacy `new|read|responded` on read): `new → contacted →
+  awaiting_reply → booked_visit → visit_completed → registered`, plus terminal `cancelled | lost |
+  spam`. Each enquiry carries `notes[]`, an append-only `activity_log[]` (every status change, note,
+  follow-up edit, assignment, reply, registration writes one entry, attributed to the JWT actor),
+  `assigned_to`, `priority`, `follow_up_date`, `next_action`, a `registration` sub-doc (status
+  `registered` syncs `registration.is_registered`), `source` and `updated_at`. Admin handlers
+  (`handler/admin/enquiries.go`, `AdminOnly`) audit-log each mutation and return the fresh enquiry.
+  Routes: `GET /admin/enquiries` (optional `branch|type|status|assigned_to|from|to|sort|dir|limit|skip`
+  query filters — the UI filters client-side), `GET /admin/enquiries/{id}`, `GET .../stats`
+  (KPI/chart payload), `GET .../assignees` (non-customer users for assignment), `PATCH .../{id}/status`,
+  `POST .../{id}/notes`, `PATCH .../{id}/follow-up`, `PATCH .../{id}/assign`, `POST .../{id}/register`,
+  `POST .../{id}/reply`. Frontend: list at `/admin/inquiries` (status-group tabs, branch/type/status/
+  assignee/date-range/overdue filters, sortable columns, row indicators, CSV export), tabbed detail
+  at `/admin/inquiries/[id]` (Overview/Message/Notes & Activity/Follow-up/Registration + sticky action
+  panel), and a KPI dashboard at `/admin/inquiries/dashboard` (cards, **recharts** charts, conversion
+  funnel, branch comparison). Shared UI: `components/ui/{Tabs,StatusBadge}`, helpers in `lib/enquiry.ts`.
 - **Audit log** (`models/audit_log.go`, collection `audit_logs`): append-only record of admin
   mutations. `service.AuditService.Record(r, action, entityType, entityID, summary, details)` is
   called from admin handlers after a successful mutation (best-effort — never blocks the operation;

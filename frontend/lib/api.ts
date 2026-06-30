@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AuditLog, CatalogueItem, Enquiry, OrderRequest, OrderTemplate, PurchaseCart, User } from "@/types";
+import type { AuditLog, CatalogueItem, Enquiry, EnquiryAssignee, EnquiryStats, OrderRequest, OrderTemplate, PurchaseCart, User } from "@/types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -150,12 +150,62 @@ export const api = {
   adminGetEnquiries: (token: string) => apiFetch<Enquiry[]>("/api/v1/admin/enquiries", { token }),
   adminGetEnquiry: (token: string, id: string) =>
     apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}`, { token }),
+  adminGetEnquiryStats: (token: string) =>
+    apiFetch<EnquiryStats>("/api/v1/admin/enquiries/stats", { token }),
+  adminGetEnquiryAssignees: (token: string) =>
+    apiFetch<EnquiryAssignee[]>("/api/v1/admin/enquiries/assignees", { token }),
   adminUpdateEnquiryStatus: (token: string, id: string, status: string) =>
-    apiFetch(`/api/v1/admin/enquiries/${id}/status`, {
+    apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
       token,
     }),
+  adminAddEnquiryNote: (token: string, id: string, note: string) =>
+    apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/notes`, {
+      method: "POST",
+      body: JSON.stringify({ note }),
+      token,
+    }),
+  adminUpdateEnquiryFollowUp: (
+    token: string,
+    id: string,
+    body: {
+      assigned_to?: string;
+      assigned_to_name?: string;
+      priority?: string;
+      follow_up_date?: string | null;
+      next_action?: string;
+    },
+  ) =>
+    apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/follow-up`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      token,
+    }),
+  adminAssignEnquiry: (token: string, id: string, assigned_to: string, assigned_to_name: string) =>
+    apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/assign`, {
+      method: "PATCH",
+      body: JSON.stringify({ assigned_to, assigned_to_name }),
+      token,
+    }),
+  adminRegisterEnquiry: (
+    token: string,
+    id: string,
+    body: {
+      registration_date?: string | null;
+      expected_start_date?: string | null;
+      child_age_group?: string;
+      room_allocation?: string;
+      funding_type?: string;
+    },
+  ) =>
+    apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/register`, {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+    }),
+  adminLogEnquiryReply: (token: string, id: string) =>
+    apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/reply`, { method: "POST", token }),
 
   // Admin
   adminGetOrders: (token: string) => apiFetch("/api/v1/admin/orders", { token }),

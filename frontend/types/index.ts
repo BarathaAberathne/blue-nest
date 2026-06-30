@@ -163,8 +163,125 @@ export interface ApiEnvelope<T> {
   message?: string;
 }
 
-// ── Enquiries (website inquiry tracker) ─────────────────────────────────────────
-export type EnquiryStatus = "new" | "read" | "responded";
+// ── Enquiries (admissions CRM / inquiry tracker) ────────────────────────────────
+export type EnquiryStatus =
+  | "new"
+  | "contacted"
+  | "awaiting_reply"
+  | "booked_visit"
+  | "visit_completed"
+  | "registered"
+  | "cancelled"
+  | "lost"
+  | "spam";
+
+// Workflow order used to drive tabs, badges and funnel ordering.
+export const ENQUIRY_STATUSES: EnquiryStatus[] = [
+  "new",
+  "contacted",
+  "awaiting_reply",
+  "booked_visit",
+  "visit_completed",
+  "registered",
+  "cancelled",
+  "lost",
+  "spam",
+];
+
+export const ENQUIRY_STATUS_LABELS: Record<EnquiryStatus, string> = {
+  new: "New",
+  contacted: "Contacted",
+  awaiting_reply: "Awaiting reply",
+  booked_visit: "Booked visit",
+  visit_completed: "Visit completed",
+  registered: "Registered",
+  cancelled: "Cancelled",
+  lost: "Lost",
+  spam: "Spam / invalid",
+};
+
+export type EnquiryPriority = "low" | "medium" | "high";
+
+export type EnquiryActivityType =
+  | "status_change"
+  | "note_added"
+  | "email_reply"
+  | "follow_up_updated"
+  | "assigned"
+  | "registered";
+
+export interface EnquiryNote {
+  id: string;
+  note: string;
+  author_id: string;
+  author_name: string;
+  created_at: string;
+}
+
+export interface EnquiryActivity {
+  id: string;
+  type: EnquiryActivityType;
+  message: string;
+  from_status?: string;
+  to_status?: string;
+  author_id: string;
+  author_name: string;
+  created_at: string;
+}
+
+export interface EnquiryRegistration {
+  is_registered: boolean;
+  registration_date?: string;
+  expected_start_date?: string;
+  child_age_group?: string;
+  room_allocation?: string;
+  funding_type?: string;
+}
+
+export interface EnquiryAssignee {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+// Stats payload for the admissions KPI dashboard.
+export interface EnquiryStatPoint {
+  label: string;
+  value: number;
+}
+
+export interface EnquiryBranchStat {
+  branch: string;
+  total: number;
+  booked_visits: number;
+  registered: number;
+  lost_cancelled: number;
+  conversion_rate: number;
+  overdue_follow_ups: number;
+}
+
+export interface EnquiryStats {
+  total_this_month: number;
+  new: number;
+  contacted: number;
+  booked_visits: number;
+  registrations: number;
+  lost_cancelled: number;
+  conversion_rate: number;
+  visit_booking_rate: number;
+  avg_response_hours: number;
+  has_response_data: boolean;
+  overdue_follow_ups: number;
+  total: number;
+  by_branch: EnquiryStatPoint[];
+  by_status: EnquiryStatPoint[];
+  by_type: EnquiryStatPoint[];
+  monthly_trend: EnquiryStatPoint[];
+  funnel: EnquiryStatPoint[];
+  registrations_by_branch: EnquiryStatPoint[];
+  branch_comparison: EnquiryBranchStat[];
+}
 
 export interface FeeQuote {
   branch?: string;
@@ -223,7 +340,17 @@ export interface Enquiry {
   fee_quote?: FeeQuote;
   application?: Application;
   status: EnquiryStatus;
+  source?: string;
+  assigned_to?: string;
+  assigned_to_name?: string;
+  priority?: EnquiryPriority;
+  follow_up_date?: string;
+  next_action?: string;
+  notes: EnquiryNote[];
+  activity_log: EnquiryActivity[];
+  registration?: EnquiryRegistration;
   created_at: string;
+  updated_at?: string;
 }
 
 // ── Audit log (admin activity) ──────────────────────────────────────────────────

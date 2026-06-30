@@ -5,18 +5,28 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/platform/email"
 	"github.com/blue-nest-montessori/api/internal/repository"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type EnquiryService interface {
 	Submit(ctx context.Context, req models.EnquiryRequest) (*models.Enquiry, error)
 	ListAll(ctx context.Context) ([]models.Enquiry, error)
+	List(ctx context.Context, f models.EnquiryFilter) ([]models.Enquiry, error)
 	GetByID(ctx context.Context, id string) (*models.Enquiry, error)
-	UpdateStatus(ctx context.Context, id, status string) error
+	ChangeStatus(ctx context.Context, id, status string, actor models.EnquiryActor) error
+	AddNote(ctx context.Context, id, note string, actor models.EnquiryActor) (*models.EnquiryNote, error)
+	UpdateFollowUp(ctx context.Context, id string, req models.EnquiryFollowUpRequest, actor models.EnquiryActor) error
+	Assign(ctx context.Context, id string, req models.EnquiryAssignRequest, actor models.EnquiryActor) error
+	Register(ctx context.Context, id string, req models.EnquiryRegisterRequest, actor models.EnquiryActor) error
+	LogReply(ctx context.Context, id string, actor models.EnquiryActor) error
+	Stats(ctx context.Context) (*models.EnquiryStats, error)
 }
 
 type enquiryService struct {
@@ -56,7 +66,11 @@ func (s *enquiryService) Submit(ctx context.Context, req models.EnquiryRequest) 
 		Message:     req.Message,
 		FeeQuote:    req.FeeQuote,
 		Application: req.Application,
-		Status:      "new",
+		Source:      req.Source,
+		Status:      models.EnquiryStatusNew,
+		Priority:    models.EnquiryPriorityMedium,
+		Notes:       []models.EnquiryNote{},
+		ActivityLog: []models.EnquiryActivity{},
 	}
 
 	if err := s.repo.Create(ctx, enquiry); err != nil {
@@ -82,15 +96,423 @@ func (s *enquiryService) Submit(ctx context.Context, req models.EnquiryRequest) 
 }
 
 func (s *enquiryService) ListAll(ctx context.Context) ([]models.Enquiry, error) {
-	return s.repo.FindAll(ctx)
+	return s.List(ctx, models.EnquiryFilter{})
+}
+
+func (s *enquiryService) List(ctx context.Context, f models.EnquiryFilter) ([]models.Enquiry, error) {
+	enquiries, err := s.repo.Find(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	for i := range enquiries {
+		normalize(&enquiries[i])
+	}
+	return enquiries, nil
 }
 
 func (s *enquiryService) GetByID(ctx context.Context, id string) (*models.Enquiry, error) {
-	return s.repo.FindByID(ctx, id)
+	e, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	normalize(e)
+	return e, nil
 }
 
-func (s *enquiryService) UpdateStatus(ctx context.Context, id, status string) error {
-	return s.repo.UpdateStatus(ctx, id, status)
+// normalize migrates legacy/missing fields so old records render safely without
+// a destructive migration: legacy status mapping, default priority, and
+// non-nil slices for the JSON timeline.
+func normalize(e *models.Enquiry) {
+	if e == nil {
+		return
+	}
+	e.Status = models.NormalizeStatus(e.Status)
+	if e.Priority == "" {
+		e.Priority = models.EnquiryPriorityMedium
+	}
+	if e.Notes == nil {
+		e.Notes = []models.EnquiryNote{}
+	}
+	if e.ActivityLog == nil {
+		e.ActivityLog = []models.EnquiryActivity{}
+	}
+}
+
+func (s *enquiryService) ChangeStatus(ctx context.Context, id, status string, actor models.EnquiryActor) error {
+	if !models.IsValidEnquiryStatus(status) {
+		return errors.New("invalid status")
+	}
+	current, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	from := models.NormalizeStatus(current.Status)
+	if from == status {
+		return nil // no-op; avoid noise in the activity log
+	}
+	// Guard the "registered" status: it must carry an expected start date, so
+	// it can only be reached via Register (the Registration tab) — never set
+	// blindly from the status dropdown. Already-registered enquiries with a
+	// start date can re-affirm the status freely.
+	if status == models.EnquiryStatusRegistered &&
+		(current.Registration == nil || current.Registration.ExpectedStartDate == nil) {
+		return errors.New("set an expected start date in the Registration tab to register")
+	}
+	act := newActivity(models.EnquiryActivityStatusChange, actor,
+		fmt.Sprintf("Status changed from %s to %s", statusLabel(from), statusLabel(status)))
+	act.FromStatus = from
+	act.ToStatus = status
+	if status == models.EnquiryStatusRegistered {
+		act.Type = models.EnquiryActivityRegistered
+	}
+	return s.repo.ChangeStatus(ctx, id, status, act)
+}
+
+func (s *enquiryService) AddNote(ctx context.Context, id, note string, actor models.EnquiryActor) (*models.EnquiryNote, error) {
+	note = strings.TrimSpace(note)
+	if note == "" {
+		return nil, errors.New("note cannot be empty")
+	}
+	n := models.EnquiryNote{
+		ID:         primitive.NewObjectID().Hex(),
+		Note:       note,
+		AuthorID:   actor.ID,
+		AuthorName: actor.Name,
+		CreatedAt:  time.Now(),
+	}
+	act := newActivity(models.EnquiryActivityNoteAdded, actor, "Added an internal note")
+	if err := s.repo.AddNote(ctx, id, n, act); err != nil {
+		return nil, err
+	}
+	return &n, nil
+}
+
+func (s *enquiryService) UpdateFollowUp(ctx context.Context, id string, req models.EnquiryFollowUpRequest, actor models.EnquiryActor) error {
+	if req.Priority == "" {
+		req.Priority = models.EnquiryPriorityMedium
+	}
+	if !models.IsValidPriority(req.Priority) {
+		return errors.New("invalid priority")
+	}
+	msg := "Updated follow-up details"
+	if req.FollowUpDate != nil {
+		msg = fmt.Sprintf("Set follow-up for %s (%s priority)", req.FollowUpDate.Format("2 Jan 2006"), req.Priority)
+	}
+	act := newActivity(models.EnquiryActivityFollowUp, actor, msg)
+	return s.repo.UpdateFollowUp(ctx, id, req, act)
+}
+
+func (s *enquiryService) Assign(ctx context.Context, id string, req models.EnquiryAssignRequest, actor models.EnquiryActor) error {
+	msg := "Unassigned the enquiry"
+	if strings.TrimSpace(req.AssignedToName) != "" {
+		msg = "Assigned to " + req.AssignedToName
+	}
+	act := newActivity(models.EnquiryActivityAssigned, actor, msg)
+	return s.repo.Assign(ctx, id, req.AssignedTo, req.AssignedToName, act)
+}
+
+func (s *enquiryService) Register(ctx context.Context, id string, req models.EnquiryRegisterRequest, actor models.EnquiryActor) error {
+	if req.ExpectedStartDate == nil {
+		return errors.New("expected start date is required to register")
+	}
+	regDate := req.RegistrationDate
+	if regDate == nil {
+		now := time.Now()
+		regDate = &now
+	}
+	reg := models.EnquiryRegistration{
+		IsRegistered:      true,
+		RegistrationDate:  regDate,
+		ExpectedStartDate: req.ExpectedStartDate,
+		ChildAgeGroup:     req.ChildAgeGroup,
+		RoomAllocation:    req.RoomAllocation,
+		FundingType:       req.FundingType,
+	}
+	act := newActivity(models.EnquiryActivityRegistered, actor,
+		fmt.Sprintf("Registered — expected start %s", req.ExpectedStartDate.Format("2 Jan 2006")))
+	act.FromStatus = ""
+	act.ToStatus = models.EnquiryStatusRegistered
+	return s.repo.Register(ctx, id, reg, act)
+}
+
+func (s *enquiryService) LogReply(ctx context.Context, id string, actor models.EnquiryActor) error {
+	act := newActivity(models.EnquiryActivityEmailReply, actor, "Replied by email")
+	return s.repo.LogActivity(ctx, id, act)
+}
+
+// newActivity builds a timestamped activity entry attributed to the actor.
+func newActivity(typ string, actor models.EnquiryActor, msg string) models.EnquiryActivity {
+	return models.EnquiryActivity{
+		ID:         primitive.NewObjectID().Hex(),
+		Type:       typ,
+		Message:    msg,
+		AuthorID:   actor.ID,
+		AuthorName: actor.Name,
+		CreatedAt:  time.Now(),
+	}
+}
+
+// statusLabel renders a status constant as a human label for activity messages.
+func statusLabel(s string) string {
+	switch s {
+	case models.EnquiryStatusNew:
+		return "New"
+	case models.EnquiryStatusContacted:
+		return "Contacted"
+	case models.EnquiryStatusAwaitingReply:
+		return "Awaiting reply"
+	case models.EnquiryStatusBookedVisit:
+		return "Booked visit"
+	case models.EnquiryStatusVisitCompleted:
+		return "Visit completed"
+	case models.EnquiryStatusRegistered:
+		return "Registered"
+	case models.EnquiryStatusCancelled:
+		return "Cancelled"
+	case models.EnquiryStatusLost:
+		return "Lost"
+	case models.EnquiryStatusSpam:
+		return "Spam / invalid"
+	default:
+		return s
+	}
+}
+
+// ── Dashboard stats ──────────────────────────────────────────────────────────
+
+// statusRank maps a status to its funnel stage (0 New … 4 Registered). Off-funnel
+// terminal states (cancelled/lost/spam) rank 0 — their historical stage is read
+// from the activity log instead.
+func statusRank(s string) int {
+	switch s {
+	case models.EnquiryStatusContacted, models.EnquiryStatusAwaitingReply:
+		return 1
+	case models.EnquiryStatusBookedVisit:
+		return 2
+	case models.EnquiryStatusVisitCompleted:
+		return 3
+	case models.EnquiryStatusRegistered:
+		return 4
+	default:
+		return 0
+	}
+}
+
+// firstResponseAt returns the time of the first staff response (a reply email or
+// a move to contacted/awaiting-reply) recorded in the activity log.
+func firstResponseAt(e *models.Enquiry) (time.Time, bool) {
+	var earliest time.Time
+	found := false
+	for _, a := range e.ActivityLog {
+		isResponse := a.Type == models.EnquiryActivityEmailReply ||
+			a.ToStatus == models.EnquiryStatusContacted ||
+			a.ToStatus == models.EnquiryStatusAwaitingReply
+		if !isResponse {
+			continue
+		}
+		if !found || a.CreatedAt.Before(earliest) {
+			earliest = a.CreatedAt
+			found = true
+		}
+	}
+	return earliest, found
+}
+
+func (s *enquiryService) Stats(ctx context.Context) (*models.EnquiryStats, error) {
+	all, err := s.repo.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+
+	stats := &models.EnquiryStats{Total: len(all)}
+	byBranch := map[string]int{}
+	byStatus := map[string]int{}
+	byType := map[string]int{}
+	regByBranch := map[string]int{}
+	monthly := map[string]int{}
+
+	type branchAgg struct{ total, booked, registered, lost, overdue int }
+	branchCmp := map[string]*branchAgg{}
+
+	funnel := make([]int, 5) // reached counts per stage
+	var respSum time.Duration
+	var respCount, qualified int
+
+	for i := range all {
+		e := &all[i]
+		st := models.NormalizeStatus(e.Status)
+
+		byStatus[st]++
+		// Key branch aggregations by the display label so inconsistent raw
+		// values ("harrow" vs "Harrow") merge into one branch.
+		branchLabel := formatBranch(strings.TrimSpace(e.Branch))
+		if branchLabel != "" {
+			byBranch[branchLabel]++
+		}
+		if e.EnquiryType != "" {
+			byType[e.EnquiryType]++
+		}
+		if !e.CreatedAt.Before(monthStart) {
+			stats.TotalThisMonth++
+		}
+		monthly[e.CreatedAt.Format("2006-01")]++
+
+		isRegistered := st == models.EnquiryStatusRegistered || (e.Registration != nil && e.Registration.IsRegistered)
+		isLostCancelled := st == models.EnquiryStatusCancelled || st == models.EnquiryStatusLost
+		isSpam := st == models.EnquiryStatusSpam
+
+		if !isSpam {
+			qualified++
+		}
+		switch st {
+		case models.EnquiryStatusNew:
+			stats.New++
+		case models.EnquiryStatusContacted, models.EnquiryStatusAwaitingReply:
+			stats.Contacted++
+		}
+		if isRegistered {
+			stats.Registrations++
+			if branchLabel != "" {
+				regByBranch[branchLabel]++
+			}
+		}
+		if isLostCancelled {
+			stats.LostCancelled++
+		}
+
+		overdue := e.FollowUpDate != nil && e.FollowUpDate.Before(now) && !isRegistered && !isLostCancelled && !isSpam
+		if overdue {
+			stats.OverdueFollowUps++
+		}
+
+		// Highest funnel stage ever reached (current status or historical).
+		maxRank := statusRank(st)
+		for _, a := range e.ActivityLog {
+			if r := statusRank(a.ToStatus); r > maxRank {
+				maxRank = r
+			}
+		}
+		if !isSpam {
+			for stage := 0; stage <= maxRank && stage < len(funnel); stage++ {
+				funnel[stage]++
+			}
+		}
+
+		if rt, ok := firstResponseAt(e); ok {
+			respSum += rt.Sub(e.CreatedAt)
+			respCount++
+		}
+
+		if branchLabel != "" {
+			c := branchCmp[branchLabel]
+			if c == nil {
+				c = &branchAgg{}
+				branchCmp[branchLabel] = c
+			}
+			c.total++
+			if maxRank >= 2 {
+				c.booked++
+			}
+			if isRegistered {
+				c.registered++
+			}
+			if isLostCancelled {
+				c.lost++
+			}
+			if overdue {
+				c.overdue++
+			}
+		}
+	}
+
+	stats.BookedVisits = funnel[2]
+	if qualified > 0 {
+		stats.ConversionRate = round1(float64(stats.Registrations) / float64(qualified) * 100)
+		stats.VisitBookingRate = round1(float64(funnel[2]) / float64(qualified) * 100)
+	}
+	if respCount > 0 {
+		stats.AvgResponseHours = round1(respSum.Hours() / float64(respCount))
+		stats.HasResponseData = true
+	}
+
+	identity := func(s string) string { return s }
+	stats.ByBranch = pointsSorted(byBranch, identity)
+	stats.ByType = pointsSorted(byType, identity)
+	stats.RegistrationsByBranch = pointsSorted(regByBranch, identity)
+	stats.ByStatus = orderedStatusPoints(byStatus)
+	stats.MonthlyTrend = monthlyTrend(monthly, now, 6)
+	stats.Funnel = []models.EnquiryStatPoint{
+		{Label: "New", Value: funnel[0]},
+		{Label: "Contacted", Value: funnel[1]},
+		{Label: "Booked visit", Value: funnel[2]},
+		{Label: "Visit completed", Value: funnel[3]},
+		{Label: "Registered", Value: funnel[4]},
+	}
+
+	for branch, c := range branchCmp {
+		conv := 0.0
+		if c.total > 0 {
+			conv = round1(float64(c.registered) / float64(c.total) * 100)
+		}
+		stats.BranchComparison = append(stats.BranchComparison, models.EnquiryBranchStat{
+			Branch:           branch,
+			Total:            c.total,
+			BookedVisits:     c.booked,
+			Registered:       c.registered,
+			LostCancelled:    c.lost,
+			ConversionRate:   conv,
+			OverdueFollowUps: c.overdue,
+		})
+	}
+	sort.Slice(stats.BranchComparison, func(i, j int) bool {
+		return stats.BranchComparison[i].Total > stats.BranchComparison[j].Total
+	})
+
+	return stats, nil
+}
+
+func round1(f float64) float64 {
+	return float64(int(f*10+0.5)) / 10
+}
+
+// pointsSorted converts a count map into chart points sorted by value desc,
+// applying labelFn to each key for display.
+func pointsSorted(m map[string]int, labelFn func(string) string) []models.EnquiryStatPoint {
+	points := make([]models.EnquiryStatPoint, 0, len(m))
+	for k, v := range m {
+		points = append(points, models.EnquiryStatPoint{Label: labelFn(k), Value: v})
+	}
+	sort.Slice(points, func(i, j int) bool {
+		if points[i].Value != points[j].Value {
+			return points[i].Value > points[j].Value
+		}
+		return points[i].Label < points[j].Label
+	})
+	return points
+}
+
+// orderedStatusPoints renders status counts in the canonical workflow order.
+func orderedStatusPoints(m map[string]int) []models.EnquiryStatPoint {
+	points := make([]models.EnquiryStatPoint, 0, len(models.EnquiryStatuses))
+	for _, st := range models.EnquiryStatuses {
+		points = append(points, models.EnquiryStatPoint{Label: statusLabel(st), Value: m[st]})
+	}
+	return points
+}
+
+// monthlyTrend returns the last n months (including the current one), oldest
+// first, labelled "Jan", "Feb" …
+func monthlyTrend(m map[string]int, now time.Time, n int) []models.EnquiryStatPoint {
+	points := make([]models.EnquiryStatPoint, 0, n)
+	for i := n - 1; i >= 0; i-- {
+		month := now.AddDate(0, -i, 0)
+		key := month.Format("2006-01")
+		points = append(points, models.EnquiryStatPoint{Label: month.Format("Jan"), Value: m[key]})
+	}
+	return points
 }
 
 // ── Email templates ───────────────────────────────────────────────────────────

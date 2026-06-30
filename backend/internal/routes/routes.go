@@ -160,10 +160,17 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Post("/admin/blog/publish-scheduled", adminBlogH.TriggerPublishScheduled)
 			r.Post("/admin/uploads/image", adminBlogH.UploadImage)
 
-			adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Audit)
+			adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Auth, svc.Audit)
 			r.Get("/admin/enquiries", adminEnquiryH.List)
+			r.Get("/admin/enquiries/stats", adminEnquiryH.Stats)
+			r.Get("/admin/enquiries/assignees", adminEnquiryH.Assignees)
 			r.Get("/admin/enquiries/{id}", adminEnquiryH.Get)
 			r.Patch("/admin/enquiries/{id}/status", adminEnquiryH.UpdateStatus)
+			r.Post("/admin/enquiries/{id}/notes", adminEnquiryH.AddNote)
+			r.Patch("/admin/enquiries/{id}/follow-up", adminEnquiryH.UpdateFollowUp)
+			r.Patch("/admin/enquiries/{id}/assign", adminEnquiryH.Assign)
+			r.Post("/admin/enquiries/{id}/register", adminEnquiryH.Register)
+			r.Post("/admin/enquiries/{id}/reply", adminEnquiryH.LogReply)
 
 			adminAuditH := adminHandler.NewAdminAuditLogHandler(svc.Audit)
 			r.Get("/admin/audit-logs", adminAuditH.List)
