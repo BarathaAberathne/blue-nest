@@ -8,6 +8,7 @@ import (
 	adminHandler "github.com/blue-nest-montessori/api/internal/handler/admin"
 	"github.com/blue-nest-montessori/api/internal/handler/webhooks"
 	"github.com/blue-nest-montessori/api/internal/middleware"
+	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/platform/email"
 	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/internal/service"
@@ -16,22 +17,23 @@ import (
 )
 
 type Services struct {
-	Auth           service.AuthService
-	Products       service.ProductService
-	Cart           service.CartService
-	Checkout       service.CheckoutService
-	Orders         service.OrderService
-	Blog           service.BlogService
-	Branches       service.BranchService
-	Enquiries      service.EnquiryService
-	Comments       service.CommentService
-	Audit          service.AuditService
-	OrderRequests  service.OrderRequestService
-	Catalogue      service.CatalogueService
-	PurchaseCarts  service.PurchaseCartService
-	OrderTemplates service.OrderTemplateService
-	Suppliers      service.SupplierService
-	Procurement    service.ProcurementAnalyticsService
+	Auth             service.AuthService
+	Products         service.ProductService
+	Cart             service.CartService
+	Checkout         service.CheckoutService
+	Orders           service.OrderService
+	Blog             service.BlogService
+	Branches         service.BranchService
+	Enquiries        service.EnquiryService
+	Comments         service.CommentService
+	Audit            service.AuditService
+	OrderRequests    service.OrderRequestService
+	Catalogue        service.CatalogueService
+	PurchaseCarts    service.PurchaseCartService
+	OrderTemplates   service.OrderTemplateService
+	Suppliers        service.SupplierService
+	Procurement      service.ProcurementAnalyticsService
+	DashboardLayouts service.DashboardLayoutService
 }
 
 type Repos struct {
@@ -92,6 +94,14 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtSecret))
 
+			// Identity + capabilities (drives UI nav/page gating).
+			r.Get("/auth/me", authH.Me)
+
+			// Per-user customizable dashboard layout (any authenticated user).
+			dashH := handler.NewDashboardLayoutHandler(svc.DashboardLayouts)
+			r.Get("/me/dashboard", dashH.Get)
+			r.Put("/me/dashboard", dashH.Save)
+
 			// Cart
 			cartH := handler.NewCartHandler(svc.Cart)
 			r.Get("/cart", cartH.Get)
@@ -132,88 +142,122 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		})
 
 		// ── Admin routes ───────────────────────────────────────────────────
+		// The outer gate admits every management role (incl. the Phase-4
+		// specialists); each resource group is then gated by a granular
+		// permission, so a specialist only reaches the sections it is granted.
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtSecret))
-			r.Use(middleware.AdminOnly)
+			r.Use(middleware.ManagementOnly)
 
-			adminOrderH := adminHandler.NewAdminOrderHandler(svc.Orders, svc.Audit)
-			r.Get("/admin/orders", adminOrderH.List)
-			r.Get("/admin/orders/{id}", adminOrderH.Get)
-			r.Patch("/admin/orders/{id}/status", adminOrderH.UpdateStatus)
+			// Store — products, categories, orders.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermStoreManage))
 
-			adminProductH := adminHandler.NewAdminProductHandler(svc.Products, svc.Audit)
-			r.Get("/admin/products", adminProductH.List)
-			r.Post("/admin/products/import", adminProductH.ImportCSV)
-			r.Post("/admin/products", adminProductH.Create)
-			r.Put("/admin/products/{id}", adminProductH.Update)
-			r.Delete("/admin/products/{id}", adminProductH.Delete)
+				adminOrderH := adminHandler.NewAdminOrderHandler(svc.Orders, svc.Audit)
+				r.Get("/admin/orders", adminOrderH.List)
+				r.Get("/admin/orders/{id}", adminOrderH.Get)
+				r.Patch("/admin/orders/{id}/status", adminOrderH.UpdateStatus)
 
-			adminCategoryH := adminHandler.NewAdminCategoryHandler(svc.Products, svc.Audit)
-			r.Get("/admin/categories", adminCategoryH.List)
-			r.Post("/admin/categories", adminCategoryH.Create)
-			r.Put("/admin/categories/{id}", adminCategoryH.Update)
-			r.Delete("/admin/categories/{id}", adminCategoryH.Delete)
+				adminProductH := adminHandler.NewAdminProductHandler(svc.Products, svc.Audit)
+				r.Get("/admin/products", adminProductH.List)
+				r.Post("/admin/products/import", adminProductH.ImportCSV)
+				r.Post("/admin/products", adminProductH.Create)
+				r.Put("/admin/products/{id}", adminProductH.Update)
+				r.Delete("/admin/products/{id}", adminProductH.Delete)
 
-			adminBlogH := adminHandler.NewAdminBlogHandler(svc.Blog, svc.Audit)
-			r.Get("/admin/blog/posts", adminBlogH.List)
-			r.Post("/admin/blog/posts", adminBlogH.Create)
-			r.Put("/admin/blog/posts/{id}", adminBlogH.Update)
-			r.Delete("/admin/blog/posts/{id}", adminBlogH.Delete)
-			r.Post("/admin/blog/publish-scheduled", adminBlogH.TriggerPublishScheduled)
-			r.Post("/admin/uploads/image", adminBlogH.UploadImage)
+				adminCategoryH := adminHandler.NewAdminCategoryHandler(svc.Products, svc.Audit)
+				r.Get("/admin/categories", adminCategoryH.List)
+				r.Post("/admin/categories", adminCategoryH.Create)
+				r.Put("/admin/categories/{id}", adminCategoryH.Update)
+				r.Delete("/admin/categories/{id}", adminCategoryH.Delete)
+			})
 
-			adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Auth, svc.Audit)
-			r.Get("/admin/enquiries", adminEnquiryH.List)
-			r.Get("/admin/enquiries/page", adminEnquiryH.ListPaged)
-			r.Get("/admin/enquiries/stats", adminEnquiryH.Stats)
-			r.Get("/admin/enquiries/tasks", adminEnquiryH.Tasks)
-			r.Get("/admin/enquiries/assignees", adminEnquiryH.Assignees)
-			r.Post("/admin/enquiries/bulk", adminEnquiryH.Bulk)
-			r.Get("/admin/enquiries/{id}", adminEnquiryH.Get)
-			r.Patch("/admin/enquiries/{id}/status", adminEnquiryH.UpdateStatus)
-			r.Post("/admin/enquiries/{id}/notes", adminEnquiryH.AddNote)
-			r.Patch("/admin/enquiries/{id}/follow-up", adminEnquiryH.UpdateFollowUp)
-			r.Patch("/admin/enquiries/{id}/assign", adminEnquiryH.Assign)
-			r.Post("/admin/enquiries/{id}/register", adminEnquiryH.Register)
-			r.Post("/admin/enquiries/{id}/reply", adminEnquiryH.LogReply)
+			// Blog / content.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermBlogManage))
+				adminBlogH := adminHandler.NewAdminBlogHandler(svc.Blog, svc.Audit)
+				r.Get("/admin/blog/posts", adminBlogH.List)
+				r.Post("/admin/blog/posts", adminBlogH.Create)
+				r.Put("/admin/blog/posts/{id}", adminBlogH.Update)
+				r.Delete("/admin/blog/posts/{id}", adminBlogH.Delete)
+				r.Post("/admin/blog/publish-scheduled", adminBlogH.TriggerPublishScheduled)
+				r.Post("/admin/uploads/image", adminBlogH.UploadImage)
+			})
 
-			adminAuditH := adminHandler.NewAdminAuditLogHandler(svc.Audit)
-			r.Get("/admin/audit-logs", adminAuditH.List)
+			// Enquiries / admissions CRM.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermEnquiriesManage))
+				adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Auth, svc.Audit)
+				r.Get("/admin/enquiries", adminEnquiryH.List)
+				r.Get("/admin/enquiries/page", adminEnquiryH.ListPaged)
+				r.Get("/admin/enquiries/stats", adminEnquiryH.Stats)
+				r.Get("/admin/enquiries/tasks", adminEnquiryH.Tasks)
+				r.Get("/admin/enquiries/assignees", adminEnquiryH.Assignees)
+				r.Post("/admin/enquiries/bulk", adminEnquiryH.Bulk)
+				r.Get("/admin/enquiries/{id}", adminEnquiryH.Get)
+				r.Patch("/admin/enquiries/{id}/status", adminEnquiryH.UpdateStatus)
+				r.Post("/admin/enquiries/{id}/notes", adminEnquiryH.AddNote)
+				r.Patch("/admin/enquiries/{id}/follow-up", adminEnquiryH.UpdateFollowUp)
+				r.Patch("/admin/enquiries/{id}/assign", adminEnquiryH.Assign)
+				r.Post("/admin/enquiries/{id}/register", adminEnquiryH.Register)
+				r.Post("/admin/enquiries/{id}/reply", adminEnquiryH.LogReply)
+			})
 
-			adminOrderReqH := adminHandler.NewAdminOrderRequestHandler(svc.OrderRequests, svc.Audit)
-			r.Get("/admin/order-requests", adminOrderReqH.List)
-			r.Get("/admin/order-requests/{id}", adminOrderReqH.Get)
-			r.Patch("/admin/order-requests/{id}/status", adminOrderReqH.UpdateStatus)
+			// Audit / activity log.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermAuditView))
+				adminAuditH := adminHandler.NewAdminAuditLogHandler(svc.Audit)
+				r.Get("/admin/audit-logs", adminAuditH.List)
+			})
 
-			adminCatalogueH := adminHandler.NewAdminCatalogueHandler(svc.Catalogue, svc.Audit)
-			r.Get("/admin/catalogue", adminCatalogueH.List)
-			r.Get("/admin/catalogue/{id}", adminCatalogueH.Get)
-			r.Post("/admin/catalogue", adminCatalogueH.Create)
-			r.Post("/admin/catalogue/learn", adminCatalogueH.Learn)
-			r.Put("/admin/catalogue/{id}", adminCatalogueH.Update)
-			r.Delete("/admin/catalogue/{id}", adminCatalogueH.Delete)
+			// Procurement — supply requests, catalogue, purchase orders.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermProcurementManage))
 
-			adminSupplierH := adminHandler.NewAdminSupplierHandler(svc.Suppliers, svc.Audit)
-			r.Get("/admin/suppliers", adminSupplierH.List)
-			r.Get("/admin/suppliers/{id}", adminSupplierH.Get)
-			r.Post("/admin/suppliers", adminSupplierH.Create)
-			r.Put("/admin/suppliers/{id}", adminSupplierH.Update)
-			r.Delete("/admin/suppliers/{id}", adminSupplierH.Delete)
+				adminOrderReqH := adminHandler.NewAdminOrderRequestHandler(svc.OrderRequests, svc.Audit)
+				r.Get("/admin/order-requests", adminOrderReqH.List)
+				r.Get("/admin/order-requests/{id}", adminOrderReqH.Get)
+				r.Patch("/admin/order-requests/{id}/status", adminOrderReqH.UpdateStatus)
 
-			adminProcurementH := adminHandler.NewAdminProcurementHandler(svc.Procurement)
-			r.Get("/admin/procurement/analytics", adminProcurementH.Analytics)
+				adminCatalogueH := adminHandler.NewAdminCatalogueHandler(svc.Catalogue, svc.Audit)
+				r.Get("/admin/catalogue", adminCatalogueH.List)
+				r.Get("/admin/catalogue/{id}", adminCatalogueH.Get)
+				r.Post("/admin/catalogue", adminCatalogueH.Create)
+				r.Post("/admin/catalogue/learn", adminCatalogueH.Learn)
+				r.Put("/admin/catalogue/{id}", adminCatalogueH.Update)
+				r.Delete("/admin/catalogue/{id}", adminCatalogueH.Delete)
 
-			adminCartH := adminHandler.NewAdminPurchaseCartHandler(svc.PurchaseCarts, svc.Audit)
-			r.Post("/admin/purchase-carts/generate", adminCartH.Generate)
-			r.Get("/admin/purchase-carts", adminCartH.List)
-			r.Get("/admin/purchase-carts/{id}", adminCartH.Get)
-			r.Put("/admin/purchase-carts/{id}", adminCartH.Update)
-			r.Post("/admin/purchase-carts/{id}/send", adminCartH.Send)
-			r.Post("/admin/purchase-carts/{id}/exported", adminCartH.Exported)
-			r.Patch("/admin/purchase-carts/{id}/fulfillment", adminCartH.UpdateFulfillment)
-			r.Patch("/admin/purchase-carts/{id}/status", adminCartH.UpdateStatus)
-			r.Post("/admin/purchase-carts/{id}/receive", adminCartH.Receive)
+				adminCartH := adminHandler.NewAdminPurchaseCartHandler(svc.PurchaseCarts, svc.Audit)
+				r.Post("/admin/purchase-carts/generate", adminCartH.Generate)
+				r.Get("/admin/purchase-carts", adminCartH.List)
+				r.Get("/admin/purchase-carts/{id}", adminCartH.Get)
+				r.Put("/admin/purchase-carts/{id}", adminCartH.Update)
+				r.Post("/admin/purchase-carts/{id}/send", adminCartH.Send)
+				r.Post("/admin/purchase-carts/{id}/exported", adminCartH.Exported)
+				r.Patch("/admin/purchase-carts/{id}/fulfillment", adminCartH.UpdateFulfillment)
+				r.Patch("/admin/purchase-carts/{id}/status", adminCartH.UpdateStatus)
+				r.Post("/admin/purchase-carts/{id}/receive", adminCartH.Receive)
+			})
 
+			// Suppliers directory.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermSuppliersManage))
+				adminSupplierH := adminHandler.NewAdminSupplierHandler(svc.Suppliers, svc.Audit)
+				r.Get("/admin/suppliers", adminSupplierH.List)
+				r.Get("/admin/suppliers/{id}", adminSupplierH.Get)
+				r.Post("/admin/suppliers", adminSupplierH.Create)
+				r.Put("/admin/suppliers/{id}", adminSupplierH.Update)
+				r.Delete("/admin/suppliers/{id}", adminSupplierH.Delete)
+			})
+
+			// Procurement analytics (finance view).
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermFinanceView))
+				adminProcurementH := adminHandler.NewAdminProcurementHandler(svc.Procurement)
+				r.Get("/admin/procurement/analytics", adminProcurementH.Analytics)
+			})
+
+			// Account management — super admin only.
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.SuperAdminOnly)
 				adminUserH := adminHandler.NewAdminUserHandler(svc.Auth, svc.Audit)

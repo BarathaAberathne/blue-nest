@@ -239,7 +239,8 @@ func (s *authService) AdminLogin(ctx context.Context, req models.LoginRequest) (
 	// restricted "Staff Portal" — see AdminLayout) as management. Only customers
 	// are excluded from the admin login.
 	return s.loginWithRoleGuard(ctx, req, []models.Role{
-		models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager, models.RoleStaff,
+		models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager,
+		models.RoleFinance, models.RoleAdmissions, models.RoleProcurement, models.RoleStaff,
 	})
 }
 
@@ -405,7 +406,9 @@ func (s *authService) DeleteUser(ctx context.Context, id string) error {
 // isAssignableRole reports whether a role can be assigned to a user account.
 func isAssignableRole(role models.Role) bool {
 	switch role {
-	case models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager, models.RoleStaff, models.RoleCustomer:
+	case models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager,
+		models.RoleFinance, models.RoleAdmissions, models.RoleProcurement,
+		models.RoleStaff, models.RoleCustomer:
 		return true
 	default:
 		return false

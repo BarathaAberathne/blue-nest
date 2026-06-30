@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -77,12 +78,38 @@ func RequireRole(allowed ...string) func(http.Handler) http.Handler {
 	}
 }
 
-// AdminOnly permits the management roles (everything above staff/customer).
+// AdminOnly permits the general management roles (everything above staff/customer).
 func AdminOnly(next http.Handler) http.Handler {
 	return RequireRole("super_admin", "admin", "branch_manager")(next)
+}
+
+// ManagementOnly permits every back-office management role (the general managers
+// plus the Phase-4 specialists). It is the outer gate on the admin route group;
+// individual resources are then gated by RequirePermission, so a specialist role
+// only reaches the sections its permission set allows.
+func ManagementOnly(next http.Handler) http.Handler {
+	return RequireRole(
+		"super_admin", "admin", "branch_manager",
+		"finance", "admissions", "procurement",
+	)(next)
 }
 
 // SuperAdminOnly permits only the top-level super admin (account management).
 func SuperAdminOnly(next http.Handler) http.Handler {
 	return RequireRole("super_admin")(next)
+}
+
+// RequirePermission gates a route on a granular permission, resolved from the
+// caller's role via the central role→permission map (models.HasPermission).
+func RequirePermission(perm models.Permission) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			role, _ := r.Context().Value(UserRoleKey).(string)
+			if !models.HasPermission(models.Role(role), perm) {
+				response.Forbidden(w, "insufficient permissions")
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }

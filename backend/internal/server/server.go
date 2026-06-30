@@ -74,6 +74,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	orderTemplateRepo := repository.NewOrderTemplateRepository(db)
 	counterRepo := repository.NewCounterRepository(db)
 	supplierRepo := repository.NewSupplierRepository(db)
+	dashboardLayoutRepo := repository.NewDashboardLayoutRepository(db)
 	mailer := email.New(email.Config{
 		Host:         cfg.SMTP.Host,
 		Port:         cfg.SMTP.Port,
@@ -86,21 +87,22 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 
 	// Services
 	svc := routes.Services{
-		Auth:           service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays),
-		Products:       service.NewProductService(productRepo),
-		Cart:           service.NewCartService(cartRepo, productRepo),
-		Checkout:       service.NewCheckoutService(orderRepo, cartRepo, productRepo, cfg.Stripe.SecretKey),
-		Orders:         service.NewOrderService(orderRepo),
-		Blog:           service.NewBlogService(blogRepo),
-		Branches:       service.NewBranchService(branchRepo),
-		Enquiries:      service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo),
-		Comments:       service.NewCommentService(commentRepo),
-		Audit:          service.NewAuditService(auditRepo),
-		OrderRequests:  service.NewOrderRequestService(orderRequestRepo, userRepo, counterRepo),
-		Catalogue:      service.NewCatalogueService(catalogueRepo),
-		OrderTemplates: service.NewOrderTemplateService(orderTemplateRepo),
-		Suppliers:      service.NewSupplierService(supplierRepo),
-		Procurement:    service.NewProcurementAnalyticsService(orderRequestRepo, purchaseCartRepo),
+		Auth:             service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays),
+		Products:         service.NewProductService(productRepo),
+		Cart:             service.NewCartService(cartRepo, productRepo),
+		Checkout:         service.NewCheckoutService(orderRepo, cartRepo, productRepo, cfg.Stripe.SecretKey),
+		Orders:           service.NewOrderService(orderRepo),
+		Blog:             service.NewBlogService(blogRepo),
+		Branches:         service.NewBranchService(branchRepo),
+		Enquiries:        service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo),
+		Comments:         service.NewCommentService(commentRepo),
+		Audit:            service.NewAuditService(auditRepo),
+		OrderRequests:    service.NewOrderRequestService(orderRequestRepo, userRepo, counterRepo),
+		Catalogue:        service.NewCatalogueService(catalogueRepo),
+		OrderTemplates:   service.NewOrderTemplateService(orderTemplateRepo),
+		Suppliers:        service.NewSupplierService(supplierRepo),
+		Procurement:      service.NewProcurementAnalyticsService(orderRequestRepo, purchaseCartRepo),
+		DashboardLayouts: service.NewDashboardLayoutService(dashboardLayoutRepo),
 	}
 
 	// Sourcing engine: enable supplier adapters per config (off by default; the

@@ -23,58 +23,61 @@ import {
 } from "lucide-react";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import { clearAuthSession } from "@/lib/auth";
+import { usePermissions, clearPermissionsCache } from "@/lib/usePermissions";
 import NotificationBell from "@/components/admin/NotificationBell";
+import type { Permission } from "@/types";
 
 // Sidebar is grouped into labelled sections so related tools sit together. The
 // PROCUREMENT group makes the purchasing flow self-evident as one connected
 // process: Overview → Supply Requests → Purchase Orders → Suppliers → Catalogue
-// → Analytics.
-type NavItem = { label: string; href: string; icon: typeof LayoutDashboard; exact?: boolean };
+// → Analytics. Each item declares the permission needed to see it, so specialist
+// roles (finance / admissions / procurement) get a tailored sidebar.
+type NavItem = { label: string; href: string; icon: typeof LayoutDashboard; exact?: boolean; permission: Permission };
 type NavSection = { heading: string | null; items: NavItem[] };
 
 const NAV_SECTIONS: NavSection[] = [
   {
     heading: null,
     items: [
-      { label: "Main Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-      { label: "Inquiries", href: "/admin/inquiries", icon: Inbox },
+      { label: "Main Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
+      { label: "Inquiries", href: "/admin/inquiries", icon: Inbox, permission: "enquiries.manage" },
     ],
   },
   {
     heading: "Store",
     items: [
-      { label: "Orders",     href: "/admin/orders",     icon: ShoppingCart },
-      { label: "Products",   href: "/admin/products",   icon: Package },
-      { label: "Categories", href: "/admin/categories", icon: Tag },
+      { label: "Orders",     href: "/admin/orders",     icon: ShoppingCart, permission: "store.manage" },
+      { label: "Products",   href: "/admin/products",   icon: Package, permission: "store.manage" },
+      { label: "Categories", href: "/admin/categories", icon: Tag, permission: "store.manage" },
     ],
   },
   {
     heading: "Procurement",
     items: [
-      { label: "Overview",        href: "/admin/procurement",            icon: LayoutGrid, exact: true },
-      { label: "Supply Requests", href: "/admin/order-requests",         icon: ClipboardList },
-      { label: "Purchase Orders", href: "/admin/purchase-carts",         icon: ShoppingBag },
-      { label: "Suppliers",       href: "/admin/procurement/suppliers",  icon: Truck },
-      { label: "Catalogue",       href: "/admin/catalogue",              icon: Library },
-      { label: "Analytics",       href: "/admin/procurement/analytics",  icon: BarChart3 },
+      { label: "Overview",        href: "/admin/procurement",            icon: LayoutGrid, exact: true, permission: "procurement.view" },
+      { label: "Supply Requests", href: "/admin/order-requests",         icon: ClipboardList, permission: "procurement.view" },
+      { label: "Purchase Orders", href: "/admin/purchase-carts",         icon: ShoppingBag, permission: "procurement.view" },
+      { label: "Suppliers",       href: "/admin/procurement/suppliers",  icon: Truck, permission: "suppliers.manage" },
+      { label: "Catalogue",       href: "/admin/catalogue",              icon: Library, permission: "procurement.manage" },
+      { label: "Analytics",       href: "/admin/procurement/analytics",  icon: BarChart3, permission: "finance.view" },
     ],
   },
   {
     heading: "Content",
-    items: [{ label: "Blog", href: "/admin/blog", icon: BookOpen }],
+    items: [{ label: "Blog", href: "/admin/blog", icon: BookOpen, permission: "blog.manage" }],
   },
   {
     heading: "System",
     items: [
-      { label: "Activity", href: "/admin/activity", icon: Activity },
-      { label: "Users",    href: "/admin/users",    icon: Users },
+      { label: "Activity", href: "/admin/activity", icon: Activity, permission: "audit.view" },
+      { label: "Users",    href: "/admin/users",    icon: Users, permission: "users.manage" },
     ],
   },
 ];
 
 // Staff (practitioners) get a restricted portal — only their own supply requests.
 const STAFF_SECTIONS: NavSection[] = [
-  { heading: null, items: [{ label: "My Supply Requests", href: "/admin/my-requests", icon: ClipboardList }] },
+  { heading: null, items: [{ label: "My Supply Requests", href: "/admin/my-requests", icon: ClipboardList, permission: "dashboard.view" }] },
 ];
 
 const allItems = (sections: NavSection[]) => sections.flatMap((s) => s.items);
@@ -83,20 +86,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const { ready, isAuthenticated, user, hasAnyRole, ensureAuthenticated } = useAuthGuard("/admin/login");
-  const isManagement = hasAnyRole(["super_admin", "admin", "branch_manager"]);
+  const { has, ready: permsReady } = usePermissions();
+  const isManagement = hasAnyRole([
+    "super_admin", "admin", "branch_manager", "finance", "admissions", "procurement",
+  ]);
   const isStaff = user?.role === "staff";
   const allowed = isManagement || isStaff;
 
-  // Management sees the full back-office (Users is super-admin only); staff get a
-  // restricted portal with only their own supply requests.
+  // Each item is shown only if the user holds its permission. Until /auth/me
+  // resolves we fall back to a role-based view so the nav doesn't flash empty:
+  // general managers see everything (Users is super-admin only); specialists wait
+  // for the real permission set. A section with no visible items is dropped.
+  const canSee = (item: NavItem): boolean => {
+    if (permsReady) return has(item.permission);
+    if (user?.role === "super_admin") return true;
+    if (user?.role === "admin" || user?.role === "branch_manager") return item.permission !== "users.manage";
+    return item.permission === "dashboard.view";
+  };
+
   const navSections: NavSection[] = isManagement
-    ? user?.role === "super_admin"
-      ? NAV_SECTIONS
-      : NAV_SECTIONS.map((s) => ({
-          ...s,
-          items: s.items.filter((item) => item.href !== "/admin/users"),
-        })).filter((s) => s.items.length > 0)
+    ? NAV_SECTIONS.map((s) => ({ ...s, items: s.items.filter(canSee) })).filter((s) => s.items.length > 0)
     : STAFF_SECTIONS;
+
+  // First page the user is actually allowed to open (their landing page).
+  const firstAllowedHref = navSections.flatMap((s) => s.items)[0]?.href ?? "/admin/dashboard";
+  // The permission required to view the current path (longest matching nav item).
+  const currentItem = allItems(NAV_SECTIONS)
+    .filter((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href)))
+    .sort((a, b) => b.href.length - a.href.length)[0];
 
   useEffect(() => {
     if (!ready) return;
@@ -110,8 +127,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     // management pages even by typing the URL.
     if (isStaff && !pathname.startsWith("/admin/my-requests")) {
       router.push("/admin/my-requests");
+      return;
     }
-  }, [ensureAuthenticated, allowed, isStaff, pathname, ready, router]);
+    // Specialist roles: once permissions resolve, bounce off any page they lack
+    // the permission for (e.g. an admissions user typing /admin/products).
+    if (isManagement && permsReady && currentItem && !has(currentItem.permission)) {
+      router.push(firstAllowedHref);
+    }
+  }, [ensureAuthenticated, allowed, isStaff, isManagement, permsReady, currentItem, firstAllowedHref, has, pathname, ready, router]);
 
   if (!ready || !isAuthenticated || !allowed) return null;
 
@@ -127,6 +150,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleLogout = () => {
     clearAuthSession();
+    clearPermissionsCache();
     router.push("/admin/login");
   };
 

@@ -136,7 +136,15 @@ export interface Comment {
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
-export type UserRole = "customer" | "staff" | "branch_manager" | "admin" | "super_admin";
+export type UserRole =
+  | "customer"
+  | "staff"
+  | "branch_manager"
+  | "admin"
+  | "super_admin"
+  | "finance"
+  | "admissions"
+  | "procurement";
 
 export interface User {
   id: string;
@@ -435,6 +443,41 @@ export type OrderRequestStatus =
   | "cancelled";
 
 export type ProcurementPriority = "low" | "normal" | "high" | "urgent";
+
+// ── Permissions (granular capability gates; mirror the Go permission map) ────
+export type Permission =
+  | "dashboard.view"
+  | "store.manage"
+  | "blog.manage"
+  | "enquiries.manage"
+  | "procurement.view"
+  | "procurement.manage"
+  | "suppliers.manage"
+  | "finance.view"
+  | "audit.view"
+  | "branches.manage"
+  | "users.manage";
+
+export interface Me {
+  id: string;
+  email: string;
+  role: UserRole;
+  permissions: Permission[];
+}
+
+// ── Customizable dashboard layout ────────────────────────────────────────────
+export interface DashboardWidget {
+  key: string;
+  hidden: boolean;
+  size?: "normal" | "wide";
+}
+
+export interface DashboardLayout {
+  id?: string;
+  user_id?: string;
+  widgets: DashboardWidget[];
+  updated_at?: string;
+}
 
 // ── Suppliers (managed vendor directory) ─────────────────────────────────────
 export interface Supplier {

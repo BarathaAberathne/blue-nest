@@ -207,6 +207,58 @@ paths:
         '401':
           description: Invalid or expired refresh token
 
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Current identity + capabilities
+      description: Returns the caller's id, email, role and resolved granular permission set (drives admin UI navigation/page gating).
+      operationId: getMe
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  email: { type: string, format: email }
+                  role: { type: string, enum: [super_admin, admin, branch_manager, finance, admissions, procurement, staff, customer] }
+                  permissions:
+                    type: array
+                    items:
+                      type: string
+                      enum: [dashboard.view, store.manage, blog.manage, enquiries.manage, procurement.view, procurement.manage, suppliers.manage, finance.view, audit.view, branches.manage, users.manage]
+        '401': { description: Unauthorized }
+
+  /me/dashboard:
+    get:
+      tags: [Auth]
+      summary: Get the caller's saved dashboard layout
+      description: Returns the per-user customizable dashboard layout (widget order + hidden + size). Empty widget list when the user hasn't customised one.
+      operationId: getDashboardLayout
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/DashboardLayout' } } } }
+    put:
+      tags: [Auth]
+      summary: Save the caller's dashboard layout
+      operationId: saveDashboardLayout
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                widgets:
+                  type: array
+                  items: { $ref: '#/components/schemas/DashboardWidget' }
+      responses:
+        '200': { description: Saved, content: { application/json: { schema: { $ref: '#/components/schemas/DashboardLayout' } } } }
+
   # ─────────────────────────────────────────────────────────────────────────────
   # Products
   # ─────────────────────────────────────────────────────────────────────────────
@@ -986,7 +1038,7 @@ paths:
                 last_name: { type: string }
                 role:
                   type: string
-                  enum: [super_admin, admin, branch_manager, staff, customer]
+                  enum: [super_admin, admin, branch_manager, finance, admissions, procurement, staff, customer]
       responses:
         '201': { description: User created }
         '400': { description: Invalid input }
@@ -1010,7 +1062,7 @@ paths:
                 last_name: { type: string }
                 role:
                   type: string
-                  enum: [super_admin, admin, branch_manager, staff, customer]
+                  enum: [super_admin, admin, branch_manager, finance, admissions, procurement, staff, customer]
                 password: { type: string, minLength: 8 }
       responses:
         '200': { description: User updated }
@@ -1573,7 +1625,7 @@ components:
           example: Doe
         role:
           type: string
-          enum: [customer, admin, branch_manager]
+          enum: [customer, staff, branch_manager, finance, admissions, procurement, admin, super_admin]
           example: customer
         branch_slugs:
           type: array
@@ -2138,3 +2190,21 @@ components:
               requests: { type: integer }
         avg_request_to_order_days: { type: number }
         avg_order_to_delivery_days: { type: number }
+
+    DashboardWidget:
+      type: object
+      properties:
+        key: { type: string, example: recent-orders }
+        hidden: { type: boolean }
+        size: { type: string, enum: [normal, wide] }
+
+    DashboardLayout:
+      type: object
+      description: A per-user saved arrangement of the admin dashboard widgets.
+      properties:
+        id: { type: string }
+        user_id: { type: string }
+        widgets:
+          type: array
+          items: { $ref: '#/components/schemas/DashboardWidget' }
+        updated_at: { type: string, format: date-time }

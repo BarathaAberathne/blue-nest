@@ -31,9 +31,17 @@ Role hierarchy (`backend/internal/models/user.go` `Role`; `frontend/types` `User
   "Staff Portal"** — `AdminLayout` shows them only **My Supply Requests** (`/admin/my-requests`) and
   redirects them away from any other `/admin/*` page. No management sections.
 - `customer` — parents (store account at `/account`).
-Guards: `AdminOnly` = super_admin|admin|branch_manager; `SuperAdminOnly` = super_admin. Add roles
-to a route via `middleware.RequireRole("...")`. Login: `POST /auth/login` (parents/staff),
-`POST /admin/auth/login` (management). After login, customers → `/account`, **staff →
+- **Specialist management roles** (Phase 4): `finance` (dashboard + procurement analytics/spend + audit),
+  `admissions` (dashboard + enquiries CRM), `procurement` (dashboard + supply requests/POs/catalogue +
+  suppliers + spend). Each enters the admin shell but `AdminLayout` shows only the sections its permissions
+  allow and bounces it off any other `/admin/*` page.
+Guards: `AdminOnly` = super_admin|admin|branch_manager; `ManagementOnly` = those + finance|admissions|
+procurement (the outer gate on the admin route group); `SuperAdminOnly` = super_admin. **Granular
+permissions** (`models/permission.go`): a `Permission` set + a `role→[]Permission` map + `HasPermission`;
+gate a route with `middleware.RequirePermission(models.PermX)` and a UI section by checking
+`lib/usePermissions.ts` `has(perm)` (sourced from `GET /auth/me` → `{role, permissions}`). Add a role to a
+route via `middleware.RequireRole("...")`. Login: `POST /auth/login` (parents/staff), `POST
+/admin/auth/login` (management, incl. the specialists). After login, customers → `/account`, **staff →
 `/admin/my-requests`** (Staff Portal), management → `/admin/dashboard`. There is **no social/OAuth login** (removed).
 
 ## How to add a backend entity (the standard pattern)
@@ -154,10 +162,11 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
 
 Planned next: Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 
-## Procurement Management module — roadmap (end goal)
+## Procurement Management module — roadmap (Phases 1–4 DELIVERED)
 Goal: turn the procurement pieces into one connected **Procurement Management** module so the journey
 feels like a single process: **Supply Request → Approve → Purchase Order → Place → Track → Receive →
-Complete**. The full vision is phased; only Phase 1 is built so far.
+Complete**. Phases 1–4 are now all built (on `feature/inquiry-crm`); the notes below double as the
+module's design record.
 
 - **Phase 1 — structure, workflow, usability (DONE / frontend-only, no schema change):** sidebar renamed
   `Dashboard`→**Main Dashboard** and a **Procurement** sidebar group (Overview · Supply Requests ·
@@ -170,21 +179,33 @@ Complete**. The full vision is phased; only Phase 1 is built so far.
   status-only and the Gompels push never advanced status — now placed-aware with tooltips); improved
   Gompels-cart messaging + matched/unmatched summary. All on the shared design system
   (`lib/admin-theme.ts` ACCENT, `lib/admin-status.ts`, `components/admin/ui/*`).
-- **Phase 2 — workflow statuses & fields (backend):** add SR statuses `approved`, `converted_to_po`
-  and PO statuses `placed`, `tracking`, `dispatched`, `completed` (extend the `OrderRequestStatus` /
-  `PurchaseCartStatus` enums + `UpdateStatus` whitelists + the Kanban lanes); **priority** + **classroom**
-  fields on requests/POs; human **sequential IDs** (`SR-2026-000045`, `PO-2026-000123`) via a counter
-  collection; full Track/Receive **state machine** + a tracking-number field; Approve/Reject/Convert
-  actions on the SR board.
-- **Phase 3 — Suppliers entity + analytics (backend):** a real **Supplier** model/repo/service/handler/
-  routes + admin CRUD (contact, terms, lead-time, account #), replacing the free-text supplier string;
-  server-side **procurement analytics** aggregation endpoints (monthly/branch/classroom spend, request→
-  order & order→delivery times, supplier performance, low-stock trends).
-- **Phase 4 — roles, permissions, customisable dashboards (backend, largest):** a **granular permission
-  system** (view procurement, create/approve SR, convert to PO, place/track/receive/cancel, view supplier
-  spend, all-branches vs own-branch) layered over the JWT; new **finance / admissions / procurement**
-  roles; a **per-user drag-drop, resize, hide/show, save-layout** dashboard (new settings store + DnD grid)
-  with widget-level role/branch/permission gating and reset-to-default.
+- **Phase 2 — workflow statuses & fields (DONE):** SR statuses `approved`, `converted_to_po` and PO
+  statuses `placed`, `tracking`, `dispatched`, `completed` (extended the `OrderRequestStatus` /
+  `PurchaseCartStatus` enums + `UpdateStatus` whitelists + Kanban lanes/metas in `lib/admin-status.ts`);
+  **priority** + **classroom** on requests (POs inherit branch/classroom/priority from their source
+  requests); human **sequential IDs** (`SR-2026-000045`, `PO-2026-000123`) via an atomic `counters`
+  collection (`repository.CounterRepository` + `models.FormatRef`); Track/Receive **state machine** with a
+  carrier **tracking-number** field (`PATCH /admin/purchase-carts/{id}/status` + `…/fulfillment`);
+  Approve/Reject/Convert on the SR detail switcher and PO delivery-stage transitions + **Mark completed**.
+- **Phase 3 — Suppliers entity + analytics (DONE):** a real **Supplier** entity
+  (`models/supplier.go`, collection `suppliers`) — model/repo/service/handler + admin CRUD at
+  `/admin/suppliers` (`SuppliersManage`); category, contacts, order email, account #, lead-time, active
+  flag; the Suppliers UI merges the directory with live spend rolled up from carts/requests. Server-side
+  **procurement analytics** (`service.ProcurementAnalyticsService` → `GET /admin/procurement/analytics`):
+  spend by supplier/branch/month, request & order status counts, item demand, overdue orders, request→
+  order & order→delivery lead times; the analytics page now sources its headline figures from it. The
+  procurement engine still keys offers/orders on the free-text supplier **name**; the Supplier entity is
+  the curated directory layered on top.
+- **Phase 4 — roles, permissions, customisable dashboards (DONE):** a **granular permission system**
+  (`models/permission.go` — `Permission` constants + a `role→[]Permission` map + `HasPermission`).
+  `middleware.RequirePermission(perm)` gates each admin resource group; `middleware.ManagementOnly` is the
+  outer gate so the new specialist roles enter the shell and per-resource permissions scope what they see.
+  New roles **finance / admissions / procurement** (`models.Role` + `UserRole`), assignable on
+  `/admin/users` and admitted at `/admin/auth/login`. `GET /auth/me` returns `{role, permissions}`; the
+  frontend `lib/usePermissions.ts` hook caches it and `AdminLayout` filters nav + bounces specialists off
+  pages they lack. **Per-user customizable dashboard**: `dashboard_layouts` collection + `GET/PUT
+  /me/dashboard`; `DashboardClient` has a **Customize** mode with drag-drop reorder, hide/show, a
+  normal/wide size toggle and reset-to-default, persisted per user (`models.DashboardWidget`).
 
 ## Dev / staging / prod workflow
 Branch model: **feature → staging → main**. `staging` is the pre-prod QA branch; `main` is prod.

@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AuditLog, CatalogueItem, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryPage, EnquiryStats, EnquiryTasks, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, Supplier, SupplierInput, User } from "@/types";
+import type { AuditLog, CatalogueItem, DashboardLayout, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryPage, EnquiryStats, EnquiryTasks, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, Supplier, SupplierInput, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -360,6 +360,15 @@ export const api = {
     apiFetch(`/api/v1/admin/catalogue/${id}`, { method: "DELETE", token }),
   adminLearnCatalogue: (token: string, body: { name: string; code: string; price?: number }) =>
     apiFetch<CatalogueItem>("/api/v1/admin/catalogue/learn", { method: "POST", body: JSON.stringify(body), token }),
+
+  // Identity + capabilities (drives nav/page gating)
+  getMe: (token: string) => apiFetch<Me>("/api/v1/auth/me", { token }),
+
+  // Per-user customizable dashboard layout
+  getDashboardLayout: (token: string) =>
+    apiFetch<DashboardLayout>("/api/v1/me/dashboard", { token }),
+  saveDashboardLayout: (token: string, widgets: DashboardWidget[]) =>
+    apiFetch<DashboardLayout>("/api/v1/me/dashboard", { method: "PUT", body: JSON.stringify({ widgets }), token }),
 
   // Suppliers (managed vendor directory — admin CRUD)
   adminGetSuppliers: (token: string) =>

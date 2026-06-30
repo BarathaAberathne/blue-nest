@@ -14,7 +14,19 @@ const (
 	RoleBranchManager Role = "branch_manager"
 	RoleAdmin         Role = "admin"
 	RoleSuperAdmin    Role = "super_admin"
+	// Specialist management roles (Phase 4). Each lands in the admin shell but
+	// sees only the sections its permissions allow (see models/permission.go).
+	RoleFinance     Role = "finance"     // analytics, spend, audit
+	RoleAdmissions  Role = "admissions"  // enquiries / admissions CRM
+	RoleProcurement Role = "procurement" // supply requests, purchase orders, suppliers
 )
+
+// ManagementRoles are every non-customer back-office role (they reach the admin
+// shell; what they can do inside is governed by permissions).
+var ManagementRoles = []Role{
+	RoleSuperAdmin, RoleAdmin, RoleBranchManager,
+	RoleFinance, RoleAdmissions, RoleProcurement, RoleStaff,
+}
 
 type User struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty"           json:"id"`
