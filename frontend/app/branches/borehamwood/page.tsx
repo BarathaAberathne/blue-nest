@@ -455,7 +455,7 @@ export default function BorehamwoodBranchPage() {
               <h2 className="section-title mt-4">Our Borehamwood Nursery</h2>
             </div>
           </Reveal>
-          <LightboxGallery images={gallery} columns={2} />
+          <LightboxGallery images={gallery} columns={3} />
         </div>
       </section>
 
