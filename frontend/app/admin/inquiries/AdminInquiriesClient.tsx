@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Columns3, Download, LayoutDashboard, ListChecks, SlidersHorizontal, Table2 } from "lucide-react";
+import { Columns3, Download, LayoutDashboard, ListChecks, Search, SlidersHorizontal, Table2 } from "lucide-react";
 import { api, type EnquiryListParams } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import Modal from "@/components/ui/Modal";
 import PipelineBoard from "@/components/admin/inquiries/PipelineBoard";
 import EnquiryTable, { type SortKey } from "@/components/admin/inquiries/EnquiryTable";
 import EnquiryCard from "@/components/admin/inquiries/EnquiryCard";
+import PipelineSummary, { type TaskKind } from "@/components/admin/inquiries/PipelineSummary";
 import NoteBox from "@/components/admin/inquiries/NoteBox";
 import {
   PRIORITY_META,
@@ -19,7 +20,7 @@ import {
   isTerminalStatus,
   statusLabel,
 } from "@/lib/enquiry";
-import type { Enquiry, EnquiryAssignee, EnquiryBulkAction, EnquiryPriority, EnquiryStatus } from "@/types";
+import type { Enquiry, EnquiryAssignee, EnquiryBulkAction, EnquiryPriority, EnquiryStatus, EnquiryTasks } from "@/types";
 import { ENQUIRY_STATUSES } from "@/types";
 
 type View = "pipeline" | "table" | "followup";
@@ -67,6 +68,7 @@ export default function AdminInquiriesClient() {
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [total, setTotal] = useState(0);
   const [assignees, setAssignees] = useState<EnquiryAssignee[]>([]);
+  const [tasks, setTasks] = useState<EnquiryTasks | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
@@ -148,10 +150,16 @@ export default function AdminInquiriesClient() {
 
   useEffect(() => { void load(); }, [load]);
 
+  const loadTasks = useCallback(() => {
+    const token = getAccessToken();
+    if (token) api.adminGetEnquiryTasks(token).then(setTasks).catch(() => { /* non-blocking */ });
+  }, []);
+
   useEffect(() => {
     const token = getAccessToken();
     if (token) api.adminGetEnquiryAssignees(token).then(setAssignees).catch(() => { /* non-blocking */ });
-  }, []);
+    loadTasks();
+  }, [loadTasks]);
 
   // Reset paging/selection when a filter or view changes.
   const resetPaging = () => { setPage(0); setSelected(new Set()); };
@@ -177,6 +185,7 @@ export default function AdminInquiriesClient() {
       try {
         await fn(token);
         await load();
+        loadTasks();
         showToast({ kind: "success", msg: success });
       } catch (err) {
         showToast({ kind: "error", msg: err instanceof Error ? err.message : "Something went wrong" });
@@ -184,8 +193,17 @@ export default function AdminInquiriesClient() {
         setBusy(false);
       }
     },
-    [load, showToast],
+    [load, loadTasks, showToast],
   );
+
+  // Clicking a "today's tasks" chip jumps to the relevant filtered view.
+  const handleTask = (kind: TaskKind) => {
+    resetPaging();
+    if (kind === "overdue") { setView("followup"); setOverdueOnly(true); }
+    else if (kind === "due") { setView("followup"); setOverdueOnly(false); }
+    else if (kind === "visits") { setView("table"); setStatus("booked_visit"); }
+    else if (kind === "registered") { setView("table"); setStatus("registered"); }
+  };
 
   const applyStatus = (e: Enquiry, st: EnquiryStatus) =>
     runMutation((t) => api.adminUpdateEnquiryStatus(t, e.id, st), `Moved to ${statusLabel(st)}`);
@@ -310,42 +328,59 @@ export default function AdminInquiriesClient() {
 
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 
-      {/* Filters */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, message…"
-          className={`min-w-[14rem] flex-1 ${inputCls}`} aria-label="Search" />
-        <select value={branch} onChange={(e) => { setBranch(e.target.value); resetPaging(); }} className={inputCls} aria-label="Branch">
-          <option value="">All branches</option>
-          {BRANCH_OPTIONS.map((b) => <option key={b} value={b}>{fmtBranch(b)}</option>)}
-        </select>
-        <select value={status} onChange={(e) => { setStatus(e.target.value); resetPaging(); }} className={inputCls} aria-label="Status">
-          <option value="">All statuses</option>
-          {ENQUIRY_STATUSES.map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
-        </select>
-        <select value={assigned} onChange={(e) => { setAssigned(e.target.value); resetPaging(); }} className={inputCls} aria-label="Assigned staff">
-          <option value="">Anyone</option>
-          {assignees.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
-        <select value={priority} onChange={(e) => setPriority(e.target.value)} className={inputCls} aria-label="Priority">
-          <option value="">Any priority</option>
-          {PRIORITIES.map((p) => <option key={p} value={p} className="capitalize">{p}</option>)}
-        </select>
-        <label className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600">
-          <input type="checkbox" checked={overdueOnly} onChange={(e) => setOverdueOnly(e.target.checked)} className="accent-teal-600" /> Overdue
-        </label>
-        <button type="button" onClick={() => setMoreFilters((v) => !v)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
-          <SlidersHorizontal className="h-4 w-4" /> More filters
-        </button>
-      </div>
-      {moreFilters && (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-slate-50 px-3 py-3">
-          <span className="text-sm text-slate-500">Received between</span>
-          <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); resetPaging(); }} className={inputCls} aria-label="From date" />
-          <span className="text-slate-400">–</span>
-          <input type="date" value={to} onChange={(e) => { setTo(e.target.value); resetPaging(); }} className={inputCls} aria-label="To date" />
-          {(from || to) && <button type="button" onClick={() => { setFrom(""); setTo(""); resetPaging(); }} className="text-sm text-teal-600 hover:underline">Clear dates</button>}
+      {/* Floating toolbar */}
+      <div className="relative mb-4 rounded-2xl border border-slate-100 bg-white p-2 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[16rem] flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, message…"
+              className={`w-full pl-9 ${inputCls}`} aria-label="Search" />
+          </div>
+          <select value={branch} onChange={(e) => { setBranch(e.target.value); resetPaging(); }} className={inputCls} aria-label="Branch">
+            <option value="">All branches</option>
+            {BRANCH_OPTIONS.map((b) => <option key={b} value={b}>{fmtBranch(b)}</option>)}
+          </select>
+          <select value={status} onChange={(e) => { setStatus(e.target.value); resetPaging(); }} className={inputCls} aria-label="Status">
+            <option value="">All statuses</option>
+            {ENQUIRY_STATUSES.map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
+          </select>
+          <select value={assigned} onChange={(e) => { setAssigned(e.target.value); resetPaging(); }} className={inputCls} aria-label="Assigned staff">
+            <option value="">Anyone</option>
+            {assignees.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+          <select value={priority} onChange={(e) => setPriority(e.target.value)} className={inputCls} aria-label="Priority">
+            <option value="">Any priority</option>
+            {PRIORITIES.map((p) => <option key={p} value={p} className="capitalize">{p}</option>)}
+          </select>
+          <label className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600">
+            <input type="checkbox" checked={overdueOnly} onChange={(e) => setOverdueOnly(e.target.checked)} className="accent-teal-600" /> Overdue
+          </label>
+          <button type="button" onClick={() => setMoreFilters((v) => !v)}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors ${(from || to || moreFilters) ? "border-teal-300 bg-teal-50 text-teal-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+            <SlidersHorizontal className="h-4 w-4" /> More filters{(from || to) ? " ·" : ""}
+          </button>
         </div>
+        {moreFilters && (
+          <div className="absolute right-2 top-full z-30 mt-2 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Received between</p>
+            <div className="flex items-center gap-2">
+              <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); resetPaging(); }} className={`flex-1 ${inputCls}`} aria-label="From date" />
+              <span className="text-slate-400">–</span>
+              <input type="date" value={to} onChange={(e) => { setTo(e.target.value); resetPaging(); }} className={`flex-1 ${inputCls}`} aria-label="To date" />
+            </div>
+            <div className="mt-3 flex justify-between">
+              {(from || to) ? (
+                <button type="button" onClick={() => { setFrom(""); setTo(""); resetPaging(); }} className="text-sm text-teal-600 hover:underline">Clear dates</button>
+              ) : <span />}
+              <button type="button" onClick={() => setMoreFilters(false)} className="text-sm font-medium text-slate-500 hover:text-slate-700">Done</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Pipeline summary (funnel + today's tasks) */}
+      {view === "pipeline" && !loading && (
+        <PipelineSummary enquiries={refined} tasks={tasks} onTask={handleTask} />
       )}
 
       {/* Bulk action bar (table view) */}

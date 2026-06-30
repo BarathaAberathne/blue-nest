@@ -143,6 +143,87 @@ export const PIPELINE_COLUMNS: PipelineColumn[] = [
   { key: "closed", label: "Cancelled / Lost", statuses: ["cancelled", "lost", "spam"], dropStatus: "lost", terminal: true },
 ];
 
+// Per-column kanban theme — a soft tinted lane background + a strong header
+// colour, a one-line description, and a friendly empty state. Keyed by column.
+export type ColumnTheme = { bg: string; header: string; desc: string; emptyEmoji: string; emptyText: string };
+export const COLUMN_THEME: Record<string, ColumnTheme> = {
+  new: { bg: "#EAF4FF", header: "#2D7FF9", desc: "Needs first contact", emptyEmoji: "📥", emptyText: "No new enquiries" },
+  contacted: { bg: "#FFF7E6", header: "#F59E0B", desc: "Parent has been contacted", emptyEmoji: "📞", emptyText: "No one awaiting first contact" },
+  awaiting_reply: { bg: "#F4F0FF", header: "#7C3AED", desc: "Waiting on the parent", emptyEmoji: "📬", emptyText: "No enquiries waiting for a reply" },
+  booked_visit: { bg: "#E8FBF7", header: "#0F9D8C", desc: "Visit scheduled", emptyEmoji: "📅", emptyText: "No visits booked" },
+  visit_completed: { bg: "#EEF4FF", header: "#4F46E5", desc: "Visit done — decide next step", emptyEmoji: "✅", emptyText: "No completed visits" },
+  registered: { bg: "#EAFBF2", header: "#16A34A", desc: "Child enrolled", emptyEmoji: "🎉", emptyText: "No registrations yet" },
+  closed: { bg: "#FFF1F1", header: "#DC2626", desc: "Cancelled, lost or spam", emptyEmoji: "🗂️", emptyText: "Nothing closed" },
+};
+
+// Solid status accent (the card's top-left dot + funnel colours). Matches the
+// column header colours so a card's dot reads as "which lane am I in".
+export const STATUS_COLOR: Record<EnquiryStatus, string> = {
+  new: "#2D7FF9",
+  contacted: "#F59E0B",
+  awaiting_reply: "#7C3AED",
+  booked_visit: "#0F9D8C",
+  visit_completed: "#4F46E5",
+  registered: "#16A34A",
+  cancelled: "#DC2626",
+  lost: "#DC2626",
+  spam: "#DC2626",
+};
+
+// The single most-likely next action per status — drives the prominent button
+// on each kanban card. null for terminal/registered (no obvious next step).
+export const PRIMARY_ACTION: Record<EnquiryStatus, { status: EnquiryStatus; label: string } | null> = {
+  new: { status: "contacted", label: "Contact parent" },
+  contacted: { status: "booked_visit", label: "Book visit" },
+  awaiting_reply: { status: "booked_visit", label: "Book visit" },
+  booked_visit: { status: "visit_completed", label: "Complete visit" },
+  visit_completed: { status: "registered", label: "Register child" },
+  registered: null,
+  cancelled: null,
+  lost: null,
+  spam: null,
+};
+
+// ── Stage-age analytics ──────────────────────────────────────────────────────
+// When did an enquiry enter its current stage? The latest activity entry that
+// set the current status, else the creation time (the "new" stage). Used for
+// the per-column "average days in stage" bottleneck indicator.
+export function stageEnteredAt(e: Enquiry): number {
+  let t = new Date(e.created_at).getTime();
+  for (const a of e.activity_log ?? []) {
+    if (a.to_status === e.status) {
+      const at = new Date(a.created_at).getTime();
+      if (!Number.isNaN(at) && at > t) t = at;
+    }
+  }
+  return t;
+}
+
+export function stageDays(e: Enquiry): number {
+  return (Date.now() - stageEnteredAt(e)) / 86_400_000;
+}
+
+// Average days-in-stage across a set of cards, rounded to 1dp (null when empty).
+export function avgStageDays(items: Enquiry[]): number | null {
+  if (items.length === 0) return null;
+  const total = items.reduce((s, e) => s + stageDays(e), 0);
+  return Math.round((total / items.length) * 10) / 10;
+}
+
+// Compact "15 Jun" day+month for dense cards.
+export function fmtDayMonth(iso?: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+// Initials for an assigned-staff avatar.
+export function initialsOf(name?: string | null): string {
+  if (!name) return "";
+  return name.trim().split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+}
+
 // ── Quick note templates ─────────────────────────────────────────────────────
 export const NOTE_TEMPLATES: string[] = [
   "Called parent, no answer",

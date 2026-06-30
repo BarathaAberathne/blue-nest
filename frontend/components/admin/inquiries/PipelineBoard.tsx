@@ -2,15 +2,15 @@
 
 import { useRef } from "react";
 import { motion, type PanInfo } from "framer-motion";
-import { PIPELINE_COLUMNS } from "@/lib/enquiry";
-import { STATUS_META } from "@/lib/enquiry";
+import { COLUMN_THEME, PIPELINE_COLUMNS, avgStageDays } from "@/lib/enquiry";
 import EnquiryCard from "./EnquiryCard";
 import type { Enquiry, EnquiryStatus } from "@/types";
 
 /**
- * Kanban pipeline. Cards can be dragged between columns (drop → status change)
- * or advanced via the quick-action buttons on each card. Drag uses a snap-back
- * animation; the actual move is reflected after the status mutation refetches.
+ * Premium kanban pipeline. Each status is a soft-tinted, full-height lane with a
+ * coloured header (count + description + average days-in-stage). Lanes scroll
+ * independently; the page never becomes one giant scroll. Cards drag between
+ * lanes (drop → status change) or advance via the card's primary button.
  */
 export default function PipelineBoard({
   enquiries,
@@ -25,14 +25,9 @@ export default function PipelineBoard({
 }) {
   const colRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const byColumn = (key: string) => {
-    const col = PIPELINE_COLUMNS.find((c) => c.key === key);
-    if (!col) return [];
-    return enquiries.filter((e) => col.statuses.includes(e.status));
-  };
+  const itemsFor = (statuses: EnquiryStatus[]) => enquiries.filter((e) => statuses.includes(e.status));
 
   const handleDragEnd = (e: Enquiry, event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    // Pointer position in viewport coords to match getBoundingClientRect.
     const x = "clientX" in event ? event.clientX : info.point.x;
     const y = "clientY" in event ? event.clientY : info.point.y;
     for (const col of PIPELINE_COLUMNS) {
@@ -47,34 +42,49 @@ export default function PipelineBoard({
   };
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-3">
+    <div className="flex h-[calc(100vh-21rem)] min-h-[26rem] gap-4 overflow-x-auto pb-2">
       {PIPELINE_COLUMNS.map((col) => {
-        const items = byColumn(col.key);
-        const dot = STATUS_META[col.dropStatus]?.dot ?? "bg-slate-400";
+        const items = itemsFor(col.statuses);
+        const theme = COLUMN_THEME[col.key];
+        const avg = avgStageDays(items);
         return (
           <div
             key={col.key}
-            ref={(el) => {
-              colRefs.current[col.key] = el;
-            }}
-            className="flex w-72 shrink-0 flex-col rounded-2xl bg-slate-50/70 p-2"
+            ref={(el) => { colRefs.current[col.key] = el; }}
+            className="flex w-[19rem] shrink-0 flex-col overflow-hidden rounded-2xl shadow-sm ring-1 ring-black/[0.03]"
+            style={{ background: theme.bg }}
           >
-            <div className="mb-2 flex items-center gap-2 px-2 py-1">
-              <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
-              <h3 className="text-sm font-semibold text-slate-700">{col.label}</h3>
-              <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs font-medium text-slate-500">
-                {items.length}
-              </span>
+            {/* Header */}
+            <div className="px-3.5 pb-2.5 pt-3.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 className="truncate text-sm font-extrabold uppercase tracking-wide" style={{ color: theme.header }}>{col.label}</h3>
+                  <p className="mt-0.5 text-xs text-slate-500">{theme.desc}</p>
+                </div>
+                <span
+                  className="flex h-9 min-w-9 items-center justify-center rounded-xl px-2 text-lg font-extrabold leading-none text-white shadow-sm"
+                  style={{ background: theme.header }}
+                >
+                  {items.length}
+                </span>
+              </div>
+              {avg !== null && (
+                <p className="mt-2 text-[0.65rem] font-semibold uppercase tracking-wider" style={{ color: theme.header }}>
+                  Avg {avg} {avg === 1 ? "day" : "days"} in stage
+                </p>
+              )}
             </div>
-            <div className="flex min-h-[4rem] flex-1 flex-col gap-2">
+
+            {/* Cards (independent scroll) */}
+            <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto px-2.5 pb-3">
               {items.map((e) => (
                 <motion.div
                   key={e.id}
                   layout
                   drag
                   dragSnapToOrigin
-                  dragElastic={0.15}
-                  whileDrag={{ scale: 1.03, zIndex: 50 }}
+                  dragElastic={0.12}
+                  whileDrag={{ scale: 1.04, zIndex: 50, boxShadow: "0 20px 40px rgba(15,23,42,0.22)" }}
                   onDragEnd={(event, info) => handleDragEnd(e, event, info)}
                   className="cursor-grab touch-none active:cursor-grabbing"
                 >
@@ -82,7 +92,10 @@ export default function PipelineBoard({
                 </motion.div>
               ))}
               {items.length === 0 && (
-                <p className="px-2 py-6 text-center text-xs text-slate-300">Nothing here</p>
+                <div className="flex flex-1 flex-col items-center justify-center gap-2 px-3 py-10 text-center">
+                  <span className="text-3xl">{theme.emptyEmoji}</span>
+                  <p className="text-xs font-medium text-slate-400">{theme.emptyText}</p>
+                </div>
               )}
             </div>
           </div>
