@@ -84,8 +84,8 @@ func SeedBranches() []Branch {
 			Contact: BranchContact{
 				Phone:   "020 8953 1718",
 				Email:   sharedEmail,
-				Address: "Borehamwood, Hertfordshire, WD6",
-				MapURL:  "https://www.google.com/maps/search/?api=1&query=Borehamwood+WD6",
+				Address: "31-33 Farriers Way, Borehamwood, WD6 2TB",
+				MapURL:  "https://www.google.com/maps/search/?api=1&query=31-33+Farriers+Way+Borehamwood+WD6+2TB",
 			},
 			Admissions: BranchAdmissions{
 				AgeRange:    "3 months – 5 years",
@@ -104,8 +104,8 @@ func SeedBranches() []Branch {
 			Contact: BranchContact{
 				Phone:   "07400 430630",
 				Email:   sharedEmail,
-				Address: "Pinner, London, HA5",
-				MapURL:  "https://www.google.com/maps/search/?api=1&query=Pinner+HA5",
+				Address: "Cuckoo Hill Road, Pinner, HA5 1AY",
+				MapURL:  "https://www.google.com/maps/search/?api=1&query=Cuckoo+Hill+Road+Pinner+HA5+1AY",
 			},
 			Admissions: BranchAdmissions{
 				AgeRange:    "3 months – 5 years",
@@ -143,8 +143,8 @@ func SeedBranches() []Branch {
 			ShortDescription: "Our newest branch, coming soon to Northwood, HA6. Register your interest to be first in line for a place at our newest nursery.",
 			Contact: BranchContact{
 				Email:   sharedEmail,
-				Address: "Northwood, London, HA6",
-				MapURL:  "https://www.google.com/maps/search/?api=1&query=Northwood+HA6",
+				Address: "Sandy Lane, Northwood, HA6 3DA",
+				MapURL:  "https://www.google.com/maps/search/?api=1&query=Sandy+Lane+Northwood+HA6+3DA",
 			},
 			Admissions: BranchAdmissions{
 				AgeRange: "3 months – 5 years",
