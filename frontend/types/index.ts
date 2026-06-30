@@ -436,6 +436,56 @@ export type OrderRequestStatus =
 
 export type ProcurementPriority = "low" | "normal" | "high" | "urgent";
 
+// ── Suppliers (managed vendor directory) ─────────────────────────────────────
+export interface Supplier {
+  id: string;
+  name: string;
+  slug: string;
+  category?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  website?: string;
+  order_email?: string;
+  account_ref?: string;
+  lead_time_days?: number;
+  notes?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupplierInput {
+  name: string;
+  category?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  website?: string;
+  order_email?: string;
+  account_ref?: string;
+  lead_time_days?: number;
+  notes?: string;
+  is_active?: boolean;
+}
+
+// ── Procurement analytics (server-side roll-up) ──────────────────────────────
+export interface ProcurementAnalytics {
+  total_requests: number;
+  total_orders: number;
+  total_spend: number; // pence
+  pending_requests: number;
+  overdue_orders: number;
+  request_status_counts: Record<string, number>;
+  order_status_counts: Record<string, number>;
+  spend_by_supplier: { supplier: string; spend: number; orders: number }[];
+  spend_by_branch: { branch: string; spend: number }[];
+  monthly_spend: { month: string; spend: number }[];
+  top_items: { name: string; qty: number; requests: number }[];
+  avg_request_to_order_days: number;
+  avg_order_to_delivery_days: number;
+}
+
 export interface OrderRequestItem {
   item_name: string;
   supplier: string; // Gompels | Amazon | Other

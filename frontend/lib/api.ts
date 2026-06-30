@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AuditLog, CatalogueItem, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryPage, EnquiryStats, EnquiryTasks, OrderRequest, OrderTemplate, PurchaseCart, User } from "@/types";
+import type { AuditLog, CatalogueItem, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryPage, EnquiryStats, EnquiryTasks, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, Supplier, SupplierInput, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -360,6 +360,22 @@ export const api = {
     apiFetch(`/api/v1/admin/catalogue/${id}`, { method: "DELETE", token }),
   adminLearnCatalogue: (token: string, body: { name: string; code: string; price?: number }) =>
     apiFetch<CatalogueItem>("/api/v1/admin/catalogue/learn", { method: "POST", body: JSON.stringify(body), token }),
+
+  // Suppliers (managed vendor directory — admin CRUD)
+  adminGetSuppliers: (token: string) =>
+    apiFetch<Supplier[]>("/api/v1/admin/suppliers", { token }),
+  adminGetSupplier: (token: string, id: string) =>
+    apiFetch<Supplier>(`/api/v1/admin/suppliers/${id}`, { token }),
+  adminCreateSupplier: (token: string, body: SupplierInput) =>
+    apiFetch<Supplier>("/api/v1/admin/suppliers", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateSupplier: (token: string, id: string, body: SupplierInput) =>
+    apiFetch<Supplier>(`/api/v1/admin/suppliers/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminDeleteSupplier: (token: string, id: string) =>
+    apiFetch(`/api/v1/admin/suppliers/${id}`, { method: "DELETE", token }),
+
+  // Procurement analytics (server-side roll-up)
+  adminGetProcurementAnalytics: (token: string) =>
+    apiFetch<ProcurementAnalytics>("/api/v1/admin/procurement/analytics", { token }),
 
   // Purchase carts (generated supplier orders)
   adminGenerateCart: (token: string, requestIds: string[]) =>

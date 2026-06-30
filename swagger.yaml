@@ -44,6 +44,8 @@ tags:
     description: Staff supply requests (foundation for inventory)
   - name: Order Creation
     description: Catalogue, sourcing, and generated supplier carts (order creation tool)
+  - name: Procurement
+    description: Supplier directory + procurement analytics (Phase 3)
   - name: Admin
     description: Administrative operations (admin only)
   - name: Webhooks
@@ -1481,6 +1483,67 @@ paths:
         '400':
           description: Invalid webhook signature
 
+  /admin/suppliers:
+    get:
+      tags: [Procurement]
+      summary: List managed suppliers (vendor directory)
+      operationId: listSuppliers
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Supplier' } } } } }
+    post:
+      tags: [Procurement]
+      summary: Create a supplier
+      operationId: createSupplier
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/SupplierInput' } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Supplier' } } } }
+        '400': { description: Invalid payload }
+
+  /admin/suppliers/{id}:
+    get:
+      tags: [Procurement]
+      summary: Get a supplier
+      operationId: getSupplier
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Supplier' } } } }
+        '404': { description: Not found }
+    put:
+      tags: [Procurement]
+      summary: Update a supplier
+      operationId: updateSupplier
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/SupplierInput' } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Supplier' } } } }
+        '400': { description: Invalid payload }
+    delete:
+      tags: [Procurement]
+      summary: Delete a supplier
+      operationId: deleteSupplier
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '204': { description: Deleted }
+
+  /admin/procurement/analytics:
+    get:
+      tags: [Procurement]
+      summary: Server-side procurement analytics roll-up
+      description: Aggregates spend (by supplier / branch / month), request & order status counts, item demand and lead times across the procurement pipeline.
+      operationId: getProcurementAnalytics
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ProcurementAnalytics' } } } }
+
 components:
   securitySchemes:
     BearerAuth:
@@ -1906,6 +1969,7 @@ components:
           example: AB12CD
         country:
           type: string
+          example: GB
 
     OrderRequestItem:
       type: object
@@ -1994,4 +2058,83 @@ components:
         sent_at: { type: string, format: date-time, nullable: true }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
-          example: GB
+
+    Supplier:
+      type: object
+      description: A managed vendor in the procurement directory.
+      properties:
+        id: { type: string }
+        name: { type: string, example: Gompels HealthCare }
+        slug: { type: string, example: gompels-healthcare }
+        category: { type: string, example: Hygiene & cleaning }
+        contact_name: { type: string }
+        contact_email: { type: string, format: email }
+        contact_phone: { type: string }
+        website: { type: string }
+        order_email: { type: string, format: email, description: Where purchase orders are emailed }
+        account_ref: { type: string, description: Our account / customer number }
+        lead_time_days: { type: integer }
+        notes: { type: string }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    SupplierInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        category: { type: string }
+        contact_name: { type: string }
+        contact_email: { type: string, format: email }
+        contact_phone: { type: string }
+        website: { type: string }
+        order_email: { type: string, format: email }
+        account_ref: { type: string }
+        lead_time_days: { type: integer }
+        notes: { type: string }
+        is_active: { type: boolean, default: true }
+
+    ProcurementAnalytics:
+      type: object
+      description: Server-side procurement roll-up. All spend figures are in pence.
+      properties:
+        total_requests: { type: integer }
+        total_orders: { type: integer }
+        total_spend: { type: integer, description: "Pence, across placed orders" }
+        pending_requests: { type: integer }
+        overdue_orders: { type: integer }
+        request_status_counts: { type: object, additionalProperties: { type: integer } }
+        order_status_counts: { type: object, additionalProperties: { type: integer } }
+        spend_by_supplier:
+          type: array
+          items:
+            type: object
+            properties:
+              supplier: { type: string }
+              spend: { type: integer }
+              orders: { type: integer }
+        spend_by_branch:
+          type: array
+          items:
+            type: object
+            properties:
+              branch: { type: string }
+              spend: { type: integer }
+        monthly_spend:
+          type: array
+          items:
+            type: object
+            properties:
+              month: { type: string, example: "2026-06" }
+              spend: { type: integer }
+        top_items:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              qty: { type: integer }
+              requests: { type: integer }
+        avg_request_to_order_days: { type: number }
+        avg_order_to_delivery_days: { type: number }

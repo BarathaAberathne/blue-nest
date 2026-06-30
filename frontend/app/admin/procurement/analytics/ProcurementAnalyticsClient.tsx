@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { AlertTriangle, Clock, Truck, XCircle } from "lucide-react";
+import { AlertTriangle, Clock, PoundSterling, Truck, XCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import ProcurementTabs from "@/components/admin/procurement/ProcurementTabs";
@@ -10,17 +10,16 @@ import StatCard from "@/components/admin/ui/StatCard";
 import SectionHeading from "@/components/admin/ui/SectionHeading";
 import ProgressBar from "@/components/admin/ui/ProgressBar";
 import { CHART_COLORS } from "@/lib/admin-theme";
-import type { OrderRequest, Product, PurchaseCart } from "@/types";
+import type { Product, ProcurementAnalytics, PurchaseCart } from "@/types";
 
 const money = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 const fmtBranch = (b: string) => (b ? b.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "—");
-const isPlaced = (s: string) => s === "sent" || s === "ordered" || s === "partially_received" || s === "received";
-const days = (a: string, b: string) => (new Date(a).getTime() - new Date(b).getTime()) / 86_400_000;
+const monthLabel = (ym: string) => { const [y, m] = ym.split("-"); const d = new Date(Number(y), Number(m) - 1, 1); return d.toLocaleDateString("en-GB", { month: "short", year: "2-digit" }); };
 const tooltipStyle = { borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12, boxShadow: "0 8px 24px rgba(90,74,66,0.10)" };
 
 export default function ProcurementAnalyticsClient() {
+  const [server, setServer] = useState<ProcurementAnalytics | null>(null);
   const [carts, setCarts] = useState<PurchaseCart[]>([]);
-  const [requests, setRequests] = useState<OrderRequest[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -29,54 +28,44 @@ export default function ProcurementAnalyticsClient() {
   useEffect(() => {
     const token = getAccessToken();
     if (!token) { setLoading(false); return; }
-    Promise.allSettled([api.adminGetPurchaseCarts(token), api.adminGetOrderRequests(token), api.adminGetProducts(token)])
-      .then(([c, r, p]) => {
+    Promise.allSettled([
+      api.adminGetProcurementAnalytics(token),
+      api.adminGetPurchaseCarts(token),
+      api.adminGetProducts(token),
+    ])
+      .then(([s, c, p]) => {
+        if (s.status === "fulfilled") setServer((s.value as ProcurementAnalytics) ?? null);
         if (c.status === "fulfilled") setCarts((c.value as PurchaseCart[]) ?? []);
-        if (r.status === "fulfilled") setRequests((r.value as OrderRequest[]) ?? []);
         if (p.status === "fulfilled") setProducts((p.value as Product[]) ?? []);
       })
       .finally(() => setLoading(false));
   }, []);
 
+  // Headline figures come from the server roll-up; supplier performance + low
+  // stock stay client-side (they need per-line / product data the endpoint omits).
   const a = useMemo(() => {
-    const placed = carts.filter((c) => isPlaced(c.status));
-    const reqById = new Map(requests.map((r) => [r.id, r]));
+    const monthly = (server?.monthly_spend ?? []).map((m) => ({ label: monthLabel(m.month), value: Math.round(m.spend / 100) }));
+    const branch = (server?.spend_by_branch ?? []).map((b) => ({ label: fmtBranch(b.branch), value: Math.round(b.spend / 100) }));
+    const items = (server?.top_items ?? []).slice(0, 8).map((it) => ({ label: it.name.length > 22 ? it.name.slice(0, 21) + "…" : it.name, value: it.qty }));
 
-    // Monthly spend — last 6 months.
-    const byMonth = new Map<string, number>();
-    placed.forEach((c) => { const k = new Date(c.created_at).toLocaleDateString("en-GB", { month: "short", year: "2-digit" }); byMonth.set(k, (byMonth.get(k) ?? 0) + c.subtotal / 100); });
-    const monthly: { label: string; value: number }[] = [];
-    for (let i = 5; i >= 0; i--) { const d = new Date(); d.setMonth(d.getMonth() - i); const k = d.toLocaleDateString("en-GB", { month: "short", year: "2-digit" }); monthly.push({ label: k, value: Math.round(byMonth.get(k) ?? 0) }); }
-
-    // Spend by branch (estimated via source requests).
-    const byBranch = new Map<string, number>();
-    placed.forEach((c) => { const first = (c.source_request_ids ?? []).map((id) => reqById.get(id)).find(Boolean); byBranch.set(first?.branch_slug || "Unattributed", (byBranch.get(first?.branch_slug || "Unattributed") ?? 0) + c.subtotal / 100); });
-    const branch = [...byBranch.entries()].sort((x, y) => y[1] - x[1]).map(([k, v]) => ({ label: fmtBranch(k), value: Math.round(v) }));
-
-    // Most requested items.
-    const byItem = new Map<string, number>();
-    requests.forEach((r) => r.items.forEach((it) => byItem.set(it.item_name, (byItem.get(it.item_name) ?? 0) + it.qty)));
-    const items = [...byItem.entries()].sort((x, y) => y[1] - x[1]).slice(0, 8).map(([k, v]) => ({ label: k.length > 22 ? k.slice(0, 21) + "…" : k, value: v }));
-
-    // Cycle times.
-    const reqToOrder = placed.map((c) => { const first = (c.source_request_ids ?? []).map((id) => reqById.get(id)).find(Boolean); return first ? days(c.created_at, first.created_at) : null; }).filter((d): d is number => d !== null && d >= 0);
-    const orderToDelivery = carts.filter((c) => c.delivered_at).map((c) => days(c.delivered_at as string, c.sent_at || c.created_at)).filter((d) => d >= 0);
-    const avg = (arr: number[]) => (arr.length ? Math.round((arr.reduce((s, x) => s + x, 0) / arr.length) * 10) / 10 : null);
-
-    // Supplier performance — completion rate (received / orders).
+    // Supplier performance — completion rate (received / orders), from carts.
     const perf = new Map<string, { orders: number; received: number }>();
-    carts.forEach((c) => { const p = perf.get(c.supplier) ?? { orders: 0, received: 0 }; p.orders++; if (c.status === "received") p.received++; perf.set(c.supplier, p); });
+    carts.forEach((c) => { const p = perf.get(c.supplier) ?? { orders: 0, received: 0 }; p.orders++; if (c.status === "received" || c.status === "completed") p.received++; perf.set(c.supplier, p); });
     const suppliers = [...perf.entries()].map(([name, p]) => ({ name, ...p, rate: p.orders ? Math.round((p.received / p.orders) * 100) : 0 })).sort((x, y) => y.orders - x.orders);
 
+    const rsc = server?.request_status_counts ?? {};
+    const osc = server?.order_status_counts ?? {};
     return {
       monthly, branch, items, suppliers,
-      avgReqToOrder: avg(reqToOrder), avgOrderToDelivery: avg(orderToDelivery),
-      pending: requests.filter((r) => r.status === "pending").length,
-      cancelled: requests.filter((r) => r.status === "cancelled").length,
-      partial: carts.filter((c) => c.status === "partially_received").length,
+      totalSpend: server?.total_spend ?? 0,
+      avgReqToOrder: server && server.avg_request_to_order_days > 0 ? server.avg_request_to_order_days : null,
+      avgOrderToDelivery: server && server.avg_order_to_delivery_days > 0 ? server.avg_order_to_delivery_days : null,
+      pending: server?.pending_requests ?? rsc["pending"] ?? 0,
+      cancelled: rsc["cancelled"] ?? 0,
+      partial: osc["partially_received"] ?? 0,
       lowStock: products.filter((p) => p.stock_qty < (p.reorder_point ?? 100)).length,
     };
-  }, [carts, requests, products]);
+  }, [server, carts, products]);
 
   return (
     <>
@@ -87,6 +76,7 @@ export default function ProcurementAnalyticsClient() {
       </div>
 
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <StatCard label="Total spend" value={money(a.totalSpend)} sub="placed orders" icon={PoundSterling} accent="teal" />
         <StatCard label="Avg request → order" value={a.avgReqToOrder !== null ? `${a.avgReqToOrder}d` : "—"} icon={Clock} accent="blue" />
         <StatCard label="Avg order → delivery" value={a.avgOrderToDelivery !== null ? `${a.avgOrderToDelivery}d` : "—"} icon={Truck} accent="indigo" />
         <StatCard label="Pending requests" value={a.pending} icon={Clock} accent="amber" />

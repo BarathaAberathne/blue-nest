@@ -73,6 +73,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	purchaseCartRepo := repository.NewPurchaseCartRepository(db)
 	orderTemplateRepo := repository.NewOrderTemplateRepository(db)
 	counterRepo := repository.NewCounterRepository(db)
+	supplierRepo := repository.NewSupplierRepository(db)
 	mailer := email.New(email.Config{
 		Host:         cfg.SMTP.Host,
 		Port:         cfg.SMTP.Port,
@@ -98,6 +99,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		OrderRequests:  service.NewOrderRequestService(orderRequestRepo, userRepo, counterRepo),
 		Catalogue:      service.NewCatalogueService(catalogueRepo),
 		OrderTemplates: service.NewOrderTemplateService(orderTemplateRepo),
+		Suppliers:      service.NewSupplierService(supplierRepo),
+		Procurement:    service.NewProcurementAnalyticsService(orderRequestRepo, purchaseCartRepo),
 	}
 
 	// Sourcing engine: enable supplier adapters per config (off by default; the

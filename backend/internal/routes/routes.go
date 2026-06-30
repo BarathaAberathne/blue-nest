@@ -30,6 +30,8 @@ type Services struct {
 	Catalogue      service.CatalogueService
 	PurchaseCarts  service.PurchaseCartService
 	OrderTemplates service.OrderTemplateService
+	Suppliers      service.SupplierService
+	Procurement    service.ProcurementAnalyticsService
 }
 
 type Repos struct {
@@ -190,6 +192,16 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Post("/admin/catalogue/learn", adminCatalogueH.Learn)
 			r.Put("/admin/catalogue/{id}", adminCatalogueH.Update)
 			r.Delete("/admin/catalogue/{id}", adminCatalogueH.Delete)
+
+			adminSupplierH := adminHandler.NewAdminSupplierHandler(svc.Suppliers, svc.Audit)
+			r.Get("/admin/suppliers", adminSupplierH.List)
+			r.Get("/admin/suppliers/{id}", adminSupplierH.Get)
+			r.Post("/admin/suppliers", adminSupplierH.Create)
+			r.Put("/admin/suppliers/{id}", adminSupplierH.Update)
+			r.Delete("/admin/suppliers/{id}", adminSupplierH.Delete)
+
+			adminProcurementH := adminHandler.NewAdminProcurementHandler(svc.Procurement)
+			r.Get("/admin/procurement/analytics", adminProcurementH.Analytics)
 
 			adminCartH := adminHandler.NewAdminPurchaseCartHandler(svc.PurchaseCarts, svc.Audit)
 			r.Post("/admin/purchase-carts/generate", adminCartH.Generate)
