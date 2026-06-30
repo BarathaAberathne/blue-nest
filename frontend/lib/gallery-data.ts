@@ -544,98 +544,10 @@ export const GALLERY_ITEMS: GalleryItem[] = [
   },
 
   // ── Videos ─────────────────────────────────────────────────────────────────
-  {
-    id: "v1",
-    type: "video",
-    title: "A day at Blue Nest Montessori",
-    description: "Follow a typical day from morning arrival to afternoon exploration.",
-    branch: "harrow",
-    category: "classroom",
-    date: "2026-04-01",
-    featured: true,
-    source: "youtube",
-    isPublic: true,
-    youtubeId: "ZRtdQ81jPUQ",
-    thumbnailSrc: "/home/branches/harrow/harrow-gallery-01.webp",
-    duration: "3:42",
-  },
-  {
-    id: "v2",
-    type: "video",
-    title: "Our Forest School programme",
-    description: "A look at how outdoor education shapes our youngest learners.",
-    branch: "borehamwood",
-    category: "outdoor",
-    date: "2026-03-15",
-    featured: false,
-    source: "youtube",
-    isPublic: true,
-    youtubeId: "dQw4w9WgXcQ",
-    thumbnailSrc: "/home/branches/borehamwood/borehamwood-hero.webp",
-    duration: "4:18",
-  },
-  {
-    id: "v3",
-    type: "video",
-    title: "Montessori materials explained",
-    description: "Our lead educator walks through key Montessori learning tools.",
-    branch: "pinner",
-    category: "learning",
-    date: "2026-02-20",
-    featured: false,
-    source: "youtube",
-    isPublic: true,
-    youtubeId: "3JZ_D3ELwOQ",
-    thumbnailSrc: "/home/branches/pinner/pinner-gallery-03.webp",
-    duration: "6:05",
-  },
+  // (none yet — real Blue Nest videos to be added; placeholders removed)
 
-  // ── Updates ─────────────────────────────────────────────────────────────────
-  {
-    id: "u1",
-    type: "update",
-    title: "Spring term highlights from Harrow",
-    description: "A round-up of our most memorable moments this spring term.",
-    branch: "harrow",
-    category: "events",
-    date: "2026-04-14",
-    featured: true,
-    source: "manual",
-    isPublic: true,
-    excerpt:
-      "This spring term has been full of discovery, creativity, and connection. From our garden planting project to the spring showcase, our children have been busy exploring the world around them.",
-    href: "/blog",
-  },
-  {
-    id: "u2",
-    type: "update",
-    title: "New outdoor equipment at Pinner",
-    description: "We've upgraded our outdoor learning space with new adventure structures.",
-    branch: "pinner",
-    category: "outdoor",
-    date: "2026-03-20",
-    featured: false,
-    source: "manual",
-    isPublic: true,
-    excerpt:
-      "We are thrilled to unveil our newly upgraded outdoor area at Pinner. The new climbing frame, mud kitchen, and sensory garden have already become firm favourites with the children.",
-    href: "/blog",
-  },
-  {
-    id: "u3",
-    type: "update",
-    title: "Borehamwood earns Forest School Gold",
-    description: "Our Borehamwood branch has been awarded the Forest School Gold accreditation.",
-    branch: "borehamwood",
-    category: "learning",
-    date: "2026-03-05",
-    featured: false,
-    source: "manual",
-    isPublic: true,
-    excerpt:
-      "We are incredibly proud to announce that Blue Nest Borehamwood has been awarded the Forest School Gold Award, recognising our commitment to nature-based learning and outdoor education.",
-    href: "/blog",
-  },
+  // ── Updates ────────────────────────────────────────────────────────────────
+  // (none — Updates tab retired)
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
