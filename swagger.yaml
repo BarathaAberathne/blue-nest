@@ -1351,8 +1351,35 @@ paths:
               type: object
               properties:
                 supplier_order_ref: { type: string }
+                tracking_number: { type: string, description: Carrier tracking number }
                 expected_delivery_date: { type: string, format: date-time, nullable: true }
       responses: { '200': { description: Updated }, '400': { description: Order not yet placed } }
+
+  /admin/purchase-carts/{id}/status:
+    patch:
+      tags: [Order Creation]
+      summary: Apply a manual workflow transition to a purchase order
+      description: >-
+        Moves the order through the lifecycle (placed → tracking → dispatched →
+        completed, or cancelled) from the board / stepper. Setting `completed`
+        stamps `completed_at`. Accepts the legacy `sent`/`ordered` values.
+      operationId: updatePurchaseCartStatus
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [draft, placed, tracking, dispatched, partially_received, received, completed, cancelled, failed]
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/PurchaseCart' } } } }
+        '400': { description: Invalid status }
 
   /admin/purchase-carts/{id}/receive:
     post:
@@ -1879,4 +1906,92 @@ components:
           example: AB12CD
         country:
           type: string
+
+    OrderRequestItem:
+      type: object
+      properties:
+        item_name: { type: string, example: A4 Sugar Paper (white) }
+        supplier: { type: string, enum: [Gompels, Amazon, Other], example: Gompels }
+        qty: { type: integer, example: 5 }
+        notes: { type: string }
+        code: { type: string, description: Supplier SKU when picked from the catalogue, example: PAP123 }
+        catalogue_item_id: { type: string, description: Links the line to a catalogue item when known }
+
+    OrderRequest:
+      type: object
+      description: A staff-submitted supply request that management reviews and converts into purchase orders.
+      properties:
+        id: { type: string, example: 507f1f77bcf86cd799439011 }
+        ref: { type: string, description: Human sequential reference, example: SR-2026-000045 }
+        user_id: { type: string }
+        requested_by_name: { type: string, example: Jane Practitioner }
+        requested_by_email: { type: string, format: email }
+        branch_slug: { type: string, example: borehamwood }
+        classroom: { type: string, example: Toddler Room }
+        priority: { type: string, enum: [low, normal, high, urgent], example: normal }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/OrderRequestItem' }
+        status:
+          type: string
+          enum: [pending, approved, converted_to_po, ordered, received, cancelled]
+          example: pending
+        notes: { type: string }
+        expected_delivery_date: { type: string, format: date-time, nullable: true, description: Propagated from the covering purchase order; staff never see prices }
+        delivered_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    CreateOrderRequest:
+      type: object
+      required: [items]
+      properties:
+        branch_slug: { type: string, example: borehamwood }
+        classroom: { type: string, example: Toddler Room }
+        priority: { type: string, enum: [low, normal, high, urgent], default: normal }
+        notes: { type: string }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/OrderRequestItem' }
+
+    PurchaseCartLine:
+      type: object
+      properties:
+        item_name: { type: string }
+        code: { type: string, description: Resolved supplier SKU }
+        qty: { type: integer }
+        unit_price: { type: integer, description: Pence }
+        line_total: { type: integer, description: Pence }
+        qty_received: { type: integer, description: Goods received against this line }
+
+    PurchaseCart:
+      type: object
+      description: A draft/placed supplier order generated from supply requests by the sourcing engine.
+      properties:
+        id: { type: string }
+        ref: { type: string, description: Human sequential reference, example: PO-2026-000123 }
+        supplier: { type: string, enum: [Gompels, Amazon, Other] }
+        branch_slug: { type: string }
+        classroom: { type: string }
+        priority: { type: string, enum: [low, normal, high, urgent] }
+        recipient_email: { type: string, format: email }
+        lines:
+          type: array
+          items: { $ref: '#/components/schemas/PurchaseCartLine' }
+        subtotal: { type: integer, description: Pence }
+        status:
+          type: string
+          enum: [draft, placed, tracking, dispatched, partially_received, received, completed, cancelled, failed]
+          description: Legacy `sent`/`ordered` read as `placed`.
+        source_request_ids:
+          type: array
+          items: { type: string }
+        supplier_order_ref: { type: string }
+        tracking_number: { type: string, description: Carrier tracking number }
+        expected_delivery_date: { type: string, format: date-time, nullable: true }
+        delivered_at: { type: string, format: date-time, nullable: true }
+        completed_at: { type: string, format: date-time, nullable: true }
+        sent_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
           example: GB

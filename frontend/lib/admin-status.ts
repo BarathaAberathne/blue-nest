@@ -5,9 +5,26 @@
 // STATUS_VARIANT/STATUS_LABEL maps that were duplicated across ~5 files.
 
 import type { AccentName, LaneTheme } from "@/lib/admin-theme";
-import type { OrderStatus, OrderRequestStatus, PurchaseCartStatus } from "@/types";
+import type { OrderStatus, OrderRequestStatus, ProcurementPriority, PurchaseCartStatus } from "@/types";
 
 export type StatusMeta = { label: string; accent: AccentName };
+
+// ── Procurement priority (shared by supply requests + purchase orders) ───────
+export const PRIORITY_META: Record<ProcurementPriority, StatusMeta> = {
+  low:    { label: "Low",    accent: "slate" },
+  normal: { label: "Normal", accent: "sky" },
+  high:   { label: "High",   accent: "orange" },
+  urgent: { label: "Urgent", accent: "red" },
+};
+
+// Rank for sorting (urgent first).
+export const PRIORITY_RANK: Record<ProcurementPriority, number> = {
+  urgent: 0, high: 1, normal: 2, low: 3,
+};
+
+export function priorityMeta(p?: string): StatusMeta {
+  return PRIORITY_META[(p as ProcurementPriority)] ?? PRIORITY_META.normal;
+}
 
 // A Kanban lane: a theme plus which statuses live in it and the status applied
 // when a card is dropped into it.
@@ -38,45 +55,62 @@ export const ORDER_NEXT: Partial<Record<OrderStatus, OrderStatus>> = {
 };
 
 // ── Supply requests (order requests) ─────────────────────────────────────────
+// Workflow: pending → approved → converted_to_po → ordered → received (+ cancelled).
 export const ORDER_REQUEST_STATUS_META: Record<OrderRequestStatus, StatusMeta> = {
-  pending:   { label: "Pending",   accent: "amber" },
-  ordered:   { label: "Ordered",   accent: "blue" },
-  received:  { label: "Received",  accent: "green" },
-  cancelled: { label: "Cancelled", accent: "slate" },
+  pending:         { label: "Pending",   accent: "amber" },
+  approved:        { label: "Approved",  accent: "indigo" },
+  converted_to_po: { label: "On PO",     accent: "violet" },
+  ordered:         { label: "Ordered",   accent: "blue" },
+  received:        { label: "Received",  accent: "green" },
+  cancelled:       { label: "Cancelled", accent: "slate" },
 };
 
 export const ORDER_REQUEST_LANES: Lane<OrderRequestStatus>[] = [
-  { key: "pending",   label: "Pending",   accent: "amber", statuses: ["pending"],   dropStatus: "pending",   desc: "Needs ordering",      emptyEmoji: "📝", emptyText: "No requests waiting" },
-  { key: "ordered",   label: "Ordered",   accent: "blue",  statuses: ["ordered"],   dropStatus: "ordered",   desc: "On a purchase order", emptyEmoji: "🛒", emptyText: "Nothing on order" },
-  { key: "received",  label: "Received",  accent: "green", statuses: ["received"],  dropStatus: "received",  desc: "Delivered & in",      emptyEmoji: "✅", emptyText: "Nothing received yet" },
-  { key: "cancelled", label: "Cancelled", accent: "slate", statuses: ["cancelled"], dropStatus: "cancelled", desc: "Cancelled",           emptyEmoji: "🗂️", emptyText: "Nothing cancelled", terminal: true },
+  { key: "pending",         label: "Pending",   accent: "amber",  statuses: ["pending"],         dropStatus: "pending",         desc: "Awaiting review",      emptyEmoji: "📝", emptyText: "No requests waiting" },
+  { key: "approved",        label: "Approved",  accent: "indigo", statuses: ["approved"],        dropStatus: "approved",        desc: "Cleared to order",     emptyEmoji: "👍", emptyText: "Nothing approved" },
+  { key: "converted_to_po", label: "On PO",     accent: "violet", statuses: ["converted_to_po"], dropStatus: "converted_to_po", desc: "Rolled into an order", emptyEmoji: "🧾", emptyText: "Nothing on a PO" },
+  { key: "ordered",         label: "Ordered",   accent: "blue",   statuses: ["ordered"],         dropStatus: "ordered",         desc: "Order placed",         emptyEmoji: "🛒", emptyText: "Nothing on order" },
+  { key: "received",        label: "Received",  accent: "green",  statuses: ["received"],        dropStatus: "received",        desc: "Delivered & in",       emptyEmoji: "✅", emptyText: "Nothing received yet" },
+  { key: "cancelled",       label: "Cancelled", accent: "slate",  statuses: ["cancelled"],       dropStatus: "cancelled",       desc: "Cancelled / rejected", emptyEmoji: "🗂️", emptyText: "Nothing cancelled", terminal: true },
 ];
 
 export const ORDER_REQUEST_NEXT: Partial<Record<OrderRequestStatus, OrderRequestStatus>> = {
-  pending: "ordered", ordered: "received",
+  pending: "approved", approved: "converted_to_po", converted_to_po: "ordered", ordered: "received",
 };
 
 // ── Purchase orders (purchase carts) ─────────────────────────────────────────
-// "sent" is legacy and reads as "ordered" everywhere.
+// Workflow: draft → placed → tracking → dispatched → (partially_)received → completed.
+// "sent"/"ordered" are legacy values that read as "placed".
 export const PURCHASE_CART_STATUS_META: Record<PurchaseCartStatus, StatusMeta> = {
   draft:              { label: "Draft",              accent: "slate" },
-  sent:               { label: "Ordered",            accent: "blue" },
-  ordered:            { label: "Ordered",            accent: "blue" },
+  sent:               { label: "Placed",             accent: "blue" },
+  ordered:            { label: "Placed",             accent: "blue" },
+  placed:             { label: "Placed",             accent: "blue" },
+  tracking:           { label: "Tracking",           accent: "indigo" },
+  dispatched:         { label: "Dispatched",         accent: "violet" },
   partially_received: { label: "Partially received", accent: "amber" },
   received:           { label: "Received",           accent: "green" },
+  completed:          { label: "Completed",          accent: "emerald" },
   cancelled:          { label: "Cancelled",          accent: "red" },
   failed:             { label: "Failed",             accent: "red" },
 };
 
 export const PURCHASE_CART_LANES: Lane<PurchaseCartStatus>[] = [
-  { key: "draft",              label: "Draft",      accent: "slate", statuses: ["draft"],                       dropStatus: "draft",              desc: "Ready to place",        emptyEmoji: "🗒️", emptyText: "No draft orders" },
-  { key: "ordered",            label: "Ordered",    accent: "blue",  statuses: ["ordered", "sent"],             dropStatus: "ordered",            desc: "Sent to supplier",      emptyEmoji: "📧", emptyText: "Nothing on order" },
-  { key: "partially_received", label: "Partial",    accent: "amber", statuses: ["partially_received"],          dropStatus: "partially_received", desc: "Part-delivered",        emptyEmoji: "📦", emptyText: "Nothing part-received" },
-  { key: "received",           label: "Received",   accent: "green", statuses: ["received"],                    dropStatus: "received",           desc: "Fully delivered",       emptyEmoji: "✅", emptyText: "Nothing received yet" },
-  { key: "closed",             label: "Cancelled",  accent: "red",   statuses: ["cancelled", "failed"],         dropStatus: "cancelled",          desc: "Cancelled or failed",   emptyEmoji: "🗂️", emptyText: "Nothing cancelled", terminal: true },
+  { key: "draft",              label: "Draft",      accent: "slate",  statuses: ["draft"],                            dropStatus: "draft",              desc: "Ready to place",        emptyEmoji: "🗒️", emptyText: "No draft orders" },
+  { key: "placed",             label: "Placed",     accent: "blue",   statuses: ["placed", "ordered", "sent"],        dropStatus: "placed",             desc: "Sent to supplier",      emptyEmoji: "📧", emptyText: "Nothing placed" },
+  { key: "in_transit",         label: "In transit", accent: "indigo", statuses: ["tracking", "dispatched"],           dropStatus: "tracking",           desc: "Tracked / dispatched",  emptyEmoji: "🚚", emptyText: "Nothing in transit" },
+  { key: "partially_received", label: "Partial",    accent: "amber",  statuses: ["partially_received"],               dropStatus: "partially_received", desc: "Part-delivered",        emptyEmoji: "📦", emptyText: "Nothing part-received" },
+  { key: "received",           label: "Received",   accent: "green",  statuses: ["received", "completed"],            dropStatus: "received",           desc: "Delivered / complete",  emptyEmoji: "✅", emptyText: "Nothing received yet" },
+  { key: "closed",             label: "Cancelled",  accent: "red",    statuses: ["cancelled", "failed"],              dropStatus: "cancelled",          desc: "Cancelled or failed",   emptyEmoji: "🗂️", emptyText: "Nothing cancelled", terminal: true },
 ];
 
-// Normalise the legacy "sent" status to "ordered" for display/grouping.
+// The natural "advance to next stage" transition for a placed PO (drives the
+// stepper + board card primary action; receive is handled separately).
+export const PURCHASE_CART_NEXT: Partial<Record<PurchaseCartStatus, PurchaseCartStatus>> = {
+  placed: "tracking", tracking: "dispatched", dispatched: "received", completed: "completed",
+};
+
+// Normalise legacy "sent"/"ordered" to "placed" for display/grouping.
 export function normalizeCartStatus(s: PurchaseCartStatus): PurchaseCartStatus {
-  return s === "sent" ? "ordered" : s;
+  return s === "sent" || s === "ordered" ? "placed" : s;
 }

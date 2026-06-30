@@ -32,6 +32,9 @@ type PurchaseCartService interface {
 	// partially_received / received, and (when fully received) flips the covered
 	// requests to "received" with a delivered timestamp.
 	Receive(ctx context.Context, id string, items []models.ReceiveItem) (*models.PurchaseCart, error)
+	// SetStatus applies a manual workflow transition (placed → tracking →
+	// dispatched → completed / cancelled).
+	SetStatus(ctx context.Context, id, status string) (*models.PurchaseCart, error)
 }
 
 type purchaseCartService struct {
@@ -41,6 +44,7 @@ type purchaseCartService struct {
 	engine         *sourcing.Engine
 	mailer         *email.Mailer
 	supplierEmails map[string]string // supplier -> default recipient
+	counter        repository.CounterRepository
 }
 
 func NewPurchaseCartService(
@@ -50,6 +54,7 @@ func NewPurchaseCartService(
 	engine *sourcing.Engine,
 	mailer *email.Mailer,
 	supplierEmails map[string]string,
+	counter repository.CounterRepository,
 ) PurchaseCartService {
 	return &purchaseCartService{
 		carts:          carts,
@@ -58,6 +63,43 @@ func NewPurchaseCartService(
 		engine:         engine,
 		mailer:         mailer,
 		supplierEmails: supplierEmails,
+		counter:        counter,
+	}
+}
+
+// nextRef mints the next PO reference (best-effort).
+func (s *purchaseCartService) nextRef(ctx context.Context) string {
+	if s.counter == nil {
+		return ""
+	}
+	year := time.Now().Year()
+	seq, err := s.counter.Next(ctx, fmt.Sprintf("%s-%d", models.CounterPurchaseCart, year))
+	if err != nil {
+		return ""
+	}
+	return models.FormatRef("PO", year, seq)
+}
+
+// enrichFromRequests copies branch/classroom from the first source request and
+// the highest priority across all source requests onto the generated cart.
+func (s *purchaseCartService) enrichFromRequests(ctx context.Context, cart *models.PurchaseCart) {
+	rank := map[string]int{models.PriorityLow: 1, models.PriorityNormal: 2, models.PriorityHigh: 3, models.PriorityUrgent: 4}
+	bestPrio := ""
+	for _, rid := range cart.SourceRequestIDs {
+		req, err := s.requests.FindByID(ctx, rid)
+		if err != nil || req == nil {
+			continue
+		}
+		if cart.BranchSlug == "" {
+			cart.BranchSlug = req.BranchSlug
+			cart.Classroom = req.Classroom
+		}
+		if rank[req.Priority] > rank[bestPrio] {
+			bestPrio = req.Priority
+		}
+	}
+	if bestPrio != "" {
+		cart.Priority = bestPrio
 	}
 }
 
@@ -154,12 +196,27 @@ func (s *purchaseCartService) Generate(ctx context.Context, requestIDs []string,
 	out := make([]models.PurchaseCart, 0, len(supplierOrder))
 	for _, sup := range supplierOrder {
 		cart := cartsBySupplier[sup]
+		cart.Ref = s.nextRef(ctx)
+		s.enrichFromRequests(ctx, cart)
 		if err := s.carts.Create(ctx, cart); err != nil {
 			return nil, err
 		}
 		out = append(out, *cart)
 	}
 	return out, nil
+}
+
+// SetStatus applies a manual workflow transition (placed → tracking → dispatched
+// → completed / cancelled) from the board + stepper. Receiving still goes through
+// Receive(); this covers the non-receipt transitions.
+func (s *purchaseCartService) SetStatus(ctx context.Context, id, status string) (*models.PurchaseCart, error) {
+	if !models.IsValidPurchaseCartStatus(status) {
+		return nil, errors.New("invalid status")
+	}
+	if err := s.carts.SetStatus(ctx, id, status); err != nil {
+		return nil, err
+	}
+	return s.carts.FindByID(ctx, id)
 }
 
 // sourceLine resolves a single request line to its best (cheapest) supplier offer.
@@ -354,13 +411,17 @@ func (s *purchaseCartService) UpdateFulfillment(ctx context.Context, id string, 
 		return nil, errors.New("place the order before adding delivery details")
 	}
 	ref := strings.TrimSpace(req.SupplierOrderRef)
-	if err := s.carts.SetFulfillment(ctx, id, ref, req.ExpectedDeliveryDate); err != nil {
+	tracking := strings.TrimSpace(req.TrackingNumber)
+	if err := s.carts.SetFulfillment(ctx, id, ref, tracking, req.ExpectedDeliveryDate); err != nil {
 		return nil, err
 	}
 	for _, rid := range cart.SourceRequestIDs {
 		_ = s.requests.SetExpectedDelivery(ctx, rid, req.ExpectedDeliveryDate)
 	}
 	cart.SupplierOrderRef = ref
+	if tracking != "" {
+		cart.TrackingNumber = tracking
+	}
 	cart.ExpectedDeliveryDate = req.ExpectedDeliveryDate
 	return cart, nil
 }

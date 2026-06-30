@@ -426,7 +426,15 @@ export interface AuditLog {
 }
 
 // ── Order / supply requests ─────────────────────────────────────────────────────
-export type OrderRequestStatus = "pending" | "ordered" | "received" | "cancelled";
+export type OrderRequestStatus =
+  | "pending"
+  | "approved"
+  | "converted_to_po"
+  | "ordered"
+  | "received"
+  | "cancelled";
+
+export type ProcurementPriority = "low" | "normal" | "high" | "urgent";
 
 export interface OrderRequestItem {
   item_name: string;
@@ -479,8 +487,12 @@ export type PurchaseCartStatus =
   | "draft"
   | "sent"
   | "ordered"
+  | "placed"
+  | "tracking"
+  | "dispatched"
   | "partially_received"
   | "received"
+  | "completed"
   | "cancelled"
   | "failed";
 
@@ -510,8 +522,12 @@ export interface PurchaseCartExportResult {
 
 export interface PurchaseCart {
   id: string;
+  ref?: string; // human ref e.g. PO-2026-000123
   supplier: string;
   status: PurchaseCartStatus;
+  branch_slug?: string;
+  classroom?: string;
+  priority?: ProcurementPriority;
   recipient_email?: string;
   lines: PurchaseCartLine[];
   subtotal: number; // pence
@@ -520,8 +536,10 @@ export interface PurchaseCart {
   sent_at?: string;
   email_ref?: string;
   supplier_order_ref?: string;
+  tracking_number?: string;
   expected_delivery_date?: string;
   delivered_at?: string;
+  completed_at?: string;
   export_results?: PurchaseCartExportResult[];
   error?: string;
   created_at: string;
@@ -530,10 +548,13 @@ export interface PurchaseCart {
 
 export interface OrderRequest {
   id: string;
+  ref?: string; // human ref e.g. SR-2026-000045
   user_id: string;
   requested_by_name: string;
   requested_by_email: string;
   branch_slug: string;
+  classroom?: string;
+  priority?: ProcurementPriority;
   items: OrderRequestItem[];
   status: OrderRequestStatus;
   notes?: string;

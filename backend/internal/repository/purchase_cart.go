@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -19,8 +20,11 @@ type PurchaseCartRepository interface {
 	MarkSent(ctx context.Context, id, emailRef string) error
 	MarkExported(ctx context.Context, id string, results []models.PurchaseCartExportResult, supplierOrderRef string) error
 	MarkFailed(ctx context.Context, id, errMsg string) error
-	// SetFulfillment records the supplier order ref + expected delivery date.
-	SetFulfillment(ctx context.Context, id, supplierOrderRef string, expected *time.Time) error
+	// SetFulfillment records the supplier order ref, carrier tracking number +
+	// expected delivery date.
+	SetFulfillment(ctx context.Context, id, supplierOrderRef, trackingNumber string, expected *time.Time) error
+	// SetStatus applies a generic status transition (sets completed_at on complete).
+	SetStatus(ctx context.Context, id, status string) error
 	// SetReceived persists per-line received quantities + the resulting status
 	// (partially_received | received) and, when fully received, the delivered time.
 	SetReceived(ctx context.Context, id string, lines []models.PurchaseCartLine, status models.PurchaseCartStatus, deliveredAt *time.Time) error
@@ -120,16 +124,33 @@ func (r *purchaseCartRepository) MarkExported(ctx context.Context, id string, re
 	return err
 }
 
-func (r *purchaseCartRepository) SetFulfillment(ctx context.Context, id, supplierOrderRef string, expected *time.Time) error {
+func (r *purchaseCartRepository) SetFulfillment(ctx context.Context, id, supplierOrderRef, trackingNumber string, expected *time.Time) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
 	}
-	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": bson.M{
+	set := bson.M{
 		"supplier_order_ref":     supplierOrderRef,
 		"expected_delivery_date": expected,
 		"updated_at":             time.Now(),
-	}})
+	}
+	if strings.TrimSpace(trackingNumber) != "" {
+		set["tracking_number"] = trackingNumber
+	}
+	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": set})
+	return err
+}
+
+func (r *purchaseCartRepository) SetStatus(ctx context.Context, id, status string) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	set := bson.M{"status": status, "updated_at": time.Now()}
+	if status == string(models.PurchaseCartCompleted) {
+		set["completed_at"] = time.Now()
+	}
+	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": set})
 	return err
 }
 

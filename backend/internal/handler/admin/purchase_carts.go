@@ -119,6 +119,25 @@ func (h *AdminPurchaseCartHandler) UpdateFulfillment(w http.ResponseWriter, r *h
 	response.OK(w, cart)
 }
 
+// UpdateStatus applies a manual workflow transition (placed → tracking →
+// dispatched → completed / cancelled) from the board + stepper.
+func (h *AdminPurchaseCartHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var body models.UpdatePurchaseCartStatusRequest
+	if err := validator.DecodeJSON(r, &body); err != nil || body.Status == "" {
+		response.BadRequest(w, "status is required")
+		return
+	}
+	cart, err := h.svc.SetStatus(r.Context(), id, body.Status)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "update_status", "purchase_cart", id, "Set order status to "+body.Status,
+		map[string]interface{}{"status": body.Status})
+	response.OK(w, cart)
+}
+
 // Receive records per-line goods-received quantities and advances the order's
 // status (partially_received | received).
 func (h *AdminPurchaseCartHandler) Receive(w http.ResponseWriter, r *http.Request) {

@@ -13,19 +13,42 @@ type PurchaseCartStatus string
 
 const (
 	PurchaseCartDraft             PurchaseCartStatus = "draft"   // generated, awaiting review
-	PurchaseCartSent              PurchaseCartStatus = "sent"    // legacy alias for "ordered"
-	PurchaseCartOrdered           PurchaseCartStatus = "ordered" // emailed/placed with the supplier
+	PurchaseCartSent              PurchaseCartStatus = "sent"    // legacy alias for "ordered"/"placed"
+	PurchaseCartOrdered           PurchaseCartStatus = "ordered" // legacy alias for "placed"
+	PurchaseCartPlaced            PurchaseCartStatus = "placed"  // emailed/placed with the supplier
+	PurchaseCartTracking          PurchaseCartStatus = "tracking"
+	PurchaseCartDispatched        PurchaseCartStatus = "dispatched"
 	PurchaseCartPartiallyReceived PurchaseCartStatus = "partially_received"
 	PurchaseCartReceived          PurchaseCartStatus = "received"
+	PurchaseCartCompleted         PurchaseCartStatus = "completed"
 	PurchaseCartCancelled         PurchaseCartStatus = "cancelled"
 	PurchaseCartFailed            PurchaseCartStatus = "failed"
 )
+
+// PurchaseCartStatuses lists the valid statuses in workflow order (terminal
+// states last). Drives validation + the admin Kanban lanes.
+var PurchaseCartStatuses = []PurchaseCartStatus{
+	PurchaseCartDraft, PurchaseCartPlaced, PurchaseCartTracking, PurchaseCartDispatched,
+	PurchaseCartPartiallyReceived, PurchaseCartReceived, PurchaseCartCompleted,
+	PurchaseCartCancelled, PurchaseCartFailed,
+}
+
+func IsValidPurchaseCartStatus(s string) bool {
+	for _, v := range PurchaseCartStatuses {
+		if string(v) == s {
+			return true
+		}
+	}
+	// Legacy aliases remain valid for old rows.
+	return s == string(PurchaseCartSent) || s == string(PurchaseCartOrdered)
+}
 
 // IsPlaced reports whether the order has been sent to the supplier (and so can
 // move on to delivery tracking / receiving, and can no longer be edited).
 func (c *PurchaseCart) IsPlaced() bool {
 	switch c.Status {
-	case PurchaseCartSent, PurchaseCartOrdered, PurchaseCartPartiallyReceived, PurchaseCartReceived:
+	case PurchaseCartSent, PurchaseCartOrdered, PurchaseCartPlaced, PurchaseCartTracking,
+		PurchaseCartDispatched, PurchaseCartPartiallyReceived, PurchaseCartReceived, PurchaseCartCompleted:
 		return true
 	default:
 		return false
@@ -53,8 +76,12 @@ type PurchaseCartLine struct {
 // item lands in; carts are split per supplier.
 type PurchaseCart struct {
 	ID               primitive.ObjectID `bson:"_id,omitempty"      json:"id"`
+	Ref              string             `bson:"ref,omitempty"      json:"ref,omitempty"` // human ref e.g. PO-2026-000123
 	Supplier         string             `bson:"supplier"           json:"supplier"`
 	Status           PurchaseCartStatus `bson:"status"             json:"status"`
+	BranchSlug       string             `bson:"branch_slug,omitempty" json:"branch_slug,omitempty"` // primary branch (from source requests)
+	Classroom        string             `bson:"classroom,omitempty"   json:"classroom,omitempty"`
+	Priority         string             `bson:"priority,omitempty"    json:"priority,omitempty"`
 	RecipientEmail   string             `bson:"recipient_email,omitempty" json:"recipient_email,omitempty"`
 	Lines            []PurchaseCartLine `bson:"lines"              json:"lines"`
 	Subtotal         int64              `bson:"subtotal"           json:"subtotal"` // pence
@@ -64,8 +91,10 @@ type PurchaseCart struct {
 	EmailRef         string             `bson:"email_ref,omitempty" json:"email_ref,omitempty"`
 	// Fulfillment tracking (set after the order is placed).
 	SupplierOrderRef     string     `bson:"supplier_order_ref,omitempty"     json:"supplier_order_ref,omitempty"`
+	TrackingNumber       string     `bson:"tracking_number,omitempty"        json:"tracking_number,omitempty"`
 	ExpectedDeliveryDate *time.Time `bson:"expected_delivery_date,omitempty" json:"expected_delivery_date,omitempty"`
 	DeliveredAt          *time.Time `bson:"delivered_at,omitempty"           json:"delivered_at,omitempty"`
+	CompletedAt          *time.Time `bson:"completed_at,omitempty"           json:"completed_at,omitempty"`
 	// ExportResults records what the browser extension did per line when pushing
 	// to the Gompels cart (added/failed, and the product it auto-picked for
 	// search-by-description lines).
@@ -104,11 +133,18 @@ type ExportedRequest struct {
 	SupplierOrderRef string                     `json:"supplier_order_ref,omitempty"` // Gompels basket/order ref, best-effort
 }
 
-// UpdateFulfillmentRequest records the supplier order reference and expected
-// delivery date once the order has been placed.
+// UpdateFulfillmentRequest records the supplier order reference, carrier tracking
+// number and expected delivery date once the order has been placed.
 type UpdateFulfillmentRequest struct {
 	SupplierOrderRef     string     `json:"supplier_order_ref"`
+	TrackingNumber       string     `json:"tracking_number"`
 	ExpectedDeliveryDate *time.Time `json:"expected_delivery_date"`
+}
+
+// UpdatePurchaseCartStatusRequest is a generic status transition (placed →
+// tracking → dispatched → … → completed / cancelled) driven by the board + stepper.
+type UpdatePurchaseCartStatusRequest struct {
+	Status string `json:"status"`
 }
 
 // ReceiveItem is one line's goods-received quantity, matched by code (name fallback).

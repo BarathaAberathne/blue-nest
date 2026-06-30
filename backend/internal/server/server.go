@@ -72,6 +72,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	catalogueRepo := repository.NewCatalogueItemRepository(db)
 	purchaseCartRepo := repository.NewPurchaseCartRepository(db)
 	orderTemplateRepo := repository.NewOrderTemplateRepository(db)
+	counterRepo := repository.NewCounterRepository(db)
 	mailer := email.New(email.Config{
 		Host:         cfg.SMTP.Host,
 		Port:         cfg.SMTP.Port,
@@ -94,7 +95,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Enquiries:      service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo),
 		Comments:       service.NewCommentService(commentRepo),
 		Audit:          service.NewAuditService(auditRepo),
-		OrderRequests:  service.NewOrderRequestService(orderRequestRepo, userRepo),
+		OrderRequests:  service.NewOrderRequestService(orderRequestRepo, userRepo, counterRepo),
 		Catalogue:      service.NewCatalogueService(catalogueRepo),
 		OrderTemplates: service.NewOrderTemplateService(orderTemplateRepo),
 	}
@@ -113,7 +114,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		"Gompels": cfg.Sourcing.GompelsOrderEmail,
 		"Other":   cfg.Sourcing.OtherOrderEmail,
 	}
-	svc.PurchaseCarts = service.NewPurchaseCartService(purchaseCartRepo, orderRequestRepo, catalogueRepo, sourcingEngine, mailer, supplierEmails)
+	svc.PurchaseCarts = service.NewPurchaseCartService(purchaseCartRepo, orderRequestRepo, catalogueRepo, sourcingEngine, mailer, supplierEmails, counterRepo)
 
 	r := chi.NewRouter()
 	r.Use(middleware.CORS(cfg.CORS.AllowedOrigins))

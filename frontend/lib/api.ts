@@ -383,11 +383,17 @@ export const api = {
   adminUpdateCartFulfillment: (
     token: string,
     id: string,
-    body: { supplier_order_ref: string; expected_delivery_date: string | null },
+    body: { supplier_order_ref: string; tracking_number?: string; expected_delivery_date: string | null },
   ) =>
     apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}/fulfillment`, {
       method: "PATCH",
       body: JSON.stringify(body),
+      token,
+    }),
+  adminUpdatePurchaseCartStatus: (token: string, id: string, status: string) =>
+    apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
       token,
     }),
   adminReceiveCart: (

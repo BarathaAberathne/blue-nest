@@ -6,7 +6,7 @@ import { ArrowLeft, Check, PackageCheck, Send, ShoppingCart, Truck } from "lucid
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import StageBadge from "@/components/admin/ui/StageBadge";
-import { PURCHASE_CART_STATUS_META } from "@/lib/admin-status";
+import { PURCHASE_CART_STATUS_META, priorityMeta } from "@/lib/admin-status";
 import type { AccentName } from "@/lib/admin-theme";
 import type { PurchaseCart, PurchaseCartLine, PurchaseCartStatus } from "@/types";
 
@@ -21,7 +21,10 @@ const toDateInput = (iso?: string) => (iso ? new Date(iso).toISOString().slice(0
 type LineDraft = Omit<PurchaseCartLine, "unit_price" | "line_total"> & { unit_price: string };
 
 const STEPS = ["Review", "Place order", "Track", "Receive"];
-const PLACED: PurchaseCartStatus[] = ["sent", "ordered", "partially_received", "received"];
+const PLACED: PurchaseCartStatus[] = [
+  "sent", "ordered", "placed", "tracking", "dispatched", "partially_received", "received", "completed",
+];
+const DONE: PurchaseCartStatus[] = ["received", "completed"];
 
 export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
   const [cart, setCart] = useState<PurchaseCart | null>(null);
@@ -39,19 +42,26 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
   // Stepper + fulfillment/receive state.
   const [activeStep, setActiveStep] = useState(0);
   const [supplierRef, setSupplierRef] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
   const [received, setReceived] = useState<number[]>([]);
   const [savingTrack, setSavingTrack] = useState(false);
   const [savingReceive, setSavingReceive] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
 
   const defaultStep = (status: PurchaseCartStatus) =>
-    status === "draft" ? 0 : status === "ordered" || status === "sent" ? 2 : 3;
+    status === "draft"
+      ? 0
+      : status === "placed" || status === "ordered" || status === "sent" || status === "tracking" || status === "dispatched"
+        ? 2
+        : 3;
 
   const load = (c: PurchaseCart) => {
     setCart(c);
     setRecipient(c.recipient_email ?? "");
     setLines(c.lines.map((l) => ({ ...l, unit_price: penceToPounds(l.unit_price) })));
     setSupplierRef(c.supplier_order_ref ?? "");
+    setTrackingNumber(c.tracking_number ?? "");
     setExpectedDate(toDateInput(c.expected_delivery_date));
     setReceived(c.lines.map((l) => l.qty_received ?? l.qty));
     setActiveStep(defaultStep(c.status));
@@ -103,7 +113,7 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
   const hasUnmatched = unmatchedCount > 0;
   const status = cart?.status ?? "draft";
   const isPlaced = PLACED.includes(status);
-  const isReceived = status === "received";
+  const isReceived = DONE.includes(status);
   // Once an order is placed — via email (status advances to ordered) OR the
   // Gompels push (status stays draft until the extension confirms server-side,
   // so we also track it locally) — both Track and Receive unlock. A draft order
@@ -234,6 +244,7 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
     try {
       const updated = await api.adminUpdateCartFulfillment(token, id, {
         supplier_order_ref: supplierRef.trim(),
+        tracking_number: trackingNumber.trim(),
         expected_delivery_date: expectedDate ? new Date(expectedDate).toISOString() : null,
       });
       load(updated as PurchaseCart);
@@ -242,6 +253,25 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
       setError(err instanceof Error ? err.message : "Failed to save delivery details");
     } finally {
       setSavingTrack(false);
+    }
+  };
+
+  // Advance the order through the in-transit lifecycle (tracking → dispatched →
+  // completed) without a receive — a lightweight status move.
+  const onSetStatus = async (next: PurchaseCartStatus) => {
+    const token = getAccessToken();
+    if (!token) return;
+    setSavingStatus(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const updated = await api.adminUpdatePurchaseCartStatus(token, id, next);
+      load(updated as PurchaseCart);
+      setNotice(`Order marked ${PURCHASE_CART_STATUS_META[next]?.label.toLowerCase() ?? next}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update order status");
+    } finally {
+      setSavingStatus(false);
     }
   };
 
@@ -283,10 +313,21 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-mono text-2xl font-extrabold tracking-tight text-slate-900">PO-{cart.id.slice(0, 8).toUpperCase()}</p>
-          <p className="mt-0.5 text-sm text-slate-500">{cart.supplier} · {lines.length} line{lines.length !== 1 ? "s" : ""} · {money(subtotal)}{cart.expected_delivery_date ? ` · expected ${fmtDate(cart.expected_delivery_date)}` : ""}</p>
+          <p className="font-mono text-2xl font-extrabold tracking-tight text-slate-900">{cart.ref || `PO-${cart.id.slice(0, 8).toUpperCase()}`}</p>
+          <p className="mt-0.5 text-sm text-slate-500">
+            {cart.supplier}
+            {cart.branch_slug ? ` · ${cart.branch_slug.replace(/[-_]/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase())}` : ""}
+            {cart.classroom ? ` · ${cart.classroom}` : ""}
+            {" · "}{lines.length} line{lines.length !== 1 ? "s" : ""} · {money(subtotal)}
+            {cart.expected_delivery_date ? ` · expected ${fmtDate(cart.expected_delivery_date)}` : ""}
+          </p>
         </div>
-        <StageBadge label={PURCHASE_CART_STATUS_META[cart.status]?.label ?? cart.status} accent={PURCHASE_CART_STATUS_META[cart.status]?.accent ?? "slate"} />
+        <div className="flex items-center gap-2">
+          {cart.priority && cart.priority !== "normal" && (
+            <StageBadge label={priorityMeta(cart.priority).label} accent={priorityMeta(cart.priority).accent} />
+          )}
+          <StageBadge label={PURCHASE_CART_STATUS_META[cart.status]?.label ?? cart.status} accent={PURCHASE_CART_STATUS_META[cart.status]?.accent ?? "slate"} />
+        </div>
       </div>
 
       {/* ── Stepper ───────────────────────────────────────────── */}
@@ -480,13 +521,22 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
             <p className="inline-flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3">
               <Truck className="h-4 w-4 text-teal-600" /> Delivery tracking
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl">
               <div>
                 <label className="block text-xs uppercase tracking-wider text-gray-400 mb-1">Supplier order ref</label>
                 <input
                   value={supplierRef}
                   onChange={(e) => setSupplierRef(e.target.value)}
                   placeholder="e.g. Gompels order #"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-wider text-gray-400 mb-1">Tracking number</label>
+                <input
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  placeholder="carrier tracking #"
                   className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
                 />
               </div>
@@ -501,7 +551,7 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
                 <p className="mt-1 text-xs text-gray-400">Shown to the staff who requested these items.</p>
               </div>
             </div>
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <button type="button" onClick={onSaveTrack} disabled={savingTrack} className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">
                 {savingTrack ? "Saving…" : "Save delivery details"}
               </button>
@@ -511,6 +561,27 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
                 </button>
               )}
             </div>
+            {/* Lifecycle status — move the order through in-transit stages. */}
+            {!isReceived && (
+              <div className="mt-4 border-t border-gray-100 pt-4">
+                <p className="text-xs uppercase tracking-wider text-gray-400 mb-2">Delivery stage</p>
+                <div className="flex flex-wrap gap-2">
+                  {(["placed", "tracking", "dispatched"] as PurchaseCartStatus[]).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => onSetStatus(s)}
+                      disabled={savingStatus || cart.status === s}
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium border transition-colors ${
+                        cart.status === s ? "border-teal-600 bg-teal-600 text-white" : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                      } disabled:opacity-60`}
+                    >
+                      {PURCHASE_CART_STATUS_META[s]?.label ?? s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Gompels fill results (from the extension push). */}
@@ -579,9 +650,17 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
             <PackageCheck className="h-4 w-4 text-teal-600" /> Receive goods
           </p>
           {isReceived ? (
-            <p className="text-sm text-green-700 mb-3">
-              ✓ Fully received{cart.delivered_at ? ` on ${fmtDate(cart.delivered_at)}` : ""}.
-            </p>
+            <div className="mb-3 flex flex-wrap items-center gap-3">
+              <p className="text-sm text-green-700">
+                ✓ Fully received{cart.delivered_at ? ` on ${fmtDate(cart.delivered_at)}` : ""}
+                {cart.status === "completed" ? " · order completed" : ""}.
+              </p>
+              {cart.status === "received" && (
+                <button type="button" onClick={() => onSetStatus("completed")} disabled={savingStatus} className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">
+                  <Check className="h-3.5 w-3.5" /> Mark completed
+                </button>
+              )}
+            </div>
           ) : (
             <p className="text-sm text-gray-500 mb-3">
               Enter how many of each line actually arrived. {receivedTotal}/{orderedTotal} received so far.

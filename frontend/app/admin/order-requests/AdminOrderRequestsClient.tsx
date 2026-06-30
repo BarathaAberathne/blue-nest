@@ -11,8 +11,8 @@ import KanbanBoard from "@/components/admin/ui/KanbanBoard";
 import KanbanCard from "@/components/admin/ui/KanbanCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import ViewToggle from "@/components/admin/ui/ViewToggle";
-import { ORDER_REQUEST_LANES, ORDER_REQUEST_NEXT, ORDER_REQUEST_STATUS_META } from "@/lib/admin-status";
-import type { OrderRequest, OrderRequestStatus, PurchaseCart } from "@/types";
+import { ORDER_REQUEST_LANES, ORDER_REQUEST_NEXT, ORDER_REQUEST_STATUS_META, PRIORITY_RANK, priorityMeta } from "@/lib/admin-status";
+import type { OrderRequest, OrderRequestStatus, ProcurementPriority, PurchaseCart } from "@/types";
 
 function fmtBranch(branch: string) {
   if (!branch) return "—";
@@ -118,17 +118,20 @@ export default function AdminOrderRequestsClient() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const rank = (p?: string) => PRIORITY_RANK[(p as ProcurementPriority)] ?? PRIORITY_RANK.normal;
     return requests
       .filter((r) => (branch ? r.branch_slug === branch : true))
       .filter((r) => (supplier ? r.items.some((it) => it.supplier === supplier) : true))
       .filter((r) => (status ? r.status === status : true))
       .filter((r) =>
         q
-          ? [r.requested_by_name, r.requested_by_email, ...r.items.map((it) => it.item_name)].some((f) =>
-              (f ?? "").toLowerCase().includes(q),
+          ? [r.ref, r.requested_by_name, r.requested_by_email, r.classroom, ...r.items.map((it) => it.item_name)].some(
+              (f) => (f ?? "").toLowerCase().includes(q),
             )
           : true,
-      );
+      )
+      // Highest priority first, then most-recent — so urgent requests surface.
+      .sort((a, b) => rank(a.priority) - rank(b.priority) || +new Date(b.created_at) - +new Date(a.created_at));
   }, [requests, search, branch, supplier, status]);
 
   const pendingCount = requests.filter((r) => r.status === "pending").length;
@@ -327,6 +330,8 @@ export default function AdminOrderRequestsClient() {
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
           <option value="">All statuses</option>
           <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="converted_to_po">On PO</option>
           <option value="ordered">Ordered</option>
           <option value="received">Received</option>
           <option value="cancelled">Cancelled</option>
@@ -342,13 +347,21 @@ export default function AdminOrderRequestsClient() {
           onDrop={(r, status) => changeStatus(r, status)}
           renderCard={(r) => {
             const next = ORDER_REQUEST_NEXT[r.status];
+            const pr = priorityMeta(r.priority);
+            const showPriority = r.priority && r.priority !== "normal";
             return (
               <KanbanCard
                 accent={ORDER_REQUEST_STATUS_META[r.status]?.accent ?? "slate"}
                 title={r.requested_by_name || r.requested_by_email || "Request"}
                 href={`/admin/order-requests/${r.id}`}
-                subtitle={`${fmtBranch(r.branch_slug)} · ${r.items.length} item${r.items.length !== 1 ? "s" : ""}`}
-                meta={<span>{fmtDate(r.created_at)}</span>}
+                rightTop={showPriority ? <StageBadge label={pr.label} accent={pr.accent} withDot={false} /> : undefined}
+                subtitle={`${fmtBranch(r.branch_slug)}${r.classroom ? ` · ${r.classroom}` : ""} · ${r.items.length} item${r.items.length !== 1 ? "s" : ""}`}
+                meta={
+                  <>
+                    {r.ref && <span className="font-mono font-medium text-slate-500">{r.ref}</span>}
+                    <span>{fmtDate(r.created_at)}</span>
+                  </>
+                }
                 primary={next ? { label: `Mark ${ORDER_REQUEST_STATUS_META[next].label.toLowerCase()}`, onClick: () => changeStatus(r, next) } : undefined}
               />
             );

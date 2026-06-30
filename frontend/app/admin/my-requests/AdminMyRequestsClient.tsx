@@ -55,6 +55,8 @@ export default function AdminMyRequestsClient() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const [branchSlug, setBranchSlug] = useState("");
+  const [classroom, setClassroom] = useState("");
+  const [priority, setPriority] = useState("normal");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<DraftItem[]>([emptyItem()]);
 
@@ -250,10 +252,12 @@ export default function AdminMyRequestsClient() {
     setError(null);
     setSuccess(null);
     try {
-      await api.createOrderRequest(token, { branch_slug: branchSlug, notes, items: cleanItems });
+      await api.createOrderRequest(token, { branch_slug: branchSlug, classroom: classroom.trim(), priority, notes, items: cleanItems });
       setSuccess("Request submitted. Management will review it.");
       setItems([emptyItem()]);
       setNotes("");
+      setClassroom("");
+      setPriority("normal");
       const refreshed = (await api.getMyOrderRequests(token)) as OrderRequest[];
       setRequests(Array.isArray(refreshed) ? refreshed : []);
     } catch (err) {
@@ -292,7 +296,7 @@ export default function AdminMyRequestsClient() {
 
       {/* ── Submit form ─────────────────────────────────────────────── */}
       <form className="card p-5 mb-8" onSubmit={onSubmit}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Branch</label>
             <select
@@ -304,6 +308,28 @@ export default function AdminMyRequestsClient() {
               {branches.map((b) => (
                 <option key={b.slug} value={b.slug}>{b.name}</option>
               ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Classroom / room</label>
+            <input
+              value={classroom}
+              onChange={(e) => setClassroom(e.target.value)}
+              placeholder="e.g. Toddler Room (optional)"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+            <select
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white"
+            >
+              <option value="low">Low</option>
+              <option value="normal">Normal</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
             </select>
           </div>
         </div>

@@ -11,16 +11,21 @@ import KanbanBoard from "@/components/admin/ui/KanbanBoard";
 import KanbanCard from "@/components/admin/ui/KanbanCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import ViewToggle from "@/components/admin/ui/ViewToggle";
-import { PURCHASE_CART_LANES, PURCHASE_CART_STATUS_META } from "@/lib/admin-status";
-import type { PurchaseCart, PurchaseCartStatus } from "@/types";
+import { PRIORITY_RANK, PURCHASE_CART_LANES, PURCHASE_CART_STATUS_META, priorityMeta } from "@/lib/admin-status";
+import type { ProcurementPriority, PurchaseCart, PurchaseCartStatus } from "@/types";
 
 const money = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-const isPlaced = (s: PurchaseCartStatus) => s === "sent" || s === "ordered" || s === "partially_received" || s === "received";
+// Any status from "placed" onwards counts as placed (legacy sent/ordered included).
+const PLACED_STATUSES: PurchaseCartStatus[] = [
+  "sent", "ordered", "placed", "tracking", "dispatched", "partially_received", "received", "completed",
+];
+const isPlaced = (s: PurchaseCartStatus) => PLACED_STATUSES.includes(s);
+const isDone = (s: PurchaseCartStatus) => s === "received" || s === "completed";
 
 function isOverdue(c: PurchaseCart) {
-  if (c.status === "received" || !c.expected_delivery_date || !isPlaced(c.status)) return false;
+  if (isDone(c.status) || !c.expected_delivery_date || !isPlaced(c.status)) return false;
   return new Date(c.expected_delivery_date) < new Date(new Date().toDateString());
 }
 
@@ -76,16 +81,31 @@ export default function AdminPurchaseCartsClient() {
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to receive order"); }
   };
 
+  // Move through the lifecycle (placed → tracking → dispatched → completed)
+  // without a side-effecting email/receive — used by the in-transit lane.
+  const setStatus = async (c: PurchaseCart, status: PurchaseCartStatus) => {
+    const token = getAccessToken();
+    if (!token) return;
+    try { await api.adminUpdatePurchaseCartStatus(token, c.id, status); await load(); }
+    catch (err) { setError(err instanceof Error ? err.message : "Failed to update order"); }
+  };
+
   const handleDrop = (c: PurchaseCart, dropStatus: PurchaseCartStatus) => {
-    if (dropStatus === "ordered" && !isPlaced(c.status)) return placeOrder(c);
+    if (dropStatus === c.status) return;
+    if (dropStatus === "placed" && !isPlaced(c.status)) return placeOrder(c);
+    if (dropStatus === "tracking" && isPlaced(c.status)) return setStatus(c, "tracking");
     if (dropStatus === "received") return receiveAll(c);
     router.push(`/admin/purchase-carts/${c.id}`); // partial / cancel need the stepper
   };
 
   const filtered = useMemo(() => {
-    if (!statusFilter) return carts;
-    if (statusFilter === "ordered") return carts.filter((c) => c.status === "ordered" || c.status === "sent");
-    return carts.filter((c) => c.status === statusFilter);
+    const rank = (p?: string) => PRIORITY_RANK[(p as ProcurementPriority)] ?? PRIORITY_RANK.normal;
+    const base = !statusFilter
+      ? carts
+      : statusFilter === "placed"
+        ? carts.filter((c) => c.status === "placed" || c.status === "ordered" || c.status === "sent")
+        : carts.filter((c) => c.status === statusFilter);
+    return [...base].sort((a, b) => rank(a.priority) - rank(b.priority) || +new Date(b.created_at) - +new Date(a.created_at));
   }, [carts, statusFilter]);
 
   return (
@@ -107,9 +127,12 @@ export default function AdminPurchaseCartsClient() {
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
             <option value="">All statuses</option>
             <option value="draft">Draft</option>
-            <option value="ordered">Ordered</option>
+            <option value="placed">Placed</option>
+            <option value="tracking">Tracking</option>
+            <option value="dispatched">Dispatched</option>
             <option value="partially_received">Partially received</option>
             <option value="received">Received</option>
+            <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
             <option value="failed">Failed</option>
           </select>
@@ -121,26 +144,44 @@ export default function AdminPurchaseCartsClient() {
       ) : view === "board" ? (
         <KanbanBoard<PurchaseCart, PurchaseCartStatus>
           columns={PURCHASE_CART_LANES}
-          items={carts}
+          items={filtered}
           statusOf={(c) => c.status}
           idOf={(c) => c.id}
           onDrop={(c, status) => handleDrop(c, status)}
-          renderCard={(c) => (
-            <KanbanCard
-              accent={PURCHASE_CART_STATUS_META[c.status]?.accent ?? "slate"}
-              title={c.supplier}
-              href={`/admin/purchase-carts/${c.id}`}
-              rightTop={<span className="text-sm font-bold text-slate-900">{money(c.subtotal)}</span>}
-              subtitle={`${c.lines.length} line${c.lines.length !== 1 ? "s" : ""}`}
-              meta={c.expected_delivery_date ? <span className={isOverdue(c) ? "font-semibold text-amber-600" : ""}>{fmtDate(c.expected_delivery_date)}{isOverdue(c) ? " · overdue" : ""}</span> : <span>{fmtDate(c.created_at)}</span>}
-              progress={isPlaced(c.status) ? { value: receivedPct(c), accent: "green", label: `Received ${receivedFrac(c)}` } : undefined}
-              primary={
-                c.status === "draft" ? { label: "Place order", onClick: () => placeOrder(c) }
-                  : isPlaced(c.status) && c.status !== "received" ? { label: "Receive all", onClick: () => receiveAll(c) }
-                  : undefined
-              }
-            />
-          )}
+          renderCard={(c) => {
+            const showPriority = c.priority && c.priority !== "normal";
+            const pr = priorityMeta(c.priority);
+            return (
+              <KanbanCard
+                accent={PURCHASE_CART_STATUS_META[c.status]?.accent ?? "slate"}
+                title={c.supplier}
+                href={`/admin/purchase-carts/${c.id}`}
+                rightTop={<span className="text-sm font-bold text-slate-900">{money(c.subtotal)}</span>}
+                subtitle={
+                  <>
+                    {c.lines.length} line{c.lines.length !== 1 ? "s" : ""}
+                    {c.branch_slug ? ` · ${c.branch_slug.replace(/[-_]/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase())}` : ""}
+                    {c.classroom ? ` · ${c.classroom}` : ""}
+                  </>
+                }
+                badges={showPriority ? [{ label: pr.label, accent: pr.accent }] : undefined}
+                meta={
+                  <>
+                    {c.ref && <span className="font-mono font-medium text-slate-500">{c.ref}</span>}
+                    {c.expected_delivery_date
+                      ? <span className={isOverdue(c) ? "font-semibold text-amber-600" : ""}>{fmtDate(c.expected_delivery_date)}{isOverdue(c) ? " · overdue" : ""}</span>
+                      : <span>{fmtDate(c.created_at)}</span>}
+                  </>
+                }
+                progress={isPlaced(c.status) ? { value: receivedPct(c), accent: "green", label: `Received ${receivedFrac(c)}` } : undefined}
+                primary={
+                  c.status === "draft" ? { label: "Place order", onClick: () => placeOrder(c) }
+                    : isPlaced(c.status) && !isDone(c.status) ? { label: "Receive all", onClick: () => receiveAll(c) }
+                    : undefined
+                }
+              />
+            );
+          }}
         />
       ) : (
         <div className="card overflow-hidden">
@@ -158,7 +199,7 @@ export default function AdminPurchaseCartsClient() {
                   <td className="px-4 py-3"><StageBadge label={PURCHASE_CART_STATUS_META[c.status]?.label ?? c.status} accent={PURCHASE_CART_STATUS_META[c.status]?.accent ?? "slate"} /></td>
                   <td className="px-4 py-3 text-xs">{c.expected_delivery_date ? <span className={isOverdue(c) ? "font-medium text-amber-600" : "text-slate-500"}>{fmtDate(c.expected_delivery_date)}{isOverdue(c) ? " · overdue" : ""}</span> : <span className="text-slate-300">—</span>}</td>
                   <td className="px-4 py-3 text-xs text-slate-500">{isPlaced(c.status) ? receivedFrac(c) : "—"}</td>
-                  <td className="px-4 py-3"><Link href={`/admin/purchase-carts/${c.id}`} className="text-xs font-medium text-teal-600 hover:underline">{c.status === "draft" ? "Review & place" : c.status === "received" ? "View" : "Manage"}</Link></td>
+                  <td className="px-4 py-3"><Link href={`/admin/purchase-carts/${c.id}`} className="text-xs font-medium text-teal-600 hover:underline">{c.status === "draft" ? "Review & place" : isDone(c.status) ? "View" : "Manage"}</Link></td>
                 </tr>
               ))}
             </tbody>
