@@ -1,4 +1,4 @@
-import type { EnquiryPriority, EnquiryStatus } from "@/types";
+import type { Enquiry, EnquiryPriority, EnquiryStatus } from "@/types";
 import { ENQUIRY_STATUS_LABELS } from "@/types";
 
 // Per-status display metadata. Class strings are written in full (not
@@ -89,3 +89,131 @@ export function isFollowUpOverdue(status: EnquiryStatus, followUpDate?: string |
   if (Number.isNaN(d.getTime())) return false;
   return d.getTime() < Date.now();
 }
+
+// ── Guided workflow ──────────────────────────────────────────────────────────
+
+// Terminal statuses require a confirmation before being applied.
+export const TERMINAL_STATUSES: EnquiryStatus[] = ["cancelled", "lost", "spam"];
+
+export function isTerminalStatus(s: EnquiryStatus): boolean {
+  return TERMINAL_STATUSES.includes(s);
+}
+
+// RECOMMENDED_NEXT drives the guided "next step" buttons so staff don't need to
+// understand the whole funnel — each status suggests its most likely follow-on.
+export const RECOMMENDED_NEXT: Record<EnquiryStatus, { status: EnquiryStatus; label: string }[]> = {
+  new: [{ status: "contacted", label: "Mark as contacted" }],
+  contacted: [
+    { status: "awaiting_reply", label: "Awaiting reply" },
+    { status: "booked_visit", label: "Book visit" },
+  ],
+  awaiting_reply: [
+    { status: "booked_visit", label: "Book visit" },
+    { status: "contacted", label: "Mark contacted" },
+  ],
+  booked_visit: [{ status: "visit_completed", label: "Mark visit completed" }],
+  visit_completed: [
+    { status: "registered", label: "Register" },
+    { status: "lost", label: "Not proceeding" },
+  ],
+  registered: [],
+  cancelled: [],
+  lost: [],
+  spam: [],
+};
+
+// ── Pipeline (kanban) columns ────────────────────────────────────────────────
+// One column per workflow stage; the terminal states collapse into a single
+// "Cancelled / Lost" column. dropStatus is applied when a card is dragged in.
+export type PipelineColumn = {
+  key: string;
+  label: string;
+  statuses: EnquiryStatus[];
+  dropStatus: EnquiryStatus;
+  terminal?: boolean;
+};
+
+export const PIPELINE_COLUMNS: PipelineColumn[] = [
+  { key: "new", label: "New", statuses: ["new"], dropStatus: "new" },
+  { key: "contacted", label: "Contacted", statuses: ["contacted"], dropStatus: "contacted" },
+  { key: "awaiting_reply", label: "Awaiting Reply", statuses: ["awaiting_reply"], dropStatus: "awaiting_reply" },
+  { key: "booked_visit", label: "Booked Visit", statuses: ["booked_visit"], dropStatus: "booked_visit" },
+  { key: "visit_completed", label: "Visit Completed", statuses: ["visit_completed"], dropStatus: "visit_completed" },
+  { key: "registered", label: "Registered", statuses: ["registered"], dropStatus: "registered" },
+  { key: "closed", label: "Cancelled / Lost", statuses: ["cancelled", "lost", "spam"], dropStatus: "lost", terminal: true },
+];
+
+// ── Quick note templates ─────────────────────────────────────────────────────
+export const NOTE_TEMPLATES: string[] = [
+  "Called parent, no answer",
+  "Parent requested fees",
+  "Visit booked",
+  "Waiting for documents",
+  "Not interested",
+  "Follow-up required",
+];
+
+// ── Reply email templates ────────────────────────────────────────────────────
+// Pre-written replies the admin can pick, edit, then open in their mail client.
+// Wording mirrors the public site ("within one working day", contact details).
+const SIGN_OFF =
+  "\n\nWarm regards,\nThe Blue Nest Montessori Team\n020 8861 5574 · manager@bluenest.uk\nMon–Fri, 07:30–18:30";
+
+export type ReplyTemplate = {
+  key: string;
+  label: string;
+  subject: string;
+  body: (e: Enquiry) => string;
+};
+
+export const REPLY_TEMPLATES: ReplyTemplate[] = [
+  {
+    key: "thank_you",
+    label: "Thank you for your enquiry",
+    subject: "Re: your enquiry to Blue Nest Montessori",
+    body: (e) =>
+      `Dear ${e.name},\n\nThank you for your enquiry to Blue Nest Montessori${e.branch ? ` (${fmtBranch(e.branch)})` : ""}. We're delighted you're considering us for your child's early years.\n\nA member of our team will be in touch within one working day. If there's anything specific you'd like to know in the meantime, just reply to this email.${SIGN_OFF}`,
+  },
+  {
+    key: "fees",
+    label: "Fees and availability response",
+    subject: "Fees & availability — Blue Nest Montessori",
+    body: (e) =>
+      `Dear ${e.name},\n\nThank you for asking about our fees and availability at ${fmtBranch(e.branch) || "Blue Nest Montessori"}. We'd be happy to talk through the session options and current spaces for your child.\n\nCould you let us know your preferred days and your child's age, and we'll send a tailored quote and availability? You're also very welcome to book a visit to see the nursery.${SIGN_OFF}`,
+  },
+  {
+    key: "book_visit",
+    label: "Book a visit invitation",
+    subject: "Come and visit us — Blue Nest Montessori",
+    body: (e) =>
+      `Dear ${e.name},\n\nWe'd love to welcome you and your child for a visit to ${fmtBranch(e.branch) || "our nursery"}, so you can meet the team and see our Montessori environment.\n\nPlease let us know a few dates and times that suit you (we're open Mon–Fri, 07:30–18:30) and we'll arrange a convenient slot.${SIGN_OFF}`,
+  },
+  {
+    key: "follow_up",
+    label: "Follow-up after no reply",
+    subject: "Following up on your enquiry — Blue Nest Montessori",
+    body: (e) =>
+      `Dear ${e.name},\n\nI just wanted to follow up on your recent enquiry to ${fmtBranch(e.branch) || "Blue Nest Montessori"}. We'd still love to help and answer any questions you may have.\n\nIf you'd like to arrange a visit or talk through availability, simply reply to this email or call us on 020 8861 5574.${SIGN_OFF}`,
+  },
+  {
+    key: "visit_confirmation",
+    label: "Visit confirmation",
+    subject: "Your visit is confirmed — Blue Nest Montessori",
+    body: (e) =>
+      `Dear ${e.name},\n\nThis is to confirm your upcoming visit to ${fmtBranch(e.branch) || "our nursery"}. We're looking forward to meeting you and your child.\n\nPlease allow around 30–45 minutes for your visit. If you need to rearrange, just let us know.${SIGN_OFF}`,
+  },
+  {
+    key: "registration",
+    label: "Registration next steps",
+    subject: "Next steps to secure your place — Blue Nest Montessori",
+    body: (e) =>
+      `Dear ${e.name},\n\nThank you for choosing Blue Nest Montessori${e.branch ? ` (${fmtBranch(e.branch)})` : ""}. To secure your child's place, the next step is to complete our registration form and confirm your preferred start date and sessions.\n\nReply to this email and we'll send everything across, along with details of any funding you may be eligible for.${SIGN_OFF}`,
+  },
+  {
+    key: "application_received",
+    label: "Application received confirmation",
+    subject: "We've received your application — Blue Nest Montessori",
+    body: (e) =>
+      `Dear ${e.name},\n\nThank you — we've received your application for a place at ${fmtBranch(e.branch) || "Blue Nest Montessori"}. Our admissions team will review the details and be in touch within one working day to confirm the next steps.\n\nIf you have any questions in the meantime, just reply to this email.${SIGN_OFF}`,
+  },
+];

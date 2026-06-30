@@ -271,6 +271,8 @@ type EnquiryStatPoint struct {
 type EnquiryBranchStat struct {
 	Branch           string  `json:"branch"`
 	Total            int     `json:"total"`
+	TotalThisMonth   int     `json:"total_this_month"`
+	New              int     `json:"new"`
 	BookedVisits     int     `json:"booked_visits"`
 	Registered       int     `json:"registered"`
 	LostCancelled    int     `json:"lost_cancelled"`
@@ -300,4 +302,81 @@ type EnquiryStats struct {
 	Funnel                []EnquiryStatPoint  `json:"funnel"`
 	RegistrationsByBranch []EnquiryStatPoint  `json:"registrations_by_branch"`
 	BranchComparison      []EnquiryBranchStat `json:"branch_comparison"`
+}
+
+// ── Paginated list ───────────────────────────────────────────────────────────
+
+// EnquiryPage is the payload for the paginated table view: a single page of
+// enquiries plus the total matching the filter (for page-count maths).
+type EnquiryPage struct {
+	Items []Enquiry `json:"items"`
+	Total int64     `json:"total"`
+	Limit int64     `json:"limit"`
+	Skip  int64     `json:"skip"`
+}
+
+// ── Admissions tasks (in-admin notifications + dashboard "Today's tasks") ─────
+
+// EnquiryTaskItem is a lightweight enquiry summary used in the tasks/notifications
+// feed — just enough to render a clickable row without shipping the full record.
+type EnquiryTaskItem struct {
+	ID             string     `json:"id"`
+	Name           string     `json:"name"`
+	ChildAge       string     `json:"child_age,omitempty"`
+	Branch         string     `json:"branch"`
+	Status         string     `json:"status"`
+	EnquiryType    string     `json:"enquiry_type"`
+	Priority       string     `json:"priority,omitempty"`
+	AssignedToName string     `json:"assigned_to_name,omitempty"`
+	FollowUpDate   *time.Time `json:"follow_up_date,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+}
+
+// EnquiryTasks groups admissions work that needs attention. Note: there is no
+// dedicated visit-date field on the model, so VisitsToday/ThisWeek use
+// follow_up_date on booked_visit enquiries as the visit-date proxy.
+type EnquiryTasks struct {
+	OverdueFollowUps   []EnquiryTaskItem `json:"overdue_follow_ups"`
+	DueToday           []EnquiryTaskItem `json:"due_today"`
+	Uncontacted24h     []EnquiryTaskItem `json:"uncontacted_24h"`
+	VisitsToday        []EnquiryTaskItem `json:"visits_today"`
+	VisitsThisWeek     []EnquiryTaskItem `json:"visits_this_week"`
+	AppsMissingReg     []EnquiryTaskItem `json:"apps_missing_registration"`
+	RegistrationsMonth []EnquiryTaskItem `json:"registrations_this_month"`
+	// NotificationCount is the badge total for the admin bell (overdue +
+	// uncontacted + visits today + applications missing registration).
+	NotificationCount int `json:"notification_count"`
+}
+
+// ── Bulk actions (table view) ────────────────────────────────────────────────
+
+// EnquiryBulkAction enumerates the supported bulk operations.
+const (
+	EnquiryBulkAssign   = "assign"
+	EnquiryBulkStatus   = "status"
+	EnquiryBulkPriority = "priority"
+	EnquiryBulkNote     = "note"
+)
+
+// EnquiryBulkRequest applies one action to many enquiries at once. Only the
+// fields relevant to Action need be set.
+type EnquiryBulkRequest struct {
+	IDs            []string `json:"ids"`
+	Action         string   `json:"action"`
+	Status         string   `json:"status,omitempty"`
+	AssignedTo     string   `json:"assigned_to,omitempty"`
+	AssignedToName string   `json:"assigned_to_name,omitempty"`
+	Priority       string   `json:"priority,omitempty"`
+	Note           string   `json:"note,omitempty"`
+}
+
+// EnquiryBulkResult reports how a bulk action fared.
+type EnquiryBulkResult struct {
+	Updated int                  `json:"updated"`
+	Failed  []EnquiryBulkFailure `json:"failed"`
+}
+
+type EnquiryBulkFailure struct {
+	ID    string `json:"id"`
+	Error string `json:"error"`
 }

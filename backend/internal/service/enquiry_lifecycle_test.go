@@ -31,6 +31,9 @@ func (f *fakeEnquiryRepo) FindAll(_ context.Context) ([]models.Enquiry, error) {
 func (f *fakeEnquiryRepo) Find(_ context.Context, _ models.EnquiryFilter) ([]models.Enquiry, error) {
 	return f.all, nil
 }
+func (f *fakeEnquiryRepo) Count(_ context.Context, _ models.EnquiryFilter) (int64, error) {
+	return int64(len(f.all)), nil
+}
 func (f *fakeEnquiryRepo) FindByID(_ context.Context, id string) (*models.Enquiry, error) {
 	if e, ok := f.byID[id]; ok {
 		return e, nil

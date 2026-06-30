@@ -16,6 +16,9 @@ type EnquiryRepository interface {
 	Create(ctx context.Context, e *models.Enquiry) error
 	FindAll(ctx context.Context) ([]models.Enquiry, error)
 	Find(ctx context.Context, f models.EnquiryFilter) ([]models.Enquiry, error)
+	// Count returns the number of enquiries matching the filter (ignoring
+	// limit/skip), backing paginated list views.
+	Count(ctx context.Context, f models.EnquiryFilter) (int64, error)
 	FindByID(ctx context.Context, id string) (*models.Enquiry, error)
 	// ChangeStatus sets the status and appends an activity entry. When the new
 	// status is "registered" it also flips registration.is_registered to true.
@@ -67,7 +70,9 @@ func (r *enquiryRepository) FindAll(ctx context.Context) ([]models.Enquiry, erro
 	return r.Find(ctx, models.EnquiryFilter{})
 }
 
-func (r *enquiryRepository) Find(ctx context.Context, f models.EnquiryFilter) ([]models.Enquiry, error) {
+// buildFilter translates an EnquiryFilter into a Mongo query document. Shared by
+// Find and Count so the page list and its total can never diverge.
+func buildFilter(f models.EnquiryFilter) bson.M {
 	filter := bson.M{}
 	if f.Branch != "" {
 		filter["branch"] = f.Branch
@@ -91,6 +96,15 @@ func (r *enquiryRepository) Find(ctx context.Context, f models.EnquiryFilter) ([
 		}
 		filter["created_at"] = rng
 	}
+	return filter
+}
+
+func (r *enquiryRepository) Count(ctx context.Context, f models.EnquiryFilter) (int64, error) {
+	return r.col.CountDocuments(ctx, buildFilter(f))
+}
+
+func (r *enquiryRepository) Find(ctx context.Context, f models.EnquiryFilter) ([]models.Enquiry, error) {
+	filter := buildFilter(f)
 
 	sortBy := f.SortBy
 	if sortBy == "" {

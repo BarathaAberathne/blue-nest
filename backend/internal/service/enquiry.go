@@ -19,6 +19,14 @@ type EnquiryService interface {
 	Submit(ctx context.Context, req models.EnquiryRequest) (*models.Enquiry, error)
 	ListAll(ctx context.Context) ([]models.Enquiry, error)
 	List(ctx context.Context, f models.EnquiryFilter) ([]models.Enquiry, error)
+	// ListPaged returns one page of enquiries plus the total matching the filter.
+	ListPaged(ctx context.Context, f models.EnquiryFilter) ([]models.Enquiry, int64, error)
+	// Tasks returns grouped admissions work needing attention (the dashboard
+	// "Today's tasks" panel + the admin notification bell).
+	Tasks(ctx context.Context) (*models.EnquiryTasks, error)
+	// BulkUpdate applies one action to many enquiries, reusing the single-record
+	// mutations so each still writes an attributed activity entry.
+	BulkUpdate(ctx context.Context, req models.EnquiryBulkRequest, actor models.EnquiryActor) (*models.EnquiryBulkResult, error)
 	GetByID(ctx context.Context, id string) (*models.Enquiry, error)
 	ChangeStatus(ctx context.Context, id, status string, actor models.EnquiryActor) error
 	AddNote(ctx context.Context, id, note string, actor models.EnquiryActor) (*models.EnquiryNote, error)
@@ -108,6 +116,148 @@ func (s *enquiryService) List(ctx context.Context, f models.EnquiryFilter) ([]mo
 		normalize(&enquiries[i])
 	}
 	return enquiries, nil
+}
+
+func (s *enquiryService) ListPaged(ctx context.Context, f models.EnquiryFilter) ([]models.Enquiry, int64, error) {
+	total, err := s.repo.Count(ctx, f)
+	if err != nil {
+		return nil, 0, err
+	}
+	enquiries, err := s.repo.Find(ctx, f)
+	if err != nil {
+		return nil, 0, err
+	}
+	for i := range enquiries {
+		normalize(&enquiries[i])
+	}
+	return enquiries, total, nil
+}
+
+// taskItem projects a full enquiry down to the lightweight summary used by the
+// tasks feed.
+func taskItem(e *models.Enquiry) models.EnquiryTaskItem {
+	return models.EnquiryTaskItem{
+		ID:             e.ID.Hex(),
+		Name:           e.Name,
+		ChildAge:       e.ChildAge,
+		Branch:         e.Branch,
+		Status:         models.NormalizeStatus(e.Status),
+		EnquiryType:    e.EnquiryType,
+		Priority:       e.Priority,
+		AssignedToName: e.AssignedToName,
+		FollowUpDate:   e.FollowUpDate,
+		CreatedAt:      e.CreatedAt,
+	}
+}
+
+func sameDay(a, b time.Time) bool {
+	ay, am, ad := a.Date()
+	by, bm, bd := b.Date()
+	return ay == by && am == bm && ad == bd
+}
+
+func (s *enquiryService) Tasks(ctx context.Context) (*models.EnquiryTasks, error) {
+	all, err := s.repo.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	weekEnd := todayStart.AddDate(0, 0, 7)
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+
+	// Initialise every group to a non-nil slice so the JSON is always arrays
+	// (never null) — the frontend maps over these directly.
+	tasks := &models.EnquiryTasks{
+		OverdueFollowUps:   []models.EnquiryTaskItem{},
+		DueToday:           []models.EnquiryTaskItem{},
+		Uncontacted24h:     []models.EnquiryTaskItem{},
+		VisitsToday:        []models.EnquiryTaskItem{},
+		VisitsThisWeek:     []models.EnquiryTaskItem{},
+		AppsMissingReg:     []models.EnquiryTaskItem{},
+		RegistrationsMonth: []models.EnquiryTaskItem{},
+	}
+	for i := range all {
+		e := &all[i]
+		st := models.NormalizeStatus(e.Status)
+		isRegistered := st == models.EnquiryStatusRegistered || (e.Registration != nil && e.Registration.IsRegistered)
+		isTerminal := isRegistered || st == models.EnquiryStatusCancelled || st == models.EnquiryStatusLost || st == models.EnquiryStatusSpam
+		item := taskItem(e)
+
+		if e.FollowUpDate != nil && !isTerminal {
+			if e.FollowUpDate.Before(todayStart) {
+				tasks.OverdueFollowUps = append(tasks.OverdueFollowUps, item)
+			} else if sameDay(*e.FollowUpDate, now) {
+				tasks.DueToday = append(tasks.DueToday, item)
+			}
+		}
+		if st == models.EnquiryStatusNew && e.CreatedAt.Before(now.Add(-24*time.Hour)) {
+			tasks.Uncontacted24h = append(tasks.Uncontacted24h, item)
+		}
+		// No dedicated visit-date field — follow_up_date on a booked_visit is the
+		// visit-date proxy.
+		if st == models.EnquiryStatusBookedVisit && e.FollowUpDate != nil {
+			if sameDay(*e.FollowUpDate, now) {
+				tasks.VisitsToday = append(tasks.VisitsToday, item)
+			}
+			if !e.FollowUpDate.Before(todayStart) && e.FollowUpDate.Before(weekEnd) {
+				tasks.VisitsThisWeek = append(tasks.VisitsThisWeek, item)
+			}
+		}
+		if e.Application != nil && !isRegistered {
+			tasks.AppsMissingReg = append(tasks.AppsMissingReg, item)
+		}
+		if isRegistered && e.Registration != nil && e.Registration.RegistrationDate != nil &&
+			!e.Registration.RegistrationDate.Before(monthStart) {
+			tasks.RegistrationsMonth = append(tasks.RegistrationsMonth, item)
+		}
+	}
+
+	tasks.NotificationCount = len(tasks.OverdueFollowUps) + len(tasks.Uncontacted24h) +
+		len(tasks.VisitsToday) + len(tasks.AppsMissingReg)
+	return tasks, nil
+}
+
+func (s *enquiryService) BulkUpdate(ctx context.Context, req models.EnquiryBulkRequest, actor models.EnquiryActor) (*models.EnquiryBulkResult, error) {
+	if len(req.IDs) == 0 {
+		return nil, errors.New("no enquiries selected")
+	}
+	res := &models.EnquiryBulkResult{Failed: []models.EnquiryBulkFailure{}}
+	for _, id := range req.IDs {
+		var err error
+		switch req.Action {
+		case models.EnquiryBulkAssign:
+			err = s.Assign(ctx, id, models.EnquiryAssignRequest{
+				AssignedTo:     req.AssignedTo,
+				AssignedToName: req.AssignedToName,
+			}, actor)
+		case models.EnquiryBulkStatus:
+			err = s.ChangeStatus(ctx, id, req.Status, actor)
+		case models.EnquiryBulkPriority:
+			// Preserve the other follow-up fields — only the priority changes.
+			var cur *models.Enquiry
+			if cur, err = s.repo.FindByID(ctx, id); err == nil {
+				err = s.UpdateFollowUp(ctx, id, models.EnquiryFollowUpRequest{
+					AssignedTo:     cur.AssignedTo,
+					AssignedToName: cur.AssignedToName,
+					Priority:       req.Priority,
+					FollowUpDate:   cur.FollowUpDate,
+					NextAction:     cur.NextAction,
+				}, actor)
+			}
+		case models.EnquiryBulkNote:
+			_, err = s.AddNote(ctx, id, req.Note, actor)
+		default:
+			return nil, fmt.Errorf("unknown bulk action %q", req.Action)
+		}
+		if err != nil {
+			res.Failed = append(res.Failed, models.EnquiryBulkFailure{ID: id, Error: err.Error()})
+		} else {
+			res.Updated++
+		}
+	}
+	return res, nil
 }
 
 func (s *enquiryService) GetByID(ctx context.Context, id string) (*models.Enquiry, error) {
@@ -334,7 +484,7 @@ func (s *enquiryService) Stats(ctx context.Context) (*models.EnquiryStats, error
 	regByBranch := map[string]int{}
 	monthly := map[string]int{}
 
-	type branchAgg struct{ total, booked, registered, lost, overdue int }
+	type branchAgg struct{ total, thisMonth, newCount, booked, registered, lost, overdue int }
 	branchCmp := map[string]*branchAgg{}
 
 	funnel := make([]int, 5) // reached counts per stage
@@ -413,6 +563,12 @@ func (s *enquiryService) Stats(ctx context.Context) (*models.EnquiryStats, error
 				branchCmp[branchLabel] = c
 			}
 			c.total++
+			if !e.CreatedAt.Before(monthStart) {
+				c.thisMonth++
+			}
+			if st == models.EnquiryStatusNew {
+				c.newCount++
+			}
 			if maxRank >= 2 {
 				c.booked++
 			}
@@ -460,6 +616,8 @@ func (s *enquiryService) Stats(ctx context.Context) (*models.EnquiryStats, error
 		stats.BranchComparison = append(stats.BranchComparison, models.EnquiryBranchStat{
 			Branch:           branch,
 			Total:            c.total,
+			TotalThisMonth:   c.thisMonth,
+			New:              c.newCount,
 			BookedVisits:     c.booked,
 			Registered:       c.registered,
 			LostCancelled:    c.lost,

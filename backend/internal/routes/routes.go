@@ -162,8 +162,11 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 
 			adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Auth, svc.Audit)
 			r.Get("/admin/enquiries", adminEnquiryH.List)
+			r.Get("/admin/enquiries/page", adminEnquiryH.ListPaged)
 			r.Get("/admin/enquiries/stats", adminEnquiryH.Stats)
+			r.Get("/admin/enquiries/tasks", adminEnquiryH.Tasks)
 			r.Get("/admin/enquiries/assignees", adminEnquiryH.Assignees)
+			r.Post("/admin/enquiries/bulk", adminEnquiryH.Bulk)
 			r.Get("/admin/enquiries/{id}", adminEnquiryH.Get)
 			r.Patch("/admin/enquiries/{id}/status", adminEnquiryH.UpdateStatus)
 			r.Post("/admin/enquiries/{id}/notes", adminEnquiryH.AddNote)

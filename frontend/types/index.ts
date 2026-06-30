@@ -188,6 +188,8 @@ export const ENQUIRY_STATUSES: EnquiryStatus[] = [
   "spam",
 ];
 
+// Display labels only — the stored EnquiryStatus values never change. "lost"
+// reads as "Not proceeding" and "spam" as "Spam" for friendlier nursery wording.
 export const ENQUIRY_STATUS_LABELS: Record<EnquiryStatus, string> = {
   new: "New",
   contacted: "Contacted",
@@ -196,8 +198,8 @@ export const ENQUIRY_STATUS_LABELS: Record<EnquiryStatus, string> = {
   visit_completed: "Visit completed",
   registered: "Registered",
   cancelled: "Cancelled",
-  lost: "Lost",
-  spam: "Spam / invalid",
+  lost: "Not proceeding",
+  spam: "Spam",
 };
 
 export type EnquiryPriority = "low" | "medium" | "high";
@@ -254,6 +256,8 @@ export interface EnquiryStatPoint {
 export interface EnquiryBranchStat {
   branch: string;
   total: number;
+  total_this_month: number;
+  new: number;
   booked_visits: number;
   registered: number;
   lost_cancelled: number;
@@ -351,6 +355,58 @@ export interface Enquiry {
   registration?: EnquiryRegistration;
   created_at: string;
   updated_at?: string;
+}
+
+// Paginated table view payload (GET /admin/enquiries/page).
+export interface EnquiryPage {
+  items: Enquiry[];
+  total: number;
+  limit: number;
+  skip: number;
+}
+
+// Lightweight enquiry summary for the tasks feed / notification bell.
+export interface EnquiryTaskItem {
+  id: string;
+  name: string;
+  child_age?: string;
+  branch: string;
+  status: EnquiryStatus;
+  enquiry_type: string;
+  priority?: EnquiryPriority;
+  assigned_to_name?: string;
+  follow_up_date?: string;
+  created_at: string;
+}
+
+// Grouped admissions work (GET /admin/enquiries/tasks).
+export interface EnquiryTasks {
+  overdue_follow_ups: EnquiryTaskItem[];
+  due_today: EnquiryTaskItem[];
+  uncontacted_24h: EnquiryTaskItem[];
+  visits_today: EnquiryTaskItem[];
+  visits_this_week: EnquiryTaskItem[];
+  apps_missing_registration: EnquiryTaskItem[];
+  registrations_this_month: EnquiryTaskItem[];
+  notification_count: number;
+}
+
+// Bulk table actions (POST /admin/enquiries/bulk).
+export type EnquiryBulkAction = "assign" | "status" | "priority" | "note";
+
+export interface EnquiryBulkRequest {
+  ids: string[];
+  action: EnquiryBulkAction;
+  status?: EnquiryStatus;
+  assigned_to?: string;
+  assigned_to_name?: string;
+  priority?: EnquiryPriority;
+  note?: string;
+}
+
+export interface EnquiryBulkResult {
+  updated: number;
+  failed: { id: string; error: string }[];
 }
 
 // ── Audit log (admin activity) ──────────────────────────────────────────────────

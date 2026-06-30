@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import { clearAuthSession } from "@/lib/auth";
+import NotificationBell from "@/components/admin/NotificationBell";
 
 // Sidebar is grouped into labelled sections so related tools sit together. The
 // SUPPLIES group makes the procurement flow self-evident:
@@ -202,6 +203,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <p className="text-lg font-bold text-slate-900 leading-tight">{currentPage}</p>
           </div>
           <div className="flex items-center gap-3">
+            {isManagement && <NotificationBell />}
             <div className="text-right hidden sm:block">
               <p className="text-sm font-semibold text-slate-700">
                 {user?.first_name} {user?.last_name}

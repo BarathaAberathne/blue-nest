@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -46,10 +47,10 @@ func parseDateParam(v string) *time.Time {
 	return nil
 }
 
-// List returns enquiries. With no query params it returns every enquiry (the
-// admin UI filters/sorts client-side); query params enable server-side
-// filtering, sorting and pagination for API consumers.
-func (h *AdminEnquiryHandler) List(w http.ResponseWriter, r *http.Request) {
+// parseEnquiryFilter reads the standard list query params (branch/type/status/
+// assigned_to/from/to/sort/dir/limit/skip) into an EnquiryFilter. Shared by the
+// array List and the paginated ListPaged so they filter identically.
+func parseEnquiryFilter(r *http.Request) models.EnquiryFilter {
 	q := r.URL.Query()
 	f := models.EnquiryFilter{
 		Branch:     q.Get("branch"),
@@ -86,13 +87,65 @@ func (h *AdminEnquiryHandler) List(w http.ResponseWriter, r *http.Request) {
 	if v, err := strconv.ParseInt(q.Get("skip"), 10, 64); err == nil && v > 0 {
 		f.Skip = v
 	}
+	return f
+}
 
-	enquiries, err := h.svc.List(r.Context(), f)
+// List returns enquiries. With no query params it returns every enquiry (the
+// pipeline / follow-up views filter client-side); query params enable
+// server-side filtering and sorting. The paginated table view uses ListPaged.
+func (h *AdminEnquiryHandler) List(w http.ResponseWriter, r *http.Request) {
+	enquiries, err := h.svc.List(r.Context(), parseEnquiryFilter(r))
 	if err != nil {
 		response.InternalError(w, "failed to fetch enquiries")
 		return
 	}
 	response.OK(w, enquiries)
+}
+
+// ListPaged returns one page of enquiries plus the total matching the filter,
+// backing the table view's pagination (default page size 25).
+func (h *AdminEnquiryHandler) ListPaged(w http.ResponseWriter, r *http.Request) {
+	f := parseEnquiryFilter(r)
+	if f.Limit <= 0 {
+		f.Limit = 25
+	}
+	items, total, err := h.svc.ListPaged(r.Context(), f)
+	if err != nil {
+		response.InternalError(w, "failed to fetch enquiries")
+		return
+	}
+	response.OK(w, models.EnquiryPage{Items: items, Total: total, Limit: f.Limit, Skip: f.Skip})
+}
+
+// Tasks returns grouped admissions work needing attention — the dashboard
+// "Today's tasks" panel and the admin notification bell.
+func (h *AdminEnquiryHandler) Tasks(w http.ResponseWriter, r *http.Request) {
+	tasks, err := h.svc.Tasks(r.Context())
+	if err != nil {
+		response.InternalError(w, "failed to load admissions tasks")
+		return
+	}
+	response.OK(w, tasks)
+}
+
+// Bulk applies one action (assign / status / priority / note) to many enquiries
+// at once, reusing the single-record mutations so each still writes an activity
+// entry. Audited once for the whole operation.
+func (h *AdminEnquiryHandler) Bulk(w http.ResponseWriter, r *http.Request) {
+	var body models.EnquiryBulkRequest
+	if err := validator.DecodeJSON(r, &body); err != nil {
+		response.BadRequest(w, "invalid request body")
+		return
+	}
+	res, err := h.svc.BulkUpdate(r.Context(), body, actor(r))
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "bulk_"+body.Action, "enquiry", "",
+		fmt.Sprintf("Bulk %s on %d enquiries", body.Action, len(body.IDs)),
+		map[string]interface{}{"ids": body.IDs, "count": len(body.IDs)})
+	response.OK(w, res)
 }
 
 func (h *AdminEnquiryHandler) Get(w http.ResponseWriter, r *http.Request) {

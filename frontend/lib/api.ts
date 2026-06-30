@@ -1,5 +1,30 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AuditLog, CatalogueItem, Enquiry, EnquiryAssignee, EnquiryStats, OrderRequest, OrderTemplate, PurchaseCart, User } from "@/types";
+import type { AuditLog, CatalogueItem, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryPage, EnquiryStats, EnquiryTasks, OrderRequest, OrderTemplate, PurchaseCart, User } from "@/types";
+
+// Filter/sort/pagination params shared by the enquiry list endpoints. Empty
+// values are dropped before building the query string.
+export type EnquiryListParams = {
+  branch?: string;
+  type?: string;
+  status?: string;
+  assigned_to?: string;
+  from?: string;
+  to?: string;
+  sort?: string;
+  dir?: "asc" | "desc";
+  limit?: number;
+  skip?: number;
+};
+
+function enquiryQuery(params?: EnquiryListParams): string {
+  if (!params) return "";
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== "") q.set(k, String(v));
+  }
+  const s = q.toString();
+  return s ? `?${s}` : "";
+}
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -147,7 +172,21 @@ export const api = {
   // Contact / Enquiries
   submitEnquiry: (body: unknown) =>
     apiFetch("/api/v1/contact", { method: "POST", body: JSON.stringify(body) }),
-  adminGetEnquiries: (token: string) => apiFetch<Enquiry[]>("/api/v1/admin/enquiries", { token }),
+  // Returns the full matching set (no pagination) — used by the pipeline and
+  // follow-up views. Pass params for server-side filtering/sorting.
+  adminGetEnquiries: (token: string, params?: EnquiryListParams) =>
+    apiFetch<Enquiry[]>(`/api/v1/admin/enquiries${enquiryQuery(params)}`, { token }),
+  // Paginated table view — returns one page plus the total.
+  adminGetEnquiriesPaged: (token: string, params?: EnquiryListParams) =>
+    apiFetch<EnquiryPage>(`/api/v1/admin/enquiries/page${enquiryQuery(params)}`, { token }),
+  adminGetEnquiryTasks: (token: string) =>
+    apiFetch<EnquiryTasks>("/api/v1/admin/enquiries/tasks", { token }),
+  adminBulkUpdateEnquiries: (token: string, body: EnquiryBulkRequest) =>
+    apiFetch<EnquiryBulkResult>("/api/v1/admin/enquiries/bulk", {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+    }),
   adminGetEnquiry: (token: string, id: string) =>
     apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}`, { token }),
   adminGetEnquiryStats: (token: string) =>
