@@ -7,6 +7,7 @@ import {
   Leaf,
   Lightbulb,
   Mail,
+  MapPin,
   Monitor,
   Music,
   Phone,
@@ -44,8 +45,9 @@ const branchJsonLd = {
   priceRange: "££",
   address: {
     "@type": "PostalAddress",
+    streetAddress: "Cuckoo Hill Road",
     addressLocality: "Pinner",
-    postalCode: "HA5",
+    postalCode: "HA5 1AY",
     addressCountry: "GB",
   },
   geo: {
@@ -462,6 +464,14 @@ export default function PinnerBranchPage() {
                 <p className="body-text mt-1 text-sm font-semibold">Pinner Branch</p>
 
                 <div className="mt-7 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.06)]">
+                      <MapPin className="h-4 w-4 text-[#5fc8c7]" />
+                    </div>
+                    <address className="not-italic text-sm font-semibold leading-relaxed text-[rgba(90,74,66,0.85)]">
+                      Cuckoo Hill Road<br />Pinner HA5 1AY
+                    </address>
+                  </div>
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.06)]">
                       <Phone className="h-4 w-4 text-[#5fc8c7]" />

@@ -9,10 +9,10 @@ import PastelButton from "@/components/ui/PastelButton";
 const images = [
   { src: "/home/branches/harrow/harrow-preview-01.webp",      alt: "Blue Nest Montessori Harrow educator engaging with a young child at a farm-animal sensory tray", wide: true  },
   { src: "/home/branches/pinner/pinner-gallery-01.webp",      alt: "An educator and children at a tabletop activity at Blue Nest Pinner",                        wide: false },
-  { src: "/home/branches/borehamwood/borehamwood-welcome.webp", alt: "Two babies on the rug by the fairy-light teepee at Blue Nest Borehamwood",                  wide: false },
+  { src: "/home/branches/borehamwood/borehamwood-welcome.webp", alt: "A practitioner smiling with a toddler at the dinosaur sand sensory tray at Blue Nest Borehamwood", wide: false },
   { src: "/home/branches/harrow/harrow-preview-02.webp",      alt: "Children and teacher exploring an ocean sensory bin at Blue Nest Harrow",                     wide: false },
   { src: "/home/branches/pinner/pinner-hero.webp",            alt: "An educator engaging two young children in a hands-on activity at Blue Nest Pinner",          wide: false },
-  { src: "/home/branches/borehamwood/borehamwood-hero.webp",  alt: "Outdoor learning playground under the pergola at Blue Nest Borehamwood",                      wide: false },
+  { src: "/home/branches/borehamwood/borehamwood-hero.webp",  alt: "Children exploring the role-play farm shop at Blue Nest Borehamwood",                          wide: false },
 ];
 
 export default function GalleryPreviewSection() {
