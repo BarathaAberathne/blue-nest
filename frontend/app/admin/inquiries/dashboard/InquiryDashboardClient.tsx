@@ -6,13 +6,17 @@ import {
   Area, AreaChart, Bar, BarChart, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import {
-  AlertTriangle, CalendarClock, CalendarDays, CheckCircle2, Clock, FileWarning, Inbox, PhoneCall,
+  AlertTriangle, CalendarClock, CalendarDays, Clock, FileWarning, Inbox, PhoneCall,
   TrendingUp, UserCheck, XCircle,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import Card from "@/components/ui/Card";
-import { CHART_COLORS, fmtBranch, fmtDateShort } from "@/lib/enquiry";
+import StatCard from "@/components/admin/ui/StatCard";
+import SectionHeading from "@/components/admin/ui/SectionHeading";
+import ProgressBar from "@/components/admin/ui/ProgressBar";
+import { ACCENT, CHART_COLORS, type AccentName } from "@/lib/admin-theme";
+import { fmtBranch, fmtDateShort } from "@/lib/enquiry";
 import type { EnquiryStats, EnquiryTaskItem, EnquiryTasks } from "@/types";
 
 const BRANCHES = ["harrow", "pinner", "borehamwood", "pinner-green", "northwood"];
@@ -25,11 +29,12 @@ function fmtResponse(hours: number): string {
 
 const tooltipStyle = { borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12, boxShadow: "0 8px 24px rgba(90,74,66,0.10)" };
 
-function TaskCard({ label, items, icon: Icon, accent, empty }: { label: string; items: EnquiryTaskItem[]; icon: React.ElementType; accent: string; empty: string }) {
+function TaskCard({ label, items, icon: Icon, accent, empty }: { label: string; items: EnquiryTaskItem[]; icon: React.ElementType; accent: AccentName; empty: string }) {
+  const a = ACCENT[accent];
   return (
     <Card className="!rounded-2xl">
       <div className="mb-2 flex items-center gap-2">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: `${accent}1a` }}><Icon className="h-4 w-4" style={{ color: accent }} /></span>
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: a.soft }}><Icon className="h-4 w-4" style={{ color: a.solid }} /></span>
         <h3 className="text-sm font-semibold text-slate-800">{label}</h3>
         <span className="ml-auto text-lg font-bold text-slate-900">{items.length}</span>
       </div>
@@ -49,17 +54,6 @@ function TaskCard({ label, items, icon: Icon, accent, empty }: { label: string; 
         </ul>
       )}
     </Card>
-  );
-}
-
-function KpiCard({ label, value, sub, icon: Icon, color }: { label: string; value: string; sub?: string; icon: React.ElementType; color: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-      <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: `${color}1a` }}><Icon className="h-4 w-4" style={{ color }} /></span>
-      <p className="text-2xl font-bold leading-none text-slate-900">{value}</p>
-      {sub && <p className="mt-1 text-xs text-slate-500">{sub}</p>}
-      <p className="mt-2 text-[0.65rem] font-bold uppercase tracking-widest text-slate-400">{label}</p>
-    </div>
   );
 }
 
@@ -91,27 +85,27 @@ export default function InquiryDashboardClient() {
     return <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error ?? "No stats available."}</p>;
   }
 
-  // Grouped KPI cards.
-  const groups: { title: string; cards: { label: string; value: string; sub?: string; icon: React.ElementType; color: string }[] }[] = [
+  // Grouped KPI cards (accent-tokenized).
+  const groups: { title: string; cards: { label: string; value: string; sub?: string; icon: React.ElementType; accent: AccentName; progress?: number }[] }[] = [
     { title: "Enquiries", cards: [
-      { label: "This month", value: String(stats.total_this_month), sub: `${stats.total} all-time`, icon: Inbox, color: "#0d9488" },
-      { label: "New", value: String(stats.new), icon: Inbox, color: "#0284c7" },
-      { label: "Contacted", value: String(stats.contacted), icon: PhoneCall, color: "#6366f1" },
+      { label: "This month", value: String(stats.total_this_month), sub: `${stats.total} all-time`, icon: Inbox, accent: "teal" },
+      { label: "New", value: String(stats.new), icon: Inbox, accent: "blue" },
+      { label: "Contacted", value: String(stats.contacted), icon: PhoneCall, accent: "violet" },
     ] },
     { title: "Visits", cards: [
-      { label: "Booked visits", value: String(stats.booked_visits), icon: CalendarClock, color: "#8b5cf6" },
-      { label: "Visit booking rate", value: `${stats.visit_booking_rate}%`, sub: "enquiry → booked", icon: CalendarClock, color: "#8b5cf6" },
+      { label: "Booked visits", value: String(stats.booked_visits), icon: CalendarClock, accent: "indigo" },
+      { label: "Visit booking rate", value: `${stats.visit_booking_rate}%`, sub: "enquiry → booked", icon: CalendarClock, accent: "indigo", progress: stats.visit_booking_rate },
     ] },
     { title: "Registrations", cards: [
-      { label: "Registrations", value: String(stats.registrations), icon: UserCheck, color: "#10b981" },
-      { label: "Cancelled / lost", value: String(stats.lost_cancelled), icon: XCircle, color: "#f43f5e" },
+      { label: "Registrations", value: String(stats.registrations), icon: UserCheck, accent: "green" },
+      { label: "Cancelled / lost", value: String(stats.lost_cancelled), icon: XCircle, accent: "red" },
     ] },
     { title: "Follow-ups", cards: [
-      { label: "Overdue follow-ups", value: String(stats.overdue_follow_ups), icon: AlertTriangle, color: "#f43f5e" },
-      { label: "Avg response time", value: stats.has_response_data ? fmtResponse(stats.avg_response_hours) : "—", sub: stats.has_response_data ? undefined : "no data yet", icon: Clock, color: "#f59e0b" },
+      { label: "Overdue follow-ups", value: String(stats.overdue_follow_ups), icon: AlertTriangle, accent: "red" },
+      { label: "Avg response time", value: stats.has_response_data ? fmtResponse(stats.avg_response_hours) : "—", sub: stats.has_response_data ? undefined : "no data yet", icon: Clock, accent: "amber" },
     ] },
     { title: "Conversion", cards: [
-      { label: "Conversion rate", value: `${stats.conversion_rate}%`, sub: "enquiry → registered", icon: TrendingUp, color: "#0d9488" },
+      { label: "Conversion rate", value: `${stats.conversion_rate}%`, sub: "enquiry → registered", icon: TrendingUp, accent: "teal", progress: stats.conversion_rate },
     ] },
   ];
 
@@ -130,13 +124,13 @@ export default function InquiryDashboardClient() {
       {/* Today's Admissions Tasks */}
       {tasks && (
         <section className="mb-8">
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-slate-400">Today&apos;s admissions tasks</h2>
+          <SectionHeading>Today&apos;s admissions tasks</SectionHeading>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <TaskCard label="Overdue follow-ups" items={tasks.overdue_follow_ups} icon={AlertTriangle} accent="#f43f5e" empty="None overdue 🎉" />
-            <TaskCard label="Due today" items={tasks.due_today} icon={CalendarClock} accent="#f59e0b" empty="Nothing due today" />
-            <TaskCard label="New, not contacted" items={tasks.uncontacted_24h} icon={PhoneCall} accent="#0284c7" empty="All contacted" />
-            <TaskCard label="Visits this week" items={tasks.visits_this_week} icon={CalendarDays} accent="#8b5cf6" empty="No visits booked" />
-            <TaskCard label="Applications to register" items={tasks.apps_missing_registration} icon={FileWarning} accent="#0d9488" empty="None pending" />
+            <TaskCard label="Overdue follow-ups" items={tasks.overdue_follow_ups} icon={AlertTriangle} accent="red" empty="None overdue 🎉" />
+            <TaskCard label="Due today" items={tasks.due_today} icon={CalendarClock} accent="amber" empty="Nothing due today" />
+            <TaskCard label="New, not contacted" items={tasks.uncontacted_24h} icon={PhoneCall} accent="sky" empty="All contacted" />
+            <TaskCard label="Visits this week" items={tasks.visits_this_week} icon={CalendarDays} accent="violet" empty="No visits booked" />
+            <TaskCard label="Applications to register" items={tasks.apps_missing_registration} icon={FileWarning} accent="teal" empty="None pending" />
           </div>
         </section>
       )}
@@ -145,17 +139,17 @@ export default function InquiryDashboardClient() {
       <section className="mb-8 space-y-5">
         {groups.map((g) => (
           <div key={g.title}>
-            <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">{g.title}</h2>
+            <SectionHeading className="mb-2">{g.title}</SectionHeading>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-              {g.cards.map((c) => <KpiCard key={c.label} {...c} />)}
+              {g.cards.map((c) => <StatCard key={c.label} {...c} />)}
             </div>
           </div>
         ))}
       </section>
 
-      {/* Branch comparison cards */}
+      {/* Branch comparison cards (with conversion bars) */}
       <section className="mb-8">
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-slate-400">Branch comparison</h2>
+        <SectionHeading>Branch comparison</SectionHeading>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {BRANCHES.map((slug) => {
             const label = fmtBranch(slug);
@@ -169,9 +163,12 @@ export default function InquiryDashboardClient() {
                   <div className="flex justify-between"><dt>New</dt><dd>{stat(b?.new ?? 0)}</dd></div>
                   <div className="flex justify-between"><dt>Booked visits</dt><dd>{stat(b?.booked_visits ?? 0)}</dd></div>
                   <div className="flex justify-between"><dt>Registered</dt><dd className="font-semibold text-emerald-600">{b?.registered ?? 0}</dd></div>
-                  <div className="flex justify-between"><dt>Conversion</dt><dd>{stat(b?.conversion_rate ?? 0)}%</dd></div>
                   <div className="flex justify-between"><dt>Overdue</dt><dd className={b && b.overdue_follow_ups > 0 ? "font-semibold text-rose-600" : "font-semibold text-slate-400"}>{b?.overdue_follow_ups ?? 0}</dd></div>
                 </dl>
+                <div className="mt-3">
+                  <div className="mb-1 flex justify-between text-xs"><span className="text-slate-400">Conversion</span><span className="font-semibold text-slate-700">{b?.conversion_rate ?? 0}%</span></div>
+                  <ProgressBar value={b?.conversion_rate ?? 0} accent="teal" height="h-1.5" />
+                </div>
               </Card>
             );
           })}
@@ -180,7 +177,7 @@ export default function InquiryDashboardClient() {
 
       {/* Charts */}
       <section>
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-slate-400">Trends &amp; breakdowns</h2>
+        <SectionHeading>Trends &amp; breakdowns</SectionHeading>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <ChartCard title="Monthly enquiry trend">
             <div className="h-64">{mounted && (

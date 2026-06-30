@@ -2,21 +2,15 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import Badge from "@/components/ui/Badge";
+import StageBadge from "@/components/admin/ui/StageBadge";
 import SearchSelect from "@/components/ui/SearchSelect";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
-import type { Branch, CatalogueItem, OrderRequest, OrderRequestItem, OrderRequestStatus, OrderTemplate } from "@/types";
+import { ORDER_REQUEST_STATUS_META } from "@/lib/admin-status";
+import type { Branch, CatalogueItem, OrderRequest, OrderRequestItem, OrderTemplate } from "@/types";
 
 const SUPPLIERS = ["Gompels", "Amazon", "Other"];
 const MANUAL = "__manual__";
-
-const STATUS_VARIANT: Record<OrderRequestStatus, "blue" | "amber" | "green" | "gray"> = {
-  pending: "amber",
-  ordered: "blue",
-  received: "green",
-  cancelled: "gray",
-};
 
 // A purchasable variant of a base product (one Gompels code).
 type Variant = { id: string; option: string; code: string; packSize: string; description: string };
@@ -474,7 +468,7 @@ export default function AdminMyRequestsClient() {
                   {req.branch_slug ? ` · ${req.branch_slug}` : ""}
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge label={req.status} variant={STATUS_VARIANT[req.status] ?? "gray"} />
+                  <StageBadge label={ORDER_REQUEST_STATUS_META[req.status]?.label ?? req.status} accent={ORDER_REQUEST_STATUS_META[req.status]?.accent ?? "slate"} />
                   <button
                     type="button"
                     onClick={() => loadItems(req.items, req.branch_slug)}

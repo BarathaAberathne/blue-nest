@@ -1,5 +1,7 @@
 import type { Enquiry, EnquiryPriority, EnquiryStatus } from "@/types";
 import { ENQUIRY_STATUS_LABELS } from "@/types";
+import { ACCENT, type AccentName } from "@/lib/admin-theme";
+import type { Lane } from "@/lib/admin-status";
 
 // Per-status display metadata. Class strings are written in full (not
 // interpolated) so Tailwind's JIT scanner keeps them in the build.
@@ -122,53 +124,37 @@ export const RECOMMENDED_NEXT: Record<EnquiryStatus, { status: EnquiryStatus; la
   spam: [],
 };
 
-// ── Pipeline (kanban) columns ────────────────────────────────────────────────
-// One column per workflow stage; the terminal states collapse into a single
-// "Cancelled / Lost" column. dropStatus is applied when a card is dragged in.
-export type PipelineColumn = {
-  key: string;
-  label: string;
-  statuses: EnquiryStatus[];
-  dropStatus: EnquiryStatus;
-  terminal?: boolean;
+// Status → accent token. The card dot, funnel colours and lane headers all
+// resolve through ACCENT so the enquiry palette matches the rest of the admin.
+export const STATUS_ACCENT: Record<EnquiryStatus, AccentName> = {
+  new: "blue",
+  contacted: "amber",
+  awaiting_reply: "violet",
+  booked_visit: "teal",
+  visit_completed: "indigo",
+  registered: "green",
+  cancelled: "red",
+  lost: "red",
+  spam: "red",
 };
 
-export const PIPELINE_COLUMNS: PipelineColumn[] = [
-  { key: "new", label: "New", statuses: ["new"], dropStatus: "new" },
-  { key: "contacted", label: "Contacted", statuses: ["contacted"], dropStatus: "contacted" },
-  { key: "awaiting_reply", label: "Awaiting Reply", statuses: ["awaiting_reply"], dropStatus: "awaiting_reply" },
-  { key: "booked_visit", label: "Booked Visit", statuses: ["booked_visit"], dropStatus: "booked_visit" },
-  { key: "visit_completed", label: "Visit Completed", statuses: ["visit_completed"], dropStatus: "visit_completed" },
-  { key: "registered", label: "Registered", statuses: ["registered"], dropStatus: "registered" },
-  { key: "closed", label: "Cancelled / Lost", statuses: ["cancelled", "lost", "spam"], dropStatus: "lost", terminal: true },
+// Solid hex per status (card dot + funnel), derived from the accent tokens.
+export const STATUS_COLOR = Object.fromEntries(
+  (Object.keys(STATUS_ACCENT) as EnquiryStatus[]).map((s) => [s, ACCENT[STATUS_ACCENT[s]].solid]),
+) as Record<EnquiryStatus, string>;
+
+// Kanban lanes — one per workflow stage; terminal states collapse into a single
+// "Cancelled / Lost" lane. Uses the shared Lane shape so the generic KanbanBoard
+// can render it.
+export const PIPELINE_LANES: Lane<EnquiryStatus>[] = [
+  { key: "new", label: "New", accent: "blue", statuses: ["new"], dropStatus: "new", desc: "Needs first contact", emptyEmoji: "📥", emptyText: "No new enquiries" },
+  { key: "contacted", label: "Contacted", accent: "amber", statuses: ["contacted"], dropStatus: "contacted", desc: "Parent has been contacted", emptyEmoji: "📞", emptyText: "No one awaiting first contact" },
+  { key: "awaiting_reply", label: "Awaiting Reply", accent: "violet", statuses: ["awaiting_reply"], dropStatus: "awaiting_reply", desc: "Waiting on the parent", emptyEmoji: "📬", emptyText: "No enquiries waiting for a reply" },
+  { key: "booked_visit", label: "Booked Visit", accent: "teal", statuses: ["booked_visit"], dropStatus: "booked_visit", desc: "Visit scheduled", emptyEmoji: "📅", emptyText: "No visits booked" },
+  { key: "visit_completed", label: "Visit Completed", accent: "indigo", statuses: ["visit_completed"], dropStatus: "visit_completed", desc: "Visit done — decide next step", emptyEmoji: "✅", emptyText: "No completed visits" },
+  { key: "registered", label: "Registered", accent: "green", statuses: ["registered"], dropStatus: "registered", desc: "Child enrolled", emptyEmoji: "🎉", emptyText: "No registrations yet" },
+  { key: "closed", label: "Cancelled / Lost", accent: "red", statuses: ["cancelled", "lost", "spam"], dropStatus: "lost", desc: "Cancelled, lost or spam", emptyEmoji: "🗂️", emptyText: "Nothing closed", terminal: true },
 ];
-
-// Per-column kanban theme — a soft tinted lane background + a strong header
-// colour, a one-line description, and a friendly empty state. Keyed by column.
-export type ColumnTheme = { bg: string; header: string; desc: string; emptyEmoji: string; emptyText: string };
-export const COLUMN_THEME: Record<string, ColumnTheme> = {
-  new: { bg: "#EAF4FF", header: "#2D7FF9", desc: "Needs first contact", emptyEmoji: "📥", emptyText: "No new enquiries" },
-  contacted: { bg: "#FFF7E6", header: "#F59E0B", desc: "Parent has been contacted", emptyEmoji: "📞", emptyText: "No one awaiting first contact" },
-  awaiting_reply: { bg: "#F4F0FF", header: "#7C3AED", desc: "Waiting on the parent", emptyEmoji: "📬", emptyText: "No enquiries waiting for a reply" },
-  booked_visit: { bg: "#E8FBF7", header: "#0F9D8C", desc: "Visit scheduled", emptyEmoji: "📅", emptyText: "No visits booked" },
-  visit_completed: { bg: "#EEF4FF", header: "#4F46E5", desc: "Visit done — decide next step", emptyEmoji: "✅", emptyText: "No completed visits" },
-  registered: { bg: "#EAFBF2", header: "#16A34A", desc: "Child enrolled", emptyEmoji: "🎉", emptyText: "No registrations yet" },
-  closed: { bg: "#FFF1F1", header: "#DC2626", desc: "Cancelled, lost or spam", emptyEmoji: "🗂️", emptyText: "Nothing closed" },
-};
-
-// Solid status accent (the card's top-left dot + funnel colours). Matches the
-// column header colours so a card's dot reads as "which lane am I in".
-export const STATUS_COLOR: Record<EnquiryStatus, string> = {
-  new: "#2D7FF9",
-  contacted: "#F59E0B",
-  awaiting_reply: "#7C3AED",
-  booked_visit: "#0F9D8C",
-  visit_completed: "#4F46E5",
-  registered: "#16A34A",
-  cancelled: "#DC2626",
-  lost: "#DC2626",
-  spam: "#DC2626",
-};
 
 // The single most-likely next action per status — drives the prominent button
 // on each kanban card. null for terminal/registered (no obvious next step).

@@ -1,20 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Download, ShoppingCart, Wand2, X, Zap } from "lucide-react";
+import { Columns3, Download, ShoppingCart, Table2, Wand2, X, Zap } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
-import Badge from "@/components/ui/Badge";
+import KanbanBoard from "@/components/admin/ui/KanbanBoard";
+import KanbanCard from "@/components/admin/ui/KanbanCard";
+import StageBadge from "@/components/admin/ui/StageBadge";
+import ViewToggle from "@/components/admin/ui/ViewToggle";
+import { ORDER_REQUEST_LANES, ORDER_REQUEST_NEXT, ORDER_REQUEST_STATUS_META } from "@/lib/admin-status";
 import type { OrderRequest, OrderRequestStatus, PurchaseCart } from "@/types";
-
-const STATUS_VARIANT: Record<OrderRequestStatus, "blue" | "amber" | "green" | "gray"> = {
-  pending: "amber",
-  ordered: "blue",
-  received: "green",
-  cancelled: "gray",
-};
 
 function fmtBranch(branch: string) {
   if (!branch) return "—";
@@ -64,6 +61,7 @@ function exportCsv(rows: OrderRequest[]) {
 export default function AdminOrderRequestsClient() {
   const router = useRouter();
   const [requests, setRequests] = useState<OrderRequest[]>([]);
+  const [view, setView] = useState<"board" | "table">("board");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -78,18 +76,35 @@ export default function AdminOrderRequestsClient() {
   const [supplier, setSupplier] = useState("");
   const [status, setStatus] = useState("");
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     const token = getAccessToken();
-    if (!token) {
-      setError("Not authenticated — please sign in as admin.");
+    if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
+    try {
+      const data = await api.adminGetOrderRequests(token);
+      setRequests(Array.isArray(data) ? (data as OrderRequest[]) : []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load order requests");
+    } finally {
       setLoading(false);
-      return;
     }
-    api.adminGetOrderRequests(token)
-      .then((data) => setRequests(Array.isArray(data) ? (data as OrderRequest[]) : []))
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load order requests"))
-      .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  // Drag-to-advance on the board. pending↔ordered↔received are plain status sets
+  // (a manual override of the generate-cart flow); cancelling is confirmed.
+  const changeStatus = async (r: OrderRequest, status: OrderRequestStatus) => {
+    if (status === r.status) return;
+    if (status === "cancelled" && !window.confirm("Cancel this supply request?")) return;
+    const token = getAccessToken();
+    if (!token) return;
+    try {
+      await api.adminUpdateOrderRequestStatus(token, r.id, status);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update request");
+    }
+  };
 
   const branchOptions = useMemo(
     () => [...new Set(requests.map((r) => r.branch_slug).filter(Boolean))].sort(),
@@ -240,7 +255,8 @@ export default function AdminOrderRequestsClient() {
             <p className="text-sm text-gray-500">{requests.length} total · {pendingCount} pending</p>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <ViewToggle active={view} onChange={setView} options={[{ key: "board", label: "Board", icon: Columns3 }, { key: "table", label: "Table", icon: Table2 }]} />
           <button
             type="button"
             onClick={() => setWizardStep("review")}
@@ -315,6 +331,28 @@ export default function AdminOrderRequestsClient() {
         </select>
       </div>
 
+      {view === "board" ? (
+        <KanbanBoard<OrderRequest, OrderRequestStatus>
+          columns={ORDER_REQUEST_LANES}
+          items={filtered}
+          statusOf={(r) => r.status}
+          idOf={(r) => r.id}
+          onDrop={(r, status) => changeStatus(r, status)}
+          renderCard={(r) => {
+            const next = ORDER_REQUEST_NEXT[r.status];
+            return (
+              <KanbanCard
+                accent={ORDER_REQUEST_STATUS_META[r.status]?.accent ?? "slate"}
+                title={r.requested_by_name || r.requested_by_email || "Request"}
+                href={`/admin/order-requests/${r.id}`}
+                subtitle={`${fmtBranch(r.branch_slug)} · ${r.items.length} item${r.items.length !== 1 ? "s" : ""}`}
+                meta={<span>{fmtDate(r.created_at)}</span>}
+                primary={next ? { label: `Mark ${ORDER_REQUEST_STATUS_META[next].label.toLowerCase()}`, onClick: () => changeStatus(r, next) } : undefined}
+              />
+            );
+          }}
+        />
+      ) : (
       <div className="card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
@@ -368,7 +406,7 @@ export default function AdminOrderRequestsClient() {
                   <td className="px-4 py-3 text-gray-700">{fmtBranch(r.branch_slug)}</td>
                   <td className="px-4 py-3 text-gray-700">{r.items.length}</td>
                   <td className="px-4 py-3">
-                    <Badge label={r.status} variant={STATUS_VARIANT[r.status] ?? "gray"} />
+                    <StageBadge label={ORDER_REQUEST_STATUS_META[r.status]?.label ?? r.status} accent={ORDER_REQUEST_STATUS_META[r.status]?.accent ?? "slate"} />
                   </td>
                   <td className="px-4 py-3">
                     <Link href={`/admin/order-requests/${r.id}`} className="text-teal-600 hover:underline text-xs font-medium">
@@ -381,6 +419,7 @@ export default function AdminOrderRequestsClient() {
           </tbody>
         </table>
       </div>
+      )}
 
       {/* ── Guided New-order wizard ─────────────────────────────── */}
       {wizardStep !== "closed" && (
