@@ -60,15 +60,11 @@ export default function AdminPurchaseCartsClient() {
 
   useEffect(() => { void load(); }, [load]);
 
-  // PO transitions are action-based (placing emails the supplier; receiving
-  // updates stock) — so the board's side-effecting moves go through confirms,
-  // and ambiguous drops (partial / cancel) route to the detail stepper.
-  const placeOrder = async (c: PurchaseCart) => {
-    if (!window.confirm(`Place this ${c.supplier} order? This emails the supplier.`)) return;
-    const token = getAccessToken();
-    if (!token) return;
-    try { await api.adminSendPurchaseCart(token, c.id); await load(); }
-    catch (err) { setError(err instanceof Error ? err.message : "Failed to place order"); }
+  // Placing an order = pushing it into the logged-in Gompels cart via the browser
+  // extension (no email), which is driven from the detail page's Place-order step.
+  // The board just routes there; receiving still updates stock via a confirm.
+  const placeOrder = (c: PurchaseCart) => {
+    router.push(`/admin/purchase-carts/${c.id}`);
   };
 
   const receiveAll = async (c: PurchaseCart) => {

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
-	"github.com/blue-nest-montessori/api/internal/platform/email"
 	"github.com/blue-nest-montessori/api/internal/platform/sourcing"
 	"github.com/blue-nest-montessori/api/internal/repository"
 )
@@ -19,11 +18,9 @@ type PurchaseCartService interface {
 	List(ctx context.Context) ([]models.PurchaseCart, error)
 	GetByID(ctx context.Context, id string) (*models.PurchaseCart, error)
 	Update(ctx context.Context, id string, req models.UpdateCartRequest) (*models.PurchaseCart, error)
-	// Send emails the cart to the supplier, marks it ordered, and flips the covered
-	// requests to "ordered". recipientOverride wins over the stored recipient.
-	Send(ctx context.Context, id, recipientOverride string) (*models.PurchaseCart, error)
 	// MarkExported records the browser extension's per-line fill results, marks the
-	// cart ordered, and flips the covered requests to "ordered" (no email).
+	// cart ordered, and flips the covered requests to "ordered" (the sole placement
+	// path: the extension fills the Gompels cart).
 	MarkExported(ctx context.Context, id string, results []models.PurchaseCartExportResult, supplierOrderRef string) (*models.PurchaseCart, error)
 	// UpdateFulfillment records the supplier order ref + expected delivery date on a
 	// placed order, and propagates the expected date to the covered requests.
@@ -38,13 +35,11 @@ type PurchaseCartService interface {
 }
 
 type purchaseCartService struct {
-	carts          repository.PurchaseCartRepository
-	requests       repository.OrderRequestRepository
-	catalogue      repository.CatalogueItemRepository
-	engine         *sourcing.Engine
-	mailer         *email.Mailer
-	supplierEmails map[string]string // supplier -> default recipient
-	counter        repository.CounterRepository
+	carts     repository.PurchaseCartRepository
+	requests  repository.OrderRequestRepository
+	catalogue repository.CatalogueItemRepository
+	engine    *sourcing.Engine
+	counter   repository.CounterRepository
 }
 
 func NewPurchaseCartService(
@@ -52,18 +47,14 @@ func NewPurchaseCartService(
 	requests repository.OrderRequestRepository,
 	catalogue repository.CatalogueItemRepository,
 	engine *sourcing.Engine,
-	mailer *email.Mailer,
-	supplierEmails map[string]string,
 	counter repository.CounterRepository,
 ) PurchaseCartService {
 	return &purchaseCartService{
-		carts:          carts,
-		requests:       requests,
-		catalogue:      catalogue,
-		engine:         engine,
-		mailer:         mailer,
-		supplierEmails: supplierEmails,
-		counter:        counter,
+		carts:     carts,
+		requests:  requests,
+		catalogue: catalogue,
+		engine:    engine,
+		counter:   counter,
 	}
 }
 
@@ -182,7 +173,6 @@ func (s *purchaseCartService) Generate(ctx context.Context, requestIDs []string,
 			cart = &models.PurchaseCart{
 				Supplier:       k.supplier,
 				Status:         models.PurchaseCartDraft,
-				RecipientEmail: s.supplierEmails[k.supplier],
 				GeneratedBy:    generatedBy,
 			}
 			cartsBySupplier[k.supplier] = cart
@@ -334,50 +324,6 @@ func (s *purchaseCartService) Update(ctx context.Context, id string, req models.
 	return s.carts.Update(ctx, id, *existing)
 }
 
-func (s *purchaseCartService) Send(ctx context.Context, id, recipientOverride string) (*models.PurchaseCart, error) {
-	cart, err := s.carts.FindByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if cart.IsPlaced() {
-		return nil, errors.New("order already placed")
-	}
-	recipient := strings.TrimSpace(recipientOverride)
-	if recipient == "" {
-		recipient = strings.TrimSpace(cart.RecipientEmail)
-	}
-	if recipient == "" {
-		return nil, errors.New("no recipient email set for this supplier")
-	}
-
-	subject := fmt.Sprintf("Blue Nest order — %s (%d items)", cart.Supplier, len(cart.Lines))
-	html := renderCartHTML(cart)
-	csv := renderCartCSV(cart)
-	attachment := email.Attachment{
-		Filename:    fmt.Sprintf("order-%s-%s.csv", strings.ToLower(cart.Supplier), time.Now().Format("2006-01-02")),
-		Content:     []byte(csv),
-		ContentType: "text/csv",
-	}
-
-	if err := s.mailer.SendWithAttachments([]string{recipient}, subject, html, []email.Attachment{attachment}); err != nil {
-		_ = s.carts.MarkFailed(ctx, id, err.Error())
-		return nil, fmt.Errorf("send order email: %w", err)
-	}
-
-	if err := s.carts.MarkSent(ctx, id, ""); err != nil {
-		return nil, err
-	}
-	// Flip the covered requests to "ordered".
-	for _, rid := range cart.SourceRequestIDs {
-		_ = s.requests.UpdateStatus(ctx, rid, string(models.OrderRequestOrdered))
-	}
-	cart.RecipientEmail = recipient
-	cart.Status = models.PurchaseCartOrdered
-	now := time.Now()
-	cart.SentAt = &now
-	return cart, nil
-}
-
 func (s *purchaseCartService) MarkExported(ctx context.Context, id string, results []models.PurchaseCartExportResult, supplierOrderRef string) (*models.PurchaseCart, error) {
 	cart, err := s.carts.FindByID(ctx, id)
 	if err != nil {
@@ -497,52 +443,6 @@ func (s *purchaseCartService) Receive(ctx context.Context, id string, items []mo
 	cart.Status = status
 	cart.DeliveredAt = deliveredAt
 	return cart, nil
-}
-
-func renderCartCSV(cart *models.PurchaseCart) string {
-	var b strings.Builder
-	b.WriteString("Code,Item,Pack,Qty,Unit Price (GBP),Line Total (GBP)\r\n")
-	esc := func(s string) string { return `"` + strings.ReplaceAll(s, `"`, `""`) + `"` }
-	for _, l := range cart.Lines {
-		b.WriteString(strings.Join([]string{
-			esc(l.Code),
-			esc(l.Name),
-			esc(l.PackSize),
-			fmt.Sprintf("%d", l.Qty),
-			fmt.Sprintf("%.2f", float64(l.UnitPrice)/100),
-			fmt.Sprintf("%.2f", float64(l.LineTotal)/100),
-		}, ","))
-		b.WriteString("\r\n")
-	}
-	return b.String()
-}
-
-func renderCartHTML(cart *models.PurchaseCart) string {
-	var rows strings.Builder
-	for _, l := range cart.Lines {
-		rows.WriteString(fmt.Sprintf(
-			`<tr><td style="padding:6px 12px;border-bottom:1px solid #eee;">%s</td>`+
-				`<td style="padding:6px 12px;border-bottom:1px solid #eee;">%s</td>`+
-				`<td style="padding:6px 12px;border-bottom:1px solid #eee;">%s</td>`+
-				`<td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right;">%d</td>`+
-				`<td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:right;">£%.2f</td></tr>`,
-			l.Code, l.Name, l.PackSize, l.Qty, float64(l.LineTotal)/100,
-		))
-	}
-	return fmt.Sprintf(`<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;color:#2a3c29;">
-<h2 style="color:#3a5c38;">Blue Nest Montessori — %s order</h2>
-<p>Please process the following order. A CSV copy is attached.</p>
-<table style="border-collapse:collapse;width:100%%;font-size:14px;">
-<thead><tr style="background:#f2f7f2;">
-<th style="padding:6px 12px;text-align:left;">Code</th>
-<th style="padding:6px 12px;text-align:left;">Item</th>
-<th style="padding:6px 12px;text-align:left;">Pack</th>
-<th style="padding:6px 12px;text-align:right;">Qty</th>
-<th style="padding:6px 12px;text-align:right;">Line total</th>
-</tr></thead><tbody>%s</tbody></table>
-<p style="margin-top:16px;font-weight:600;">Order subtotal: £%.2f</p>
-<p style="color:#888;font-size:12px;">Sent by the Blue Nest order creation tool.</p>
-</body></html>`, cart.Supplier, rows.String(), float64(cart.Subtotal)/100)
 }
 
 // cheapestOffer returns the offer with the lowest price-per-unit (falling back to price).

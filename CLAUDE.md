@@ -113,12 +113,16 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
     `base_name`/`option`, parses pack size + gross unit price, and **upserts by name** (never drops
     the collection, so sourced/curated items survive). Adding new orders = add a CSV + re-run.
 - **Order creation tool** (`models/purchase_cart.go`, collection `purchase_carts`): admin selects
-  supply requests on `/admin/order-requests` → **Generate cart** → the **sourcing engine**
-  (`internal/platform/sourcing`) finds the best & cheapest offer per item (catalogue cache first,
-  then live supplier search), aggregates + splits by supplier into draft carts at
-  `/admin/purchase-carts` (**Purchase Orders**). The PO detail page is a **lifecycle stepper**:
-  **Review** (edit lines/recipient) → **Place order** (**Send** emails the order — HTML table + CSV
-  attachment via `Mailer.SendWithAttachments` — or **Add to Gompels cart** via the extension) →
+  supply requests on `/admin/order-requests` and runs the guided **New order** wizard (the *only*
+  generate entry point — the old "Generate cart" / "Generate & push" quick buttons were removed). The
+  wizard previews the aggregated items, then **Generate orders** runs the **sourcing engine**
+  (`internal/platform/sourcing`) — best & cheapest offer per item (catalogue cache first, then live
+  supplier search) — aggregating + splitting by supplier into draft carts at `/admin/purchase-carts`
+  (**Purchase Orders**), and **auto-hands the Gompels order to the browser extension** (opens the
+  Gompels cart and fills it automatically — see below). **There is no email path**: ordering goes
+  through the extension into the logged-in Gompels basket, where the admin reviews & pays (or uses
+  Gompels' own **E-Mail Basket** — the end goal). The PO detail page is a **lifecycle stepper**:
+  **Review** (edit lines) → **Place order** (**Send to Gompels cart** — re-push via the extension) →
   **Track** (set `supplier_order_ref` + `expected_delivery_date`; propagated to the covered staff
   requests) → **Receive** (per-line `qty_received`). Status flow `draft → ordered →
   partially_received → received` (legacy `sent` reads as `ordered`; `PurchaseCart.IsPlaced()` gates
@@ -126,17 +130,20 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   them to `received` + sets `delivered_at`. Lines carry `qty_received`; the list shows status filter +
   expected/received columns (overdue flagged).
   Routes (`AdminOnly`): `POST /admin/purchase-carts/generate`, `GET /admin/purchase-carts[/{id}]`,
-  `PUT /admin/purchase-carts/{id}`, `POST /admin/purchase-carts/{id}/send`,
+  `PUT /admin/purchase-carts/{id}`, `POST /admin/purchase-carts/{id}/exported` (extension callback),
   `PATCH /admin/purchase-carts/{id}/fulfillment`, `POST /admin/purchase-carts/{id}/receive`. Sourcing adapters:
   `GompelsAdapter` (HTML scrape, best-effort, off unless `GOMPELS_SEARCH_ENABLED=true`),
   `AmazonAdapter` (stub, gated by `AMAZON_BUSINESS_ENABLED`; Amazon Business API is a later phase).
-  Env: `GOMPELS_ORDER_EMAIL`, `SUPPLIES_ORDER_EMAIL`, `GOMPELS_SEARCH_ENABLED`, `GOMPELS_SEARCH_URL`,
-  `AMAZON_BUSINESS_ENABLED`.
-  - **Add to Gompels cart (browser extension)** (`gompels-extension/`, MV3, loaded unpacked): on a
-    Gompels cart detail page the admin clicks **Add to Gompels cart**; the page `postMessage`s the
+  Env: `GOMPELS_SEARCH_ENABLED`, `GOMPELS_SEARCH_URL`, `AMAZON_BUSINESS_ENABLED` (the old
+  `GOMPELS_ORDER_EMAIL` / `SUPPLIES_ORDER_EMAIL` are unused now that placement is extension-only).
+  - **Send to Gompels cart (browser extension)** (`gompels-extension/`, MV3, loaded unpacked): the
+    **New order** wizard (or the PO detail **Send to Gompels cart** button) `postMessage`s the
     `{code, qty, name}` lines to the extension (handoff is **ACK-gated** + PING/PONG detection, so the
-    UI only reports success when the extension actually received it). Via the popup's **Fill cart now**
-    it **first empties the Gompels basket** — **server-side via `fetch`** from the Quick Order page
+    UI only reports success when the extension actually received it). The extension **auto-fills by
+    default** as soon as the Gompels tab opens (toggle off via the popup's **Auto-fill** checkbox; the
+    popup's **Fill cart now** re-runs it manually, and a **Clear Gompels cart** button empties the
+    basket without filling — `BLUENEST_CLEAR_CART` → `clearBasketOnly`). Filling
+    **first empties the Gompels basket** — **server-side via `fetch`** from the Quick Order page
     (reads `/checkout/cart/`, POSTs each item's Magento delete action with the session cookie +
     `form_key`), then reloads once — so re-runs never collide with leftovers. Clearing is best-effort
     and **never blocks the fill** (if it can't clear, the fill's increase-qty path is the fallback).
@@ -149,16 +156,16 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
     the **background worker** POSTs per-line results (+ a best-effort `supplier_order_ref`) to
     `POST /admin/purchase-carts/{id}/exported` (admin token read from our `localStorage`), which marks
     the cart **ordered** + flips covered requests to `ordered` + audit-logs; then it redirects to
-    `/checkout/cart/` (has **E-Mail Basket**). The **popup** shows a per-line progress list (chips:
-    added / substituted / not found) + a summary bar. The PO **Track** step shows the fill results; for
-    search-resolved lines an **Accept** saves the discovered code via `POST /admin/catalogue/learn`
-    (`UpsertByName`) — the catalogue **self-improves** (gated by Accept). An **auto-start** popup
-    setting fills as soon as the Gompels tab opens. Stops at a filled cart — no payment automation, no
-    stored Gompels creds. Selectors live in `content-gompels.js` (`SEL`); see `gompels-extension/README.md`.
+    `/checkout/cart/` (has **E-Mail Basket** — the admin reviews & pays or e-mails the basket there).
+    The **popup** shows a per-line progress list (chips: added / substituted / not found) + a summary
+    bar. The PO **Track** step shows the fill results; for search-resolved lines an **Accept** saves the
+    discovered code via `POST /admin/catalogue/learn` (`UpsertByName`) — the catalogue **self-improves**
+    (gated by Accept). Stops at a filled cart — no payment automation, no stored Gompels creds.
+    Selectors live in `content-gompels.js` (`SEL`); see `gompels-extension/README.md`.
   - **Reorder & standing-order templates** (`models/order_template.go`, collection `order_templates`,
     shared org-wide): on `/admin/my-requests` staff **Save as template**, **Use** a template, or
-    **Reorder** a past request. Routes `GET/POST/DELETE /order-templates` (staff+management). Admin
-    one-click **Generate & push** on `/admin/order-requests` generates the cart + hands it to the extension.
+    **Reorder** a past request. Routes `GET/POST/DELETE /order-templates` (staff+management). The admin
+    **New order** wizard on `/admin/order-requests` generates the cart + auto-hands it to the extension.
 
 Planned next: Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 

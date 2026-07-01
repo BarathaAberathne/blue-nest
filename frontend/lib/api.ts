@@ -399,12 +399,6 @@ export const api = {
     apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}`, { token }),
   adminUpdatePurchaseCart: (token: string, id: string, body: unknown) =>
     apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
-  adminSendPurchaseCart: (token: string, id: string, recipientEmail?: string) =>
-    apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}/send`, {
-      method: "POST",
-      body: JSON.stringify({ recipient_email: recipientEmail ?? "" }),
-      token,
-    }),
   adminUpdateCartFulfillment: (
     token: string,
     id: string,

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, PackageCheck, Send, ShoppingCart, Truck } from "lucide-react";
+import { ArrowLeft, Check, PackageCheck, ShoppingCart, Truck } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import StageBadge from "@/components/admin/ui/StageBadge";
@@ -29,11 +29,9 @@ const DONE: PurchaseCartStatus[] = ["received", "completed"];
 export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
   const [cart, setCart] = useState<PurchaseCart | null>(null);
   const [lines, setLines] = useState<LineDraft[]>([]);
-  const [recipient, setRecipient] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [sending, setSending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [extDetected, setExtDetected] = useState(false);
   const [placedLocally, setPlacedLocally] = useState(false);
@@ -58,7 +56,6 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
 
   const load = (c: PurchaseCart) => {
     setCart(c);
-    setRecipient(c.recipient_email ?? "");
     setLines(c.lines.map((l) => ({ ...l, unit_price: penceToPounds(l.unit_price) })));
     setSupplierRef(c.supplier_order_ref ?? "");
     setTrackingNumber(c.tracking_number ?? "");
@@ -144,7 +141,6 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
     setNotice(null);
     try {
       const updated = await api.adminUpdatePurchaseCart(token, id, {
-        recipient_email: recipient,
         lines: payloadLines(),
       });
       load(updated as PurchaseCart);
@@ -153,30 +149,6 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
       setError(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const onSend = async () => {
-    const token = getAccessToken();
-    if (!token) return;
-    if (!recipient.trim()) {
-      setError("Set a recipient email before sending.");
-      return;
-    }
-    if (!window.confirm(`Email this ${cart?.supplier} order to ${recipient}?`)) return;
-    setSending(true);
-    setError(null);
-    setNotice(null);
-    try {
-      // Persist any edits first, then send.
-      await api.adminUpdatePurchaseCart(token, id, { recipient_email: recipient, lines: payloadLines() });
-      const sent = await api.adminSendPurchaseCart(token, id, recipient);
-      load(sent as PurchaseCart);
-      setNotice("Order emailed to the supplier. Add the delivery date below when you have it.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send");
-    } finally {
-      setSending(false);
     }
   };
 
@@ -372,20 +344,10 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
         <>
           {hasUnmatched && !isPlaced && (
             <p className="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-              Some lines have no supplier code — add a code (and price) before sending.
+              Some lines have no supplier code — add a code (and price) before placing the order (Gompels
+              searches by description for any line without a code).
             </p>
           )}
-          <div className="card p-4 mb-4">
-            <label className="block text-xs uppercase tracking-wider text-gray-400 mb-1">Recipient email</label>
-            <input
-              type="email"
-              value={recipient}
-              onChange={(e) => setRecipient(e.target.value)}
-              disabled={isPlaced}
-              placeholder="supplier@example.com"
-              className="w-full max-w-md rounded-lg border border-gray-200 px-3 py-2 text-sm disabled:bg-gray-50"
-            />
-          </div>
 
           <div className="card overflow-hidden mb-4">
             <table className="w-full text-sm">
@@ -465,7 +427,7 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
                 <Check className="h-4 w-4" /> Order placed
               </p>
               <p className="text-sm text-gray-500">
-                {cart.recipient_email ? `Emailed to ${cart.recipient_email}` : "Pushed to the Gompels cart"}
+                Pushed to the Gompels cart
                 {cart.sent_at ? ` · ${new Date(cart.sent_at).toLocaleString("en-GB")}` : ""}
               </p>
               <button type="button" onClick={() => setActiveStep(2)} className="mt-3 inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700">
@@ -474,14 +436,10 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
             </div>
           ) : (
             <>
-              {hasUnmatched && (
-                <p className="mb-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-                  Some lines have no supplier code — fix them in Review before emailing (Gompels push searches by description).
-                </p>
-              )}
               <p className="text-sm text-gray-600 mb-4">
-                Place the {cart.supplier} order — email it to the supplier, or push it straight into your
-                logged-in Gompels cart with the browser extension.
+                Place the {cart.supplier} order by pushing it straight into your logged-in Gompels cart with
+                the browser extension. It opens the Gompels basket and fills the products automatically — then
+                review &amp; pay (or e-mail the basket) on Gompels.
               </p>
               {/* Pre-push review: how the lines will resolve + estimated value. */}
               <div className="mb-4 grid max-w-md grid-cols-3 gap-2 text-center">
@@ -489,24 +447,26 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
                 <div className="rounded-lg bg-amber-50 px-3 py-2"><p className="text-lg font-bold text-amber-700">{unmatchedCount}</p><p className="text-xs text-amber-600">searched by name</p></div>
                 <div className="rounded-lg bg-teal-50 px-3 py-2"><p className="text-lg font-bold text-teal-700">{money(subtotal)}</p><p className="text-xs text-teal-600">est. value</p></div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {cart.supplier === "Gompels" && (
-                  <button type="button" onClick={onAddToGompels} className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
-                    <ShoppingCart className="h-4 w-4" /> Add to Gompels cart
-                  </button>
-                )}
-                <button type="button" onClick={onSend} disabled={sending || hasUnmatched} className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">
-                  <Send className="h-4 w-4" /> {sending ? "Sending…" : "Email order"}
-                </button>
-              </div>
-              {cart.supplier === "Gompels" && (
-                <p className="mt-2 text-xs text-gray-400">
-                  {extDetected
-                    ? "Blue Nest → Gompels extension detected ✓ — "
-                    : "Needs the Blue Nest → Gompels browser extension — "}
-                  items are added to your logged-in Gompels cart (lines without a code are searched by
-                  description for the cheapest match), then it opens the Gompels basket to review &amp; pay
-                  or email.
+              {cart.supplier === "Gompels" ? (
+                <>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button type="button" onClick={onAddToGompels} className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                      <ShoppingCart className="h-4 w-4" /> Send to Gompels cart
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-400">
+                    {extDetected
+                      ? "Blue Nest → Gompels extension detected ✓ — "
+                      : "Needs the Blue Nest → Gompels browser extension — "}
+                    items are added to your logged-in Gompels cart (lines without a code are searched by
+                    description for the cheapest match), then it opens the Gompels basket to review &amp; pay
+                    or e-mail the basket.
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                  {cart.supplier} has no automated ordering — place this order manually with the supplier
+                  (use the buy-list CSV), then advance it through Track / Receive as it arrives.
                 </p>
               )}
             </>

@@ -1341,23 +1341,6 @@ paths:
                 lines: { type: array, items: { type: object } }
       responses: { '200': { description: Updated }, '400': { description: Sent carts cannot be edited } }
 
-  /admin/purchase-carts/{id}/send:
-    post:
-      tags: [Order Creation]
-      summary: Email the cart to the supplier; mark covered requests ordered
-      operationId: sendPurchaseCart
-      security: [{ BearerAuth: [] }]
-      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                recipient_email: { type: string, description: optional override }
-      responses: { '200': { description: Sent }, '400': { description: No recipient / already sent } }
-
   /admin/purchase-carts/{id}/exported:
     post:
       tags: [Order Creation]

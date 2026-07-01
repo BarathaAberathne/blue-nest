@@ -115,11 +115,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		sourceAdapters = append(sourceAdapters, sourcing.NewAmazonAdapter())
 	}
 	sourcingEngine := sourcing.NewEngine(sourceAdapters...)
-	supplierEmails := map[string]string{
-		"Gompels": cfg.Sourcing.GompelsOrderEmail,
-		"Other":   cfg.Sourcing.OtherOrderEmail,
-	}
-	svc.PurchaseCarts = service.NewPurchaseCartService(purchaseCartRepo, orderRequestRepo, catalogueRepo, sourcingEngine, mailer, supplierEmails, counterRepo)
+	svc.PurchaseCarts = service.NewPurchaseCartService(purchaseCartRepo, orderRequestRepo, catalogueRepo, sourcingEngine, counterRepo)
 
 	r := chi.NewRouter()
 	r.Use(middleware.CORS(cfg.CORS.AllowedOrigins))
