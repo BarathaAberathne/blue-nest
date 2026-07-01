@@ -171,9 +171,9 @@ func (s *purchaseCartService) Generate(ctx context.Context, requestIDs []string,
 		cart, ok := cartsBySupplier[k.supplier]
 		if !ok {
 			cart = &models.PurchaseCart{
-				Supplier:       k.supplier,
-				Status:         models.PurchaseCartDraft,
-				GeneratedBy:    generatedBy,
+				Supplier:    k.supplier,
+				Status:      models.PurchaseCartDraft,
+				GeneratedBy: generatedBy,
 			}
 			cartsBySupplier[k.supplier] = cart
 			supplierOrder = append(supplierOrder, k.supplier)
