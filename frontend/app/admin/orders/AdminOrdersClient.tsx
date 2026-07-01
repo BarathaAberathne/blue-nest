@@ -10,6 +10,7 @@ import KanbanCard from "@/components/admin/ui/KanbanCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import ViewToggle from "@/components/admin/ui/ViewToggle";
 import { ORDER_LANES, ORDER_NEXT, ORDER_STATUS_META } from "@/lib/admin-status";
+import { displayRef } from "@/lib/ref";
 import type { Order, OrderStatus } from "@/types";
 
 function fmt(pence: number) { return `£${(pence / 100).toFixed(2)}`; }
@@ -39,7 +40,7 @@ export default function AdminOrdersClient() {
 
   const changeStatus = async (o: Order, status: OrderStatus) => {
     if (status === o.status) return;
-    if (status === "cancelled" && !window.confirm(`Cancel order ${o.id.slice(0, 8).toUpperCase()}?`)) return;
+    if (status === "cancelled" && !window.confirm(`Cancel order ${displayRef(o.ref, o.id, "ORD")}?`)) return;
     const token = getAccessToken();
     if (!token) return;
     try {
@@ -78,7 +79,7 @@ export default function AdminOrdersClient() {
             return (
               <KanbanCard
                 accent={ORDER_STATUS_META[o.status]?.accent ?? "slate"}
-                title={`#${o.id.slice(0, 8).toUpperCase()}`}
+                title={displayRef(o.ref, o.id, "ORD")}
                 href={`/admin/orders/${o.id}`}
                 rightTop={<span className="text-sm font-bold text-slate-900">{fmt(o.total_amount)}</span>}
                 subtitle={`${o.items?.length ?? 0} item${(o.items?.length ?? 0) !== 1 ? "s" : ""}`}
@@ -97,7 +98,7 @@ export default function AdminOrdersClient() {
                 <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-400">No orders yet.</td></tr>
               ) : sorted.map((o) => (
                 <tr key={o.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-mono text-xs font-medium text-slate-900">{o.id.slice(0, 8).toUpperCase()}</td>
+                  <td className="px-4 py-3 font-mono text-xs font-medium text-slate-900">{displayRef(o.ref, o.id, "ORD")}</td>
                   <td className="px-4 py-3 text-slate-500">{fmtDate(o.created_at)}</td>
                   <td className="px-4 py-3 text-slate-700">{o.items?.length ?? 0} item{(o.items?.length ?? 0) !== 1 ? "s" : ""}</td>
                   <td className="px-4 py-3 font-semibold text-slate-900">{fmt(o.total_amount)}</td>

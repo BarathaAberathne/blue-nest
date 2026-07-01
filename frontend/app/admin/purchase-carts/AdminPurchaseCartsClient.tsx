@@ -12,7 +12,10 @@ import KanbanCard from "@/components/admin/ui/KanbanCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import ViewToggle from "@/components/admin/ui/ViewToggle";
 import { PRIORITY_RANK, PURCHASE_CART_LANES, PURCHASE_CART_STATUS_META, priorityMeta } from "@/lib/admin-status";
+import { displayRef } from "@/lib/ref";
 import type { ProcurementPriority, PurchaseCart, PurchaseCartStatus } from "@/types";
+
+const fmtBranch = (b?: string) => (b ? b.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "");
 
 const money = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -150,24 +153,23 @@ export default function AdminPurchaseCartsClient() {
             return (
               <KanbanCard
                 accent={PURCHASE_CART_STATUS_META[c.status]?.accent ?? "slate"}
-                title={c.supplier}
+                title={displayRef(c.ref, c.id, "PO")}
                 href={`/admin/purchase-carts/${c.id}`}
                 rightTop={<span className="text-sm font-bold text-slate-900">{money(c.subtotal)}</span>}
                 subtitle={
                   <>
-                    {c.lines.length} line{c.lines.length !== 1 ? "s" : ""}
-                    {c.branch_slug ? ` · ${c.branch_slug.replace(/[-_]/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase())}` : ""}
+                    {c.supplier} · {c.lines.length} line{c.lines.length !== 1 ? "s" : ""}
+                    {c.branch_slug ? ` · ${fmtBranch(c.branch_slug)}` : ""}
                     {c.classroom ? ` · ${c.classroom}` : ""}
                   </>
                 }
                 badges={showPriority ? [{ label: pr.label, accent: pr.accent }] : undefined}
                 meta={
-                  <>
-                    {c.ref && <span className="font-mono font-medium text-slate-500">{c.ref}</span>}
+                  <span className={c.expected_delivery_date && isOverdue(c) ? "font-semibold text-amber-600" : ""}>
                     {c.expected_delivery_date
-                      ? <span className={isOverdue(c) ? "font-semibold text-amber-600" : ""}>{fmtDate(c.expected_delivery_date)}{isOverdue(c) ? " · overdue" : ""}</span>
-                      : <span>{fmtDate(c.created_at)}</span>}
-                  </>
+                      ? `${fmtDate(c.expected_delivery_date)}${isOverdue(c) ? " · overdue" : ""}`
+                      : fmtDate(c.created_at)}
+                  </span>
                 }
                 progress={isPlaced(c.status) ? { value: receivedPct(c), accent: "green", label: `Received ${receivedFrac(c)}` } : undefined}
                 primary={
@@ -182,12 +184,13 @@ export default function AdminPurchaseCartsClient() {
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500"><tr>{["Date", "Supplier", "Lines", "Subtotal", "Status", "Expected", "Received", ""].map((h) => <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>)}</tr></thead>
+            <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500"><tr>{["Ref", "Date", "Supplier", "Lines", "Subtotal", "Status", "Expected", "Received", ""].map((h) => <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>)}</tr></thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-400">{carts.length === 0 ? "No purchase orders yet." : "No orders match this filter."}</td></tr>
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-slate-400">{carts.length === 0 ? "No purchase orders yet." : "No orders match this filter."}</td></tr>
               ) : filtered.map((c) => (
                 <tr key={c.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 font-mono text-xs font-medium text-slate-900">{displayRef(c.ref, c.id, "PO")}</td>
                   <td className="px-4 py-3 text-slate-500">{fmtDate(c.created_at)}</td>
                   <td className="px-4 py-3 font-medium text-slate-900">{c.supplier}</td>
                   <td className="px-4 py-3 text-slate-700">{c.lines.length}</td>

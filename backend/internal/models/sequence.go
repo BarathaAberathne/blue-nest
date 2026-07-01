@@ -7,6 +7,14 @@ import "fmt"
 const (
 	CounterOrderRequest = "order_request"
 	CounterPurchaseCart = "purchase_cart"
+	CounterOrder        = "order"
+)
+
+// Ref prefixes for each entity (human-readable ID = PREFIX-YEAR-NNNNNN).
+const (
+	RefPrefixOrderRequest = "SR"  // supply request
+	RefPrefixPurchaseCart = "PO"  // purchase order
+	RefPrefixOrder        = "ORD" // customer store order
 )
 
 // FormatRef builds a zero-padded reference, e.g. FormatRef("SR", 2026, 45) →

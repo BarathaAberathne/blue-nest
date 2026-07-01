@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { PURCHASE_CART_STATUS_META, priorityMeta } from "@/lib/admin-status";
+import { displayRef } from "@/lib/ref";
 import type { AccentName } from "@/lib/admin-theme";
 import type { PurchaseCart, PurchaseCartLine, PurchaseCartStatus } from "@/types";
 
@@ -285,7 +286,7 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="font-mono text-2xl font-extrabold tracking-tight text-slate-900">{cart.ref || `PO-${cart.id.slice(0, 8).toUpperCase()}`}</p>
+          <p className="font-mono text-2xl font-extrabold tracking-tight text-slate-900">{displayRef(cart.ref, cart.id, "PO")}</p>
           <p className="mt-0.5 text-sm text-slate-500">
             {cart.supplier}
             {cart.branch_slug ? ` · ${cart.branch_slug.replace(/[-_]/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase())}` : ""}

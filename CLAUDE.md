@@ -190,8 +190,13 @@ module's design record.
   statuses `placed`, `tracking`, `dispatched`, `completed` (extended the `OrderRequestStatus` /
   `PurchaseCartStatus` enums + `UpdateStatus` whitelists + Kanban lanes/metas in `lib/admin-status.ts`);
   **priority** + **classroom** on requests (POs inherit branch/classroom/priority from their source
-  requests); human **sequential IDs** (`SR-2026-000045`, `PO-2026-000123`) via an atomic `counters`
-  collection (`repository.CounterRepository` + `models.FormatRef`); Track/Receive **state machine** with a
+  requests); human **sequential IDs** — `SR-2026-000045` (requests), `PO-2026-000123` (purchase orders),
+  `ORD-2026-000042` (store orders, minted in `orderRepository.Create`) — via an atomic `counters`
+  collection (`repository.CounterRepository` + `models.FormatRef`, prefixes in `models/sequence.go`);
+  these `ref`s are the prominent identifier on every board card / table / CSV / detail header (frontend
+  `lib/ref.ts` `displayRef` falls back to an ObjectID-derived code for un-backfilled records). Legacy
+  records get refs via the idempotent **`make backfill-refs`** (`cmd/backfillrefs`, in created_at order).
+  Track/Receive **state machine** with a
   carrier **tracking-number** field (`PATCH /admin/purchase-carts/{id}/status` + `…/fulfillment`);
   Approve/Reject/Convert on the SR detail switcher and PO delivery-stage transitions + **Mark completed**.
 - **Phase 3 — Suppliers entity + analytics (DONE):** a real **Supplier** entity

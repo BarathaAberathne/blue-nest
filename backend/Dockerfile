@@ -13,6 +13,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o bin/api ./cmd/api
 # network). seedcatalogue embeds the Gompels order CSVs at build time.
 RUN CGO_ENABLED=0 GOOS=linux go build -o bin/seedusers ./cmd/seedusers
 RUN CGO_ENABLED=0 GOOS=linux go build -o bin/seedcatalogue ./cmd/seedcatalogue
+RUN CGO_ENABLED=0 GOOS=linux go build -o bin/backfillrefs ./cmd/backfillrefs
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
 FROM alpine:3.19
@@ -23,6 +24,7 @@ WORKDIR /app
 COPY --from=builder /app/bin/api .
 COPY --from=builder /app/bin/seedusers .
 COPY --from=builder /app/bin/seedcatalogue .
+COPY --from=builder /app/bin/backfillrefs .
 
 # Bake the seed images (backend/uploads/products/*) into the image so a fresh
 # `docker compose up` always has them, even when the uploads_data volume is

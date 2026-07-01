@@ -95,7 +95,7 @@ func (s *orderRequestService) Submit(ctx context.Context, userID string, req mod
 	}
 
 	orderReq := &models.OrderRequest{
-		Ref:              s.nextRef(ctx, models.CounterOrderRequest, "SR"),
+		Ref:              s.nextRef(ctx, models.CounterOrderRequest, models.RefPrefixOrderRequest),
 		UserID:           oid,
 		RequestedByName:  name,
 		RequestedByEmail: emailAddr,

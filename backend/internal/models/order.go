@@ -36,6 +36,7 @@ type ShippingAddress struct {
 
 type Order struct {
 	ID              primitive.ObjectID `bson:"_id,omitempty"    json:"id"`
+	Ref             string             `bson:"ref,omitempty"    json:"ref,omitempty"` // human ref e.g. ORD-2026-000042
 	UserID          primitive.ObjectID `bson:"user_id"          json:"user_id"`
 	Items           []OrderItem        `bson:"items"            json:"items"`
 	Status          OrderStatus        `bson:"status"           json:"status"`

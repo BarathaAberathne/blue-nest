@@ -96,6 +96,7 @@ export interface ShippingAddress {
 
 export interface Order {
   id: string;
+  ref?: string; // human ref e.g. ORD-2026-000042
   user_id: string;
   items: OrderItem[];
   status: OrderStatus;

@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { ORDER_REQUEST_STATUS_META, priorityMeta } from "@/lib/admin-status";
+import { displayRef } from "@/lib/ref";
 import type { OrderRequest, OrderRequestStatus } from "@/types";
 
 // Workflow order for the status switcher. Cancelled doubles as "reject".
@@ -72,7 +73,7 @@ export default function AdminOrderRequestDetailClient({ id }: { id: string }) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-heading font-bold text-gray-900">
-            {req.ref ? <span className="font-mono">{req.ref}</span> : "Supply Request"}
+            <span className="font-mono">{displayRef(req.ref, req.id, "SR")}</span>
           </h1>
           <p className="text-sm text-gray-500">{fmtDate(req.created_at)}</p>
         </div>

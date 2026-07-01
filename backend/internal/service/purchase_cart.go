@@ -68,7 +68,7 @@ func (s *purchaseCartService) nextRef(ctx context.Context) string {
 	if err != nil {
 		return ""
 	}
-	return models.FormatRef("PO", year, seq)
+	return models.FormatRef(models.RefPrefixPurchaseCart, year, seq)
 }
 
 // enrichFromRequests copies branch/classroom from the first source request and

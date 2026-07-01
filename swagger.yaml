@@ -1943,6 +1943,10 @@ components:
         id:
           type: string
           example: 507f1f77bcf86cd799439011
+        ref:
+          type: string
+          description: Human sequential reference
+          example: ORD-2026-000042
         user_id:
           type: string
           example: 507f1f77bcf86cd799439011

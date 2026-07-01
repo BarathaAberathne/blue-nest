@@ -12,6 +12,7 @@ import KanbanCard from "@/components/admin/ui/KanbanCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import ViewToggle from "@/components/admin/ui/ViewToggle";
 import { ORDER_REQUEST_LANES, ORDER_REQUEST_NEXT, ORDER_REQUEST_STATUS_META, PRIORITY_RANK, priorityMeta } from "@/lib/admin-status";
+import { displayRef } from "@/lib/ref";
 import type { OrderRequest, OrderRequestStatus, ProcurementPriority, PurchaseCart } from "@/types";
 
 function fmtBranch(branch: string) {
@@ -27,13 +28,14 @@ const money = (pence: number) => `£${(pence / 100).toFixed(2)}`;
 
 /** Flatten requests to one CSV row per item — the buy list to place real orders from. */
 function exportCsv(rows: OrderRequest[]) {
-  const headers = ["Date", "Requested By", "Branch", "Status", "Code", "Item", "Supplier", "Qty", "Item Notes"];
+  const headers = ["Ref", "Date", "Requested By", "Branch", "Status", "Code", "Item", "Supplier", "Qty", "Item Notes"];
   const escape = (v: string) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const lines: string[] = [];
   rows.forEach((req) => {
     req.items.forEach((it) => {
       lines.push(
         [
+          displayRef(req.ref, req.id, "SR"),
           new Date(req.created_at).toISOString(),
           req.requested_by_name || req.requested_by_email,
           fmtBranch(req.branch_slug),
@@ -297,16 +299,11 @@ export default function AdminOrderRequestsClient() {
             return (
               <KanbanCard
                 accent={ORDER_REQUEST_STATUS_META[r.status]?.accent ?? "slate"}
-                title={r.requested_by_name || r.requested_by_email || "Request"}
+                title={displayRef(r.ref, r.id, "SR")}
                 href={`/admin/order-requests/${r.id}`}
                 rightTop={showPriority ? <StageBadge label={pr.label} accent={pr.accent} withDot={false} /> : undefined}
-                subtitle={`${fmtBranch(r.branch_slug)}${r.classroom ? ` · ${r.classroom}` : ""} · ${r.items.length} item${r.items.length !== 1 ? "s" : ""}`}
-                meta={
-                  <>
-                    {r.ref && <span className="font-mono font-medium text-slate-500">{r.ref}</span>}
-                    <span>{fmtDate(r.created_at)}</span>
-                  </>
-                }
+                subtitle={`${r.requested_by_name || r.requested_by_email || "—"} · ${fmtBranch(r.branch_slug)}${r.classroom ? ` · ${r.classroom}` : ""} · ${r.items.length} item${r.items.length !== 1 ? "s" : ""}`}
+                meta={<span>{fmtDate(r.created_at)}</span>}
                 primary={next ? { label: `Mark ${ORDER_REQUEST_STATUS_META[next].label.toLowerCase()}`, onClick: () => changeStatus(r, next) } : undefined}
               />
             );
@@ -325,7 +322,7 @@ export default function AdminOrderRequestsClient() {
                   onChange={toggleAll}
                 />
               </th>
-              {["Date", "Requested By", "Branch", "Items", "Status", ""].map((h) => (
+              {["Ref", "Date", "Requested By", "Branch", "Items", "Status", ""].map((h) => (
                 <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>
               ))}
             </tr>
@@ -334,7 +331,7 @@ export default function AdminOrderRequestsClient() {
             {loading ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <tr key={i}>
-                  {Array.from({ length: 7 }).map((__, j) => (
+                  {Array.from({ length: 8 }).map((__, j) => (
                     <td key={j} className="px-4 py-3">
                       <div className="h-3.5 w-24 bg-gray-100 rounded animate-pulse" />
                     </td>
@@ -343,7 +340,7 @@ export default function AdminOrderRequestsClient() {
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-400 text-sm">
+                <td colSpan={8} className="px-4 py-8 text-center text-gray-400 text-sm">
                   {requests.length === 0 ? "No supply requests yet." : "No requests match your filters."}
                 </td>
               </tr>
@@ -358,6 +355,7 @@ export default function AdminOrderRequestsClient() {
                       onChange={() => toggle(r.id)}
                     />
                   </td>
+                  <td className="px-4 py-3 font-mono text-xs font-medium text-gray-900">{displayRef(r.ref, r.id, "SR")}</td>
                   <td className="px-4 py-3 text-gray-500">{fmtDate(r.created_at)}</td>
                   <td className="px-4 py-3 text-gray-900">
                     {r.requested_by_name || "—"}

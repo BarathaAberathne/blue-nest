@@ -61,7 +61,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	userRepo := repository.NewUserRepository(db)
 	productRepo := repository.NewProductRepository(db)
 	cartRepo := repository.NewCartRepository(db)
-	orderRepo := repository.NewOrderRepository(db)
+	counterRepo := repository.NewCounterRepository(db)
+	orderRepo := repository.NewOrderRepository(db, counterRepo)
 	blogRepo := repository.NewBlogRepository(db)
 	branchRepo := repository.NewBranchRepository(db)
 	commentRepo := repository.NewCommentRepository(db)
@@ -72,7 +73,6 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	catalogueRepo := repository.NewCatalogueItemRepository(db)
 	purchaseCartRepo := repository.NewPurchaseCartRepository(db)
 	orderTemplateRepo := repository.NewOrderTemplateRepository(db)
-	counterRepo := repository.NewCounterRepository(db)
 	supplierRepo := repository.NewSupplierRepository(db)
 	dashboardLayoutRepo := repository.NewDashboardLayoutRepository(db)
 	mailer := email.New(email.Config{

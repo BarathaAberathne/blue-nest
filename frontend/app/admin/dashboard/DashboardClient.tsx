@@ -12,6 +12,7 @@ import { usePermissions } from "@/lib/usePermissions";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { ORDER_STATUS_META } from "@/lib/admin-status";
+import { displayRef } from "@/lib/ref";
 import type { AccentName } from "@/lib/admin-theme";
 import type { BlogPost, DashboardWidget, Enquiry, Order, OrderRequest, Permission, ProcurementAnalytics, Product, UserRole } from "@/types";
 
@@ -196,11 +197,11 @@ export default function DashboardClient() {
               <p className="px-6 py-8 text-center text-sm text-slate-400">No orders yet. Orders will appear here once placed.</p>
             ) : (
               <table className="w-full text-sm">
-                <thead><tr className="bg-slate-50">{["Order ID", "Date", "Items", "Total", "Status", ""].map((h) => <th key={h} className="px-6 py-3 text-left text-[0.65rem] font-bold uppercase tracking-widest text-slate-400">{h}</th>)}</tr></thead>
+                <thead><tr className="bg-slate-50">{["Ref", "Date", "Items", "Total", "Status", ""].map((h) => <th key={h} className="px-6 py-3 text-left text-[0.65rem] font-bold uppercase tracking-widest text-slate-400">{h}</th>)}</tr></thead>
                 <tbody className="divide-y divide-slate-50">
                   {recentOrders.map((o) => (
                     <tr key={o.id} className="transition-colors hover:bg-slate-50">
-                      <td className="px-6 py-3.5 font-mono text-xs font-medium text-slate-700">{o.id.slice(0, 8).toUpperCase()}</td>
+                      <td className="px-6 py-3.5 font-mono text-xs font-medium text-slate-700">{displayRef(o.ref, o.id, "ORD")}</td>
                       <td className="px-6 py-3.5 text-xs text-slate-500">{fmtDate(o.created_at)}</td>
                       <td className="px-6 py-3.5 text-xs text-slate-500">{o.items?.length ?? 0} item{(o.items?.length ?? 0) !== 1 ? "s" : ""}</td>
                       <td className="px-6 py-3.5 font-semibold text-slate-800">{fmt(o.total_amount)}</td>

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -28,11 +29,12 @@ type OrderRepository interface {
 }
 
 type orderRepository struct {
-	col *mongo.Collection
+	col     *mongo.Collection
+	counter CounterRepository
 }
 
-func NewOrderRepository(db *mongo.Database) OrderRepository {
-	return &orderRepository{col: db.Collection("orders")}
+func NewOrderRepository(db *mongo.Database, counter CounterRepository) OrderRepository {
+	return &orderRepository{col: db.Collection("orders"), counter: counter}
 }
 
 func (r *orderRepository) FindAll(ctx context.Context) ([]models.Order, error) {
@@ -155,6 +157,14 @@ func (r *orderRepository) Create(ctx context.Context, order models.Order) (*mode
 	order.ID = primitive.NewObjectID()
 	order.CreatedAt = time.Now()
 	order.UpdatedAt = order.CreatedAt
+	// Mint a human-readable reference (best-effort — a counter hiccup must never
+	// block an order/payment; the display layer falls back to a short id).
+	if order.Ref == "" && r.counter != nil {
+		year := order.CreatedAt.Year()
+		if seq, err := r.counter.Next(ctx, fmt.Sprintf("%s-%d", models.CounterOrder, year)); err == nil {
+			order.Ref = models.FormatRef(models.RefPrefixOrder, year, seq)
+		}
+	}
 	_, err := r.col.InsertOne(ctx, order)
 	if err != nil {
 		return nil, err

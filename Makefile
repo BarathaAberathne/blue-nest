@@ -167,6 +167,18 @@ seed-users:
 seed-all: seed-products seed-branches seed-catalogue seed-users
 	@echo "✓ All seeds complete"
 
+# One-off migration: assign human-readable refs (SR-/PO-/ORD-) to records created
+# before the reference feature. Idempotent — only touches docs missing a ref.
+backfill-refs:
+	@echo "→ Backfilling human-readable references (SR / PO / ORD)..."
+	@if docker compose ps backend --status running --quiet 2>/dev/null | grep -q .; then \
+	  echo "  using running backend container"; \
+	  docker compose exec backend ./backfillrefs; \
+	else \
+	  echo "  no backend container running → falling back to local Go toolchain"; \
+	  cd backend && go run ./cmd/backfillrefs; \
+	fi
+
 # ── Frontend image optimisation ──────────────────────────────────────────────
 # One-shot pass that resizes any /public image wider than 1920px down to 1920,
 # re-encodes JPEGs/PNGs with sane quality, and produces .webp siblings for
