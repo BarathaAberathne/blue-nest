@@ -156,21 +156,3 @@ func (h *AdminPurchaseCartHandler) Receive(w http.ResponseWriter, r *http.Reques
 		fmt.Sprintf("Recorded goods received (%s)", cart.Status), nil)
 	response.OK(w, cart)
 }
-
-// Send emails the cart to the supplier and marks the covered requests ordered.
-func (h *AdminPurchaseCartHandler) Send(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	var body struct {
-		RecipientEmail string `json:"recipient_email"`
-	}
-	_ = validator.DecodeJSON(r, &body) // optional override
-
-	sent, err := h.svc.Send(r.Context(), id, body.RecipientEmail)
-	if err != nil {
-		response.BadRequest(w, err.Error())
-		return
-	}
-	h.audit.Record(r, "send", "purchase_cart", id,
-		"Emailed "+sent.Supplier+" order to "+sent.RecipientEmail, nil)
-	response.OK(w, sent)
-}

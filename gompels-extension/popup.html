@@ -32,6 +32,8 @@
 
       button { width: 100%; margin-top: 10px; padding: 8px; border: 0; border-radius: 8px; background: #0f172a; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
       button:disabled { opacity: .5; cursor: default; }
+      button.secondary { margin-top: 8px; background: #fff; color: #b91c1c; border: 1px solid #fecaca; }
+      button.secondary:hover { background: #fef2f2; }
       .empty { padding: 16px 0; text-align: center; }
       .hint { margin-top: 8px; font-size: 11px; }
       label.opt { display: flex; align-items: center; gap: 6px; margin-top: 10px; cursor: pointer; font-size: 11px; color: #6b7280; }
@@ -40,9 +42,10 @@
   <body>
     <h1><span class="dot"></span> Blue Nest → Gompels cart</h1>
     <div id="content">
-      <div class="empty muted">No order queued. In the Blue Nest admin, open a generated Gompels purchase order and click “Add to Gompels cart”.</div>
+      <div class="empty muted">No order queued. In the Blue Nest admin, create a New order (or open a generated Gompels purchase order and click “Send to Gompels cart”). You can still empty your basket below.</div>
     </div>
     <button id="fill" hidden>Fill cart now</button>
+    <button id="clear" class="secondary" title="Empty your Gompels basket without filling — then re-run the fill from the Blue Nest order.">Clear Gompels cart</button>
     <p id="hint" class="hint muted" hidden>Make sure you’re on the Gompels Quick Order page and logged in.</p>
     <label class="opt">
       <input type="checkbox" id="autostart" /> Auto-fill when the Gompels tab opens

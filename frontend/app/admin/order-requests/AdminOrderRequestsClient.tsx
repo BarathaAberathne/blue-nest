@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Columns3, Download, ShoppingCart, Table2, Wand2, X, Zap } from "lucide-react";
+import { Columns3, Download, Table2, Wand2, X, Zap } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import ProcurementTabs from "@/components/admin/procurement/ProcurementTabs";
@@ -149,48 +149,6 @@ export default function AdminOrderRequestsClient() {
       prev.size === filtered.length ? new Set() : new Set(filtered.map((r) => r.id)),
     );
 
-  const generateCart = async () => {
-    const token = getAccessToken();
-    if (!token || selected.size === 0) return;
-    setGenerating(true);
-    setError(null);
-    try {
-      await api.adminGenerateCart(token, [...selected]);
-      router.push("/admin/purchase-carts");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate cart");
-      setGenerating(false);
-    }
-  };
-
-  // Generate the carts and immediately hand the Gompels one to the extension,
-  // then open it so the admin can review on the basket page.
-  const generateAndPush = async () => {
-    const token = getAccessToken();
-    if (!token || selected.size === 0) return;
-    setGenerating(true);
-    setError(null);
-    try {
-      const carts = (await api.adminGenerateCart(token, [...selected])) as PurchaseCart[];
-      const gompels = (carts || []).find((c) => c.supplier === "Gompels");
-      if (!gompels) {
-        router.push("/admin/purchase-carts");
-        return;
-      }
-      const lines = gompels.lines
-        .filter((l) => (l.name || "").trim())
-        .map((l) => ({ code: l.code || "", qty: l.qty, name: l.name, catalogue_item_id: l.catalogue_item_id || "" }));
-      window.postMessage(
-        { source: "bluenest-app", type: "BLUENEST_GOMPELS_ORDER", cart_id: gompels.id, lines },
-        window.location.origin,
-      );
-      router.push(`/admin/purchase-carts/${gompels.id}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate & push");
-      setGenerating(false);
-    }
-  };
-
   // ── Guided "New order" wizard ──────────────────────────────────
   const selectedRequests = useMemo(
     () => requests.filter((r) => selected.has(r.id)),
@@ -216,6 +174,20 @@ export default function AdminOrderRequestsClient() {
     return [...bySupplier.entries()].map(([supplier, items]) => ({ supplier, items: [...items.values()] }));
   }, [selectedRequests]);
 
+  // Hand a generated Gompels cart to the browser extension — it opens the
+  // Gompels Quick Order tab and auto-fills the basket (see the extension's
+  // auto-start). Fire-and-forget: no navigation, so the wizard stays open.
+  const pushCartToExtension = (cart: PurchaseCart) => {
+    const lines = cart.lines
+      .filter((l) => (l.name || "").trim())
+      .map((l) => ({ code: l.code || "", qty: l.qty, name: l.name, catalogue_item_id: l.catalogue_item_id || "" }));
+    if (lines.length === 0) return;
+    window.postMessage(
+      { source: "bluenest-app", type: "BLUENEST_GOMPELS_ORDER", cart_id: cart.id, lines },
+      window.location.origin,
+    );
+  };
+
   const wizardRunGenerate = async () => {
     const token = getAccessToken();
     if (!token || selected.size === 0) return;
@@ -224,24 +196,16 @@ export default function AdminOrderRequestsClient() {
     try {
       const carts = (await api.adminGenerateCart(token, [...selected])) as PurchaseCart[];
       setGeneratedCarts(carts || []);
+      // Auto-hand the Gompels order to the extension → it opens the Gompels cart
+      // and fills the products automatically. No email step; the admin reviews &
+      // pays (or e-mails the basket) on Gompels itself.
+      (carts || []).filter((c) => c.supplier === "Gompels").forEach(pushCartToExtension);
       setWizardStep("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate orders");
     } finally {
       setGenerating(false);
     }
-  };
-
-  // Push a generated Gompels cart to the extension and open it.
-  const wizardPushCart = (cart: PurchaseCart) => {
-    const lines = cart.lines
-      .filter((l) => (l.name || "").trim())
-      .map((l) => ({ code: l.code || "", qty: l.qty, name: l.name, catalogue_item_id: l.catalogue_item_id || "" }));
-    window.postMessage(
-      { source: "bluenest-app", type: "BLUENEST_GOMPELS_ORDER", cart_id: cart.id, lines },
-      window.location.origin,
-    );
-    router.push(`/admin/purchase-carts/${cart.id}`);
   };
 
   const closeWizard = () => {
@@ -271,25 +235,6 @@ export default function AdminOrderRequestsClient() {
           >
             <Wand2 className="h-4 w-4" />
             {`New order${selected.size ? ` (${selected.size})` : ""}`}
-          </button>
-          <button
-            type="button"
-            onClick={generateCart}
-            disabled={selected.size === 0 || generating}
-            title="Quick: generate the draft cart(s) and go to Purchase Orders"
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ShoppingCart className="h-4 w-4" />
-            {generating ? "Generating…" : "Generate cart"}
-          </button>
-          <button
-            type="button"
-            onClick={generateAndPush}
-            disabled={selected.size === 0 || generating}
-            title="Quick: generate the cart and push it straight to Gompels (needs the extension)"
-            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Zap className="h-4 w-4" /> Generate &amp; push
           </button>
           <button
             type="button"
@@ -500,8 +445,10 @@ export default function AdminOrderRequestsClient() {
               {wizardStep === "done" && (
                 <>
                   <p className="mb-4 text-sm text-gray-600">
-                    {generatedCarts.length} order(s) created as drafts. Place each with its supplier — push a
-                    Gompels order to your logged-in cart, or open it to email / track.
+                    {generatedCarts.length}{" "}
+                    order(s) created as drafts. The Gompels order has been sent to the browser extension — it
+                    opens your logged-in Gompels cart and fills the products automatically. Review &amp; pay
+                    (or e-mail the basket) on Gompels; open an order here to track delivery.
                   </p>
                   <div className="space-y-2">
                     {generatedCarts.map((c) => (
@@ -512,8 +459,8 @@ export default function AdminOrderRequestsClient() {
                         </div>
                         <div className="flex items-center gap-2">
                           {c.supplier === "Gompels" && (
-                            <button type="button" onClick={() => wizardPushCart(c)} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800">
-                              <Zap className="h-3.5 w-3.5" /> Push to Gompels
+                            <button type="button" onClick={() => pushCartToExtension(c)} title="Re-send this order to the Gompels extension (if the cart didn't open or fill)" className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800">
+                              <Zap className="h-3.5 w-3.5" /> Re-send to Gompels
                             </button>
                           )}
                           <Link href={`/admin/purchase-carts/${c.id}`} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">

@@ -4,12 +4,14 @@
 
 const contentEl = document.getElementById("content");
 const fillBtn = document.getElementById("fill");
+const clearBtn = document.getElementById("clear");
 const hintEl = document.getElementById("hint");
 const autostartEl = document.getElementById("autostart");
 
-// Auto-start setting (fill as soon as the Gompels tab opens).
+// Auto-start setting (fill as soon as the Gompels tab opens). Defaults ON — the
+// Blue Nest wizard hands an order over and expects it to fill automatically.
 chrome.storage.local.get("settings", ({ settings }) => {
-  autostartEl.checked = !!settings?.autoStart;
+  autostartEl.checked = settings?.autoStart !== false;
 });
 autostartEl.addEventListener("change", () => {
   chrome.storage.local.get("settings", ({ settings }) => {
@@ -102,7 +104,9 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes.order) render(changes.order.newValue);
 });
 
-fillBtn.addEventListener("click", () => {
+// Find the open Gompels tab (prefer the Quick Order page), focus it, and send it
+// a message. Shared by "Fill cart now" and "Clear Gompels cart".
+function withGompelsTab(message) {
   chrome.tabs.query({ url: "https://www.gompels.co.uk/*" }, (tabs) => {
     const tab = tabs.find((t) => (t.url || "").includes("quick-add")) || tabs[0];
     if (!tab) {
@@ -111,7 +115,7 @@ fillBtn.addEventListener("click", () => {
       return;
     }
     chrome.tabs.update(tab.id, { active: true });
-    chrome.tabs.sendMessage(tab.id, { type: "BLUENEST_START_FILL" }, () => {
+    chrome.tabs.sendMessage(tab.id, message, () => {
       // ignore response; progress comes via storage
       if (chrome.runtime.lastError) {
         hintEl.textContent = "Couldn’t reach the Gompels page — reload it and try again.";
@@ -119,4 +123,12 @@ fillBtn.addEventListener("click", () => {
       }
     });
   });
+}
+
+fillBtn.addEventListener("click", () => withGompelsTab({ type: "BLUENEST_START_FILL" }));
+
+// Empty the Gompels basket without filling — reset the cart, then re-run the fill.
+clearBtn.addEventListener("click", () => {
+  hintEl.hidden = true;
+  withGompelsTab({ type: "BLUENEST_CLEAR_CART" });
 });

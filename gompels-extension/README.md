@@ -6,10 +6,11 @@ never pays — it stops once the cart is filled, so you review and pay (or use
 Gompels' own "email basket") yourself.
 
 ## How it works
-1. In the Blue Nest admin, open a generated **Gompels** cart (`/admin/purchase-carts/{id}`)
-   and click **Add to Gompels cart**.
-2. The extension receives the order, opens the Gompels **Quick Order** page
-   (`gompels.co.uk/quick-add.html`), and you click the extension icon → **Fill cart now**.
+1. In the Blue Nest admin, run the **New order** wizard on `/admin/order-requests` (or open a
+   generated **Gompels** cart at `/admin/purchase-carts/{id}` and click **Send to Gompels cart**).
+2. The extension receives the order and opens the Gompels **Quick Order** page
+   (`gompels.co.uk/quick-add.html`), then **fills automatically** (auto-fill is on by default; the
+   popup's **Fill cart now** re-runs it manually).
 3. It first **empties your Gompels basket** (server-side: it reads the basket page and removes every
    line via Magento's delete, using your logged-in session), then reloads Quick Order and adds the
    items. So a re-run never collides with leftovers. (If clearing can't run, the fill still proceeds.)
@@ -36,7 +37,9 @@ The **popup** shows live progress: a summary bar with counts and a per-line list
 (**added**, **substituted** when an unavailable code fell back to a search match, **not found** when
 nothing matched). Already-in-basket items have their quantity **increased** rather than duplicated.
 
-Tip: enable **Auto-fill when the Gompels tab opens** in the popup to skip the "Fill cart now" click.
+Tip: **Auto-fill when the Gompels tab opens** is on by default (untick it in the popup to fill
+manually with **Fill cart now**). The popup's **Clear Gompels cart** button empties your basket
+without filling — handy to reset and re-run a fill from a fresh basket.
 
 ## Install (unpacked, Developer Mode)
 1. Open `chrome://extensions`.

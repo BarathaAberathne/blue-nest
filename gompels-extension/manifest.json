@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Blue Nest → Gompels cart",
-  "version": "0.6.1",
-  "description": "Adds a generated Blue Nest supply order into your logged-in Gompels Quick Order cart.",
+  "version": "0.7.0",
+  "description": "Adds a generated Blue Nest supply order into your logged-in Gompels Quick Order cart, and clears it on demand.",
   "permissions": ["storage", "tabs"],
   "host_permissions": [
     "https://www.gompels.co.uk/*",

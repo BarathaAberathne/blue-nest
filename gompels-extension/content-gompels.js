@@ -343,9 +343,19 @@
       await runFill();
     } else if (order.status === "clearing") {
       await beginFill(); // interrupted mid-clear — restart cleanly
-    } else if (order.status === "queued" && settings?.autoStart) {
+    } else if (order.status === "queued" && settings?.autoStart !== false) {
+      // Auto-start by default: an order handed over by the Blue Nest wizard fills
+      // the Gompels cart automatically. Tick off "Auto-fill" in the popup to opt out.
       await beginFill();
     }
+  }
+
+  // Manually empty the Gompels basket (popup "Clear cart" button) without filling
+  // anything — lets the admin reset the cart and re-trigger a fresh fill.
+  async function clearBasketOnly() {
+    await clearBasketViaFetch();
+    // Reload so the grid/basket reflects the now-empty cart.
+    location.reload();
   }
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -356,6 +366,11 @@
         else beginFill(); // queued / done / clearing → fresh clear + fill
         sendResponse({ ok: true });
       });
+      return true;
+    }
+    if (msg?.type === "BLUENEST_CLEAR_CART") {
+      clearBasketOnly(); // empties the basket + reloads (no fill)
+      sendResponse({ ok: true });
       return true;
     }
     return false;
