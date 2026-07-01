@@ -445,9 +445,10 @@ export default function AdminOrderRequestsClient() {
               {wizardStep === "done" && (
                 <>
                   <p className="mb-4 text-sm text-gray-600">
-                    {generatedCarts.length} order(s) created as drafts. The Gompels order has been sent to the
-                    browser extension — it opens your logged-in Gompels cart and fills the products automatically.
-                    Review &amp; pay (or e-mail the basket) on Gompels; open an order here to track delivery.
+                    {generatedCarts.length}{" "}
+                    order(s) created as drafts. The Gompels order has been sent to the browser extension — it
+                    opens your logged-in Gompels cart and fills the products automatically. Review &amp; pay
+                    (or e-mail the basket) on Gompels; open an order here to track delivery.
                   </p>
                   <div className="space-y-2">
                     {generatedCarts.map((c) => (

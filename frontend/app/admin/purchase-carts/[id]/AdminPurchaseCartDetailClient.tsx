@@ -437,9 +437,10 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
           ) : (
             <>
               <p className="text-sm text-gray-600 mb-4">
-                Place the {cart.supplier} order by pushing it straight into your logged-in Gompels cart with
-                the browser extension. It opens the Gompels basket and fills the products automatically — then
-                review &amp; pay (or e-mail the basket) on Gompels.
+                Place the {cart.supplier}{" "}
+                order by pushing it straight into your logged-in Gompels cart with the browser extension. It
+                opens the Gompels basket and fills the products automatically — then review &amp; pay (or
+                e-mail the basket) on Gompels.
               </p>
               {/* Pre-push review: how the lines will resolve + estimated value. */}
               <div className="mb-4 grid max-w-md grid-cols-3 gap-2 text-center">
@@ -465,8 +466,9 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
                 </>
               ) : (
                 <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-                  {cart.supplier} has no automated ordering — place this order manually with the supplier
-                  (use the buy-list CSV), then advance it through Track / Receive as it arrives.
+                  {cart.supplier}{" "}
+                  has no automated ordering — place this order manually with the supplier (use the buy-list
+                  CSV), then advance it through Track / Receive as it arrives.
                 </p>
               )}
             </>
