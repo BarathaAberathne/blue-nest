@@ -4,15 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight, BookOpen, ClipboardList, Eye, EyeOff, GripVertical, Inbox, Maximize2,
-  Minimize2, Package, PoundSterling, RotateCcw, Settings2, ShoppingCart,
+  Minimize2, Package, PoundSterling, RotateCcw, Settings2, ShoppingCart, Truck,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken, getAuthUser } from "@/lib/auth";
+import { usePermissions } from "@/lib/usePermissions";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { ORDER_STATUS_META } from "@/lib/admin-status";
 import type { AccentName } from "@/lib/admin-theme";
-import type { BlogPost, DashboardWidget, Enquiry, Order, OrderRequest, Product, UserRole } from "@/types";
+import type { BlogPost, DashboardWidget, Enquiry, Order, OrderRequest, Permission, ProcurementAnalytics, Product, UserRole } from "@/types";
 
 const fmtBranch = (b: string) => (b ? b.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "");
 
@@ -30,11 +31,13 @@ const WIDGET_TITLES: Record<string, string> = {
 const DEFAULT_ORDER = ["kpis", "lowstock", "recent-orders", "quick-actions"];
 
 export default function DashboardClient() {
+  const { has, ready: permsReady } = usePermissions();
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [inquiries, setInquiries] = useState<Enquiry[]>([]);
   const [orderRequests, setOrderRequests] = useState<OrderRequest[]>([]);
+  const [analytics, setAnalytics] = useState<ProcurementAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,22 +46,31 @@ export default function DashboardClient() {
   const [editing, setEditing] = useState(false);
   const [dragKey, setDragKey] = useState<string | null>(null);
 
+  // Fetch only the data sources the caller is permitted to read (so specialist
+  // roles get their scoped KPIs instead of a wall of 403s). Waits for the
+  // permission set to resolve so we request exactly the right subset.
   useEffect(() => {
+    if (!permsReady) return;
     const token = getAccessToken();
     if (!token) { setError("Not authenticated"); setLoading(false); return; }
-    Promise.allSettled([
-      api.adminGetOrders(token), api.adminGetProducts(token), api.adminGetBlogPosts(token),
-      api.adminGetEnquiries(token), api.adminGetOrderRequests(token), api.getDashboardLayout(token),
-    ]).then(([ordersRes, productsRes, postsRes, inquiriesRes, orderReqRes, layoutRes]) => {
-      if (ordersRes.status === "fulfilled") setOrders((ordersRes.value as Order[]) ?? []);
-      if (productsRes.status === "fulfilled") setProducts((productsRes.value as Product[]) ?? []);
-      if (postsRes.status === "fulfilled") setPosts((postsRes.value as BlogPost[]) ?? []);
-      if (inquiriesRes.status === "fulfilled") setInquiries((inquiriesRes.value as Enquiry[]) ?? []);
-      if (orderReqRes.status === "fulfilled") setOrderRequests((orderReqRes.value as OrderRequest[]) ?? []);
-      if (layoutRes.status === "fulfilled") setLayout((layoutRes.value?.widgets as DashboardWidget[]) ?? []);
-      setLoading(false);
-    });
-  }, []);
+
+    const jobs: Promise<void>[] = [];
+    const run = <T,>(p: Promise<T>, set: (v: T) => void) => {
+      jobs.push(p.then((v) => set(v)).catch(() => { /* best-effort per source */ }));
+    };
+
+    run(api.getDashboardLayout(token), (v) => setLayout((v?.widgets as DashboardWidget[]) ?? []));
+    if (has("store.manage")) {
+      run(api.adminGetOrders(token), (v) => setOrders((v as Order[]) ?? []));
+      run(api.adminGetProducts(token), (v) => setProducts((v as Product[]) ?? []));
+    }
+    if (has("blog.manage")) run(api.adminGetBlogPosts(token), (v) => setPosts((v as BlogPost[]) ?? []));
+    if (has("enquiries.manage")) run(api.adminGetEnquiries(token), (v) => setInquiries((v as Enquiry[]) ?? []));
+    if (has("procurement.manage")) run(api.adminGetOrderRequests(token), (v) => setOrderRequests((v as OrderRequest[]) ?? []));
+    if (has("finance.view")) run(api.adminGetProcurementAnalytics(token), (v) => setAnalytics((v as ProcurementAnalytics) ?? null));
+
+    Promise.allSettled(jobs).then(() => setLoading(false));
+  }, [permsReady, has]);
 
   // Merge the saved layout with the default widget set: saved widgets keep their
   // order/hidden/size; any new widget not yet in the layout is appended visible.
@@ -113,17 +125,27 @@ export default function DashboardClient() {
   const recentOrders = [...orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
   const lowStockProducts = products.filter((p) => p.stock_qty < (p.reorder_point ?? 100));
 
-  const ALL: UserRole[] = ["super_admin", "admin", "branch_manager"];
-  const FULL: UserRole[] = ["super_admin", "admin"];
-  const kpis: { label: string; value: string; sub?: string; icon: React.ElementType; accent: AccentName; href: string; progress?: number; roles: UserRole[] }[] = [
-    { label: "New Inquiries", value: String(newInquiries.length), sub: `${scopedInquiries.length} total received`, icon: Inbox, accent: "blue", href: "/admin/inquiries", roles: ALL },
-    { label: "Pending Requests", value: String(pendingRequests.length), sub: `${scopedRequests.length} supply requests total`, icon: ClipboardList, accent: "rose", href: "/admin/order-requests", roles: ALL },
-    { label: "Total Orders", value: String(orders.length), sub: `${paidOrders.length} paid / fulfilled`, icon: ShoppingCart, accent: "teal", href: "/admin/orders", progress: pct(paidOrders.length, orders.length), roles: ALL },
-    { label: "Revenue", value: fmt(revenue), sub: "from paid & fulfilled orders", icon: PoundSterling, accent: "violet", href: "/admin/orders", roles: FULL },
-    { label: "Active Products", value: String(activeProducts.length), sub: `${products.length} total in catalogue`, icon: Package, accent: "amber", href: "/admin/products", progress: pct(activeProducts.length, products.length), roles: FULL },
-    { label: "Blog Posts", value: String(publishedPosts.length), sub: `${posts.length} total (incl. drafts)`, icon: BookOpen, accent: "sky", href: "/admin/blog", roles: FULL },
+  // Pending requests: prefer the branch-scoped list (procurement.manage); fall
+  // back to the analytics roll-up (finance.view) for roles without list access.
+  const hasRequestList = orderRequests.length > 0 || has("procurement.manage");
+  const pendingRequestsValue = hasRequestList ? pendingRequests.length : (analytics?.pending_requests ?? 0);
+  const requestsSub = hasRequestList
+    ? `${scopedRequests.length} supply requests total`
+    : `${analytics?.total_requests ?? 0} supply requests total`;
+
+  // Each KPI declares the permission that gates BOTH its data source and its
+  // visibility, so specialist roles only see the cards they can populate.
+  const kpis: { label: string; value: string; sub?: string; icon: React.ElementType; accent: AccentName; href: string; progress?: number; permission: Permission }[] = [
+    { label: "New Inquiries", value: String(newInquiries.length), sub: `${scopedInquiries.length} total received`, icon: Inbox, accent: "blue", href: "/admin/inquiries", permission: "enquiries.manage" },
+    { label: "Pending Requests", value: String(pendingRequestsValue), sub: requestsSub, icon: ClipboardList, accent: "rose", href: "/admin/order-requests", permission: "procurement.view" },
+    { label: "Procurement Spend", value: fmt(analytics?.total_spend ?? 0), sub: `${analytics?.total_orders ?? 0} purchase orders`, icon: PoundSterling, accent: "teal", href: "/admin/procurement/analytics", permission: "finance.view" },
+    { label: "Overdue Orders", value: String(analytics?.overdue_orders ?? 0), sub: "awaiting delivery past due", icon: Truck, accent: "orange", href: "/admin/purchase-carts", permission: "finance.view" },
+    { label: "Total Orders", value: String(orders.length), sub: `${paidOrders.length} paid / fulfilled`, icon: ShoppingCart, accent: "teal", href: "/admin/orders", progress: pct(paidOrders.length, orders.length), permission: "store.manage" },
+    { label: "Revenue", value: fmt(revenue), sub: "from paid & fulfilled orders", icon: PoundSterling, accent: "violet", href: "/admin/orders", permission: "store.manage" },
+    { label: "Active Products", value: String(activeProducts.length), sub: `${products.length} total in catalogue`, icon: Package, accent: "amber", href: "/admin/products", progress: pct(activeProducts.length, products.length), permission: "store.manage" },
+    { label: "Blog Posts", value: String(publishedPosts.length), sub: `${posts.length} total (incl. drafts)`, icon: BookOpen, accent: "sky", href: "/admin/blog", permission: "blog.manage" },
   ];
-  const visibleKpis = kpis.filter((k) => k.roles.includes(role));
+  const visibleKpis = kpis.filter((k) => has(k.permission));
 
   // ── Widget bodies ──────────────────────────────────────────────────────────
   const renderWidget = (key: string, size: DashboardWidget["size"]) => {
@@ -132,8 +154,10 @@ export default function DashboardClient() {
         return (
           <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${size === "wide" ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
             {loading
-              ? Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-32 animate-pulse rounded-2xl bg-slate-100" />)
-              : visibleKpis.map(({ roles: _roles, ...k }) => <StatCard key={k.label} {...k} />)}
+              ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-32 animate-pulse rounded-2xl bg-slate-100" />)
+              : visibleKpis.length === 0
+                ? <p className="text-sm text-slate-400">No metrics available for your role.</p>
+                : visibleKpis.map(({ permission: _p, ...k }) => <StatCard key={k.label} {...k} />)}
           </div>
         );
       case "lowstock":
@@ -155,6 +179,7 @@ export default function DashboardClient() {
           </div>
         );
       case "recent-orders":
+        if (!has("store.manage")) return null;
         return (
           <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
@@ -188,21 +213,28 @@ export default function DashboardClient() {
             )}
           </div>
         );
-      case "quick-actions":
+      case "quick-actions": {
+        // Only surface actions the user can actually perform.
+        const actions = ([
+          { label: "Manage Products", href: "/admin/products", permission: "store.manage" as Permission },
+          { label: "Manage Categories", href: "/admin/categories", permission: "store.manage" as Permission },
+          { label: "Supply Requests", href: "/admin/order-requests", permission: "procurement.view" as Permission },
+          { label: "Suppliers", href: "/admin/procurement/suppliers", permission: "suppliers.manage" as Permission },
+          { label: "Review Inquiries", href: "/admin/inquiries", permission: "enquiries.manage" as Permission },
+          { label: "Write Blog Post", href: "/admin/blog", permission: "blog.manage" as Permission },
+          { label: "Manage Users", href: "/admin/users", permission: "users.manage" as Permission },
+        ]).filter((a) => has(a.permission)).slice(0, 4);
+        if (actions.length === 0) return null;
         return (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[
-              { label: "Manage Products", href: "/admin/products" },
-              { label: "Manage Categories", href: "/admin/categories" },
-              { label: "Write Blog Post", href: "/admin/blog" },
-              { label: "Manage Users", href: "/admin/users" },
-            ].map((a) => (
+            {actions.map((a) => (
               <Link key={a.href} href={a.href} className="flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-white px-4 py-3.5 text-sm font-medium text-slate-700 shadow-sm transition-all hover:text-teal-700 hover:shadow-md">
                 {a.label}<ArrowRight className="h-4 w-4 shrink-0 text-slate-300" />
               </Link>
             ))}
           </div>
         );
+      }
       default:
         return null;
     }
