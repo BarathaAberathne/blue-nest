@@ -203,10 +203,27 @@ func (s *purchaseCartService) SetStatus(ctx context.Context, id, status string) 
 	if !models.IsValidPurchaseCartStatus(status) {
 		return nil, errors.New("invalid status")
 	}
+	cart, err := s.carts.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	wasPlaced := cart.IsPlaced()
 	if err := s.carts.SetStatus(ctx, id, status); err != nil {
 		return nil, err
 	}
-	return s.carts.FindByID(ctx, id)
+	updated, err := s.carts.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	// First time a draft order becomes placed (e.g. "Send to Gompels cart"),
+	// flip its covered supply requests to "ordered" — same as the email/extension
+	// paths. Idempotent, so the extension's later /exported callback is harmless.
+	if !wasPlaced && updated.IsPlaced() {
+		for _, rid := range cart.SourceRequestIDs {
+			_ = s.requests.UpdateStatus(ctx, rid, string(models.OrderRequestOrdered))
+		}
+	}
+	return updated, nil
 }
 
 // sourceLine resolves a single request line to its best (cheapest) supplier offer.

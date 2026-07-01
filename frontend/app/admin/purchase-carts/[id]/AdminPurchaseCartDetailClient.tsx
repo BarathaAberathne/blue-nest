@@ -170,13 +170,24 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
 
     // Only claim success once the extension acknowledges receipt — avoids the
     // misleading "Sent" message when the extension isn't actually running here.
+    // On ACK we mark the order placed server-side (the extension has opened the
+    // Gompels cart), which unlocks the Track/Receive steps for real.
     let acked = false;
-    const onAck = (e: MessageEvent) => {
+    const onAck = async (e: MessageEvent) => {
       if (e.source === window && e.data?.source === "bluenest-ext" && e.data?.type === "BLUENEST_GOMPELS_ACK") {
         acked = true;
         window.removeEventListener("message", onAck);
         setPlacedLocally(true);
-        setNotice(`Items sent to the Gompels extension. Open the Gompels tab and click “Fill cart now”, then review & pay there. Track and Receive are now unlocked.`);
+        const token = getAccessToken();
+        try {
+          if (token) {
+            const updated = await api.adminUpdatePurchaseCartStatus(token, id, "placed");
+            load(updated as PurchaseCart);
+          }
+          setNotice(`Sent to the Gompels extension and marked as placed. Open the Gompels tab and click “Fill cart now” to review & pay, then add the delivery details below and mark received when it arrives.`);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Sent to the extension, but couldn’t mark the order placed. Try again.");
+        }
       }
     };
     window.addEventListener("message", onAck);
@@ -455,22 +466,30 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
                     <button type="button" onClick={onAddToGompels} className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
                       <ShoppingCart className="h-4 w-4" /> Send to Gompels cart
                     </button>
+                    <button type="button" onClick={() => onSetStatus("placed")} disabled={savingStatus} className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                      <Check className="h-4 w-4" /> Mark as placed
+                    </button>
                   </div>
                   <p className="mt-2 text-xs text-gray-400">
                     {extDetected
                       ? "Blue Nest → Gompels extension detected ✓ — "
                       : "Needs the Blue Nest → Gompels browser extension — "}
-                    items are added to your logged-in Gompels cart (lines without a code are searched by
-                    description for the cheapest match), then it opens the Gompels basket to review &amp; pay
-                    or e-mail the basket.
+                    “Send to Gompels cart” fills your logged-in Gompels basket (lines without a code are
+                    searched by description) and marks this order placed. Already ordered another way? Use
+                    “Mark as placed”, then add the delivery details.
                   </p>
                 </>
               ) : (
-                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
-                  {cart.supplier}{" "}
-                  has no automated ordering — place this order manually with the supplier (use the buy-list
-                  CSV), then advance it through Track / Receive as it arrives.
-                </p>
+                <>
+                  <button type="button" onClick={() => onSetStatus("placed")} disabled={savingStatus} className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">
+                    <Check className="h-4 w-4" /> Mark as placed
+                  </button>
+                  <p className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                    {cart.supplier}{" "}
+                    has no automated ordering — place this order manually with the supplier (use the buy-list
+                    CSV), then <strong>Mark as placed</strong> to add tracking &amp; receive it as it arrives.
+                  </p>
+                </>
               )}
             </>
           )}
