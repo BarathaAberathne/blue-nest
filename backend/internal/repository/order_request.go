@@ -17,6 +17,8 @@ type OrderRequestRepository interface {
 	FindByUserID(ctx context.Context, userID string) ([]models.OrderRequest, error)
 	FindByID(ctx context.Context, id string) (*models.OrderRequest, error)
 	UpdateStatus(ctx context.Context, id, status string) error
+	SetExpectedDelivery(ctx context.Context, id string, expected *time.Time) error
+	SetDelivered(ctx context.Context, id string, delivered time.Time) error
 }
 
 type orderRequestRepository struct {
@@ -80,6 +82,30 @@ func (r *orderRequestRepository) UpdateStatus(ctx context.Context, id, status st
 	_, err = r.col.UpdateOne(ctx,
 		bson.M{"_id": oid},
 		bson.M{"$set": bson.M{"status": status, "updated_at": time.Now()}},
+	)
+	return err
+}
+
+func (r *orderRequestRepository) SetExpectedDelivery(ctx context.Context, id string, expected *time.Time) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	_, err = r.col.UpdateOne(ctx,
+		bson.M{"_id": oid},
+		bson.M{"$set": bson.M{"expected_delivery_date": expected, "updated_at": time.Now()}},
+	)
+	return err
+}
+
+func (r *orderRequestRepository) SetDelivered(ctx context.Context, id string, delivered time.Time) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	_, err = r.col.UpdateOne(ctx,
+		bson.M{"_id": oid},
+		bson.M{"$set": bson.M{"delivered_at": delivered, "updated_at": time.Now()}},
 	)
 	return err
 }

@@ -1,6 +1,6 @@
 # Blue Nest Montessori — Platform
 
-Production-ready monorepo for the Blue Nest Montessori school website: a pastel-design public marketing site, parent-facing eCommerce store, blog, contact/enquiry system, and an admin dashboard being grown into a full nursery-management system. Supports four branches (Harrow, Borehamwood, Pinner, Northwood).
+Production-ready monorepo for the Blue Nest Montessori school website: a pastel-design public marketing site, parent-facing eCommerce store, blog, a contact/enquiry system backed by an admissions CRM (enquiry pipeline, follow-ups, registrations, KPI dashboard), and an admin dashboard being grown into a full nursery-management system. Supports four branches (Harrow, Borehamwood, Pinner, Northwood).
 
 The management layer uses a five-tier role hierarchy — `super_admin` > `admin` > `branch_manager` > `staff` > `customer`. Super-admins manage all accounts and passwords; an append-only **activity/audit log** records every admin mutation; and **staff supply requests** let practitioners submit the items they need for management to order (the foundation for inventory).
 
@@ -10,7 +10,7 @@ The management layer uses a five-tier role hierarchy — `super_admin` > `admin`
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 16 (App Router), React 18, TypeScript, Tailwind CSS, Framer Motion, Lucide React |
+| Frontend | Next.js 16 (App Router), React 18, TypeScript, Tailwind CSS, Framer Motion, Lucide React, Recharts (admin charts) |
 | Backend | Go 1.22, Chi router, REST API |
 | Database | MongoDB 7 |
 | Payments | Stripe (scaffolded — session + webhook) |
@@ -113,6 +113,7 @@ blue-nest-montessori/
 │   ├── api.md                      # API endpoint reference
 │   └── DEPLOYMENT.md               # Sandbox → staging → prod runbook
 ├── deploy/                         # auto-deploy.sh, systemd unit/timer, nginx, mongo-init
+├── gompels-extension/              # MV3 Chrome extension: "Add to Gompels cart" from a generated order
 ├── scripts/                        # Image utilities (Python) + check-env.sh (env-parity gate)
 ├── .env.example                    # local dev template
 ├── .env.staging.example            # local staging template
@@ -217,6 +218,8 @@ make dev-frontend  # Next.js dev server (npm run dev)
 | `make docker-build` | Rebuild Docker images |
 | `make docker-logs` | Stream logs from all containers |
 | `make docker-restart` | Rebuild images and restart containers |
+| `make seed-all` | Run every seed in order (products, branches, catalogue, users) — idempotent |
+| `make seed-catalogue` | Seed the supply catalogue from Gompels order CSVs in `backend/cmd/seedcatalogue/orders/` |
 | `make staging-up` | Build the **production images locally** and run them for pre-prod QA (http://localhost:3000) |
 | `make staging-verify` | Env-parity check + health probe of the running staging stack |
 | `make staging-logs` | Tail staging logs |
@@ -309,6 +312,9 @@ Cut a release by promoting `staging → main` (optionally tagging `vX.Y.Z`).
 |---|---|
 | `/admin/login` | Admin sign in |
 | `/admin/dashboard` | Stats overview |
+| `/admin/inquiries` | Admissions CRM — enquiry list (status tabs, filters, sortable columns, row indicators, CSV export) |
+| `/admin/inquiries/[id]` | Enquiry detail — tabs (Overview / Message / Notes & Activity / Follow-up / Registration) + sticky status/assignment panel |
+| `/admin/inquiries/dashboard` | Admissions KPI dashboard — KPI cards, charts, conversion funnel, branch comparison |
 | `/admin/orders` | All orders list |
 | `/admin/orders/[id]` | Order detail + status update |
 | `/admin/products` | Product management |
@@ -336,16 +342,17 @@ Base URL: `http://localhost:8080`
 | Branches | `GET /branches`, `GET /branches/:slug` |
 | Contact | `POST /contact` |
 | Order requests (staff) | `POST /order-requests`, `GET /order-requests/me`, `GET /order-requests/:id`, `PATCH /order-requests/:id/cancel` |
+| Order templates (staff) | `GET/POST /order-templates`, `DELETE /order-templates/:id` |
 | Catalogue (staff read) | `GET /catalogue` |
 | Admin — Orders | `GET /admin/orders`, `PATCH /admin/orders/:id` |
 | Admin — Products | `GET/POST/PUT/DELETE /admin/products/:id` |
 | Admin — Categories | `GET/POST/PUT/DELETE /admin/categories/:id` |
 | Admin — Blog | `GET/POST/PUT/DELETE /admin/blog/posts/:id` |
 | Admin — Users | `GET /admin/users`, `POST /admin/users`, `PUT /admin/users/:id`, `POST /admin/users/:id/reset-password`, `DELETE /admin/users/:id` (super-admin) |
-| Admin — Enquiries | `GET /admin/enquiries`, `PATCH /admin/enquiries/:id/status` |
+| Admin — Enquiries (admissions CRM) | `GET /admin/enquiries` (filter/sort/paginate query params), `GET /admin/enquiries/:id`, `GET /admin/enquiries/stats`, `GET /admin/enquiries/assignees`, `PATCH /admin/enquiries/:id/status`, `POST /admin/enquiries/:id/notes`, `PATCH /admin/enquiries/:id/follow-up`, `PATCH /admin/enquiries/:id/assign`, `POST /admin/enquiries/:id/register`, `POST /admin/enquiries/:id/reply` |
 | Admin — Order requests | `GET /admin/order-requests`, `GET /admin/order-requests/:id`, `PATCH /admin/order-requests/:id/status` |
-| Admin — Catalogue | `GET/POST /admin/catalogue`, `GET/PUT/DELETE /admin/catalogue/:id` |
-| Admin — Purchase carts | `POST /admin/purchase-carts/generate`, `GET /admin/purchase-carts[/:id]`, `PUT /admin/purchase-carts/:id`, `POST /admin/purchase-carts/:id/send` |
+| Admin — Catalogue | `GET/POST /admin/catalogue`, `GET/PUT/DELETE /admin/catalogue/:id`, `POST /admin/catalogue/learn` |
+| Admin — Purchase carts | `POST /admin/purchase-carts/generate`, `GET /admin/purchase-carts[/:id]`, `PUT /admin/purchase-carts/:id`, `POST /admin/purchase-carts/:id/send`, `POST /admin/purchase-carts/:id/exported` |
 | Admin — Activity (audit log) | `GET /admin/audit-logs` |
 
 See [docs/api.md](docs/api.md) for full request/response contracts.
@@ -390,6 +397,11 @@ The frontend uses a hand-crafted pastel design system defined in `styles/globals
 | `ChatBotCard` | `ui/ChatBotCard` | Hero chatbot UI panel (visual only — not yet connected) |
 | `ChatBotFAB` | `ui/ChatBotFAB` | Sticky floating chat assistant in `PublicLayout` — wired to Anthropic Claude via `/api/chat` |
 | `LightboxGallery` | `ui/LightboxGallery` | Full-screen image lightbox (used in branch pages) |
+| `Tabs` | `ui/Tabs` | Underline-style, mobile-scrollable tab strip (admin detail/list sections) |
+| `StatusBadge` | `ui/StatusBadge` | Colour-coded enquiry status pill (admissions CRM) |
+| `SearchSelect` | `ui/SearchSelect` | Searchable single-select combobox (supply-request picker) |
+
+> Admin admissions-CRM helpers live in `lib/enquiry.ts` (status/priority metadata, chart palette, date + overdue helpers).
 
 ---
 

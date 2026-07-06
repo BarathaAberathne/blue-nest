@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Blue Nest → Gompels cart",
+  "version": "0.7.0",
+  "description": "Adds a generated Blue Nest supply order into your logged-in Gompels Quick Order cart, and clears it on demand.",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": [
+    "https://www.gompels.co.uk/*",
+    "http://localhost:3000/*",
+    "https://bluenest.uk/*",
+    "https://www.bluenest.uk/*",
+    "https://blue-nest.com/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_title": "Blue Nest → Gompels cart",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost:3000/*",
+        "https://bluenest.uk/*",
+        "https://www.bluenest.uk/*",
+        "https://blue-nest.com/*"
+      ],
+      "js": ["content-bluenest.js"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.gompels.co.uk/*"],
+      "js": ["content-gompels.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

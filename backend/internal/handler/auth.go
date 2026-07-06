@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/blue-nest-montessori/api/internal/config"
+	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
@@ -64,6 +65,25 @@ func (h *AuthHandler) AdminLogin(w http.ResponseWriter, r *http.Request) {
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, map[string]string{"message": "logged out"})
+}
+
+// Me returns the caller's identity + resolved permission set (from the JWT
+// context), so the admin UI can gate navigation and pages by capability rather
+// than hard-coding role lists. Available to any authenticated user.
+func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+	id, _ := r.Context().Value(middleware.UserIDKey).(string)
+	role, _ := r.Context().Value(middleware.UserRoleKey).(string)
+	email, _ := r.Context().Value(middleware.UserEmailKey).(string)
+	perms := models.PermissionsFor(models.Role(role))
+	if perms == nil {
+		perms = []models.Permission{}
+	}
+	response.OK(w, map[string]interface{}{
+		"id":          id,
+		"email":       email,
+		"role":        role,
+		"permissions": perms,
+	})
 }
 
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {

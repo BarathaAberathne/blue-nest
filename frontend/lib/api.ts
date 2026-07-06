@@ -1,5 +1,30 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AuditLog, CatalogueItem, Enquiry, OrderRequest, PurchaseCart, User } from "@/types";
+import type { AuditLog, CatalogueItem, DashboardLayout, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryPage, EnquiryStats, EnquiryTasks, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, Supplier, SupplierInput, User } from "@/types";
+
+// Filter/sort/pagination params shared by the enquiry list endpoints. Empty
+// values are dropped before building the query string.
+export type EnquiryListParams = {
+  branch?: string;
+  type?: string;
+  status?: string;
+  assigned_to?: string;
+  from?: string;
+  to?: string;
+  sort?: string;
+  dir?: "asc" | "desc";
+  limit?: number;
+  skip?: number;
+};
+
+function enquiryQuery(params?: EnquiryListParams): string {
+  if (!params) return "";
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== "") q.set(k, String(v));
+  }
+  const s = q.toString();
+  return s ? `?${s}` : "";
+}
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -147,15 +172,79 @@ export const api = {
   // Contact / Enquiries
   submitEnquiry: (body: unknown) =>
     apiFetch("/api/v1/contact", { method: "POST", body: JSON.stringify(body) }),
-  adminGetEnquiries: (token: string) => apiFetch<Enquiry[]>("/api/v1/admin/enquiries", { token }),
+  // Returns the full matching set (no pagination) — used by the pipeline and
+  // follow-up views. Pass params for server-side filtering/sorting.
+  adminGetEnquiries: (token: string, params?: EnquiryListParams) =>
+    apiFetch<Enquiry[]>(`/api/v1/admin/enquiries${enquiryQuery(params)}`, { token }),
+  // Paginated table view — returns one page plus the total.
+  adminGetEnquiriesPaged: (token: string, params?: EnquiryListParams) =>
+    apiFetch<EnquiryPage>(`/api/v1/admin/enquiries/page${enquiryQuery(params)}`, { token }),
+  adminGetEnquiryTasks: (token: string) =>
+    apiFetch<EnquiryTasks>("/api/v1/admin/enquiries/tasks", { token }),
+  adminBulkUpdateEnquiries: (token: string, body: EnquiryBulkRequest) =>
+    apiFetch<EnquiryBulkResult>("/api/v1/admin/enquiries/bulk", {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+    }),
   adminGetEnquiry: (token: string, id: string) =>
     apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}`, { token }),
+  adminGetEnquiryStats: (token: string) =>
+    apiFetch<EnquiryStats>("/api/v1/admin/enquiries/stats", { token }),
+  adminGetEnquiryAssignees: (token: string) =>
+    apiFetch<EnquiryAssignee[]>("/api/v1/admin/enquiries/assignees", { token }),
   adminUpdateEnquiryStatus: (token: string, id: string, status: string) =>
-    apiFetch(`/api/v1/admin/enquiries/${id}/status`, {
+    apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
       token,
     }),
+  adminAddEnquiryNote: (token: string, id: string, note: string) =>
+    apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/notes`, {
+      method: "POST",
+      body: JSON.stringify({ note }),
+      token,
+    }),
+  adminUpdateEnquiryFollowUp: (
+    token: string,
+    id: string,
+    body: {
+      assigned_to?: string;
+      assigned_to_name?: string;
+      priority?: string;
+      follow_up_date?: string | null;
+      next_action?: string;
+    },
+  ) =>
+    apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/follow-up`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      token,
+    }),
+  adminAssignEnquiry: (token: string, id: string, assigned_to: string, assigned_to_name: string) =>
+    apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/assign`, {
+      method: "PATCH",
+      body: JSON.stringify({ assigned_to, assigned_to_name }),
+      token,
+    }),
+  adminRegisterEnquiry: (
+    token: string,
+    id: string,
+    body: {
+      registration_date?: string | null;
+      expected_start_date?: string | null;
+      child_age_group?: string;
+      room_allocation?: string;
+      funding_type?: string;
+    },
+  ) =>
+    apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/register`, {
+      method: "POST",
+      body: JSON.stringify(body),
+      token,
+    }),
+  adminLogEnquiryReply: (token: string, id: string) =>
+    apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/reply`, { method: "POST", token }),
 
   // Admin
   adminGetOrders: (token: string) => apiFetch("/api/v1/admin/orders", { token }),
@@ -234,6 +323,14 @@ export const api = {
   cancelOrderRequest: (token: string, id: string) =>
     apiFetch<OrderRequest>(`/api/v1/order-requests/${id}/cancel`, { method: "PATCH", token }),
 
+  // Standing-order templates (staff + management)
+  getOrderTemplates: (token: string) =>
+    apiFetch<OrderTemplate[]>("/api/v1/order-templates", { token }),
+  createOrderTemplate: (token: string, body: unknown) =>
+    apiFetch<OrderTemplate>("/api/v1/order-templates", { method: "POST", body: JSON.stringify(body), token }),
+  deleteOrderTemplate: (token: string, id: string) =>
+    apiFetch(`/api/v1/order-templates/${id}`, { method: "DELETE", token }),
+
   // Order / supply requests — admin
   adminGetOrderRequests: (token: string) =>
     apiFetch<OrderRequest[]>("/api/v1/admin/order-requests", { token }),
@@ -261,6 +358,33 @@ export const api = {
     apiFetch<CatalogueItem>(`/api/v1/admin/catalogue/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
   adminDeleteCatalogueItem: (token: string, id: string) =>
     apiFetch(`/api/v1/admin/catalogue/${id}`, { method: "DELETE", token }),
+  adminLearnCatalogue: (token: string, body: { name: string; code: string; price?: number }) =>
+    apiFetch<CatalogueItem>("/api/v1/admin/catalogue/learn", { method: "POST", body: JSON.stringify(body), token }),
+
+  // Identity + capabilities (drives nav/page gating)
+  getMe: (token: string) => apiFetch<Me>("/api/v1/auth/me", { token }),
+
+  // Per-user customizable dashboard layout
+  getDashboardLayout: (token: string) =>
+    apiFetch<DashboardLayout>("/api/v1/me/dashboard", { token }),
+  saveDashboardLayout: (token: string, widgets: DashboardWidget[]) =>
+    apiFetch<DashboardLayout>("/api/v1/me/dashboard", { method: "PUT", body: JSON.stringify({ widgets }), token }),
+
+  // Suppliers (managed vendor directory — admin CRUD)
+  adminGetSuppliers: (token: string) =>
+    apiFetch<Supplier[]>("/api/v1/admin/suppliers", { token }),
+  adminGetSupplier: (token: string, id: string) =>
+    apiFetch<Supplier>(`/api/v1/admin/suppliers/${id}`, { token }),
+  adminCreateSupplier: (token: string, body: SupplierInput) =>
+    apiFetch<Supplier>("/api/v1/admin/suppliers", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateSupplier: (token: string, id: string, body: SupplierInput) =>
+    apiFetch<Supplier>(`/api/v1/admin/suppliers/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminDeleteSupplier: (token: string, id: string) =>
+    apiFetch(`/api/v1/admin/suppliers/${id}`, { method: "DELETE", token }),
+
+  // Procurement analytics (server-side roll-up)
+  adminGetProcurementAnalytics: (token: string) =>
+    apiFetch<ProcurementAnalytics>("/api/v1/admin/procurement/analytics", { token }),
 
   // Purchase carts (generated supplier orders)
   adminGenerateCart: (token: string, requestIds: string[]) =>
@@ -275,10 +399,30 @@ export const api = {
     apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}`, { token }),
   adminUpdatePurchaseCart: (token: string, id: string, body: unknown) =>
     apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
-  adminSendPurchaseCart: (token: string, id: string, recipientEmail?: string) =>
-    apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}/send`, {
+  adminUpdateCartFulfillment: (
+    token: string,
+    id: string,
+    body: { supplier_order_ref: string; tracking_number?: string; expected_delivery_date: string | null },
+  ) =>
+    apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}/fulfillment`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+      token,
+    }),
+  adminUpdatePurchaseCartStatus: (token: string, id: string, status: string) =>
+    apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+      token,
+    }),
+  adminReceiveCart: (
+    token: string,
+    id: string,
+    items: { code: string; name: string; qty_received: number }[],
+  ) =>
+    apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}/receive`, {
       method: "POST",
-      body: JSON.stringify({ recipient_email: recipientEmail ?? "" }),
+      body: JSON.stringify({ items }),
       token,
     }),
 };

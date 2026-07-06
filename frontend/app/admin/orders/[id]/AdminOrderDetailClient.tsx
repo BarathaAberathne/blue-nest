@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
+import { displayRef } from "@/lib/ref";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
 import type { Order, OrderStatus, ShippingAddress } from "@/types";
@@ -111,7 +112,7 @@ export default function AdminOrderDetailClient({ id }: { id: string }) {
         </Link>
         <span className="text-gray-300">/</span>
         <h1 className="text-xl font-heading font-bold text-gray-900 font-mono">
-          {order.id.slice(0, 8).toUpperCase()}
+          {displayRef(order.ref, order.id, "ORD")}
         </h1>
         <Badge label={order.status} variant={STATUS_VARIANT[order.status] ?? "gray"} />
       </div>

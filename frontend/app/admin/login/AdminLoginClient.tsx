@@ -22,7 +22,8 @@ export default function AdminLoginClient() {
     try {
       const auth = await api.adminLogin({ email, password }) as AuthResponse;
       setAuthSession(auth.access_token, auth.user);
-      router.push("/admin/dashboard");
+      // Staff land in their restricted portal; management gets the dashboard.
+      router.push(auth.user.role === "staff" ? "/admin/my-requests" : "/admin/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in");
     } finally {
@@ -33,7 +34,7 @@ export default function AdminLoginClient() {
   return (
     <form className="bg-gray-800 rounded-2xl p-8 w-full max-w-sm shadow-2xl" onSubmit={onSubmit}>
       <p className="font-heading text-xl font-bold text-white mb-1">🌿 Blue Nest</p>
-      <p className="text-gray-400 text-sm mb-6">Admin access only</p>
+      <p className="text-gray-400 text-sm mb-6">Staff &amp; admin sign in</p>
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>

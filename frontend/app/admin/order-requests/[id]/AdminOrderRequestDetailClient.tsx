@@ -5,17 +5,15 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
-import Badge from "@/components/ui/Badge";
+import StageBadge from "@/components/admin/ui/StageBadge";
+import { ORDER_REQUEST_STATUS_META, priorityMeta } from "@/lib/admin-status";
+import { displayRef } from "@/lib/ref";
 import type { OrderRequest, OrderRequestStatus } from "@/types";
 
-const STATUS_VARIANT: Record<OrderRequestStatus, "blue" | "amber" | "green" | "gray"> = {
-  pending: "amber",
-  ordered: "blue",
-  received: "green",
-  cancelled: "gray",
-};
-
-const STATUSES: OrderRequestStatus[] = ["pending", "ordered", "received", "cancelled"];
+// Workflow order for the status switcher. Cancelled doubles as "reject".
+const STATUSES: OrderRequestStatus[] = [
+  "pending", "approved", "converted_to_po", "ordered", "received", "cancelled",
+];
 
 function fmtBranch(branch: string) {
   if (!branch) return "—";
@@ -74,13 +72,23 @@ export default function AdminOrderRequestDetailClient({ id }: { id: string }) {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-heading font-bold text-gray-900">Supply Request</h1>
+          <h1 className="text-2xl font-heading font-bold text-gray-900">
+            <span className="font-mono">{displayRef(req.ref, req.id, "SR")}</span>
+          </h1>
           <p className="text-sm text-gray-500">{fmtDate(req.created_at)}</p>
         </div>
-        <Badge label={req.status} variant={STATUS_VARIANT[req.status] ?? "gray"} />
+        <div className="flex items-center gap-2">
+          {req.priority && req.priority !== "normal" && (
+            <StageBadge label={priorityMeta(req.priority).label} accent={priorityMeta(req.priority).accent} />
+          )}
+          <StageBadge
+            label={ORDER_REQUEST_STATUS_META[req.status]?.label ?? req.status}
+            accent={ORDER_REQUEST_STATUS_META[req.status]?.accent ?? "slate"}
+          />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="card p-4">
           <p className="text-xs uppercase tracking-wider text-gray-400 mb-1">Requested by</p>
           <p className="text-sm font-medium text-gray-900">{req.requested_by_name || "—"}</p>
@@ -89,6 +97,10 @@ export default function AdminOrderRequestDetailClient({ id }: { id: string }) {
         <div className="card p-4">
           <p className="text-xs uppercase tracking-wider text-gray-400 mb-1">Branch</p>
           <p className="text-sm font-medium text-gray-900">{fmtBranch(req.branch_slug)}</p>
+        </div>
+        <div className="card p-4">
+          <p className="text-xs uppercase tracking-wider text-gray-400 mb-1">Classroom</p>
+          <p className="text-sm font-medium text-gray-900">{req.classroom || "—"}</p>
         </div>
       </div>
 
@@ -108,7 +120,7 @@ export default function AdminOrderRequestDetailClient({ id }: { id: string }) {
                   : "border-gray-200 text-gray-600 hover:bg-gray-50"
               } disabled:opacity-60`}
             >
-              {s.charAt(0).toUpperCase() + s.slice(1)}
+              {s === "cancelled" ? "Reject / cancel" : ORDER_REQUEST_STATUS_META[s]?.label ?? s}
             </button>
           ))}
         </div>
@@ -119,7 +131,7 @@ export default function AdminOrderRequestDetailClient({ id }: { id: string }) {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
             <tr>
-              {["Item", "Supplier", "Qty", "Notes"].map((h) => (
+              {["Code", "Item", "Supplier", "Qty", "Notes"].map((h) => (
                 <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>
               ))}
             </tr>
@@ -127,6 +139,7 @@ export default function AdminOrderRequestDetailClient({ id }: { id: string }) {
           <tbody className="divide-y divide-gray-100">
             {req.items.map((it, i) => (
               <tr key={i}>
+                <td className="px-4 py-3 font-mono text-xs text-gray-700">{it.code || "—"}</td>
                 <td className="px-4 py-3 text-gray-900 font-medium">{it.item_name}</td>
                 <td className="px-4 py-3 text-gray-700">{it.supplier}</td>
                 <td className="px-4 py-3 text-gray-700">{it.qty}</td>

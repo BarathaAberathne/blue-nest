@@ -61,7 +61,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	userRepo := repository.NewUserRepository(db)
 	productRepo := repository.NewProductRepository(db)
 	cartRepo := repository.NewCartRepository(db)
-	orderRepo := repository.NewOrderRepository(db)
+	counterRepo := repository.NewCounterRepository(db)
+	orderRepo := repository.NewOrderRepository(db, counterRepo)
 	blogRepo := repository.NewBlogRepository(db)
 	branchRepo := repository.NewBranchRepository(db)
 	commentRepo := repository.NewCommentRepository(db)
@@ -71,6 +72,9 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	orderRequestRepo := repository.NewOrderRequestRepository(db)
 	catalogueRepo := repository.NewCatalogueItemRepository(db)
 	purchaseCartRepo := repository.NewPurchaseCartRepository(db)
+	orderTemplateRepo := repository.NewOrderTemplateRepository(db)
+	supplierRepo := repository.NewSupplierRepository(db)
+	dashboardLayoutRepo := repository.NewDashboardLayoutRepository(db)
 	mailer := email.New(email.Config{
 		Host:         cfg.SMTP.Host,
 		Port:         cfg.SMTP.Port,
@@ -83,18 +87,22 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 
 	// Services
 	svc := routes.Services{
-		Auth:          service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays),
-		Products:      service.NewProductService(productRepo),
-		Cart:          service.NewCartService(cartRepo, productRepo),
-		Checkout:      service.NewCheckoutService(orderRepo, cartRepo, productRepo, cfg.Stripe.SecretKey),
-		Orders:        service.NewOrderService(orderRepo),
-		Blog:          service.NewBlogService(blogRepo),
-		Branches:      service.NewBranchService(branchRepo),
-		Enquiries:     service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo),
-		Comments:      service.NewCommentService(commentRepo),
-		Audit:         service.NewAuditService(auditRepo),
-		OrderRequests: service.NewOrderRequestService(orderRequestRepo, userRepo),
-		Catalogue:     service.NewCatalogueService(catalogueRepo),
+		Auth:             service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays),
+		Products:         service.NewProductService(productRepo),
+		Cart:             service.NewCartService(cartRepo, productRepo),
+		Checkout:         service.NewCheckoutService(orderRepo, cartRepo, productRepo, cfg.Stripe.SecretKey),
+		Orders:           service.NewOrderService(orderRepo),
+		Blog:             service.NewBlogService(blogRepo),
+		Branches:         service.NewBranchService(branchRepo),
+		Enquiries:        service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo),
+		Comments:         service.NewCommentService(commentRepo),
+		Audit:            service.NewAuditService(auditRepo),
+		OrderRequests:    service.NewOrderRequestService(orderRequestRepo, userRepo, counterRepo),
+		Catalogue:        service.NewCatalogueService(catalogueRepo),
+		OrderTemplates:   service.NewOrderTemplateService(orderTemplateRepo),
+		Suppliers:        service.NewSupplierService(supplierRepo),
+		Procurement:      service.NewProcurementAnalyticsService(orderRequestRepo, purchaseCartRepo),
+		DashboardLayouts: service.NewDashboardLayoutService(dashboardLayoutRepo),
 	}
 
 	// Sourcing engine: enable supplier adapters per config (off by default; the
@@ -107,11 +115,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		sourceAdapters = append(sourceAdapters, sourcing.NewAmazonAdapter())
 	}
 	sourcingEngine := sourcing.NewEngine(sourceAdapters...)
-	supplierEmails := map[string]string{
-		"Gompels": cfg.Sourcing.GompelsOrderEmail,
-		"Other":   cfg.Sourcing.OtherOrderEmail,
-	}
-	svc.PurchaseCarts = service.NewPurchaseCartService(purchaseCartRepo, orderRequestRepo, catalogueRepo, sourcingEngine, mailer, supplierEmails)
+	svc.PurchaseCarts = service.NewPurchaseCartService(purchaseCartRepo, orderRequestRepo, catalogueRepo, sourcingEngine, counterRepo)
 
 	r := chi.NewRouter()
 	r.Use(middleware.CORS(cfg.CORS.AllowedOrigins))
