@@ -14,7 +14,7 @@ const isAdminRole = (role: UserRole) =>
 // Where a user lands after signing in, by role.
 const landingFor = (role: UserRole, fallback: string) => {
   if (isAdminRole(role)) return "/admin/dashboard";
-  if (role === "staff") return "/order-requests";
+  if (role === "staff") return "/admin/my-requests";
   return fallback;
 };
 
@@ -30,10 +30,12 @@ export default function LoginClient() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setNext(params.get("next") || "/account");
-    // An admin who lands on the customer login belongs in the admin area.
+    // A management or staff user who lands on the customer login belongs in the
+    // back-office, not the parent account area.
     const existing = getAuthUser();
-    if (existing && isAdminRole(existing.role)) {
-      router.push("/admin/dashboard");
+    if (existing) {
+      if (isAdminRole(existing.role)) router.push("/admin/dashboard");
+      else if (existing.role === "staff") router.push("/admin/my-requests");
     }
   }, [router]);
 

@@ -3,7 +3,7 @@
         docker-up docker-down docker-build docker-logs docker-restart docker-stop \
         dev-backend dev-frontend run-backend run-frontend \
         mongo-shell setup \
-        seed seed-products seed-branches seed-users seed-all \
+        seed seed-products seed-branches seed-catalogue seed-users seed-all \
         wait-api \
         staging-up staging-verify staging-logs staging-down staging-clean \
         optimize-images optimize-images-dry
@@ -84,7 +84,7 @@ _guard-not-prod:
 
 # Attach the guard as a prerequisite to the dev-only targets (prereqs accumulate;
 # the recipes are defined below).
-docker-up docker-restart docker-build seed-products seed-branches seed-all: _guard-not-prod
+docker-up docker-restart docker-build seed-products seed-branches seed-catalogue seed-all: _guard-not-prod
 
 docker-up:
 	docker compose up -d
@@ -150,6 +150,10 @@ seed-branches:
 	@echo "→ Seeding branches..."
 	cd backend && go run ./cmd/seedbranches
 
+seed-catalogue:
+	@echo "→ Seeding supply catalogue from Gompels orders..."
+	cd backend && go run ./cmd/seedcatalogue
+
 seed-users:
 	@echo "→ Seeding default users (admin / test customer)..."
 	@if docker compose ps backend --status running --quiet 2>/dev/null | grep -q .; then \
@@ -160,8 +164,20 @@ seed-users:
 	  cd backend && go run ./cmd/seedusers; \
 	fi
 
-seed-all: seed-products seed-branches seed-users
+seed-all: seed-products seed-branches seed-catalogue seed-users
 	@echo "✓ All seeds complete"
+
+# One-off migration: assign human-readable refs (SR-/PO-/ORD-) to records created
+# before the reference feature. Idempotent — only touches docs missing a ref.
+backfill-refs:
+	@echo "→ Backfilling human-readable references (SR / PO / ORD)..."
+	@if docker compose ps backend --status running --quiet 2>/dev/null | grep -q .; then \
+	  echo "  using running backend container"; \
+	  docker compose exec backend ./backfillrefs; \
+	else \
+	  echo "  no backend container running → falling back to local Go toolchain"; \
+	  cd backend && go run ./cmd/backfillrefs; \
+	fi
 
 # ── Frontend image optimisation ──────────────────────────────────────────────
 # One-shot pass that resizes any /public image wider than 1920px down to 1920,

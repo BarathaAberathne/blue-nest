@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/repository"
@@ -17,6 +18,9 @@ type CatalogueService interface {
 	Create(ctx context.Context, req models.CatalogueItemRequest) (*models.CatalogueItem, error)
 	Update(ctx context.Context, id string, req models.CatalogueItemRequest) (*models.CatalogueItem, error)
 	Delete(ctx context.Context, id string) error
+	// Learn records a confirmed Gompels code for a product name (upsert by name),
+	// so a previously search-resolved item becomes a reliable code next time.
+	Learn(ctx context.Context, name, code string, price int64) (*models.CatalogueItem, error)
 }
 
 type catalogueService struct {
@@ -81,6 +85,26 @@ func (s *catalogueService) Update(ctx context.Context, id string, req models.Cat
 
 func (s *catalogueService) Delete(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *catalogueService) Learn(ctx context.Context, name, code string, price int64) (*models.CatalogueItem, error) {
+	name = strings.TrimSpace(name)
+	code = strings.TrimSpace(code)
+	if name == "" || code == "" {
+		return nil, errors.New("name and code are required")
+	}
+	offer := models.CatalogueOffer{
+		Supplier:     "Gompels",
+		Code:         code,
+		Price:        price,
+		PricePerUnit: price,
+		LastSeenAt:   time.Now(),
+	}
+	return s.repo.UpsertByName(ctx, models.CatalogueItem{
+		Name:     name,
+		Offers:   []models.CatalogueOffer{offer},
+		IsActive: true,
+	})
 }
 
 func buildCatalogueItem(req models.CatalogueItemRequest) (models.CatalogueItem, error) {

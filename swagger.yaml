@@ -44,6 +44,8 @@ tags:
     description: Staff supply requests (foundation for inventory)
   - name: Order Creation
     description: Catalogue, sourcing, and generated supplier carts (order creation tool)
+  - name: Procurement
+    description: Supplier directory + procurement analytics (Phase 3)
   - name: Admin
     description: Administrative operations (admin only)
   - name: Webhooks
@@ -204,6 +206,58 @@ paths:
                     type: string
         '401':
           description: Invalid or expired refresh token
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Current identity + capabilities
+      description: Returns the caller's id, email, role and resolved granular permission set (drives admin UI navigation/page gating).
+      operationId: getMe
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  email: { type: string, format: email }
+                  role: { type: string, enum: [super_admin, admin, branch_manager, finance, admissions, procurement, staff, customer] }
+                  permissions:
+                    type: array
+                    items:
+                      type: string
+                      enum: [dashboard.view, store.manage, blog.manage, enquiries.manage, procurement.view, procurement.manage, suppliers.manage, finance.view, audit.view, branches.manage, users.manage]
+        '401': { description: Unauthorized }
+
+  /me/dashboard:
+    get:
+      tags: [Auth]
+      summary: Get the caller's saved dashboard layout
+      description: Returns the per-user customizable dashboard layout (widget order + hidden + size). Empty widget list when the user hasn't customised one.
+      operationId: getDashboardLayout
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/DashboardLayout' } } } }
+    put:
+      tags: [Auth]
+      summary: Save the caller's dashboard layout
+      operationId: saveDashboardLayout
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                widgets:
+                  type: array
+                  items: { $ref: '#/components/schemas/DashboardWidget' }
+      responses:
+        '200': { description: Saved, content: { application/json: { schema: { $ref: '#/components/schemas/DashboardLayout' } } } }
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Products
@@ -984,7 +1038,7 @@ paths:
                 last_name: { type: string }
                 role:
                   type: string
-                  enum: [super_admin, admin, branch_manager, staff, customer]
+                  enum: [super_admin, admin, branch_manager, finance, admissions, procurement, staff, customer]
       responses:
         '201': { description: User created }
         '400': { description: Invalid input }
@@ -1008,7 +1062,7 @@ paths:
                 last_name: { type: string }
                 role:
                   type: string
-                  enum: [super_admin, admin, branch_manager, staff, customer]
+                  enum: [super_admin, admin, branch_manager, finance, admissions, procurement, staff, customer]
                 password: { type: string, minLength: 8 }
       responses:
         '200': { description: User updated }
@@ -1092,6 +1146,8 @@ paths:
                       supplier: { type: string, enum: [Gompels, Amazon, Other] }
                       qty: { type: integer, minimum: 1 }
                       notes: { type: string }
+                      code: { type: string, description: supplier product code (e.g. Gompels SKU) when picked from the catalogue }
+                      catalogue_item_id: { type: string, description: links the line to a catalogue item/variant }
       responses:
         '201': { description: Request submitted }
         '400': { description: No items / invalid input }
@@ -1285,22 +1341,160 @@ paths:
                 lines: { type: array, items: { type: object } }
       responses: { '200': { description: Updated }, '400': { description: Sent carts cannot be edited } }
 
-  /admin/purchase-carts/{id}/send:
+  /admin/purchase-carts/{id}/exported:
     post:
       tags: [Order Creation]
-      summary: Email the cart to the supplier; mark covered requests ordered
-      operationId: sendPurchaseCart
+      summary: Record the browser extension's Gompels fill results; mark cart sent
+      description: Posted by the extension after filling the Gompels cart — marks the cart sent, flips covered requests to ordered, stores per-line results.
+      operationId: exportedPurchaseCart
       security: [{ BearerAuth: [] }]
       parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
               type: object
               properties:
-                recipient_email: { type: string, description: optional override }
-      responses: { '200': { description: Sent }, '400': { description: No recipient / already sent } }
+                results:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string }
+                      status: { type: string, enum: [added, failed, not_found] }
+                      resolved_code: { type: string }
+                      catalogue_item_id: { type: string }
+                      picked_name: { type: string }
+                      searched: { type: boolean }
+                      substituted: { type: boolean }
+                      qty: { type: integer }
+                supplier_order_ref: { type: string, description: best-effort Gompels basket/order ref }
+      responses: { '200': { description: Recorded } }
+
+  /admin/purchase-carts/{id}/fulfillment:
+    patch:
+      tags: [Order Creation]
+      summary: Set supplier order ref + expected delivery date on a placed order
+      description: Records delivery tracking and propagates the expected date to the covered staff requests. Only valid once the order has been placed.
+      operationId: updatePurchaseCartFulfillment
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                supplier_order_ref: { type: string }
+                tracking_number: { type: string, description: Carrier tracking number }
+                expected_delivery_date: { type: string, format: date-time, nullable: true }
+      responses: { '200': { description: Updated }, '400': { description: Order not yet placed } }
+
+  /admin/purchase-carts/{id}/status:
+    patch:
+      tags: [Order Creation]
+      summary: Apply a manual workflow transition to a purchase order
+      description: >-
+        Moves the order through the lifecycle (placed → tracking → dispatched →
+        completed, or cancelled) from the board / stepper. Setting `completed`
+        stamps `completed_at`. Accepts the legacy `sent`/`ordered` values.
+      operationId: updatePurchaseCartStatus
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [draft, placed, tracking, dispatched, partially_received, received, completed, cancelled, failed]
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/PurchaseCart' } } } }
+        '400': { description: Invalid status }
+
+  /admin/purchase-carts/{id}/receive:
+    post:
+      tags: [Order Creation]
+      summary: Record per-line goods received; advance status
+      description: Sets per-line received quantities and moves the order to partially_received or received (flipping covered requests to received on full receipt).
+      operationId: receivePurchaseCart
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      code: { type: string }
+                      name: { type: string }
+                      qty_received: { type: integer }
+      responses: { '200': { description: Recorded }, '400': { description: Order not yet placed } }
+
+  /admin/catalogue/learn:
+    post:
+      tags: [Admin]
+      summary: Save a confirmed Gompels code for a product name (self-improving catalogue)
+      operationId: learnCatalogue
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, code]
+              properties:
+                name: { type: string }
+                code: { type: string }
+                price: { type: integer, description: pence, optional }
+      responses: { '200': { description: Saved/updated }, '400': { description: name and code required } }
+
+  /order-templates:
+    get:
+      tags: [Order Requests]
+      summary: List shared standing-order templates
+      operationId: listOrderTemplates
+      security: [{ BearerAuth: [] }]
+      responses: { '200': { description: Templates } }
+    post:
+      tags: [Order Requests]
+      summary: Save a standing-order template
+      operationId: createOrderTemplate
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, items]
+              properties:
+                name: { type: string }
+                branch_slug: { type: string }
+                items: { type: array, items: { type: object } }
+      responses: { '201': { description: Created }, '400': { description: Invalid } }
+
+  /order-templates/{id}:
+    delete:
+      tags: [Order Requests]
+      summary: Delete a standing-order template
+      operationId: deleteOrderTemplate
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: Deleted } }
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Webhooks
@@ -1323,6 +1517,67 @@ paths:
           description: Webhook processed
         '400':
           description: Invalid webhook signature
+
+  /admin/suppliers:
+    get:
+      tags: [Procurement]
+      summary: List managed suppliers (vendor directory)
+      operationId: listSuppliers
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Supplier' } } } } }
+    post:
+      tags: [Procurement]
+      summary: Create a supplier
+      operationId: createSupplier
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/SupplierInput' } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Supplier' } } } }
+        '400': { description: Invalid payload }
+
+  /admin/suppliers/{id}:
+    get:
+      tags: [Procurement]
+      summary: Get a supplier
+      operationId: getSupplier
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Supplier' } } } }
+        '404': { description: Not found }
+    put:
+      tags: [Procurement]
+      summary: Update a supplier
+      operationId: updateSupplier
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/SupplierInput' } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Supplier' } } } }
+        '400': { description: Invalid payload }
+    delete:
+      tags: [Procurement]
+      summary: Delete a supplier
+      operationId: deleteSupplier
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '204': { description: Deleted }
+
+  /admin/procurement/analytics:
+    get:
+      tags: [Procurement]
+      summary: Server-side procurement analytics roll-up
+      description: Aggregates spend (by supplier / branch / month), request & order status counts, item demand and lead times across the procurement pipeline.
+      operationId: getProcurementAnalytics
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ProcurementAnalytics' } } } }
 
 components:
   securitySchemes:
@@ -1353,7 +1608,7 @@ components:
           example: Doe
         role:
           type: string
-          enum: [customer, admin, branch_manager]
+          enum: [customer, staff, branch_manager, finance, admissions, procurement, admin, super_admin]
           example: customer
         branch_slugs:
           type: array
@@ -1688,6 +1943,10 @@ components:
         id:
           type: string
           example: 507f1f77bcf86cd799439011
+        ref:
+          type: string
+          description: Human sequential reference
+          example: ORD-2026-000042
         user_id:
           type: string
           example: 507f1f77bcf86cd799439011
@@ -1750,3 +2009,189 @@ components:
         country:
           type: string
           example: GB
+
+    OrderRequestItem:
+      type: object
+      properties:
+        item_name: { type: string, example: A4 Sugar Paper (white) }
+        supplier: { type: string, enum: [Gompels, Amazon, Other], example: Gompels }
+        qty: { type: integer, example: 5 }
+        notes: { type: string }
+        code: { type: string, description: Supplier SKU when picked from the catalogue, example: PAP123 }
+        catalogue_item_id: { type: string, description: Links the line to a catalogue item when known }
+
+    OrderRequest:
+      type: object
+      description: A staff-submitted supply request that management reviews and converts into purchase orders.
+      properties:
+        id: { type: string, example: 507f1f77bcf86cd799439011 }
+        ref: { type: string, description: Human sequential reference, example: SR-2026-000045 }
+        user_id: { type: string }
+        requested_by_name: { type: string, example: Jane Practitioner }
+        requested_by_email: { type: string, format: email }
+        branch_slug: { type: string, example: borehamwood }
+        classroom: { type: string, example: Toddler Room }
+        priority: { type: string, enum: [low, normal, high, urgent], example: normal }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/OrderRequestItem' }
+        status:
+          type: string
+          enum: [pending, approved, converted_to_po, ordered, received, cancelled]
+          example: pending
+        notes: { type: string }
+        expected_delivery_date: { type: string, format: date-time, nullable: true, description: Propagated from the covering purchase order; staff never see prices }
+        delivered_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    CreateOrderRequest:
+      type: object
+      required: [items]
+      properties:
+        branch_slug: { type: string, example: borehamwood }
+        classroom: { type: string, example: Toddler Room }
+        priority: { type: string, enum: [low, normal, high, urgent], default: normal }
+        notes: { type: string }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/OrderRequestItem' }
+
+    PurchaseCartLine:
+      type: object
+      properties:
+        item_name: { type: string }
+        code: { type: string, description: Resolved supplier SKU }
+        qty: { type: integer }
+        unit_price: { type: integer, description: Pence }
+        line_total: { type: integer, description: Pence }
+        qty_received: { type: integer, description: Goods received against this line }
+
+    PurchaseCart:
+      type: object
+      description: A draft/placed supplier order generated from supply requests by the sourcing engine.
+      properties:
+        id: { type: string }
+        ref: { type: string, description: Human sequential reference, example: PO-2026-000123 }
+        supplier: { type: string, enum: [Gompels, Amazon, Other] }
+        branch_slug: { type: string }
+        classroom: { type: string }
+        priority: { type: string, enum: [low, normal, high, urgent] }
+        recipient_email: { type: string, format: email }
+        lines:
+          type: array
+          items: { $ref: '#/components/schemas/PurchaseCartLine' }
+        subtotal: { type: integer, description: Pence }
+        status:
+          type: string
+          enum: [draft, placed, tracking, dispatched, partially_received, received, completed, cancelled, failed]
+          description: Legacy `sent`/`ordered` read as `placed`.
+        source_request_ids:
+          type: array
+          items: { type: string }
+        supplier_order_ref: { type: string }
+        tracking_number: { type: string, description: Carrier tracking number }
+        expected_delivery_date: { type: string, format: date-time, nullable: true }
+        delivered_at: { type: string, format: date-time, nullable: true }
+        completed_at: { type: string, format: date-time, nullable: true }
+        sent_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Supplier:
+      type: object
+      description: A managed vendor in the procurement directory.
+      properties:
+        id: { type: string }
+        name: { type: string, example: Gompels HealthCare }
+        slug: { type: string, example: gompels-healthcare }
+        category: { type: string, example: Hygiene & cleaning }
+        contact_name: { type: string }
+        contact_email: { type: string, format: email }
+        contact_phone: { type: string }
+        website: { type: string }
+        order_email: { type: string, format: email, description: Where purchase orders are emailed }
+        account_ref: { type: string, description: Our account / customer number }
+        lead_time_days: { type: integer }
+        notes: { type: string }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    SupplierInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        category: { type: string }
+        contact_name: { type: string }
+        contact_email: { type: string, format: email }
+        contact_phone: { type: string }
+        website: { type: string }
+        order_email: { type: string, format: email }
+        account_ref: { type: string }
+        lead_time_days: { type: integer }
+        notes: { type: string }
+        is_active: { type: boolean, default: true }
+
+    ProcurementAnalytics:
+      type: object
+      description: Server-side procurement roll-up. All spend figures are in pence.
+      properties:
+        total_requests: { type: integer }
+        total_orders: { type: integer }
+        total_spend: { type: integer, description: "Pence, across placed orders" }
+        pending_requests: { type: integer }
+        overdue_orders: { type: integer }
+        request_status_counts: { type: object, additionalProperties: { type: integer } }
+        order_status_counts: { type: object, additionalProperties: { type: integer } }
+        spend_by_supplier:
+          type: array
+          items:
+            type: object
+            properties:
+              supplier: { type: string }
+              spend: { type: integer }
+              orders: { type: integer }
+        spend_by_branch:
+          type: array
+          items:
+            type: object
+            properties:
+              branch: { type: string }
+              spend: { type: integer }
+        monthly_spend:
+          type: array
+          items:
+            type: object
+            properties:
+              month: { type: string, example: "2026-06" }
+              spend: { type: integer }
+        top_items:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              qty: { type: integer }
+              requests: { type: integer }
+        avg_request_to_order_days: { type: number }
+        avg_order_to_delivery_days: { type: number }
+
+    DashboardWidget:
+      type: object
+      properties:
+        key: { type: string, example: recent-orders }
+        hidden: { type: boolean }
+        size: { type: string, enum: [normal, wide] }
+
+    DashboardLayout:
+      type: object
+      description: A per-user saved arrangement of the admin dashboard widgets.
+      properties:
+        id: { type: string }
+        user_id: { type: string }
+        widgets:
+          type: array
+          items: { $ref: '#/components/schemas/DashboardWidget' }
+        updated_at: { type: string, format: date-time }

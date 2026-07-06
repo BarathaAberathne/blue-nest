@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import AdminLayout from "@/components/layout/AdminLayout";
 import AdminPurchaseCartDetailClient from "./AdminPurchaseCartDetailClient";
 
-export const metadata: Metadata = { title: "Generated Cart — Admin", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Purchase Order — Admin", robots: { index: false, follow: false } };
 
 interface Props { params: Promise<{ id: string }> }
 

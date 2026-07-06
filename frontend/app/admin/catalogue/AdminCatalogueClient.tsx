@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
+import ProcurementTabs from "@/components/admin/procurement/ProcurementTabs";
 import type { CatalogueItem, CatalogueOffer } from "@/types";
 
 const SUPPLIERS = ["Gompels", "Amazon", "Other"];
@@ -126,6 +127,7 @@ export default function AdminCatalogueClient() {
 
   return (
     <>
+      <ProcurementTabs />
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-heading font-bold text-gray-900">Catalogue</h1>

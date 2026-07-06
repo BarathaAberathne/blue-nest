@@ -71,6 +71,24 @@ func (h *AdminCatalogueHandler) Update(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, updated)
 }
 
+// Learn persists a confirmed Gompels code for a product name (the admin
+// accepting a search auto-pick), so the item becomes a reliable code next time.
+func (h *AdminCatalogueHandler) Learn(w http.ResponseWriter, r *http.Request) {
+	var req models.LearnCatalogueRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	item, err := h.svc.Learn(r.Context(), req.Name, req.Code, req.Price)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "learn", "catalogue_item", item.ID.Hex(),
+		"Saved Gompels code "+req.Code+" for "+item.Name, nil)
+	response.OK(w, item)
+}
+
 func (h *AdminCatalogueHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if err := h.svc.Delete(r.Context(), id); err != nil {

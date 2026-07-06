@@ -122,4 +122,18 @@ over your pinned tag.)
 - **Never** run `make docker-up` / `make docker-restart` / `make seed-*` on the
   droplet — they invoke a host Go seed that can't reach prod Mongo and drops
   product data. The deployer uses plain `docker compose` only.
+- **Seeding on prod = run the compiled binary _inside_ the backend container**
+  (reaches prod Mongo over the compose network; never the host `make seed-*`).
+  These two are safe & idempotent (upsert-only, no collection drop, only touch
+  their own collection — other tables are untouched):
+  ```bash
+  cd ~/app
+  # role/super-admin migration (after auth changes):
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml exec backend ./seedusers
+  # supply catalogue from the embedded Gompels order CSVs:
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml exec backend ./seedcatalogue
+  ```
+  Run these only **after** deploying the new image (the binary + embedded CSVs
+  ship in it). `cmd/seed` (products) is NOT safe — it drops the collection — so
+  never run it against prod.
 - Branch protection: require PRs into `main` (from `staging`) with `ci.yml` green.

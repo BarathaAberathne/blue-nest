@@ -5,58 +5,143 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import {
   Activity,
+  BarChart3,
   BookOpen,
   ClipboardList,
   ExternalLink,
   Inbox,
   LayoutDashboard,
+  LayoutGrid,
   Library,
   LogOut,
   Package,
   ShoppingBag,
   ShoppingCart,
   Tag,
+  Truck,
   Users,
 } from "lucide-react";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import { clearAuthSession } from "@/lib/auth";
+import { usePermissions, clearPermissionsCache } from "@/lib/usePermissions";
+import NotificationBell from "@/components/admin/NotificationBell";
+import type { Permission } from "@/types";
 
-const NAV_ITEMS = [
-  { label: "Dashboard",      href: "/admin/dashboard",      icon: LayoutDashboard },
-  { label: "Inquiries",      href: "/admin/inquiries",      icon: Inbox           },
-  { label: "Orders",         href: "/admin/orders",         icon: ShoppingCart    },
-  { label: "Supply Requests", href: "/admin/order-requests", icon: ClipboardList   },
-  { label: "Generated Carts", href: "/admin/purchase-carts", icon: ShoppingBag    },
-  { label: "Catalogue",      href: "/admin/catalogue",      icon: Library         },
-  { label: "Products",       href: "/admin/products",       icon: Package         },
-  { label: "Categories",     href: "/admin/categories",     icon: Tag             },
-  { label: "Blog",           href: "/admin/blog",           icon: BookOpen        },
-  { label: "Activity",       href: "/admin/activity",       icon: Activity        },
-  { label: "Users",          href: "/admin/users",          icon: Users           },
+// Sidebar is grouped into labelled sections so related tools sit together. The
+// PROCUREMENT group makes the purchasing flow self-evident as one connected
+// process: Overview → Supply Requests → Purchase Orders → Suppliers → Catalogue
+// → Analytics. Each item declares the permission needed to see it, so specialist
+// roles (finance / admissions / procurement) get a tailored sidebar.
+type NavItem = { label: string; href: string; icon: typeof LayoutDashboard; exact?: boolean; permission: Permission };
+type NavSection = { heading: string | null; items: NavItem[] };
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    heading: null,
+    items: [
+      { label: "Main Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
+      { label: "Inquiries", href: "/admin/inquiries", icon: Inbox, permission: "enquiries.manage" },
+    ],
+  },
+  {
+    heading: "Store",
+    items: [
+      { label: "Orders",     href: "/admin/orders",     icon: ShoppingCart, permission: "store.manage" },
+      { label: "Products",   href: "/admin/products",   icon: Package, permission: "store.manage" },
+      { label: "Categories", href: "/admin/categories", icon: Tag, permission: "store.manage" },
+    ],
+  },
+  {
+    heading: "Procurement",
+    items: [
+      { label: "Overview",        href: "/admin/procurement",            icon: LayoutGrid, exact: true, permission: "procurement.view" },
+      { label: "Supply Requests", href: "/admin/order-requests",         icon: ClipboardList, permission: "procurement.view" },
+      { label: "Purchase Orders", href: "/admin/purchase-carts",         icon: ShoppingBag, permission: "procurement.view" },
+      { label: "Suppliers",       href: "/admin/procurement/suppliers",  icon: Truck, permission: "suppliers.manage" },
+      { label: "Catalogue",       href: "/admin/catalogue",              icon: Library, permission: "procurement.manage" },
+      { label: "Analytics",       href: "/admin/procurement/analytics",  icon: BarChart3, permission: "finance.view" },
+    ],
+  },
+  {
+    heading: "Content",
+    items: [{ label: "Blog", href: "/admin/blog", icon: BookOpen, permission: "blog.manage" }],
+  },
+  {
+    heading: "System",
+    items: [
+      { label: "Activity", href: "/admin/activity", icon: Activity, permission: "audit.view" },
+      { label: "Users",    href: "/admin/users",    icon: Users, permission: "users.manage" },
+    ],
+  },
 ];
+
+// Staff (practitioners) get a restricted portal — only their own supply requests.
+const STAFF_SECTIONS: NavSection[] = [
+  { heading: null, items: [{ label: "My Supply Requests", href: "/admin/my-requests", icon: ClipboardList, permission: "dashboard.view" }] },
+];
+
+const allItems = (sections: NavSection[]) => sections.flatMap((s) => s.items);
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { ready, isAuthenticated, user, hasAnyRole, ensureAuthenticated } = useAuthGuard("/admin/login");
-  const isAdminLike = hasAnyRole(["super_admin", "admin", "branch_manager"]);
-  // Account management (Users) is super-admin only.
-  const navItems =
-    user?.role === "super_admin"
-      ? NAV_ITEMS
-      : NAV_ITEMS.filter((item) => item.href !== "/admin/users");
+  const { has, ready: permsReady } = usePermissions();
+  const isManagement = hasAnyRole([
+    "super_admin", "admin", "branch_manager", "finance", "admissions", "procurement",
+  ]);
+  const isStaff = user?.role === "staff";
+  const allowed = isManagement || isStaff;
+
+  // Each item is shown only if the user holds its permission. Until /auth/me
+  // resolves we fall back to a role-based view so the nav doesn't flash empty:
+  // general managers see everything (Users is super-admin only); specialists wait
+  // for the real permission set. A section with no visible items is dropped.
+  const canSee = (item: NavItem): boolean => {
+    if (permsReady) return has(item.permission);
+    if (user?.role === "super_admin") return true;
+    if (user?.role === "admin" || user?.role === "branch_manager") return item.permission !== "users.manage";
+    return item.permission === "dashboard.view";
+  };
+
+  const navSections: NavSection[] = isManagement
+    ? NAV_SECTIONS.map((s) => ({ ...s, items: s.items.filter(canSee) })).filter((s) => s.items.length > 0)
+    : STAFF_SECTIONS;
+
+  // First page the user is actually allowed to open (their landing page).
+  const firstAllowedHref = navSections.flatMap((s) => s.items)[0]?.href ?? "/admin/dashboard";
+  // The permission required to view the current path (longest matching nav item).
+  const currentItem = allItems(NAV_SECTIONS)
+    .filter((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href)))
+    .sort((a, b) => b.href.length - a.href.length)[0];
 
   useEffect(() => {
     if (!ready) return;
     const nextPath = pathname || "/admin/dashboard";
     if (!ensureAuthenticated(nextPath)) return;
-    if (!isAdminLike) router.push("/account");
-  }, [ensureAuthenticated, isAdminLike, pathname, ready, router]);
+    if (!allowed) {
+      router.push("/account");
+      return;
+    }
+    // Confine staff to their own supply-requests area — they can't reach
+    // management pages even by typing the URL.
+    if (isStaff && !pathname.startsWith("/admin/my-requests")) {
+      router.push("/admin/my-requests");
+      return;
+    }
+    // Specialist roles: once permissions resolve, bounce off any page they lack
+    // the permission for (e.g. an admissions user typing /admin/products).
+    if (isManagement && permsReady && currentItem && !has(currentItem.permission)) {
+      router.push(firstAllowedHref);
+    }
+  }, [ensureAuthenticated, allowed, isStaff, isManagement, permsReady, currentItem, firstAllowedHref, has, pathname, ready, router]);
 
-  if (!ready || !isAuthenticated || !isAdminLike) return null;
+  if (!ready || !isAuthenticated || !allowed) return null;
 
   const currentPage =
-    NAV_ITEMS.find((n) => pathname.startsWith(n.href))?.label ?? "Admin";
+    [...allItems(NAV_SECTIONS), ...allItems(STAFF_SECTIONS)].find((n) =>
+      pathname.startsWith(n.href),
+    )?.label ?? "Admin";
 
   const initials = user
     ? `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`.toUpperCase() ||
@@ -65,6 +150,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleLogout = () => {
     clearAuthSession();
+    clearPermissionsCache();
     router.push("/admin/login");
   };
 
@@ -80,31 +166,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </span>
             <div className="min-w-0">
               <p className="font-bold text-white text-sm leading-none truncate">Blue Nest</p>
-              <p className="text-[0.65rem] text-slate-500 mt-0.5">Admin Panel</p>
+              <p className="text-[0.65rem] text-slate-500 mt-0.5">{isStaff ? "Staff Portal" : "Admin Panel"}</p>
             </div>
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-4 px-3 space-y-0.5">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  active
-                    ? "bg-teal-600 text-white"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
-                }`}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-4">
+          {navSections.map((section, i) => (
+            <div key={section.heading ?? `section-${i}`} className="space-y-0.5">
+              {section.heading && (
+                <p className="px-3 pb-1 text-[0.6rem] font-semibold uppercase tracking-widest text-slate-500">
+                  {section.heading}
+                </p>
+              )}
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      active
+                        ? "bg-teal-600 text-white"
+                        : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Bottom actions */}
@@ -134,11 +229,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between">
           <div>
             <p className="text-[0.65rem] font-bold uppercase tracking-widest text-slate-400">
-              Admin
+              {isStaff ? "Staff" : "Admin"}
             </p>
             <p className="text-lg font-bold text-slate-900 leading-tight">{currentPage}</p>
           </div>
           <div className="flex items-center gap-3">
+            {isManagement && <NotificationBell />}
             <div className="text-right hidden sm:block">
               <p className="text-sm font-semibold text-slate-700">
                 {user?.first_name} {user?.last_name}

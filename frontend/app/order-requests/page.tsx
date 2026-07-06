@@ -1,11 +1,7 @@
-import type { Metadata } from "next";
-import OrderRequestsClient from "./OrderRequestsClient";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Supply Requests – Blue Nest",
-  robots: { index: false, follow: false },
-};
-
-export default function OrderRequestsPage() {
-  return <OrderRequestsClient />;
+// Supply requests moved into the admin back-office (/admin/my-requests). Keep
+// this route as a permanent redirect so old links/bookmarks still work.
+export default function OrderRequestsRedirect() {
+  redirect("/admin/my-requests");
 }

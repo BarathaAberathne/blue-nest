@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/repository"
@@ -22,12 +24,27 @@ type OrderRequestService interface {
 }
 
 type orderRequestService struct {
-	repo  repository.OrderRequestRepository
-	users repository.UserRepository
+	repo    repository.OrderRequestRepository
+	users   repository.UserRepository
+	counter repository.CounterRepository
 }
 
-func NewOrderRequestService(repo repository.OrderRequestRepository, users repository.UserRepository) OrderRequestService {
-	return &orderRequestService{repo: repo, users: users}
+func NewOrderRequestService(repo repository.OrderRequestRepository, users repository.UserRepository, counter repository.CounterRepository) OrderRequestService {
+	return &orderRequestService{repo: repo, users: users, counter: counter}
+}
+
+// nextRef mints the next human reference for a counter+prefix (best-effort —
+// failure just leaves the ref blank, never blocking the create).
+func (s *orderRequestService) nextRef(ctx context.Context, counter, prefix string) string {
+	if s.counter == nil {
+		return ""
+	}
+	year := time.Now().Year()
+	seq, err := s.counter.Next(ctx, fmt.Sprintf("%s-%d", counter, year))
+	if err != nil {
+		return ""
+	}
+	return models.FormatRef(prefix, year, seq)
 }
 
 func (s *orderRequestService) Submit(ctx context.Context, userID string, req models.CreateOrderRequestRequest) (*models.OrderRequest, error) {
@@ -52,10 +69,12 @@ func (s *orderRequestService) Submit(ctx context.Context, userID string, req mod
 			qty = 1
 		}
 		items = append(items, models.OrderRequestItem{
-			ItemName: name,
-			Supplier: supplier,
-			Qty:      qty,
-			Notes:    strings.TrimSpace(it.Notes),
+			ItemName:        name,
+			Supplier:        supplier,
+			Qty:             qty,
+			Notes:           strings.TrimSpace(it.Notes),
+			Code:            strings.TrimSpace(it.Code),
+			CatalogueItemID: strings.TrimSpace(it.CatalogueItemID),
 		})
 	}
 	if len(items) == 0 {
@@ -70,11 +89,19 @@ func (s *orderRequestService) Submit(ctx context.Context, userID string, req mod
 		emailAddr = u.Email
 	}
 
+	priority := strings.TrimSpace(req.Priority)
+	if !models.IsValidRequestPriority(priority) {
+		priority = models.PriorityNormal
+	}
+
 	orderReq := &models.OrderRequest{
+		Ref:              s.nextRef(ctx, models.CounterOrderRequest, models.RefPrefixOrderRequest),
 		UserID:           oid,
 		RequestedByName:  name,
 		RequestedByEmail: emailAddr,
 		BranchSlug:       strings.TrimSpace(req.BranchSlug),
+		Classroom:        strings.TrimSpace(req.Classroom),
+		Priority:         priority,
 		Items:            items,
 		Status:           models.OrderRequestPending,
 		Notes:            strings.TrimSpace(req.Notes),
@@ -117,11 +144,8 @@ func (s *orderRequestService) Cancel(ctx context.Context, userID, id string) (*m
 }
 
 func (s *orderRequestService) UpdateStatus(ctx context.Context, id, status string) error {
-	switch models.OrderRequestStatus(status) {
-	case models.OrderRequestPending, models.OrderRequestOrdered,
-		models.OrderRequestReceived, models.OrderRequestCancelled:
-		return s.repo.UpdateStatus(ctx, id, status)
-	default:
+	if !models.IsValidOrderRequestStatus(status) {
 		return errors.New("invalid status")
 	}
+	return s.repo.UpdateStatus(ctx, id, status)
 }
