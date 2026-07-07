@@ -1390,7 +1390,28 @@ paths:
                 supplier_order_ref: { type: string }
                 tracking_number: { type: string, description: Carrier tracking number }
                 expected_delivery_date: { type: string, format: date-time, nullable: true }
+                order_total: { type: integer, description: "Actual amount paid, in pence (feeds spend analytics)" }
       responses: { '200': { description: Updated }, '400': { description: Order not yet placed } }
+
+  /admin/purchase-carts/{id}/attachment:
+    post:
+      tags: [Order Creation]
+      summary: Attach an order confirmation / invoice to a placed order
+      description: Multipart upload (field `file`) — pdf/jpg/png/webp/gif/csv, up to 15 MB. Stored under /uploads and referenced on the cart.
+      operationId: addPurchaseCartAttachment
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200': { description: Attached, content: { application/json: { schema: { $ref: '#/components/schemas/PurchaseCart' } } } }
+        '400': { description: Order not yet placed / unsupported type }
 
   /admin/purchase-carts/{id}/status:
     patch:
@@ -2081,7 +2102,16 @@ components:
         lines:
           type: array
           items: { $ref: '#/components/schemas/PurchaseCartLine' }
-        subtotal: { type: integer, description: Pence }
+        subtotal: { type: integer, description: "Pence — catalogue-price estimate" }
+        order_total: { type: integer, description: "Pence — actual amount paid (post-placement); analytics uses this over subtotal" }
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              url: { type: string }
+              uploaded_at: { type: string, format: date-time }
         status:
           type: string
           enum: [draft, placed, tracking, dispatched, partially_received, received, completed, cancelled, failed]

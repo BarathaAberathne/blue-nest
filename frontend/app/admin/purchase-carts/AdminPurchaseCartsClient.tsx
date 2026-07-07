@@ -155,7 +155,7 @@ export default function AdminPurchaseCartsClient() {
                 accent={PURCHASE_CART_STATUS_META[c.status]?.accent ?? "slate"}
                 title={displayRef(c.ref, c.id, "PO")}
                 href={`/admin/purchase-carts/${c.id}`}
-                rightTop={<span className="text-sm font-bold text-slate-900">{money(c.subtotal)}</span>}
+                rightTop={<span className="text-sm font-bold text-slate-900">{money(c.order_total || c.subtotal)}</span>}
                 subtitle={
                   <>
                     {c.supplier} · {c.lines.length} line{c.lines.length !== 1 ? "s" : ""}
@@ -194,7 +194,7 @@ export default function AdminPurchaseCartsClient() {
                   <td className="px-4 py-3 text-slate-500">{fmtDate(c.created_at)}</td>
                   <td className="px-4 py-3 font-medium text-slate-900">{c.supplier}</td>
                   <td className="px-4 py-3 text-slate-700">{c.lines.length}</td>
-                  <td className="px-4 py-3 text-slate-700">{money(c.subtotal)}</td>
+                  <td className="px-4 py-3 text-slate-700">{money(c.order_total || c.subtotal)}</td>
                   <td className="px-4 py-3"><StageBadge label={PURCHASE_CART_STATUS_META[c.status]?.label ?? c.status} accent={PURCHASE_CART_STATUS_META[c.status]?.accent ?? "slate"} /></td>
                   <td className="px-4 py-3 text-xs">{c.expected_delivery_date ? <span className={isOverdue(c) ? "font-medium text-amber-600" : "text-slate-500"}>{fmtDate(c.expected_delivery_date)}{isOverdue(c) ? " · overdue" : ""}</span> : <span className="text-slate-300">—</span>}</td>
                   <td className="px-4 py-3 text-xs text-slate-500">{isPlaced(c.status) ? receivedFrac(c) : "—"}</td>

@@ -20,9 +20,11 @@ type PurchaseCartRepository interface {
 	MarkSent(ctx context.Context, id, emailRef string) error
 	MarkExported(ctx context.Context, id string, results []models.PurchaseCartExportResult, supplierOrderRef string) error
 	MarkFailed(ctx context.Context, id, errMsg string) error
-	// SetFulfillment records the supplier order ref, carrier tracking number +
-	// expected delivery date.
-	SetFulfillment(ctx context.Context, id, supplierOrderRef, trackingNumber string, expected *time.Time) error
+	// SetFulfillment records the supplier order ref, carrier tracking number,
+	// expected delivery date + the actual order total (pence).
+	SetFulfillment(ctx context.Context, id, supplierOrderRef, trackingNumber string, expected *time.Time, orderTotal int64) error
+	// AddAttachment appends an attachment (order confirmation / invoice) to a cart.
+	AddAttachment(ctx context.Context, id string, att models.PurchaseCartAttachment) error
 	// SetStatus applies a generic status transition (sets completed_at on complete).
 	SetStatus(ctx context.Context, id, status string) error
 	// SetReceived persists per-line received quantities + the resulting status
@@ -124,7 +126,7 @@ func (r *purchaseCartRepository) MarkExported(ctx context.Context, id string, re
 	return err
 }
 
-func (r *purchaseCartRepository) SetFulfillment(ctx context.Context, id, supplierOrderRef, trackingNumber string, expected *time.Time) error {
+func (r *purchaseCartRepository) SetFulfillment(ctx context.Context, id, supplierOrderRef, trackingNumber string, expected *time.Time, orderTotal int64) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
@@ -132,12 +134,26 @@ func (r *purchaseCartRepository) SetFulfillment(ctx context.Context, id, supplie
 	set := bson.M{
 		"supplier_order_ref":     supplierOrderRef,
 		"expected_delivery_date": expected,
+		"order_total":            orderTotal,
 		"updated_at":             time.Now(),
 	}
 	if strings.TrimSpace(trackingNumber) != "" {
 		set["tracking_number"] = trackingNumber
 	}
 	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": set})
+	return err
+}
+
+// AddAttachment appends a file reference (order confirmation, invoice) to a cart.
+func (r *purchaseCartRepository) AddAttachment(ctx context.Context, id string, att models.PurchaseCartAttachment) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{
+		"$push": bson.M{"attachments": att},
+		"$set":  bson.M{"updated_at": time.Now()},
+	})
 	return err
 }
 

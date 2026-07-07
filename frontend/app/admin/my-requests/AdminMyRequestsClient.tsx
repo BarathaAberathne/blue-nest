@@ -424,6 +424,15 @@ export default function AdminMyRequestsClient() {
                       {SUPPLIERS.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   )}
+                  {it.mode === "manual" && (
+                    <input
+                      value={it.code}
+                      onChange={(e) => updateItem(idx, { code: e.target.value })}
+                      placeholder="Product code"
+                      aria-label="Product code"
+                      className="col-span-6 sm:col-span-2 rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                    />
+                  )}
                   <input
                     type="number"
                     min={1}
@@ -437,7 +446,7 @@ export default function AdminMyRequestsClient() {
                     value={it.notes}
                     onChange={(e) => updateItem(idx, { notes: e.target.value })}
                     placeholder="Notes (optional)"
-                    className={`${it.mode === "manual" ? "col-span-7 sm:col-span-6" : "col-span-7 sm:col-span-9"} rounded-lg border border-gray-200 px-3 py-2 text-sm`}
+                    className={`${it.mode === "manual" ? "col-span-7 sm:col-span-4" : "col-span-7 sm:col-span-9"} rounded-lg border border-gray-200 px-3 py-2 text-sm`}
                   />
                   <button
                     type="button"

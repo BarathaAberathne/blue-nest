@@ -234,6 +234,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Put("/admin/purchase-carts/{id}", adminCartH.Update)
 				r.Post("/admin/purchase-carts/{id}/exported", adminCartH.Exported)
 				r.Patch("/admin/purchase-carts/{id}/fulfillment", adminCartH.UpdateFulfillment)
+				r.Post("/admin/purchase-carts/{id}/attachment", adminCartH.AddAttachment)
 				r.Patch("/admin/purchase-carts/{id}/status", adminCartH.UpdateStatus)
 				r.Post("/admin/purchase-carts/{id}/receive", adminCartH.Receive)
 			})

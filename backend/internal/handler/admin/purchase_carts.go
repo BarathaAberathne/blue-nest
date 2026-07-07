@@ -2,7 +2,12 @@ package admin
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -116,6 +121,65 @@ func (h *AdminPurchaseCartHandler) UpdateFulfillment(w http.ResponseWriter, r *h
 		return
 	}
 	h.audit.Record(r, "update", "purchase_cart", id, "Updated delivery details", nil)
+	response.OK(w, cart)
+}
+
+// attachmentExts are the file types allowed for order-confirmation attachments.
+var attachmentExts = map[string]bool{
+	".pdf": true, ".jpg": true, ".jpeg": true, ".png": true, ".webp": true, ".gif": true, ".csv": true,
+}
+
+// AddAttachment saves an uploaded file (order confirmation / invoice) against a
+// placed purchase order.
+func (h *AdminPurchaseCartHandler) AddAttachment(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if err := r.ParseMultipartForm(15 << 20); err != nil {
+		response.BadRequest(w, "file too large or invalid form")
+		return
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		response.BadRequest(w, "file field required")
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	if !attachmentExts[ext] {
+		response.BadRequest(w, "unsupported type: use pdf, jpg, png, webp, gif or csv")
+		return
+	}
+
+	stored := fmt.Sprintf("po-%s-%d%s", id, time.Now().UnixNano(), ext)
+	dst, err := os.Create(filepath.Join("uploads", stored))
+	if err != nil {
+		response.InternalError(w, "failed to save file")
+		return
+	}
+	defer dst.Close()
+	if _, err := io.Copy(dst, file); err != nil {
+		response.InternalError(w, "failed to write file")
+		return
+	}
+
+	scheme := "http"
+	if r.Header.Get("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	host := r.Header.Get("X-Forwarded-Host")
+	if host == "" {
+		host = r.Host
+	}
+	att := models.PurchaseCartAttachment{
+		Name: header.Filename,
+		URL:  fmt.Sprintf("%s://%s/uploads/%s", scheme, host, stored),
+	}
+	cart, err := h.svc.AddAttachment(r.Context(), id, att)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "attach", "purchase_cart", id, "Attached "+header.Filename, nil)
 	response.OK(w, cart)
 }
 
