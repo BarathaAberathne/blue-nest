@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, PackageCheck, ShoppingCart, Truck } from "lucide-react";
+import { ArrowLeft, Check, PackageCheck, Paperclip, ShoppingCart, Truck, Upload } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import StageBadge from "@/components/admin/ui/StageBadge";
@@ -43,10 +43,12 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
   const [supplierRef, setSupplierRef] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
   const [expectedDate, setExpectedDate] = useState("");
+  const [orderTotal, setOrderTotal] = useState(""); // actual amount paid (£)
   const [received, setReceived] = useState<number[]>([]);
   const [savingTrack, setSavingTrack] = useState(false);
   const [savingReceive, setSavingReceive] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const defaultStep = (status: PurchaseCartStatus) =>
     status === "draft"
@@ -61,6 +63,7 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
     setSupplierRef(c.supplier_order_ref ?? "");
     setTrackingNumber(c.tracking_number ?? "");
     setExpectedDate(toDateInput(c.expected_delivery_date));
+    setOrderTotal(c.order_total ? penceToPounds(c.order_total) : "");
     setReceived(c.lines.map((l) => l.qty_received ?? l.qty));
     setActiveStep(defaultStep(c.status));
   };
@@ -230,13 +233,33 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
         supplier_order_ref: supplierRef.trim(),
         tracking_number: trackingNumber.trim(),
         expected_delivery_date: expectedDate ? new Date(expectedDate).toISOString() : null,
+        order_total: poundsToPence(orderTotal),
       });
       load(updated as PurchaseCart);
-      setNotice("Delivery details saved — staff can now see the expected date.");
+      setNotice("Saved — the order total feeds spend analytics; staff see the expected date.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save delivery details");
     } finally {
       setSavingTrack(false);
+    }
+  };
+
+  // Attach an order-confirmation / invoice file to the placed order.
+  const onUploadAttachment = async (file: File | undefined) => {
+    if (!file) return;
+    const token = getAccessToken();
+    if (!token) return;
+    setUploading(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const updated = await api.adminUploadCartAttachment(token, id, file);
+      load(updated as PurchaseCart);
+      setNotice(`Attached “${file.name}”.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to upload attachment");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -302,7 +325,7 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
             {cart.supplier}
             {cart.branch_slug ? ` · ${cart.branch_slug.replace(/[-_]/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase())}` : ""}
             {cart.classroom ? ` · ${cart.classroom}` : ""}
-            {" · "}{lines.length} line{lines.length !== 1 ? "s" : ""} · {money(subtotal)}
+            {" · "}{lines.length} line{lines.length !== 1 ? "s" : ""} · {money(cart.order_total || subtotal)}{cart.order_total ? "" : " est."}
             {cart.expected_delivery_date ? ` · expected ${fmtDate(cart.expected_delivery_date)}` : ""}
           </p>
         </div>
@@ -503,7 +526,20 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
             <p className="inline-flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3">
               <Truck className="h-4 w-4 text-teal-600" /> Delivery tracking
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl">
+              <div>
+                <label className="block text-xs uppercase tracking-wider text-gray-400 mb-1">Order total (£)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={orderTotal}
+                  onChange={(e) => setOrderTotal(e.target.value)}
+                  placeholder="actual amount paid"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                />
+                <p className="mt-1 text-xs text-gray-400">The real amount paid on {cart.supplier} — feeds spend analytics.</p>
+              </div>
               <div>
                 <label className="block text-xs uppercase tracking-wider text-gray-400 mb-1">Supplier order ref</label>
                 <input
@@ -564,6 +600,38 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Order confirmation / invoice attachments. */}
+          <div className="card p-5">
+            <p className="inline-flex items-center gap-2 text-sm font-semibold text-gray-900 mb-3">
+              <Paperclip className="h-4 w-4 text-teal-600" /> Attachments
+            </p>
+            {cart.attachments && cart.attachments.length > 0 ? (
+              <ul className="mb-3 divide-y divide-gray-100 rounded-lg border border-gray-100">
+                {cart.attachments.map((a, i) => (
+                  <li key={i} className="flex items-center justify-between px-3 py-2 text-sm">
+                    <a href={a.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-teal-700 hover:underline">
+                      <Paperclip className="h-3.5 w-3.5" /> {a.name}
+                    </a>
+                    <span className="text-xs text-gray-400">{a.uploaded_at ? fmtDate(a.uploaded_at) : ""}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mb-3 text-sm text-gray-400">No files yet — attach the order confirmation / invoice for reference.</p>
+            )}
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              <Upload className="h-4 w-4" /> {uploading ? "Uploading…" : "Attach file"}
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.csv"
+                disabled={uploading}
+                onChange={(e) => { void onUploadAttachment(e.target.files?.[0]); e.target.value = ""; }}
+                className="hidden"
+              />
+            </label>
+            <p className="mt-2 text-xs text-gray-400">PDF, image or CSV, up to 15 MB.</p>
           </div>
 
           {/* Gompels fill results (from the extension push). */}

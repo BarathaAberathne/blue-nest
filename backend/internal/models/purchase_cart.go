@@ -75,20 +75,24 @@ type PurchaseCartLine struct {
 // supply requests. The "best & cheapest" sourcing chooses which supplier each
 // item lands in; carts are split per supplier.
 type PurchaseCart struct {
-	ID               primitive.ObjectID `bson:"_id,omitempty"      json:"id"`
-	Ref              string             `bson:"ref,omitempty"      json:"ref,omitempty"` // human ref e.g. PO-2026-000123
-	Supplier         string             `bson:"supplier"           json:"supplier"`
-	Status           PurchaseCartStatus `bson:"status"             json:"status"`
-	BranchSlug       string             `bson:"branch_slug,omitempty" json:"branch_slug,omitempty"` // primary branch (from source requests)
-	Classroom        string             `bson:"classroom,omitempty"   json:"classroom,omitempty"`
-	Priority         string             `bson:"priority,omitempty"    json:"priority,omitempty"`
-	RecipientEmail   string             `bson:"recipient_email,omitempty" json:"recipient_email,omitempty"`
-	Lines            []PurchaseCartLine `bson:"lines"              json:"lines"`
-	Subtotal         int64              `bson:"subtotal"           json:"subtotal"` // pence
-	SourceRequestIDs []string           `bson:"source_request_ids" json:"source_request_ids"`
-	GeneratedBy      string             `bson:"generated_by,omitempty" json:"generated_by,omitempty"`
-	SentAt           *time.Time         `bson:"sent_at,omitempty"  json:"sent_at,omitempty"` // placed-with-supplier time
-	EmailRef         string             `bson:"email_ref,omitempty" json:"email_ref,omitempty"`
+	ID             primitive.ObjectID `bson:"_id,omitempty"      json:"id"`
+	Ref            string             `bson:"ref,omitempty"      json:"ref,omitempty"` // human ref e.g. PO-2026-000123
+	Supplier       string             `bson:"supplier"           json:"supplier"`
+	Status         PurchaseCartStatus `bson:"status"             json:"status"`
+	BranchSlug     string             `bson:"branch_slug,omitempty" json:"branch_slug,omitempty"` // primary branch (from source requests)
+	Classroom      string             `bson:"classroom,omitempty"   json:"classroom,omitempty"`
+	Priority       string             `bson:"priority,omitempty"    json:"priority,omitempty"`
+	RecipientEmail string             `bson:"recipient_email,omitempty" json:"recipient_email,omitempty"`
+	Lines          []PurchaseCartLine `bson:"lines"              json:"lines"`
+	Subtotal       int64              `bson:"subtotal"           json:"subtotal"` // pence — estimate from catalogue prices
+	// OrderTotal is the ACTUAL amount paid at the supplier (entered after placing —
+	// the extension flow pays live Gompels prices, so this is the real spend that
+	// analytics uses). Falls back to Subtotal when unset.
+	OrderTotal       int64      `bson:"order_total,omitempty" json:"order_total,omitempty"` // pence
+	SourceRequestIDs []string   `bson:"source_request_ids" json:"source_request_ids"`
+	GeneratedBy      string     `bson:"generated_by,omitempty" json:"generated_by,omitempty"`
+	SentAt           *time.Time `bson:"sent_at,omitempty"  json:"sent_at,omitempty"` // placed-with-supplier time
+	EmailRef         string     `bson:"email_ref,omitempty" json:"email_ref,omitempty"`
 	// Fulfillment tracking (set after the order is placed).
 	SupplierOrderRef     string     `bson:"supplier_order_ref,omitempty"     json:"supplier_order_ref,omitempty"`
 	TrackingNumber       string     `bson:"tracking_number,omitempty"        json:"tracking_number,omitempty"`
@@ -99,9 +103,20 @@ type PurchaseCart struct {
 	// to the Gompels cart (added/failed, and the product it auto-picked for
 	// search-by-description lines).
 	ExportResults []PurchaseCartExportResult `bson:"export_results,omitempty" json:"export_results,omitempty"`
-	Error         string                     `bson:"error,omitempty"    json:"error,omitempty"`
-	CreatedAt     time.Time                  `bson:"created_at"         json:"created_at"`
-	UpdatedAt     time.Time                  `bson:"updated_at"         json:"updated_at"`
+	// Attachments are files the procurement officer attaches after placing (e.g.
+	// the supplier order confirmation / invoice) for reference.
+	Attachments []PurchaseCartAttachment `bson:"attachments,omitempty" json:"attachments,omitempty"`
+	Error       string                   `bson:"error,omitempty"    json:"error,omitempty"`
+	CreatedAt   time.Time                `bson:"created_at"         json:"created_at"`
+	UpdatedAt   time.Time                `bson:"updated_at"         json:"updated_at"`
+}
+
+// PurchaseCartAttachment is a file attached to a placed order (order confirmation,
+// invoice, etc.).
+type PurchaseCartAttachment struct {
+	Name       string    `bson:"name"        json:"name"`
+	URL        string    `bson:"url"         json:"url"`
+	UploadedAt time.Time `bson:"uploaded_at" json:"uploaded_at"`
 }
 
 // PurchaseCartExportResult is one line's outcome from the Gompels extension fill.
@@ -139,6 +154,9 @@ type UpdateFulfillmentRequest struct {
 	SupplierOrderRef     string     `json:"supplier_order_ref"`
 	TrackingNumber       string     `json:"tracking_number"`
 	ExpectedDeliveryDate *time.Time `json:"expected_delivery_date"`
+	// OrderTotal is the actual amount paid (pence); the Track form pre-fills it
+	// from the cart so saving delivery details never clears it. 0 = unset.
+	OrderTotal int64 `json:"order_total"`
 }
 
 // UpdatePurchaseCartStatusRequest is a generic status transition (placed →

@@ -143,7 +143,12 @@ func (s *procurementAnalyticsService) Compute(ctx context.Context) (*Procurement
 		if !placedOrder(c.Status) {
 			continue
 		}
+		// Prefer the actual amount paid (entered post-placement); fall back to the
+		// catalogue-estimate subtotal.
 		spend := c.Subtotal
+		if c.OrderTotal > 0 {
+			spend = c.OrderTotal
+		}
 		out.TotalSpend += spend
 
 		sup := c.Supplier

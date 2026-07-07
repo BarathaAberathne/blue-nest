@@ -614,6 +614,12 @@ export interface PurchaseCartExportResult {
   qty?: number;
 }
 
+export interface PurchaseCartAttachment {
+  name: string;
+  url: string;
+  uploaded_at: string;
+}
+
 export interface PurchaseCart {
   id: string;
   ref?: string; // human ref e.g. PO-2026-000123
@@ -624,7 +630,9 @@ export interface PurchaseCart {
   priority?: ProcurementPriority;
   recipient_email?: string;
   lines: PurchaseCartLine[];
-  subtotal: number; // pence
+  subtotal: number; // pence — estimate
+  order_total?: number; // pence — actual amount paid (post-placement); analytics uses this
+  attachments?: PurchaseCartAttachment[];
   source_request_ids: string[];
   generated_by?: string;
   sent_at?: string;

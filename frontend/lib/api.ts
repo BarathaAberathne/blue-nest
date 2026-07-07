@@ -402,13 +402,18 @@ export const api = {
   adminUpdateCartFulfillment: (
     token: string,
     id: string,
-    body: { supplier_order_ref: string; tracking_number?: string; expected_delivery_date: string | null },
+    body: { supplier_order_ref: string; tracking_number?: string; expected_delivery_date: string | null; order_total?: number },
   ) =>
     apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}/fulfillment`, {
       method: "PATCH",
       body: JSON.stringify(body),
       token,
     }),
+  adminUploadCartAttachment: (token: string, id: string, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}/attachment`, { method: "POST", body: fd, token });
+  },
   adminUpdatePurchaseCartStatus: (token: string, id: string, status: string) =>
     apiFetch<PurchaseCart>(`/api/v1/admin/purchase-carts/${id}/status`, {
       method: "PATCH",
