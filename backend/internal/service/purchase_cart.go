@@ -25,6 +25,7 @@ type PurchaseCartService interface {
 	// UpdateFulfillment records the supplier order ref + expected delivery date on a
 	// placed order, and propagates the expected date to the covered requests.
 	UpdateFulfillment(ctx context.Context, id string, req models.UpdateFulfillmentRequest) (*models.PurchaseCart, error)
+	AddAttachment(ctx context.Context, id string, att models.PurchaseCartAttachment) (*models.PurchaseCart, error)
 	// Receive records per-line goods-received quantities, sets the cart to
 	// partially_received / received, and (when fully received) flips the covered
 	// requests to "received" with a delivered timestamp.
@@ -375,7 +376,11 @@ func (s *purchaseCartService) UpdateFulfillment(ctx context.Context, id string, 
 	}
 	ref := strings.TrimSpace(req.SupplierOrderRef)
 	tracking := strings.TrimSpace(req.TrackingNumber)
-	if err := s.carts.SetFulfillment(ctx, id, ref, tracking, req.ExpectedDeliveryDate); err != nil {
+	orderTotal := req.OrderTotal
+	if orderTotal < 0 {
+		orderTotal = 0
+	}
+	if err := s.carts.SetFulfillment(ctx, id, ref, tracking, req.ExpectedDeliveryDate, orderTotal); err != nil {
 		return nil, err
 	}
 	for _, rid := range cart.SourceRequestIDs {
@@ -386,6 +391,25 @@ func (s *purchaseCartService) UpdateFulfillment(ctx context.Context, id string, 
 		cart.TrackingNumber = tracking
 	}
 	cart.ExpectedDeliveryDate = req.ExpectedDeliveryDate
+	cart.OrderTotal = orderTotal
+	return cart, nil
+}
+
+// AddAttachment saves a file reference (order confirmation / invoice) on a placed
+// order, for the procurement officer's records.
+func (s *purchaseCartService) AddAttachment(ctx context.Context, id string, att models.PurchaseCartAttachment) (*models.PurchaseCart, error) {
+	cart, err := s.carts.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if !cart.IsPlaced() {
+		return nil, errors.New("place the order before attaching files")
+	}
+	att.UploadedAt = time.Now()
+	if err := s.carts.AddAttachment(ctx, id, att); err != nil {
+		return nil, err
+	}
+	cart.Attachments = append(cart.Attachments, att)
 	return cart, nil
 }
 
