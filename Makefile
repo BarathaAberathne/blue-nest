@@ -196,12 +196,13 @@ setup: install
 	@echo "✓ .env created — edit it with your secrets before starting"
 	@echo "Run 'make dev' for local dev or 'make docker-up' for Docker."
 
-# ── Local staging (prod-image QA gate) ────────────────────────────────────────
-# Builds the PRODUCTION images locally and runs them as an isolated compose
-# project (bluenest-staging) for pre-prod verification. Pure docker compose —
-# deliberately does NOT chain seed-* (which drop prod-shaped data; see ops
-# notes). Browse the stack at http://localhost:3000 and QA before promoting
-# the `staging` branch → `main`.
+# ── Local staging environment (prod-image QA gate) ───────────────────────────
+# NOTE: "staging" here is an ENVIRONMENT, not a git branch (branches are
+# feature → develop → main). Builds the PRODUCTION images locally and runs them
+# as an isolated compose project (bluenest-staging) for pre-prod verification.
+# Pure docker compose — deliberately does NOT chain seed-* (which drop
+# prod-shaped data; see ops notes). Browse the stack at http://localhost:3000
+# and QA before promoting the `develop` branch → `main`.
 STAGING := docker compose --env-file .env.staging -p bluenest-staging -f docker-compose.yml -f docker-compose.staging.yml
 
 staging-up:

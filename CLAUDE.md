@@ -219,15 +219,20 @@ module's design record.
   /me/dashboard`; `DashboardClient` has a **Customize** mode with drag-drop reorder, hide/show, a
   normal/wide size toggle and reset-to-default, persisted per user (`models.DashboardWidget`).
 
-## Dev / staging / prod workflow
-Branch model: **feature → staging → main**. `staging` is the pre-prod QA branch; `main` is prod.
+## Dev / prod workflow
+Branch model: **feature → develop → main**. `develop` is the integration branch (the repo's **default**
+branch — cut feature branches off it and PR back into it); `main` is prod. **NOTE — "staging" is NOT a
+git branch**: `make staging-up` / `.env.staging` / `docker-compose.staging.yml` are the **local
+prod-image QA gate** (an isolated docker environment, project `bluenest-staging`) you run before
+promoting `develop → main`. Don't confuse the staging *environment* with a branch.
 - Local dev: `make dev` (or `make docker-restart`) → seeds + runs on :3000/:8080. Default admin is
   `admin@bluenest.uk` (see `.env`). Re-run `make seed-users` after role/migration changes;
   `make seed-catalogue` after adding Gompels order CSVs. `make seed-all` runs every seed in order.
 - Local prod-image gate: `make staging-up` builds the prod Dockerfiles and runs on 127.0.0.1:3000/8080
   (needs `.env.staging`; `COMPOSE_FILE` must be set — env-parity check via `scripts/check-env.sh`).
-- Ship: PR feature→staging (CI: Go API + Next.js). Promote staging→main via PR (often needs a
-  `git merge origin/main` into staging first to satisfy branch protection). Tag releases `vX.Y.Z`.
+- Ship: PR feature→develop (CI: Go API + Next.js). Promote develop→main via PR (if `main` has drifted
+  ahead — GitHub adds a merge commit on each release — fast-forward/merge `origin/main` into `develop`
+  first). Tag releases `vX.Y.Z`.
 - **Prod deploy is on the droplet** (`deploy@165.232.47.89`, app at `~/app`). It currently runs in
   **local-build mode** (`IMAGE_PREFIX` empty), so deploys must **build on the box**:
   `git fetch origin main && git reset --hard origin/main && docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --force-recreate`.

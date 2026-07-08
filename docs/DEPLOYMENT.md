@@ -2,9 +2,13 @@
 
 A lightweight, git-branch-based promotion flow. No Concourse, no extra servers.
 
+**Branches vs environments** (don't conflate them):
+- **Branches:** `feature/*` → **`develop`** (integration, default branch) → **`main`** (prod).
+- **Environments:** `sandbox` (localhost dev) · `staging` (prod images built & run **locally** — a QA gate, **not** a branch) · `prod` (the droplet, tracking `main`).
+
 ```
-feature/* ──PR──▶ staging ──(local prod-image QA gate)──▶ PR ──▶ main ──▶ GHCR build ──▶ droplet auto-deploy
-  sandbox: localhost dev        staging: localhost                       prod
+feature/* ──PR──▶ develop ──(local prod-image QA gate: make staging-up)──▶ PR ──▶ main ──▶ GHCR build ──▶ droplet
+  sandbox: localhost dev        staging env: localhost                          prod
 ```
 
 | Stage | What it is | How |
@@ -24,15 +28,15 @@ when a required key is missing or empty.
 
 ### 1. Develop (sandbox)
 ```bash
-git checkout -b feature/my-change      # off staging
+git checkout -b feature/my-change      # off develop
 make dev                               # localhost:3000 / :8080, hot reload
 ```
-Open a PR into **`staging`**. GitHub Actions (`ci.yml`) runs lint/test/build.
+Open a PR into **`develop`**. GitHub Actions (`ci.yml`) runs lint/test/build.
 
-### 2. Release candidate (staging — the QA gate)
-Merge the PR into `staging`, then locally:
+### 2. Release candidate (the staging-environment QA gate)
+Merge the PR into `develop`, then locally:
 ```bash
-git checkout staging && git pull
+git checkout develop && git pull
 cp .env.staging.example .env.staging   # first time only; fill in a REAL
                                        # ANTHROPIC_API_KEY + Stripe TEST keys
 make staging-up                        # builds prod images, runs them, verifies
@@ -49,7 +53,7 @@ make staging-clean     # stop + wipe the staging DB volume
 ```
 
 ### 3. Promote to production
-Open a PR from `staging` → `main`. When it merges:
+Open a PR from `develop` → `main`. When it merges:
 - `build-images.yml` builds & pushes `blue-nest-frontend` / `blue-nest-backend` to GHCR.
 - The droplet's `bluenest-deploy.timer` notices the new images within ~2 min, runs
   the **env-parity preflight**, recreates the stack, health-checks, and rolls back
@@ -136,4 +140,4 @@ over your pinned tag.)
   Run these only **after** deploying the new image (the binary + embedded CSVs
   ship in it). `cmd/seed` (products) is NOT safe — it drops the collection — so
   never run it against prod.
-- Branch protection: require PRs into `main` (from `staging`) with `ci.yml` green.
+- Branch protection: require PRs into `main` (from `develop`) with `ci.yml` green.

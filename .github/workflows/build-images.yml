@@ -13,7 +13,7 @@ name: Build & push images
 on:
   push:
     branches: [main]
-    # A semver tag (e.g. v1.4.0) cut when promoting staging → main also builds
+    # A semver tag (e.g. v1.4.0) cut when promoting develop → main also builds
     # an immutable :vX.Y.Z image for deterministic rollback on the droplet.
     tags: ["v*"]
     paths-ignore:
