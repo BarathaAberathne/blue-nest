@@ -241,15 +241,17 @@ A lightweight, git-branch promotion flow (no external CI/CD server). Full runboo
 | **prod** | the `main` branch on the DigitalOcean droplet | merge → GitHub Actions builds GHCR images → droplet auto-pulls |
 
 ```
-feature/* ──PR──▶ staging ──(local prod-image QA gate)──▶ PR ──▶ main ──▶ GHCR build ──▶ droplet auto-deploy
+feature/* ──PR──▶ develop ──(local prod-image QA gate: make staging-up)──▶ PR ──▶ main ──▶ GHCR build ──▶ droplet
 ```
+> `develop` is the integration branch (default); **`staging` is not a branch** — it's the local prod-image
+> QA environment (`make staging-up`) you run before promoting `develop → main`.
 
-- **CI** (`.github/workflows/ci.yml`) runs lint/test/build on PRs into `staging` and `main`.
+- **CI** (`.github/workflows/ci.yml`) runs lint/test/build on PRs into `develop` and `main`.
 - **Image build** (`.github/workflows/build-images.yml`) pushes `blue-nest-frontend` / `blue-nest-backend` to GHCR on every `main` push, plus an immutable `:vX.Y.Z` image on a release tag.
 - **Env parity:** `.env.production.example` is the authoritative required-keys contract; `scripts/check-env.sh` blocks a staging run or prod deploy when a required key is missing or empty — this guards against a repeat of the missing-`ANTHROPIC_API_KEY` chat outage.
 - **Prod auto-deploy:** a systemd timer (`deploy/bluenest-deploy.timer` → `deploy/auto-deploy.sh`) polls `main` + GHCR every ~2 min and, on change, runs the env-parity preflight, recreates the stack with `docker compose`, health-checks, and rolls back on failure. Droplet deploys use **plain `docker compose`** only — never `make docker-up`/`seed-*` (those run a host seed that drops data).
 
-Cut a release by promoting `staging → main` (optionally tagging `vX.Y.Z`).
+Cut a release by promoting `develop → main` (optionally tagging `vX.Y.Z`).
 
 ---
 
