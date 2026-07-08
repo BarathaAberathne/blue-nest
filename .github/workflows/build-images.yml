@@ -56,7 +56,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/blue-nest-frontend
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,format=short
             type=semver,pattern=v{{version}}
             type=ref,event=tag
@@ -97,7 +97,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/blue-nest-backend
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,format=short
             type=semver,pattern=v{{version}}
             type=ref,event=tag
