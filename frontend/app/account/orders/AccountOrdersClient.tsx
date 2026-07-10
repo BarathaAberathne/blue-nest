@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Package, ShoppingBag } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthGuard } from "@/lib/useAuthGuard";
+import { displayRef } from "@/lib/ref";
 import type { Order, OrderStatus } from "@/types";
 
 function fmt(pence: number) {
@@ -95,7 +96,7 @@ export default function AccountOrdersClient() {
               {/* Details */}
               <div className="flex-1 min-w-0">
                 <p className="font-mono text-xs font-semibold text-[rgba(90,74,66,0.85)] truncate">
-                  {o.id.slice(0, 16).toUpperCase()}
+                  {displayRef(o.ref, o.id, "ORD")}
                 </p>
                 <p className="text-xs text-[var(--muted)] mt-0.5">{fmtDate(o.created_at)}</p>
               </div>

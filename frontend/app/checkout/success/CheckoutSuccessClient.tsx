@@ -7,6 +7,7 @@ import PageWrapper from "@/components/ui/PageWrapper";
 import { clearCart } from "@/lib/store-cart";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
+import { displayRef } from "@/lib/ref";
 import type { Order } from "@/types";
 
 type ConfirmState = "polling" | "paid" | "timeout";
@@ -111,7 +112,7 @@ export default function CheckoutSuccessClient() {
         {orderID && (
           <p className="text-xs text-[var(--muted)] mb-2">
             Order reference:{" "}
-            <span className="font-semibold text-[var(--ink)] font-mono">{orderID}</span>
+            <span className="font-semibold text-[var(--ink)] font-mono">{displayRef(order?.ref, orderID, "ORD")}</span>
           </p>
         )}
         {isPaid && order?.status && (
