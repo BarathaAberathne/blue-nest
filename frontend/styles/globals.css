@@ -25,6 +25,16 @@
     --branch-pinner-green: #9FC6A8;
   }
 
+  /* Admin shell uses a professional / industrial type system. Overriding these
+     two font CSS variables flips EVERY font-heading / font-body / font-sans
+     utility inside the admin (they resolve to var(--font-display)/var(--font-body))
+     to Space Grotesk + Inter — with zero component changes. Scoped to .admin-shell,
+     so the public nursery site keeps Chewy/Nunito. */
+  .admin-shell {
+    --font-display: var(--font-admin-heading);
+    --font-body: var(--font-admin-body);
+  }
+
   html {
     scroll-behavior: smooth;
     /* Belt-and-braces with the body rule below: some Safari builds only honour
