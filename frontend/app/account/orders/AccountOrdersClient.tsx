@@ -40,7 +40,12 @@ export default function AccountOrdersClient() {
     if (!ensureAuthenticated("/account/orders")) { setLoading(false); return; }
 
     api.getMyOrders(token)
-      .then((data) => setOrders(Array.isArray(data) ? (data as Order[]) : []))
+      .then((data) => {
+        const list = Array.isArray(data) ? (data as Order[]) : [];
+        // Newest orders first.
+        list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setOrders(list);
+      })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load orders"))
       .finally(() => setLoading(false));
   }, [ensureAuthenticated, ready, token]);
