@@ -65,6 +65,12 @@ type SMTPConfig struct {
 	Pass    string
 	From    string
 	AdminTo string
+	// OrderAdminTo / OrderBATo are the store-order notification recipients
+	// (comma-separated). They fall back to AdminTo when unset so existing
+	// deployments keep working. Branch-manager recipients are resolved per order
+	// from the branch record's contact email (not configured here).
+	OrderAdminTo string
+	OrderBATo    string
 	// ResendAPIKey, when set, makes the mailer send via Resend's HTTPS API
 	// instead of SMTP. Useful on hosts (e.g. DigitalOcean droplets) that
 	// block outbound SMTP by default.
@@ -133,6 +139,8 @@ func Load() *Config {
 			Pass:         getEnv("SMTP_PASS", ""),
 			From:         getEnv("SMTP_FROM", "noreply@bluenest.uk"),
 			AdminTo:      getEnv("SMTP_ADMIN_TO", "ba@bluenest.com"),
+			OrderAdminTo: getEnv("ORDER_ADMIN_EMAILS", getEnv("SMTP_ADMIN_TO", "ba@bluenest.com")),
+			OrderBATo:    getEnv("ORDER_BA_EMAILS", ""),
 			ResendAPIKey: getEnv("RESEND_API_KEY", ""),
 		},
 		Sourcing: SourcingConfig{

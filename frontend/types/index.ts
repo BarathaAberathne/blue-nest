@@ -77,12 +77,15 @@ export type OrderStatus =
   | "delivered"
   | "cancelled";
 
+export type PaymentStatus = "unpaid" | "paid" | "failed" | "refunded";
+
 export interface OrderItem {
   product_id: string;
   name: string;
   price: number;
   qty: number;
   size?: string;
+  vat?: number;
 }
 
 export interface ShippingAddress {
@@ -90,8 +93,10 @@ export interface ShippingAddress {
   line1: string;
   line2?: string;
   city: string;
+  county?: string;
   postal_code: string;
   country: string;
+  phone?: string;
 }
 
 export interface Order {
@@ -102,12 +107,25 @@ export interface Order {
   status: OrderStatus;
   total_amount: number;
   currency: string;
-  shipping_address?: ShippingAddress;
+  // Customer snapshot
+  customer_name?: string;
   customer_email?: string;
+  customer_phone?: string;
+  // Nursery (branch_slug "" or "n/a" = Not applicable)
+  branch_slug?: string;
+  branch_name?: string;
+  child_ref?: string;
+  // Addresses
+  shipping_address?: ShippingAddress;
+  billing_address?: ShippingAddress;
+  // Payment
+  payment_status?: PaymentStatus;
+  stripe_customer_id?: string;
   stripe_session_id?: string;
   payment_intent_id?: string;
   paid_at?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 // ── Blog ─────────────────────────────────────────────────────────────────────

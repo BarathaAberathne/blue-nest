@@ -62,6 +62,22 @@ methods + `getAccessToken()`.
 ## Modules (current)
 Store (products/categories/cart/checkout/orders), Blog, Branches, Contact/**Enquiries** (admissions
 CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Area (4 games).
+- **Store orders** (`models/order.go`, collection `orders`): lifecycle is **order-first** — the cart's
+  in-app checkout form collects name/email/phone + optional nursery **branch** (default `n/a` = Not
+  applicable) + optional child ref; `POST /checkout/session` creates a `pending`/`unpaid` order with
+  that **snapshot**, then a Stripe Checkout Session (`client_reference_id`+metadata `order_id`; Stripe
+  collects & validates delivery + **billing** address + phone; **no sensitive data in metadata**). The
+  webhook (`handler/webhooks/stripe.go`, signature-verified) handles `checkout.session.completed` /
+  `async_payment_succeeded` (reconciles billing+shipping+phone+customer onto the order via
+  `SaveStripeDetails`, marks paid, decrements stock **once**, emails) and `async_payment_failed` /
+  `payment_intent.payment_failed` (marks failed + restocks, never demotes a paid order). Four
+  **idempotent** emails per paid order (own `*_email_sent_at` guard each): customer (no Stripe IDs),
+  admin (`ORDER_ADMIN_EMAILS`), branch manager (resolved from the branch record's `Contact.Email` — no
+  hard-coded staff addresses), BA (`ORDER_BA_EMAILS`); both configs fall back to `SMTP_ADMIN_TO`. Admin
+  UI (`/admin/orders`): list has customer/nursery/payment columns + search + payment/branch/date
+  filters; detail shows customer, nursery, billing + delivery, payment (incl. Stripe IDs), admin — with
+  "Not recorded" for legacy orders (all new fields are additive/omitempty, so old orders load fine).
+  **Stripe Dashboard must subscribe those 4 events** on the prod webhook.
 - **Enquiries / admissions CRM** (`models/enquiry.go`, collection `enquiries`): the public contact
   form (`POST /contact`) feeds an admissions pipeline. Status workflow (constants in `enquiry.go`,
   `NormalizeStatus` migrates legacy `new|read|responded` on read): `new → contacted →

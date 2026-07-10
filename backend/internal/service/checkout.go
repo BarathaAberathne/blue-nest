@@ -14,10 +14,18 @@ import (
 )
 
 type CreateCheckoutSessionInput struct {
-	UserID        string `json:"-"`
+	UserID string `json:"-"`
+	// Customer details collected by the in-app checkout form (required, except
+	// where noted). The delivery + billing addresses are collected/validated by
+	// Stripe's hosted checkout and reconciled onto the order by the webhook.
+	CustomerName  string `json:"customer_name"`
 	CustomerEmail string `json:"customer_email"`
-	SuccessURL    string `json:"success_url"`
-	CancelURL     string `json:"cancel_url"`
+	CustomerPhone string `json:"customer_phone"`
+	// Nursery branch is optional: empty or "n/a" == Not applicable.
+	BranchSlug string `json:"branch_slug"`
+	ChildRef   string `json:"child_ref"`
+	SuccessURL string `json:"success_url"`
+	CancelURL  string `json:"cancel_url"`
 }
 
 type CreateCheckoutSessionResult struct {
@@ -34,6 +42,8 @@ type checkoutService struct {
 	orders       repository.OrderRepository
 	carts        repository.CartRepository
 	products     repository.ProductRepository
+	branches     repository.BranchRepository
+	appEnv       string
 	stripeActive bool
 }
 
@@ -41,19 +51,47 @@ func NewCheckoutService(
 	orders repository.OrderRepository,
 	carts repository.CartRepository,
 	products repository.ProductRepository,
+	branches repository.BranchRepository,
 	stripeSecret string,
+	appEnv string,
 ) CheckoutService {
 	return &checkoutService{
 		orders:       orders,
 		carts:        carts,
 		products:     products,
+		branches:     branches,
+		appEnv:       appEnv,
 		stripeActive: strings.TrimSpace(stripeSecret) != "",
 	}
+}
+
+// resolveBranch validates the (optional) branch slug and returns a stable
+// (slug, name) snapshot. Empty/"n/a" means the order isn't tied to a nursery.
+func (s *checkoutService) resolveBranch(ctx context.Context, slug string) (string, string, error) {
+	slug = strings.ToLower(strings.TrimSpace(slug))
+	if slug == "" || slug == models.BranchNotApplicable {
+		return models.BranchNotApplicable, "Not applicable", nil
+	}
+	branch, err := s.branches.FindBySlug(ctx, slug)
+	if err != nil || branch == nil {
+		return "", "", fmt.Errorf("invalid branch: %s", slug)
+	}
+	return branch.Slug, branch.Name, nil
 }
 
 func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckoutSessionInput) (*CreateCheckoutSessionResult, error) {
 	if strings.TrimSpace(input.UserID) == "" {
 		return nil, errors.New("user id is required")
+	}
+	// Required customer fields (server-side validation; the form validates too).
+	if strings.TrimSpace(input.CustomerName) == "" {
+		return nil, errors.New("full name is required")
+	}
+	if strings.TrimSpace(input.CustomerEmail) == "" {
+		return nil, errors.New("email is required")
+	}
+	if strings.TrimSpace(input.CustomerPhone) == "" {
+		return nil, errors.New("telephone number is required")
 	}
 	if strings.TrimSpace(input.SuccessURL) == "" || strings.TrimSpace(input.CancelURL) == "" {
 		return nil, errors.New("success_url and cancel_url are required")
@@ -62,6 +100,11 @@ func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckou
 	userOID, err := primitive.ObjectIDFromHex(input.UserID)
 	if err != nil {
 		return nil, errors.New("invalid user id")
+	}
+
+	branchSlug, branchName, err := s.resolveBranch(ctx, input.BranchSlug)
+	if err != nil {
+		return nil, err
 	}
 
 	cart, err := s.carts.FindByUserID(ctx, input.UserID)
@@ -142,13 +185,21 @@ func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckou
 	}
 	totalAmount += shipping
 
+	// Create the internal order FIRST (pending_payment) — the DB is the source of
+	// truth; the customer snapshot survives even if the account changes later.
 	order, err := s.orders.Create(ctx, models.Order{
-		UserID:          userOID,
-		Items:           orderItems,
-		Status:          models.OrderPending,
-		TotalAmount:     totalAmount,
-		Currency:        "gbp",
-		ShippingAddress: models.ShippingAddress{},
+		UserID:        userOID,
+		Items:         orderItems,
+		Status:        models.OrderPending,
+		PaymentStatus: models.PaymentUnpaid,
+		TotalAmount:   totalAmount,
+		Currency:      "gbp",
+		CustomerName:  strings.TrimSpace(input.CustomerName),
+		CustomerEmail: strings.TrimSpace(input.CustomerEmail),
+		CustomerPhone: strings.TrimSpace(input.CustomerPhone),
+		BranchSlug:    branchSlug,
+		BranchName:    branchName,
+		ChildRef:      strings.TrimSpace(input.ChildRef),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create order: %w", err)
@@ -156,8 +207,9 @@ func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckou
 
 	_ = s.carts.ClearByUserID(ctx, input.UserID)
 
+	// No Stripe key configured (local/dev) — mark paid immediately so the flow works.
 	if !s.stripeActive {
-		_ = s.orders.UpdateStatus(ctx, order.ID.Hex(), string(models.OrderPaid))
+		_ = s.orders.MarkPaid(ctx, order.ID.Hex(), "local_"+order.ID.Hex(), "")
 		for _, item := range orderItems {
 			_ = s.products.DecrementStock(ctx, item.ProductID.Hex(), item.Qty)
 		}
@@ -169,21 +221,34 @@ func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckou
 	}
 
 	params := &stripe.CheckoutSessionParams{
-		Mode:       stripe.String(string(stripe.CheckoutSessionModePayment)),
-		SuccessURL: stripe.String(input.SuccessURL + "?order_id=" + order.ID.Hex()),
-		CancelURL:  stripe.String(input.CancelURL),
-		LineItems:  lineItems,
+		Mode:              stripe.String(string(stripe.CheckoutSessionModePayment)),
+		SuccessURL:        stripe.String(input.SuccessURL + "?order_id=" + order.ID.Hex()),
+		CancelURL:         stripe.String(input.CancelURL),
+		LineItems:         lineItems,
+		ClientReferenceID: stripe.String(order.ID.Hex()),
+		CustomerEmail:     stripe.String(strings.TrimSpace(input.CustomerEmail)),
 	}
-	params.Metadata = map[string]string{
-		"user_id":        input.UserID,
-		"order_id":       order.ID.Hex(),
-		"customer_email": input.CustomerEmail,
-	}
+	// Stripe collects + validates the delivery, billing address and phone. The
+	// webhook reconciles these (verified) values back onto the order.
 	params.ShippingAddressCollection = &stripe.CheckoutSessionShippingAddressCollectionParams{
 		AllowedCountries: []*string{stripe.String("GB")},
 	}
-	if input.CustomerEmail != "" {
-		params.CustomerEmail = stripe.String(input.CustomerEmail)
+	params.BillingAddressCollection = stripe.String("required")
+	params.PhoneNumberCollection = &stripe.CheckoutSessionPhoneNumberCollectionParams{
+		Enabled: stripe.Bool(true),
+	}
+	// Metadata: stable references only (no sensitive/large data — the DB holds the
+	// full record). Lets us match the payment back to the internal order.
+	params.Metadata = map[string]string{
+		"order_id":    order.ID.Hex(),
+		"user_id":     input.UserID,
+		"branch_slug": branchSlug,
+		"branch_name": branchName,
+		"env":         s.appEnv,
+	}
+	// Mirror onto the PaymentIntent so payment_intent.* webhooks can find the order.
+	params.PaymentIntentData = &stripe.CheckoutSessionPaymentIntentDataParams{
+		Metadata: map[string]string{"order_id": order.ID.Hex(), "env": s.appEnv},
 	}
 
 	session, err := checkoutsession.New(params)
@@ -193,6 +258,9 @@ func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckou
 		_ = s.orders.UpdateStatus(ctx, order.ID.Hex(), string(models.OrderCancelled))
 		return nil, fmt.Errorf("create stripe session: %w", err)
 	}
+
+	// Persist the session id so the order is traceable before the webhook lands.
+	_ = s.orders.AttachStripeSession(ctx, order.ID.Hex(), session.ID)
 
 	return &CreateCheckoutSessionResult{
 		SessionID: session.ID,

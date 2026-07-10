@@ -11,20 +11,41 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// StripeDetails carries the customer + address data reconciled from a verified
+// Stripe checkout session into the order (the DB stays the source of truth).
+type StripeDetails struct {
+	CustomerEmail    string
+	CustomerName     string
+	CustomerPhone    string
+	StripeCustomerID string
+	Shipping         models.ShippingAddress
+	Billing          models.ShippingAddress
+}
+
 type OrderRepository interface {
 	FindAll(ctx context.Context) ([]models.Order, error)
 	FindByUserID(ctx context.Context, userID string) ([]models.Order, error)
 	FindByID(ctx context.Context, id string) (*models.Order, error)
 	UpdateStatus(ctx context.Context, id, status string) error
-	UpdateShipping(ctx context.Context, id string, addr models.ShippingAddress, customerEmail string) error
-	// MarkPaid sets status=paid, stores Stripe IDs and paid timestamp.
-	// Safe to call multiple times — subsequent calls are no-ops once already paid.
+	// AttachStripeSession stores the Stripe checkout session id on a pending order
+	// (set right after the session is created, before the customer is redirected).
+	AttachStripeSession(ctx context.Context, id, sessionID string) error
+	// SaveStripeDetails reconciles verified customer + billing/shipping data from
+	// the webhook onto the order. Only non-empty fields overwrite existing values.
+	SaveStripeDetails(ctx context.Context, id string, d StripeDetails) error
+	// MarkPaid sets status=paid, payment_status=paid, stores Stripe IDs and paid
+	// timestamp. Safe to call multiple times — a no-op once already paid.
 	MarkPaid(ctx context.Context, id, stripeSessionID, paymentIntentID string) error
-	// TryMarkConfirmationEmailSent atomically flags the customer confirmation email as sent.
-	// Returns true only the first time; subsequent calls return false (idempotency guard).
+	// MarkPaymentFailed flags a failed payment (status=cancelled, payment_status=failed).
+	MarkPaymentFailed(ctx context.Context, id string) error
+	// TryMark…EmailSent atomically flags a given email class as sent; returns true
+	// only the first time (idempotency guard against webhook retries).
 	TryMarkConfirmationEmailSent(ctx context.Context, id string) (bool, error)
-	// TryMarkAdminEmailSent is the same guard for the admin notification email.
 	TryMarkAdminEmailSent(ctx context.Context, id string) (bool, error)
+	TryMarkBranchEmailSent(ctx context.Context, id string) (bool, error)
+	TryMarkBAEmailSent(ctx context.Context, id string) (bool, error)
+	// TryMarkStockAdjusted guards stock decrement against duplicate webhook deliveries.
+	TryMarkStockAdjusted(ctx context.Context, id string) (bool, error)
 	Create(ctx context.Context, order models.Order) (*models.Order, error)
 }
 
@@ -83,17 +104,42 @@ func (r *orderRepository) UpdateStatus(ctx context.Context, id, status string) e
 	return err
 }
 
-func (r *orderRepository) UpdateShipping(ctx context.Context, id string, addr models.ShippingAddress, customerEmail string) error {
+func (r *orderRepository) AttachStripeSession(ctx context.Context, id, sessionID string) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
 	}
-	fields := bson.M{
-		"shipping_address": addr,
-		"updated_at":       time.Now(),
+	if sessionID == "" {
+		return nil
 	}
-	if customerEmail != "" {
-		fields["customer_email"] = customerEmail
+	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid},
+		bson.M{"$set": bson.M{"stripe_session_id": sessionID, "updated_at": time.Now()}})
+	return err
+}
+
+func (r *orderRepository) SaveStripeDetails(ctx context.Context, id string, d StripeDetails) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	fields := bson.M{"updated_at": time.Now()}
+	if d.CustomerEmail != "" {
+		fields["customer_email"] = d.CustomerEmail
+	}
+	if d.CustomerName != "" {
+		fields["customer_name"] = d.CustomerName
+	}
+	if d.CustomerPhone != "" {
+		fields["customer_phone"] = d.CustomerPhone
+	}
+	if d.StripeCustomerID != "" {
+		fields["stripe_customer_id"] = d.StripeCustomerID
+	}
+	if d.Shipping.HasContent() {
+		fields["shipping_address"] = d.Shipping
+	}
+	if d.Billing.HasContent() {
+		fields["billing_address"] = d.Billing
 	}
 	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": fields})
 	return err
@@ -106,9 +152,10 @@ func (r *orderRepository) MarkPaid(ctx context.Context, id, stripeSessionID, pay
 	}
 	now := time.Now()
 	fields := bson.M{
-		"status":     string(models.OrderPaid),
-		"paid_at":    now,
-		"updated_at": now,
+		"status":         string(models.OrderPaid),
+		"payment_status": string(models.PaymentPaid),
+		"paid_at":        now,
+		"updated_at":     now,
 	}
 	if stripeSessionID != "" {
 		fields["stripe_session_id"] = stripeSessionID
@@ -120,16 +167,31 @@ func (r *orderRepository) MarkPaid(ctx context.Context, id, stripeSessionID, pay
 	return err
 }
 
-func (r *orderRepository) TryMarkConfirmationEmailSent(ctx context.Context, id string) (bool, error) {
+func (r *orderRepository) MarkPaymentFailed(ctx context.Context, id string) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	now := time.Now()
+	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": bson.M{
+		"status":         string(models.OrderCancelled),
+		"payment_status": string(models.PaymentFailed),
+		"updated_at":     now,
+	}})
+	return err
+}
+
+// tryMarkEmailSent is the shared atomic idempotency guard for a given "…_sent_at"
+// field: it sets the timestamp only if absent, returning true just the first time.
+func (r *orderRepository) tryMarkEmailSent(ctx context.Context, id, field string) (bool, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return false, err
 	}
 	now := time.Now()
 	res, err := r.col.UpdateOne(ctx,
-		// Only update if the field doesn't exist yet — atomic idempotency guard.
-		bson.M{"_id": oid, "confirmation_email_sent_at": bson.M{"$exists": false}},
-		bson.M{"$set": bson.M{"confirmation_email_sent_at": now, "updated_at": now}},
+		bson.M{"_id": oid, field: bson.M{"$exists": false}},
+		bson.M{"$set": bson.M{field: now, "updated_at": now}},
 	)
 	if err != nil {
 		return false, err
@@ -137,20 +199,24 @@ func (r *orderRepository) TryMarkConfirmationEmailSent(ctx context.Context, id s
 	return res.ModifiedCount > 0, nil
 }
 
+func (r *orderRepository) TryMarkConfirmationEmailSent(ctx context.Context, id string) (bool, error) {
+	return r.tryMarkEmailSent(ctx, id, "confirmation_email_sent_at")
+}
+
 func (r *orderRepository) TryMarkAdminEmailSent(ctx context.Context, id string) (bool, error) {
-	oid, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return false, err
-	}
-	now := time.Now()
-	res, err := r.col.UpdateOne(ctx,
-		bson.M{"_id": oid, "admin_email_sent_at": bson.M{"$exists": false}},
-		bson.M{"$set": bson.M{"admin_email_sent_at": now, "updated_at": now}},
-	)
-	if err != nil {
-		return false, err
-	}
-	return res.ModifiedCount > 0, nil
+	return r.tryMarkEmailSent(ctx, id, "admin_email_sent_at")
+}
+
+func (r *orderRepository) TryMarkBranchEmailSent(ctx context.Context, id string) (bool, error) {
+	return r.tryMarkEmailSent(ctx, id, "branch_email_sent_at")
+}
+
+func (r *orderRepository) TryMarkBAEmailSent(ctx context.Context, id string) (bool, error) {
+	return r.tryMarkEmailSent(ctx, id, "ba_email_sent_at")
+}
+
+func (r *orderRepository) TryMarkStockAdjusted(ctx context.Context, id string) (bool, error) {
+	return r.tryMarkEmailSent(ctx, id, "stock_adjusted_at")
 }
 
 func (r *orderRepository) Create(ctx context.Context, order models.Order) (*models.Order, error) {

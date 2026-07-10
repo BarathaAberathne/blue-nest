@@ -141,7 +141,15 @@ export const api = {
   },
   createCheckoutSession: (
     token: string,
-    body: { success_url: string; cancel_url: string; customer_email?: string },
+    body: {
+      success_url: string;
+      cancel_url: string;
+      customer_name: string;
+      customer_email: string;
+      customer_phone: string;
+      branch_slug?: string;
+      child_ref?: string;
+    },
   ) => apiFetch<{ session_id: string; url: string }>("/api/v1/checkout/session", {
     method: "POST",
     body: JSON.stringify(body),
