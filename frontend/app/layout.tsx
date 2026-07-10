@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Chewy, Nunito } from "next/font/google";
+import { Chewy, Nunito, Space_Grotesk, Inter } from "next/font/google";
 import "@/styles/globals.css";
 
 const displayFont = Chewy({
@@ -12,6 +12,21 @@ const displayFont = Chewy({
 const bodyFont = Nunito({
   subsets: ["latin"],
   variable: "--font-body",
+  display: "swap",
+});
+
+// Admin-only type system (professional / industrial). Scoped to the admin shell
+// via CSS variables in globals.css — the public site keeps Chewy/Nunito.
+const adminHeadingFont = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-admin-heading",
+  display: "swap",
+});
+
+const adminBodyFont = Inter({
+  subsets: ["latin"],
+  variable: "--font-admin-body",
   display: "swap",
 });
 
@@ -175,7 +190,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </>
         ) : null}
       </head>
-      <body className={`${displayFont.variable} ${bodyFont.variable} font-body antialiased`}>
+      <body className={`${displayFont.variable} ${bodyFont.variable} ${adminHeadingFont.variable} ${adminBodyFont.variable} font-body antialiased`}>
         {children}
       </body>
     </html>

@@ -90,7 +90,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Auth:             service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays),
 		Products:         service.NewProductService(productRepo),
 		Cart:             service.NewCartService(cartRepo, productRepo),
-		Checkout:         service.NewCheckoutService(orderRepo, cartRepo, productRepo, cfg.Stripe.SecretKey),
+		Checkout:         service.NewCheckoutService(orderRepo, cartRepo, productRepo, branchRepo, cfg.Stripe.SecretKey, cfg.App.Env),
 		Orders:           service.NewOrderService(orderRepo),
 		Blog:             service.NewBlogService(blogRepo),
 		Branches:         service.NewBranchService(branchRepo),
@@ -121,7 +121,15 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	r.Use(middleware.CORS(cfg.CORS.AllowedOrigins))
 	r.Use(middleware.Logger(log))
 
-	routes.Register(r, svc, routes.Repos{Orders: orderRepo, Products: productRepo, Mailer: mailer, AdminTo: cfg.SMTP.AdminTo}, cfg.JWT.Secret, cfg.Stripe.WebhookSecret, cfg)
+	routes.Register(r, svc, routes.Repos{
+		Orders:       orderRepo,
+		Products:     productRepo,
+		Branches:     branchRepo,
+		Mailer:       mailer,
+		AdminTo:      cfg.SMTP.AdminTo,
+		OrderAdminTo: cfg.SMTP.OrderAdminTo,
+		OrderBATo:    cfg.SMTP.OrderBATo,
+	}, cfg.JWT.Secret, cfg.Stripe.WebhookSecret, cfg)
 
 	bgCtx, cancel := context.WithCancel(context.Background())
 	go runBlogPublisher(bgCtx, svc.Blog, log)

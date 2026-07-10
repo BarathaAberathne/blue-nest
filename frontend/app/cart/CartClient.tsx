@@ -16,9 +16,10 @@ import {
   updateCartQuantity,
   type StoreCartItem,
 } from "@/lib/store-cart";
-import type { Cart } from "@/types";
+import type { Branch, Cart } from "@/types";
 
 const SHIPPING_PENCE = 399;
+const NOT_APPLICABLE = "n/a";
 
 function mapCart(cart: Cart): StoreCartItem[] {
   return Array.isArray(cart?.items)
@@ -37,6 +38,30 @@ export default function CartClient() {
   const [items, setItems] = useState<StoreCartItem[]>([]);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [submittingCheckout, setSubmittingCheckout] = useState(false);
+
+  // Checkout details collected in-app before Stripe (Stripe collects + validates
+  // the delivery / billing address itself).
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [branchSlug, setBranchSlug] = useState(NOT_APPLICABLE);
+  const [childRef, setChildRef] = useState("");
+  const [branches, setBranches] = useState<Branch[]>([]);
+
+  // Prefill name + email from the signed-in account; load nursery branches.
+  useEffect(() => {
+    if (user) {
+      setFullName((prev) => prev || [user.first_name, user.last_name].filter(Boolean).join(" ").trim());
+      setEmail((prev) => prev || user.email || "");
+    }
+  }, [user]);
+
+  useEffect(() => {
+    api
+      .getBranches()
+      .then((b) => setBranches((Array.isArray(b) ? (b as Branch[]) : []).filter((x) => x.status === "active")))
+      .catch(() => setBranches([]));
+  }, []);
 
   useEffect(() => {
     const refreshCart = async () => {
@@ -108,6 +133,11 @@ export default function CartClient() {
     }
   };
 
+  // Basic email + UK phone validation (Stripe validates the address downstream).
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const phoneValid = email.trim() !== "" && phone.replace(/[^\d]/g, "").length >= 7;
+  const detailsValid = fullName.trim() !== "" && emailValid && phoneValid;
+
   const handleCheckout = async () => {
     if (items.length === 0) return;
 
@@ -115,6 +145,10 @@ export default function CartClient() {
       setCheckoutError("Please sign in first to continue to checkout.");
       return;
     }
+
+    if (fullName.trim() === "") return setCheckoutError("Please enter your full name.");
+    if (!emailValid) return setCheckoutError("Please enter a valid email address.");
+    if (!phoneValid) return setCheckoutError("Please enter a valid telephone number.");
 
     setCheckoutError(null);
     setSubmittingCheckout(true);
@@ -124,7 +158,11 @@ export default function CartClient() {
       const session = await api.createCheckoutSession(token, {
         success_url: `${origin}/checkout/success`,
         cancel_url: `${origin}/checkout/cancel`,
-        customer_email: user?.email,
+        customer_name: fullName.trim(),
+        customer_email: email.trim(),
+        customer_phone: phone.trim(),
+        branch_slug: branchSlug,
+        child_ref: childRef.trim() || undefined,
       });
 
       if (session?.url) {
@@ -223,10 +261,54 @@ export default function CartClient() {
               <span>{formatPence(total)}</span>
             </div>
           </div>
+
+          {items.length > 0 && (
+            <div className="mt-5 border-t border-[rgba(90,74,66,0.08)] pt-4 space-y-3">
+              <h3 className="font-heading text-[1.1rem] text-[var(--ink)]">Your Details</h3>
+              <div>
+                <label htmlFor="co-name" className="block text-xs text-[var(--muted)] mb-1">Full name *</label>
+                <input id="co-name" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Jane Smith" autoComplete="name"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--teal)]" />
+              </div>
+              <div>
+                <label htmlFor="co-email" className="block text-xs text-[var(--muted)] mb-1">Email *</label>
+                <input id="co-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com" autoComplete="email"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--teal)]" />
+              </div>
+              <div>
+                <label htmlFor="co-phone" className="block text-xs text-[var(--muted)] mb-1">Telephone *</label>
+                <input id="co-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+                  placeholder="07123 456789" autoComplete="tel"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--teal)]" />
+              </div>
+              <div>
+                <label htmlFor="co-branch" className="block text-xs text-[var(--muted)] mb-1">Nursery (optional)</label>
+                <select id="co-branch" value={branchSlug} onChange={(e) => setBranchSlug(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[var(--teal)]">
+                  <option value={NOT_APPLICABLE}>Not applicable</option>
+                  {branches.map((b) => (
+                    <option key={b.slug} value={b.slug}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+              {branchSlug !== NOT_APPLICABLE && (
+                <div>
+                  <label htmlFor="co-child" className="block text-xs text-[var(--muted)] mb-1">Child name / reference (optional)</label>
+                  <input id="co-child" type="text" value={childRef} onChange={(e) => setChildRef(e.target.value)}
+                    placeholder="e.g. Toddler Room — Ava"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--teal)]" />
+                </div>
+              )}
+              <p className="text-[11px] text-[var(--muted)]">Delivery &amp; billing address are collected securely on the next (payment) step.</p>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={handleCheckout}
-            disabled={items.length === 0 || submittingCheckout}
+            disabled={items.length === 0 || submittingCheckout || !detailsValid}
             className="btn-primary w-full text-center mt-4 block disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submittingCheckout ? "Starting Checkout..." : "Proceed to Checkout"}

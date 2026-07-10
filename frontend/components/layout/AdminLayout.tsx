@@ -155,7 +155,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
+    <div className="admin-shell min-h-screen flex bg-slate-50 font-body">
       {/* ── Sidebar ─────────────────────────────────────────── */}
       <aside className="w-60 shrink-0 bg-slate-900 flex flex-col">
         {/* Brand */}
