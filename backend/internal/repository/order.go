@@ -150,6 +150,11 @@ func (r *orderRepository) MarkPaid(ctx context.Context, id, stripeSessionID, pay
 	if err != nil {
 		return err
 	}
+	// Read current ref + created_at so the human ORD number is minted ONLY on the
+	// first successful payment (abandoned/unpaid orders never consume a number).
+	var existing models.Order
+	_ = r.col.FindOne(ctx, bson.M{"_id": oid}).Decode(&existing)
+
 	now := time.Now()
 	fields := bson.M{
 		"status":         string(models.OrderPaid),
@@ -162,6 +167,17 @@ func (r *orderRepository) MarkPaid(ctx context.Context, id, stripeSessionID, pay
 	}
 	if paymentIntentID != "" {
 		fields["payment_intent_id"] = paymentIntentID
+	}
+	// Mint the sequential ORD ref on first payment (best-effort — a counter hiccup
+	// must never block marking an order paid; the display layer has a fallback).
+	if existing.Ref == "" && r.counter != nil {
+		year := existing.CreatedAt.Year()
+		if year == 0 {
+			year = now.Year()
+		}
+		if seq, cErr := r.counter.Next(ctx, fmt.Sprintf("%s-%d", models.CounterOrder, year)); cErr == nil {
+			fields["ref"] = models.FormatRef(models.RefPrefixOrder, year, seq)
+		}
 	}
 	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": fields})
 	return err
@@ -223,14 +239,9 @@ func (r *orderRepository) Create(ctx context.Context, order models.Order) (*mode
 	order.ID = primitive.NewObjectID()
 	order.CreatedAt = time.Now()
 	order.UpdatedAt = order.CreatedAt
-	// Mint a human-readable reference (best-effort — a counter hiccup must never
-	// block an order/payment; the display layer falls back to a short id).
-	if order.Ref == "" && r.counter != nil {
-		year := order.CreatedAt.Year()
-		if seq, err := r.counter.Next(ctx, fmt.Sprintf("%s-%d", models.CounterOrder, year)); err == nil {
-			order.Ref = models.FormatRef(models.RefPrefixOrder, year, seq)
-		}
-	}
+	// NOTE: the human ORD-YYYY-NNNNNN reference is intentionally NOT minted here.
+	// It's assigned in MarkPaid on the first successful payment, so abandoned /
+	// unpaid checkout attempts never consume a sequential order number.
 	_, err := r.col.InsertOne(ctx, order)
 	if err != nil {
 		return nil, err

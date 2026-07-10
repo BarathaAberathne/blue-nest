@@ -27,7 +27,21 @@ func (s *orderService) ListByUser(ctx context.Context, userID string) ([]models.
 }
 
 func (s *orderService) ListAll(ctx context.Context) ([]models.Order, error) {
-	return s.repo.FindAll(ctx)
+	all, err := s.repo.FindAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Hide checkout attempts that never succeeded (pre-payment drafts + failed
+	// payments) so the admin board only shows real, paid orders. Legacy orders
+	// (no payment_status field) are always shown.
+	visible := make([]models.Order, 0, len(all))
+	for _, o := range all {
+		if o.PaymentStatus == models.PaymentUnpaid || o.PaymentStatus == models.PaymentFailed {
+			continue
+		}
+		visible = append(visible, o)
+	}
+	return visible, nil
 }
 
 func (s *orderService) GetByID(ctx context.Context, id string) (*models.Order, error) {

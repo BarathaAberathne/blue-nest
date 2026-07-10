@@ -77,7 +77,14 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   UI (`/admin/orders`): list has customer/nursery/payment columns + search + payment/branch/date
   filters; detail shows customer, nursery, billing + delivery, payment (incl. Stripe IDs), admin — with
   "Not recorded" for legacy orders (all new fields are additive/omitempty, so old orders load fine).
-  **Stripe Dashboard must subscribe those 4 events** on the prod webhook.
+  **The human `ORD-YYYY-NNNNNN` number is minted only on the FIRST successful payment** (in
+  `orderRepository.MarkPaid`, not `Create`) so abandoned/unpaid attempts never consume a sequence number
+  (gap-free); the admin list (`orderService.ListAll`) **hides pre-payment drafts + failed attempts**
+  (`payment_status` unpaid/failed) so only real paid orders show. The DB order is still created before
+  Stripe (pending/unpaid, no ref) for reliable webhook reconciliation.
+  **Stripe Dashboard must subscribe those 4 events** on the prod webhook. **Local testing needs
+  `stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe`** running — without it the webhook
+  never reaches localhost, so orders stay pending + no emails send (prod posts to the public URL directly).
 - **Enquiries / admissions CRM** (`models/enquiry.go`, collection `enquiries`): the public contact
   form (`POST /contact`) feeds an admissions pipeline. Status workflow (constants in `enquiry.go`,
   `NormalizeStatus` migrates legacy `new|read|responded` on read): `new → contacted →
