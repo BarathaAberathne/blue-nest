@@ -238,10 +238,10 @@ A lightweight, git-branch promotion flow (no external CI/CD server). Full runboo
 |---|---|---|
 | **sandbox** | localhost dev | `make dev` on a `feature/*` branch |
 | **staging** | the **production images, built & run locally** | `make staging-up`, QA at http://localhost:3000 |
-| **prod** | the `main` branch on the DigitalOcean droplet | merge → GitHub Actions builds GHCR images → droplet auto-pulls |
+| **prod** | the `main` branch on the DigitalOcean droplet | merge, then **manually** deploy (SSH + build on the box) — see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#manual-deploy--verify-current-prod-method) |
 
 ```
-feature/* ──PR──▶ develop ──(local prod-image QA gate: make staging-up)──▶ PR ──▶ main ──▶ GHCR build ──▶ droplet
+feature/* ──PR──▶ develop ──(local prod-image QA gate: make staging-up)──▶ PR ──▶ main ──▶ manual deploy on droplet (build on the box)
 ```
 > `develop` is the integration branch (default); **`staging` is not a branch** — it's the local prod-image
 > QA environment (`make staging-up`) you run before promoting `develop → main`.
@@ -249,7 +249,7 @@ feature/* ──PR──▶ develop ──(local prod-image QA gate: make stagin
 - **CI** (`.github/workflows/ci.yml`) runs lint/test/build on PRs into `develop` and `main`.
 - **Image build** (`.github/workflows/build-images.yml`) pushes `blue-nest-frontend` / `blue-nest-backend` to GHCR on every `main` push, plus an immutable `:vX.Y.Z` image on a release tag.
 - **Env parity:** `.env.production.example` is the authoritative required-keys contract; `scripts/check-env.sh` blocks a staging run or prod deploy when a required key is missing or empty — this guards against a repeat of the missing-`ANTHROPIC_API_KEY` chat outage.
-- **Prod auto-deploy:** a systemd timer (`deploy/bluenest-deploy.timer` → `deploy/auto-deploy.sh`) polls `main` + GHCR every ~2 min and, on change, runs the env-parity preflight, recreates the stack with `docker compose`, health-checks, and rolls back on failure. Droplet deploys use **plain `docker compose`** only — never `make docker-up`/`seed-*` (those run a host seed that drops data).
+- **Prod deploy is MANUAL (local-build mode):** SSH to the droplet, `git reset --hard origin/main`, and `docker compose … up -d --build --force-recreate` — the images are **built on the box** (`IMAGE_PREFIX` empty), then verified via health checks. Full runbook (deploy · verify · rollback) in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#manual-deploy--verify-current-prod-method). There is **no auto-deploy** — the GHCR/systemd timer is a documented, *not-currently-enabled* alternative. Droplet deploys use **plain `docker compose`** only — never `make docker-up`/`seed-*` (those run a host seed that drops data).
 
 Cut a release by promoting `develop → main` (optionally tagging `vX.Y.Z`).
 

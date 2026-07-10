@@ -7,7 +7,7 @@ A lightweight, git-branch-based promotion flow. No Concourse, no extra servers.
 - **Environments:** `sandbox` (localhost dev) · `staging` (prod images built & run **locally** — a QA gate, **not** a branch) · `prod` (the droplet, tracking `main`).
 
 ```
-feature/* ──PR──▶ develop ──(local prod-image QA gate: make staging-up)──▶ PR ──▶ main ──▶ GHCR build ──▶ droplet
+feature/* ──PR──▶ develop ──(local prod-image QA gate: make staging-up)──▶ PR ──▶ main ──▶ manual deploy on droplet (build on the box)
   sandbox: localhost dev        staging env: localhost                          prod
 ```
 
@@ -15,7 +15,11 @@ feature/* ──PR──▶ develop ──(local prod-image QA gate: make stagin
 |---|---|---|
 | **sandbox** | localhost dev | `make dev` (hot reload) on a `feature/*` branch |
 | **staging** | the **production images, built & run locally** | `make staging-up`, QA at http://localhost:3000 |
-| **prod** | the `main` branch on the droplet | merge → GitHub Actions builds GHCR images → droplet auto-pulls |
+| **prod** | the `main` branch on the droplet | merge, then **manually** deploy (SSH + build on the box) — see [Manual deploy & verify](#manual-deploy--verify-current-prod-method) |
+
+> **Prod deploy is MANUAL (local-build mode).** There is no auto-deploy: you SSH in
+> and build the images on the droplet from `main`. The GHCR + systemd auto-deploy
+> further down is a documented *alternative that is NOT currently enabled*.
 
 The guarantee that prevents the 2026-06-09 chat outage (missing `ANTHROPIC_API_KEY`)
 is **env parity**: `.env.production.example` is the authoritative list of required
@@ -53,21 +57,73 @@ make staging-clean     # stop + wipe the staging DB volume
 ```
 
 ### 3. Promote to production
-Open a PR from `develop` → `main`. When it merges:
-- `build-images.yml` builds & pushes `blue-nest-frontend` / `blue-nest-backend` to GHCR.
-- The droplet's `bluenest-deploy.timer` notices the new images within ~2 min, runs
-  the **env-parity preflight**, recreates the stack, health-checks, and rolls back
-  on failure — all hands-off.
-
-Optional versioned release (recommended for clean rollbacks):
-```bash
-git tag -a v1.4.0 -m "release: ..." && git push origin v1.4.0
-# → also builds an immutable ghcr …:v1.4.0 image
-```
+Open a PR from `develop` → `main` and merge it once CI (`ci.yml`) is green. Then
+**deploy manually** — see the runbook directly below.
 
 ---
 
-## One-time droplet setup
+## Manual deploy & verify (current prod method)
+
+Prod runs in **local-build mode** (`IMAGE_PREFIX` empty): the droplet checks out
+`main` and **builds the images on the box**. The `mongo_data` + `uploads_data`
+volumes persist across rebuilds, so deploys never touch data.
+
+### Deploy
+```bash
+ssh deploy@165.232.47.89
+cd ~/app
+alias dc='docker compose -f docker-compose.yml -f docker-compose.prod.yml'
+
+git rev-parse --short HEAD          # ← note this SHA for rollback
+free -h                             # confirm swap exists — the 4 GB box OOMs on the Next build without it
+
+git fetch origin main && git reset --hard origin/main
+dc up -d --build --force-recreate
+```
+
+### Verify it worked
+```bash
+dc ps                               # all 3 up; blue-nest-mongo + blue-nest-api show "healthy"
+curl -s -o /dev/null -w "api(local): %{http_code}\n" http://localhost:8080/api/v1/health   # want 200
+dc logs --tail=40 backend           # scan for panics / "Failed" / connection errors
+dc logs --tail=40 frontend
+```
+Externally, through nginx:
+```bash
+curl -s -o /dev/null -w "api:  %{http_code}\n" https://api.bluenest.uk/api/v1/health   # 200
+curl -s -o /dev/null -w "site: %{http_code}\n" https://bluenest.uk                       # 200
+```
+Then a browser smoke (hard-refresh, Cmd+Shift+R): log into `/admin`, confirm the
+dashboard loads and the feature you shipped renders (proves the new image is live).
+
+**✅ Deploy succeeded when:** `dc ps` all up (mongo + api healthy) · both curls return
+`200` · logs clean · the new feature renders in the browser.
+
+### Env-only changes (e.g. Stripe keys in `.env`)
+No rebuild needed — just recreate the affected service:
+```bash
+dc up -d --force-recreate backend
+```
+The `pull access denied for blue-nest-backend` warning is **harmless** in local-build
+mode (there's nothing to pull; it falls back to the local image).
+
+### Rollback
+```bash
+git reset --hard <OLD_SHA>          # the SHA noted before deploying
+dc up -d --build --force-recreate
+```
+Data is safe — volumes persist. **Never** `dc down -v` (wipes the DB) or run
+`make seed-*` on the droplet (drops products).
+
+---
+
+## Alternative: GHCR auto-deploy (NOT currently enabled — reference only)
+
+> ⚠️ **Prod deploys manually** (see [Manual deploy & verify](#manual-deploy--verify-current-prod-method)).
+> The GHCR + systemd auto-deploy documented in this section is **not active**. It's
+> kept for reference if you later switch to registry pulls (set `IMAGE_PREFIX` to
+> GHCR, install the timer). `build-images.yml` does still push images to GHCR on
+> `main` — but nothing on the droplet consumes them today.
 
 Assumes the existing layout: app checkout at `/home/deploy/app`, populated `.env`,
 nginx already terminating TLS for bluenest.uk / api.bluenest.uk.
