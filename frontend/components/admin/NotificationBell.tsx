@@ -8,14 +8,31 @@ import { getAccessToken } from "@/lib/auth";
 import { fmtBranch } from "@/lib/enquiry";
 import type { EnquiryTaskItem, EnquiryTasks } from "@/types";
 
+// localStorage key for the set of notification item ids the admin has already
+// seen (opened the bell on). The badge only counts items NOT yet seen, so it
+// clears once you open it and re-appears only for genuinely new work.
+const SEEN_KEY = "admin_notif_seen";
+
+function loadSeen(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = JSON.parse(window.localStorage.getItem(SEEN_KEY) || "[]");
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Admin notification bell — surfaces admissions work needing attention (overdue
  * follow-ups, new enquiries uncontacted >24h, visits today, applications missing
- * registration). In-app only; no email/SMS.
+ * registration). In-app only; no email/SMS. The badge counts only items you
+ * haven't seen yet; opening the bell marks the current ones as seen.
  */
 export default function NotificationBell() {
   const [tasks, setTasks] = useState<EnquiryTasks | null>(null);
   const [open, setOpen] = useState(false);
+  const [seen, setSeen] = useState<string[]>(() => loadSeen());
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,8 +49,6 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
-  const count = tasks?.notification_count ?? 0;
-
   const groups: { label: string; items: EnquiryTaskItem[]; icon: React.ElementType; color: string }[] = tasks
     ? [
         { label: "Overdue follow-ups", items: tasks.overdue_follow_ups, icon: AlertTriangle, color: "text-rose-500" },
@@ -43,18 +58,39 @@ export default function NotificationBell() {
       ].filter((g) => g.items.length > 0)
     : [];
 
+  // Unique ids of everything currently needing attention.
+  const currentIds = Array.from(new Set(groups.flatMap((g) => g.items.map((t) => t.id))));
+  const seenSet = new Set(seen);
+  // Badge = items you haven't opened the bell on yet.
+  const unseenCount = currentIds.filter((id) => !seenSet.has(id)).length;
+
+  // Opening the bell marks the current items as seen (and prunes resolved ones so
+  // the stored set stays bounded), clearing the badge until new work arrives.
+  const toggle = () => {
+    setOpen((v) => {
+      const next = !v;
+      if (next) {
+        setSeen(currentIds);
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(SEEN_KEY, JSON.stringify(currentIds));
+        }
+      }
+      return next;
+    });
+  };
+
   return (
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         className="relative flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
-        aria-label={`Notifications${count ? ` (${count})` : ""}`}
+        aria-label={`Notifications${unseenCount ? ` (${unseenCount} new)` : ""}`}
       >
         <Bell className="h-5 w-5" />
-        {count > 0 && (
+        {unseenCount > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[0.6rem] font-bold text-white">
-            {count > 9 ? "9+" : count}
+            {unseenCount > 9 ? "9+" : unseenCount}
           </span>
         )}
       </button>
@@ -63,7 +99,7 @@ export default function NotificationBell() {
         <div className="absolute right-0 top-11 z-50 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
           <div className="border-b border-slate-100 px-4 py-3">
             <p className="font-semibold text-slate-900">Notifications</p>
-            <p className="text-xs text-slate-400">{count === 0 ? "You're all caught up" : `${count} item${count === 1 ? "" : "s"} need attention`}</p>
+            <p className="text-xs text-slate-400">{currentIds.length === 0 ? "You're all caught up" : `${currentIds.length} item${currentIds.length === 1 ? "" : "s"} need attention`}</p>
           </div>
           <div className="max-h-96 overflow-auto">
             {groups.length === 0 ? (

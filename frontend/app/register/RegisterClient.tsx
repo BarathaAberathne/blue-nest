@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import PageWrapper from "@/components/ui/PageWrapper";
 import { api } from "@/lib/api";
 import { setAuthSession } from "@/lib/auth";
+import { mergeGuestCartToServer } from "@/lib/cart-sync";
 import type { AuthResponse } from "@/types";
 
 export default function RegisterClient() {
@@ -37,6 +38,8 @@ export default function RegisterClient() {
         password,
       }) as AuthResponse;
       setAuthSession(auth.access_token, auth.user);
+      // Carry any guest-cart items into the new account's server cart.
+      await mergeGuestCartToServer(auth.access_token);
       router.push(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to register");

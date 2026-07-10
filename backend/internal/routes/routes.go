@@ -37,10 +37,13 @@ type Services struct {
 }
 
 type Repos struct {
-	Orders   repository.OrderRepository
-	Products repository.ProductRepository
-	Mailer   *email.Mailer
-	AdminTo  string
+	Orders       repository.OrderRepository
+	Products     repository.ProductRepository
+	Branches     repository.BranchRepository
+	Mailer       *email.Mailer
+	AdminTo      string
+	OrderAdminTo string
+	OrderBATo    string
 }
 
 func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSecret string, cfg *config.Config) {
@@ -52,7 +55,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 	r.Get("/api/v1/health", health.Check)
 
 	// ── Stripe webhook (raw body required before JSON middleware) ───────────
-	stripeWH := webhooks.NewStripeWebhookHandler(stripeWebhookSecret, repos.Orders, repos.Products, repos.Mailer, repos.AdminTo)
+	stripeWH := webhooks.NewStripeWebhookHandler(stripeWebhookSecret, repos.Orders, repos.Products, repos.Branches, repos.Mailer, repos.OrderAdminTo, repos.OrderBATo)
 	r.Post("/api/v1/webhooks/stripe", stripeWH.Handle)
 
 	r.Route("/api/v1", func(r chi.Router) {

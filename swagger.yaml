@@ -603,15 +603,27 @@ paths:
               required:
                 - success_url
                 - cancel_url
+                - customer_name
+                - customer_email
+                - customer_phone
               properties:
                 success_url:
                   type: string
                   format: uri
-                  example: https://blue-nest-montessori.com/checkout/success
+                  example: https://bluenest.uk/checkout/success
                 cancel_url:
                   type: string
                   format: uri
-                  example: https://blue-nest-montessori.com/checkout/cancel
+                  example: https://bluenest.uk/checkout/cancel
+                customer_name: { type: string, description: "Customer full name (required)" }
+                customer_email: { type: string, format: email, description: "Required" }
+                customer_phone: { type: string, description: "Telephone (required)" }
+                branch_slug: { type: string, description: "Optional nursery slug; empty or 'n/a' = Not applicable" }
+                child_ref: { type: string, description: "Optional child name / reference (only when a branch is selected)" }
+              description: >-
+                Contact details are collected in-app; the delivery + billing address
+                are collected and validated by Stripe's hosted checkout and reconciled
+                onto the order by the webhook.
       responses:
         '200':
           description: Checkout session created
@@ -1985,11 +1997,25 @@ components:
         currency:
           type: string
           example: GBP
+        customer_name: { type: string, description: "Customer snapshot at purchase" }
+        customer_email: { type: string, format: email }
+        customer_phone: { type: string }
+        branch_slug: { type: string, description: "'' or 'n/a' = Not applicable" }
+        branch_name: { type: string }
+        child_ref: { type: string, description: "Optional child name / reference" }
         shipping_address:
           $ref: '#/components/schemas/ShippingAddress'
+        billing_address:
+          $ref: '#/components/schemas/ShippingAddress'
+        payment_status:
+          type: string
+          enum: [unpaid, paid, failed, refunded]
+        stripe_customer_id: { type: string }
         stripe_session_id:
           type: string
           example: cs_test_abc123
+        payment_intent_id: { type: string, example: pi_abc123 }
+        paid_at: { type: string, format: date-time, nullable: true }
         created_at:
           type: string
           format: date-time
@@ -2012,10 +2038,15 @@ components:
         qty:
           type: integer
           example: 2
+        size: { type: string, description: "Age/size variant" }
+        vat: { type: integer, description: "Per-line VAT in pence (0 for zero-rated items)" }
 
     ShippingAddress:
       type: object
+      description: Used for both delivery and billing addresses.
       properties:
+        name:
+          type: string
         line1:
           type: string
           example: 123 Main Street
@@ -2024,12 +2055,17 @@ components:
         city:
           type: string
           example: London
+        county:
+          type: string
+          example: Greater London
         postal_code:
           type: string
           example: AB12CD
         country:
           type: string
           example: GB
+        phone:
+          type: string
 
     OrderRequestItem:
       type: object
