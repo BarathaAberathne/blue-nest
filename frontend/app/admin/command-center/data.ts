@@ -136,6 +136,103 @@ export const QUICK_ACTIONS = [
   "Schedule Event",
 ] as const;
 
+// ── Per-branch metrics (drive per-branch charts + hover cards) ──────────────
+export type BranchMetric = {
+  slug: BranchSlug;
+  name: string;
+  children: number;
+  staff: number;
+  occupancy: number;
+  revenue: string;
+  issues: number;
+  nextEvent: string;
+  review: number;
+  attendance: { average: number; days: { day: string; pct: number }[] };
+  sentiment: { score: number; points: number[] };
+};
+
+const DAYS = ["MON", "TUE", "WED", "THU", "FRI"];
+const mkAtt = (avg: number, pts: number[]) => ({ average: avg, days: DAYS.map((day, i) => ({ day, pct: pts[i] })) });
+
+export const BRANCH_METRICS: BranchMetric[] = [
+  {
+    slug: "harrow", name: "Harrow", children: 128, staff: 22, occupancy: 95, revenue: "£72,400",
+    issues: 0, nextEvent: "Sports Day · 12 May", review: 4.9,
+    attendance: mkAtt(95, [94, 95, 96, 95, 94]),
+    sentiment: { score: 4.9, points: [0.4, 0.46, 0.42, 0.55, 0.6, 0.66, 0.72, 0.8, 0.86, 0.92] },
+  },
+  {
+    slug: "pinner", name: "Pinner", children: 142, staff: 24, occupancy: 94, revenue: "£78,900",
+    issues: 1, nextEvent: "Parent Workshop · 31 May", review: 4.8,
+    attendance: mkAtt(94, [93, 94, 95, 94, 93]),
+    sentiment: { score: 4.8, points: [0.36, 0.4, 0.34, 0.48, 0.52, 0.58, 0.64, 0.72, 0.78, 0.88] },
+  },
+  {
+    slug: "borehamwood", name: "Borehamwood", children: 96, staff: 18, occupancy: 93, revenue: "£54,200",
+    issues: 2, nextEvent: "Graduation · 24 May", review: 4.7,
+    attendance: mkAtt(92, [91, 93, 94, 92, 90]),
+    sentiment: { score: 4.6, points: [0.3, 0.36, 0.32, 0.4, 0.46, 0.44, 0.52, 0.6, 0.64, 0.74] },
+  },
+  {
+    slug: "northwood", name: "Northwood", children: 44, staff: 9, occupancy: 88, revenue: "£24,800",
+    issues: 0, nextEvent: "Open Day · 07 Jun", review: 4.8,
+    attendance: mkAtt(89, [88, 90, 91, 89, 87]),
+    sentiment: { score: 4.7, points: [0.34, 0.4, 0.38, 0.46, 0.5, 0.56, 0.62, 0.68, 0.74, 0.82] },
+  },
+  {
+    slug: "pinner-green", name: "Pinner Green", children: 102, staff: 19, occupancy: 90, revenue: "£58,300",
+    issues: 1, nextEvent: "Coffee Morning · 03 Jun", review: 4.8,
+    attendance: mkAtt(91, [90, 92, 93, 91, 90]),
+    sentiment: { score: 4.8, points: [0.38, 0.42, 0.4, 0.5, 0.54, 0.6, 0.66, 0.72, 0.8, 0.9] },
+  },
+];
+
+// ── Capacity forecast (normalised occupancy 0..1 per range) ─────────────────
+export const CAPACITY_FORECAST: Record<"7d" | "30d" | "term", { labels: string[]; points: number[] }> = {
+  "7d": { labels: ["M", "T", "W", "T", "F", "S", "S"], points: [0.72, 0.74, 0.71, 0.78, 0.82, 0.6, 0.55] },
+  "30d": { labels: ["W1", "W2", "W3", "W4"], points: [0.74, 0.79, 0.83, 0.88] },
+  term: { labels: ["Sep", "Oct", "Nov", "Dec", "Jan", "Feb"], points: [0.7, 0.76, 0.82, 0.86, 0.9, 0.94] },
+};
+
+// ── Expanded finance analytics ──────────────────────────────────────────────
+export const FINANCE_ANALYTICS = {
+  stats: [
+    { label: "Revenue", value: "£245,780", tone: "ok" as const },
+    { label: "Expenses", value: "£184,560", tone: "muted" as const },
+    { label: "Net Profit", value: "£61,220", tone: "ok" as const },
+    { label: "Gov. Funding", value: "£32,780", tone: "accent" as const },
+    { label: "Outstanding", value: "£12,480", tone: "bad" as const },
+    { label: "Cash Flow", value: "£48,900", tone: "ok" as const },
+  ],
+  // 12-month revenue trend (normalised) + budget line.
+  trend: [0.42, 0.46, 0.5, 0.48, 0.56, 0.6, 0.58, 0.66, 0.7, 0.74, 0.8, 0.86],
+  budget: [0.45, 0.48, 0.51, 0.54, 0.57, 0.6, 0.63, 0.66, 0.69, 0.72, 0.75, 0.78],
+};
+
+// ── Monthly calendar (static: May 2025 to match the events) ─────────────────
+export const CALENDAR = {
+  label: "MAY 2025",
+  year: 2025,
+  month: 4, // 0-indexed May
+  // day → event category
+  events: {
+    12: "sports",
+    24: "graduation",
+    31: "workshop",
+    7: "openday",
+    16: "birthday",
+    19: "training",
+    22: "meeting",
+    5: "leave",
+  } as Record<number, string>,
+  legend: [
+    { key: "sports", label: "Events", color: "#36a9ff" },
+    { key: "birthday", label: "Birthdays", color: "#d6b36a" },
+    { key: "leave", label: "Staff Leave", color: "#ff5c73" },
+    { key: "training", label: "Training", color: "#35d07f" },
+  ],
+};
+
 // ── Second executive KPI row (dense operational tiles) ──────────────────────
 export type MiniKpi = { label: string; value: string; tone?: "ok" | "warn" | "bad" | "accent" };
 

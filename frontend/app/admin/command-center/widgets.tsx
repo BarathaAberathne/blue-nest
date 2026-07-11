@@ -273,9 +273,9 @@ export function AttendanceBars({ days }: { days: { day: string; pct: number }[] 
 }
 
 // ── Parent-sentiment spark line ─────────────────────────────────────────────
-export function SentimentLine({ points }: { points: number[] }) {
+export function SentimentLine({ points, height = 92 }: { points: number[]; height?: number }) {
   const w = 220;
-  const h = 92;
+  const h = height;
   const pad = 6;
   const step = (w - pad * 2) / (points.length - 1);
   const pts = points.map((p, i) => [pad + i * step, h - pad - p * (h - pad * 2)]);
@@ -293,6 +293,115 @@ export function SentimentLine({ points }: { points: number[] }) {
       <path d={line} fill="none" stroke="#1ed760" strokeWidth="1.8" style={{ filter: "drop-shadow(0 0 5px rgba(30,215,96,0.6))" }} />
       <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="3" fill="#1ed760" />
     </svg>
+  );
+}
+
+// ── Generic line chart (occupancy forecast / finance trend) ─────────────────
+export function LineChart({
+  points,
+  budget,
+  height = 96,
+  color = "#36a9ff",
+  labels,
+}: {
+  points: number[];
+  budget?: number[];
+  height?: number;
+  color?: string;
+  labels?: string[];
+}) {
+  const w = 260;
+  const h = height;
+  const padX = 8;
+  const padTop = 6;
+  const padBot = labels ? 14 : 6;
+  const toPts = (arr: number[]) =>
+    arr.map((p, i) => [padX + (i * (w - padX * 2)) / (arr.length - 1), h - padBot - p * (h - padTop - padBot)]);
+  const path = (pts: number[][]) => pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+  const pts = toPts(points);
+  const area = `${path(pts)} L${pts[pts.length - 1][0].toFixed(1)} ${h - padBot} L${padX} ${h - padBot} Z`;
+  const uid = `${color.slice(1)}-${points.length}`;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} role="img" aria-label="Trend">
+      <defs>
+        <linearGradient id={`cc-lc-${uid}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {[0.25, 0.5, 0.75].map((f) => (
+        <line key={f} x1={padX} y1={padTop + f * (h - padTop - padBot)} x2={w - padX} y2={padTop + f * (h - padTop - padBot)} stroke="rgba(54,169,255,0.08)" strokeWidth="1" />
+      ))}
+      <path d={area} fill={`url(#cc-lc-${uid})`} />
+      {budget && (
+        <path d={path(toPts(budget))} fill="none" stroke="#d6b36a" strokeWidth="1.2" strokeDasharray="3 3" opacity={0.7} />
+      )}
+      <path d={path(pts)} fill="none" stroke={color} strokeWidth="1.8" style={{ filter: `drop-shadow(0 0 4px ${color}88)` }} />
+      <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="2.6" fill={color} />
+      {labels &&
+        labels.map((l, i) => (
+          <text key={i} x={pts[i][0]} y={h - 3} textAnchor="middle" fill="#6f8bad" fontSize="7.5" fontFamily="var(--font-admin-heading)">
+            {l}
+          </text>
+        ))}
+    </svg>
+  );
+}
+
+// ── Monthly calendar with event dots ────────────────────────────────────────
+export function MiniCalendar({
+  year,
+  month,
+  events,
+  legend,
+}: {
+  year: number;
+  month: number;
+  events: Record<number, string>;
+  legend: { key: string; label: string; color: string }[];
+}) {
+  // new Date(year, month, ...) is deterministic across server/client — safe.
+  const first = new Date(year, month, 1).getDay(); // 0=Sun
+  const startCol = (first + 6) % 7; // make Monday the first column
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const colorFor = (cat: string) => legend.find((l) => cat.startsWith(l.key) || l.key === cat)?.color ?? "#36a9ff";
+  const catColor: Record<string, string> = {
+    sports: "#36a9ff", graduation: "#36a9ff", workshop: "#36a9ff", openday: "#36a9ff",
+    birthday: "#d6b36a", leave: "#ff5c73", training: "#35d07f", meeting: "#8aa6c6",
+  };
+  const cells: (number | null)[] = [
+    ...Array.from({ length: startCol }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  const wd = ["M", "T", "W", "T", "F", "S", "S"];
+  return (
+    <div>
+      <div className="grid grid-cols-7 gap-0.5 mb-1">
+        {wd.map((d, i) => (
+          <div key={i} className="cc-label text-center" style={{ fontSize: 7.5, color: "var(--cc-muted-dim)" }}>{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-0.5">
+        {cells.map((c, i) => (
+          <div key={i} className={`cc-cal-cell${c && events[c] ? " cc-cal-event" : ""}`}>
+            {c && (
+              <>
+                <span>{c}</span>
+                {events[c] && <span className="cc-cal-dot" style={{ background: catColor[events[c]] ?? colorFor(events[c]) }} />}
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+        {legend.map((l) => (
+          <span key={l.key} className="flex items-center gap-1" style={{ fontSize: 8, color: "var(--cc-muted)" }}>
+            <span style={{ width: 6, height: 6, borderRadius: 999, background: l.color }} />
+            {l.label}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 

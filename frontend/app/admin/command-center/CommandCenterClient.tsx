@@ -40,14 +40,17 @@ import "./command-center.css";
 import {
   ACTIVITY_FEED,
   AI_BRIEF,
-  ATTENDANCE,
+  BRANCH_METRICS,
   BRANCHES,
+  CALENDAR,
+  CAPACITY_FORECAST,
   CHILDREN_STATUS,
   COMPLIANCE,
   CONVERSION_PCT,
   ENQUIRY_SOURCES,
   EVENTS,
   FINANCE,
+  FINANCE_ANALYTICS,
   FUNNEL,
   KPIS,
   KPIS_ROW2,
@@ -58,7 +61,6 @@ import {
   PARENT_COMMS,
   PERF_GAUGES,
   QUICK_ACTIONS,
-  SENTIMENT,
   STAFF_STATUS,
   SYSTEM_HEALTH,
   type Branch,
@@ -66,11 +68,12 @@ import {
   type MiniKpi,
 } from "./data";
 import {
-  AttendanceBars,
   Building,
   CentrepieceRings,
   DonutChart,
   Funnel,
+  LineChart,
+  MiniCalendar,
   MiniDonut,
   Radar,
   RingGauge,
@@ -249,8 +252,20 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
 /* ── Branch card ───────────────────────────────────────────────────────── */
 
 function BranchCard({ branch }: { branch: Branch }) {
+  const m = BRANCH_METRICS.find((x) => x.slug === branch.slug);
+  const popRows: [string, string][] = m
+    ? [
+        ["Children", `${m.children}`],
+        ["Staff", `${m.staff}`],
+        ["Occupancy", `${m.occupancy}%`],
+        ["Revenue", m.revenue],
+        ["Open Issues", `${m.issues}`],
+        ["Next Event", m.nextEvent],
+        ["Review", `${m.review}★`],
+      ]
+    : [];
   return (
-    <Panel className="px-3 py-2.5" clip>
+    <Panel className="px-3 py-2.5 cc-branchcard">
       <div className="flex items-center gap-2 mb-1.5">
         <span className="cc-dot" style={{ color: "var(--cc-success)" }} />
         <p className="cc-heading" style={{ fontSize: 12, color: "var(--cc-accent)" }}>
@@ -272,6 +287,18 @@ function BranchCard({ branch }: { branch: Branch }) {
             View Details <ChevronRight size={11} />
           </button>
         </div>
+      </div>
+      {/* Hover: extended branch intelligence */}
+      <div className="cc-branch-pop">
+        <p className="cc-heading" style={{ fontSize: 11, color: "var(--cc-accent)", marginBottom: 4 }}>
+          {branch.name.toUpperCase()}
+        </p>
+        {popRows.map(([k, v]) => (
+          <div key={k} className="cc-pop-row">
+            <span className="cc-label" style={{ color: "var(--cc-muted)" }}>{k}</span>
+            <span style={{ color: k === "Open Issues" && v !== "0" ? "var(--cc-warning)" : "var(--cc-text)", fontWeight: 600 }}>{v}</span>
+          </div>
+        ))}
       </div>
     </Panel>
   );
@@ -313,6 +340,38 @@ function StatRows({ rows }: { rows: { label: string; count?: number; value?: str
         </div>
       ))}
     </div>
+  );
+}
+
+/* ── Capacity forecast (range-tabbed line chart) ───────────────────────── */
+
+function ForecastCard() {
+  const [range, setRange] = useState<"7d" | "30d" | "term">("7d");
+  const f = CAPACITY_FORECAST[range];
+  const label = range === "7d" ? "next 7 days" : range === "30d" ? "next 30 days" : "next term";
+  return (
+    <Panel className="px-4 py-2" clip>
+      <div className="flex items-center justify-between">
+        <p className="cc-heading" style={{ fontSize: 12 }}>CAPACITY FORECAST</p>
+        <div className="flex gap-1">
+          {(["7d", "30d", "term"] as const).map((r) => (
+            <button
+              key={r}
+              className={`cc-tab ${range === r ? "cc-tab--active" : ""}`}
+              onClick={() => setRange(r)}
+            >
+              {r === "7d" ? "7 Day" : r === "30d" ? "30 Day" : "Term"}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-2">
+        <LineChart points={f.points} labels={f.labels} height={92} />
+      </div>
+      <p style={{ fontSize: 9.5, color: "var(--cc-muted)", marginTop: 2 }}>
+        Projected occupancy · {label}
+      </p>
+    </Panel>
   );
 }
 
@@ -560,38 +619,48 @@ export default function CommandCenterClient() {
                 </div>
               </Panel>
 
+              {/* Attendance — one chart per branch, scrollable */}
               <Panel className="px-4 py-2" clip>
-                <SectionTitle sub="This Week">ATTENDANCE OVERVIEW</SectionTitle>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="flex-1">
-                    <AttendanceBars days={ATTENDANCE.days} />
-                  </div>
-                  <div className="flex flex-col items-center shrink-0">
-                    <RingGauge value={ATTENDANCE.average} size={78} big={`${ATTENDANCE.average}%`} color="var(--cc-primary)" />
-                    <span className="cc-label text-center" style={{ fontSize: 7.5, color: "var(--cc-muted)", lineHeight: 1.3, marginTop: 2 }}>
-                      AVERAGE<br />ATTENDANCE
-                    </span>
-                  </div>
+                <SectionTitle sub="Per branch · scroll">ATTENDANCE OVERVIEW</SectionTitle>
+                <div className="cc-scrolly mt-1" style={{ maxHeight: 190 }}>
+                  {BRANCH_METRICS.map((m) => (
+                    <div key={m.slug} className="cc-brow">
+                      <div style={{ width: 84 }} className="shrink-0">
+                        <p className="cc-heading" style={{ fontSize: 10, color: "var(--cc-accent)" }}>{m.name}</p>
+                        <p style={{ fontSize: 9, color: "var(--cc-muted)" }}>avg {m.attendance.average}%</p>
+                      </div>
+                      <div className="flex items-end gap-1.5" style={{ height: 40, flex: 1 }}>
+                        {m.attendance.days.map((d) => (
+                          <div key={d.day} className="flex flex-col items-center gap-0.5" style={{ flex: 1 }}>
+                            <span style={{ fontSize: 7, color: "var(--cc-muted-dim)" }}>{d.pct}</span>
+                            <div className="cc-attbar" style={{ width: "70%", height: ((d.pct - 82) / 18) * 30 + 6 }} />
+                          </div>
+                        ))}
+                      </div>
+                      <RingGauge value={m.attendance.average} size={40} big={`${m.attendance.average}`} color="var(--cc-primary)" />
+                    </div>
+                  ))}
                 </div>
               </Panel>
 
+              {/* Parent sentiment — one spark per branch, scrollable */}
               <Panel className="px-4 py-2" clip>
-                <SectionTitle sub="This Month">PARENT SENTIMENT</SectionTitle>
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="flex-1">
-                    <SentimentLine points={SENTIMENT.points} />
-                  </div>
-                  <div className="text-center shrink-0" style={{ width: 74 }}>
-                    <p className="cc-heading" style={{ fontSize: 24, color: "var(--cc-text)" }}>
-                      {SENTIMENT.score}<span style={{ fontSize: 12, color: "var(--cc-muted)" }}> /5</span>
-                    </p>
-                    <p className="cc-label" style={{ fontSize: 7.5, color: "var(--cc-accent)" }}>EXCELLENT</p>
-                    <div className="flex justify-center mt-1"><Stars size={11} /></div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span style={{ fontSize: 16 }}>🙂</span>
-                  <span style={{ fontSize: 10, color: "var(--cc-success)" }}>{SENTIMENT.delta}</span>
+                <SectionTitle sub="Per branch · scroll">PARENT SENTIMENT</SectionTitle>
+                <div className="cc-scrolly mt-1" style={{ maxHeight: 190 }}>
+                  {BRANCH_METRICS.map((m) => (
+                    <div key={m.slug} className="cc-brow">
+                      <div style={{ width: 84 }} className="shrink-0">
+                        <p className="cc-heading" style={{ fontSize: 10, color: "var(--cc-accent)" }}>{m.name}</p>
+                        <div className="flex items-center gap-1">
+                          <span className="cc-heading" style={{ fontSize: 13, color: "var(--cc-text)" }}>{m.sentiment.score}</span>
+                          <Stars size={8} />
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <SentimentLine points={m.sentiment.points} height={40} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </Panel>
             </div>
@@ -689,25 +758,44 @@ export default function CommandCenterClient() {
                   </div>
                 ))}
               </div>
-              <div className="flex justify-center mt-3 pt-2" style={{ borderTop: "1px solid var(--cc-line)" }}>
+              {/* Expanded analytics: cash figures + revenue trend vs budget */}
+              <div className="mt-3 pt-2 grid grid-cols-2 gap-x-3 gap-y-1.5" style={{ borderTop: "1px solid var(--cc-line)" }}>
+                {FINANCE_ANALYTICS.stats.map((s) => (
+                  <div key={s.label} className="flex items-baseline justify-between gap-2" style={{ fontSize: 10.5 }}>
+                    <span className="cc-label" style={{ color: "var(--cc-muted)" }}>{s.label}</span>
+                    <span className="cc-heading" style={{ color: TONE[s.tone] ?? "var(--cc-text)" }}>{s.value}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="cc-label" style={{ fontSize: 8.5, color: "var(--cc-muted)" }}>REVENUE · BUDGET vs ACTUAL</span>
+                  <span className="cc-label" style={{ fontSize: 8.5, color: "var(--cc-accent)" }}>— — budget</span>
+                </div>
+                <LineChart points={FINANCE_ANALYTICS.trend} budget={FINANCE_ANALYTICS.budget} height={70} />
+              </div>
+              <div className="flex justify-center mt-2 pt-2" style={{ borderTop: "1px solid var(--cc-line)" }}>
                 <button className="cc-linkbtn">View Full Financial Report <ChevronRight size={11} /></button>
               </div>
             </Panel>
 
+            <ForecastCard />
+
+            {/* Monthly calendar (replaces the small events card) */}
             <Panel className="px-4 py-2" clip>
-              <SectionTitle>UPCOMING EVENTS</SectionTitle>
-              <div className="mt-2 flex flex-col gap-2">
+              <SectionTitle sub={CALENDAR.label}>CALENDAR</SectionTitle>
+              <div className="mt-2">
+                <MiniCalendar year={CALENDAR.year} month={CALENDAR.month} events={CALENDAR.events} legend={CALENDAR.legend} />
+              </div>
+              <div className="mt-2 pt-2 flex flex-col gap-1.5" style={{ borderTop: "1px solid var(--cc-line)" }}>
                 {EVENTS.map((e) => (
-                  <div key={e.title} className="flex items-center gap-2.5">
-                    <Calendar size={15} color={ICON_BLUE} />
-                    <span style={{ flex: 1, fontSize: 11.5, color: "var(--cc-text)" }}>{e.title}</span>
-                    <span className="cc-label" style={{ fontSize: 9, color: "var(--cc-accent)" }}>{e.month}</span>
-                    <span className="cc-heading" style={{ fontSize: 15, color: "var(--cc-text)", width: 22, textAlign: "right" }}>{e.day}</span>
+                  <div key={e.title} className="flex items-center gap-2" style={{ fontSize: 10.5 }}>
+                    <Calendar size={12} color={ICON_BLUE} />
+                    <span style={{ flex: 1, color: "var(--cc-text)" }}>{e.title}</span>
+                    <span className="cc-label" style={{ fontSize: 8.5, color: "var(--cc-accent)" }}>{e.month}</span>
+                    <span className="cc-heading" style={{ width: 18, textAlign: "right", color: "var(--cc-text)" }}>{e.day}</span>
                   </div>
                 ))}
-              </div>
-              <div className="flex justify-center mt-3 pt-2" style={{ borderTop: "1px solid var(--cc-line)" }}>
-                <button className="cc-linkbtn">View All Events <ChevronRight size={11} /></button>
               </div>
             </Panel>
 

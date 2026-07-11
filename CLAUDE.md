@@ -209,12 +209,16 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   the page. Composition (`CommandCenterClient.tsx`): topbar (clock/logo/wordmark/notifications) · left
   nav rail (MD profile + nav + system-status radar) · centre workspace (**KPI row 1** + dense **KPI row 2**
   operational tiles + Branch Overview centrepiece with 5 branch cards + funnel/attendance/sentiment
-  cluster + **occupancy heatmap / enquiry-sources donut / performance gauges** + **staff status /
-  children's status / compliance centre** + bottom bar: Quick Actions, Mission Objectives, **AI Executive
-  Brief** with action buttons, System Health) · right rail (Financial · Upcoming Events · Notifications ·
-  **Live Activity feed** · **Parent Comms**). Nav/links/buttons are visual only; no auth guard or role
-  wiring (a future `director` role could gate it). Not yet built (future): monthly calendar widget,
-  capacity forecast line, expanded finance analytics, interactive branch-hover network.
+  cluster (funnel + **per-branch scrollable attendance & parent-sentiment**, one chart per branch) +
+  **occupancy heatmap / enquiry-sources donut / performance gauges** + **staff status / children's status
+  / compliance centre** + bottom bar: Quick Actions, Mission Objectives, **AI Executive Brief** with action
+  buttons, System Health) · right rail (**expanded Financial analytics** with revenue/expenses/profit/
+  funding/outstanding/cashflow + budget-vs-actual trend · **Capacity Forecast** with 7d/30d/term tabs ·
+  **monthly Calendar** with colour-coded event dots · Notifications · **Live Activity feed** · **Parent
+  Comms**). Branch cards are **interactive** — hover reveals a per-branch intelligence popover (children,
+  staff, occupancy, revenue, open issues, next event, review). Per-branch figures come from
+  `BRANCH_METRICS` in `data.ts`. Nav/links/buttons are visual only; no auth guard or role wiring (a future
+  `director` role could gate it).
 
 Planned next: Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 
