@@ -371,8 +371,14 @@ export default function CommandCenterClient() {
             </Panel>
           </aside>
 
-          {/* ── Main workspace ──────────────────────────────────── */}
-          <main className="flex-1 flex flex-col gap-3 min-w-0">
+          {/* ── Right area: the workspace row (main + right column) and the
+               bottom bar stack beside the full-height sidebar rail, matching the
+               design. The sidebar's height therefore follows this whole area (its
+               System Status panel pins to the bottom) instead of forcing a gap. ── */}
+          <div className="flex-1 flex flex-col gap-3 min-w-0">
+            <div className="flex gap-3 items-stretch">
+              {/* ── Main workspace ──────────────────────────────────── */}
+              <main className="flex-1 flex flex-col gap-3 min-w-0">
             {/* KPI row */}
             <div className="grid grid-cols-5 gap-3">
               {KPIS.map((k) => (
@@ -452,10 +458,6 @@ export default function CommandCenterClient() {
                 </div>
               </div>
             </Panel>
-
-            {/* Spacer pushes the bottom cluster down so the taller sidebar and the
-                main column bottoms line up (no dead band under the workspace). */}
-            <div className="flex-1" style={{ minHeight: 8 }} />
 
             {/* Bottom cluster: funnel | attendance | sentiment */}
             <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
@@ -568,11 +570,11 @@ export default function CommandCenterClient() {
                 <button className="cc-linkbtn">View All Notifications <ChevronRight size={11} /></button>
               </div>
             </Panel>
-          </aside>
-        </div>
+              </aside>
+            </div>
 
-        {/* ══ Bottom bar ═══════════════════════════════════════════════ */}
-        <div className="grid gap-3 mt-3" style={{ gridTemplateColumns: "1.1fr 1.2fr 1fr 1fr" }}>
+            {/* ══ Bottom bar ═══════════════════════════════════════════════ */}
+            <div className="grid gap-3" style={{ gridTemplateColumns: "1.1fr 1.2fr 1fr 1fr" }}>
           {/* Quick actions */}
           <Panel className="px-4 py-3" clip>
             <SectionTitle>QUICK ACTIONS</SectionTitle>
@@ -671,6 +673,8 @@ export default function CommandCenterClient() {
               </div>
             </div>
           </Panel>
+            </div>
+          </div>
         </div>
       </div>
     </div>
