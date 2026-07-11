@@ -288,76 +288,143 @@ export function Radar({ size = 96, color = "#1ed760", logo }: { size?: number; c
   );
 }
 
-// ── Branch building line-art (distinct per branch) ──────────────────────────
+// ── Branch buildings ────────────────────────────────────────────────────────
+// Detailed line-art of each nursery: proper facades with paned sash windows,
+// pitched/hipped roofs, chimneys and doors, distinct architecture per branch.
+// Drawn on a 96×72 grid (ground line at y≈64), rendered small in the branch cards.
 export function Building({ slug }: { slug: BranchSlug }) {
-  const stroke = "#5f96d6";
-  const common = { fill: "none", stroke, strokeWidth: 1.4, strokeLinejoin: "round" as const, strokeLinecap: "round" as const };
-  const bg = { fill: "rgba(31,72,120,0.28)", stroke, strokeWidth: 1.2 };
+  const stroke = "#7cb0e6";
+  const line = { fill: "none", stroke, strokeWidth: 1.25, strokeLinejoin: "round" as const, strokeLinecap: "round" as const };
+  const wall = { fill: "rgba(31,72,120,0.32)", stroke, strokeWidth: 1.35, strokeLinejoin: "round" as const };
+  const roof = { fill: "rgba(0,212,255,0.07)", stroke, strokeWidth: 1.35, strokeLinejoin: "round" as const };
+  const glass = { fill: "rgba(0,212,255,0.12)", stroke, strokeWidth: 0.9 };
+  const doorFill = { fill: "rgba(0,212,255,0.16)", stroke, strokeWidth: 1.2, strokeLinejoin: "round" as const };
+  const knob = { fill: stroke, stroke: "none" };
+
+  // Paned window: outer frame + interior mullions (cols × rows of panes).
+  const win = (x: number, y: number, w: number, h: number, cols = 2, rows = 3) => (
+    <g key={`w-${x}-${y}`}>
+      <rect x={x} y={y} width={w} height={h} rx={0.6} {...glass} />
+      {Array.from({ length: cols - 1 }).map((_, i) => (
+        <line key={`v${i}`} x1={x + (w / cols) * (i + 1)} y1={y + 0.5} x2={x + (w / cols) * (i + 1)} y2={y + h - 0.5} {...line} strokeWidth={0.8} />
+      ))}
+      {Array.from({ length: rows - 1 }).map((_, i) => (
+        <line key={`h${i}`} x1={x + 0.5} y1={y + (h / rows) * (i + 1)} x2={x + w - 0.5} y2={y + (h / rows) * (i + 1)} {...line} strokeWidth={0.8} />
+      ))}
+    </g>
+  );
+  const ground = <line x1="6" y1="64" x2="90" y2="64" {...line} strokeWidth={1} opacity={0.5} />;
+
   const buildings: Record<BranchSlug, React.ReactNode> = {
+    // Harrow — symmetric Georgian villa: gabled roof, twin chimneys, sash
+    // windows, central arched door with a fanlight and steps.
     harrow: (
       <>
-        <rect x="10" y="26" width="24" height="30" {...bg} />
-        <rect x="34" y="18" width="22" height="38" {...bg} />
-        <rect x="56" y="30" width="20" height="26" {...bg} />
-        <path d="M8 26 L22 14 L36 26" {...common} />
-        <path d="M33 18 L45 8 L57 18" {...common} />
-        <rect x="15" y="34" width="6" height="6" {...common} />
-        <rect x="23" y="34" width="6" height="6" {...common} />
-        <rect x="40" y="26" width="6" height="6" {...common} />
-        <rect x="40" y="38" width="6" height="10" {...common} />
-        <rect x="62" y="38" width="7" height="8" {...common} />
+        {ground}
+        <rect x="18" y="28" width="60" height="36" {...wall} />
+        <path d="M13 28 L48 10 L83 28 Z" {...roof} />
+        <rect x="26" y="14" width="5" height="8" {...wall} />
+        <rect x="65" y="14" width="5" height="8" {...wall} />
+        {win(25, 32, 11, 12)}
+        {win(42.5, 32, 11, 12)}
+        {win(60, 32, 11, 12)}
+        {win(25, 49, 11, 13)}
+        {win(60, 49, 11, 13)}
+        <path d="M42 64 V52 a6 6 0 0 1 12 0 V64" {...doorFill} />
+        <path d="M42 54 a6 6 0 0 1 12 0" {...line} strokeWidth={0.8} />
+        <circle cx="51.5" cy="58" r="0.9" {...knob} />
+        <line x1="38" y1="64" x2="58" y2="64" {...line} />
       </>
     ),
+    // Borehamwood — modern flat-roof block with ribbon glazing and a glass
+    // entrance under a cantilevered canopy.
     borehamwood: (
       <>
-        <rect x="16" y="20" width="40" height="36" {...bg} />
-        <path d="M14 20 L36 8 L58 20" {...common} />
-        <rect x="30" y="40" width="12" height="16" {...common} />
-        <rect x="22" y="28" width="7" height="7" {...common} />
-        <rect x="43" y="28" width="7" height="7" {...common} />
-        <line x1="16" y1="34" x2="56" y2="34" {...common} />
+        {ground}
+        <rect x="16" y="18" width="64" height="46" {...wall} />
+        <rect x="13" y="14" width="70" height="5" {...roof} />
+        {win(22, 24, 52, 8, 6, 1)}
+        {win(22, 36, 52, 8, 6, 1)}
+        {win(22, 48, 12, 14, 2, 2)}
+        {win(62, 48, 12, 14, 2, 2)}
+        <rect x="39" y="48" width="18" height="16" rx="0.6" {...doorFill} />
+        <line x1="48" y1="48" x2="48" y2="64" {...line} />
+        <line x1="35" y1="46.5" x2="61" y2="46.5" {...line} strokeWidth={1.4} />
       </>
     ),
+    // Pinner — semi-detached pair of pitched-roof houses, each with a bay,
+    // upstairs sash windows and a front door; one shared chimney.
     pinner: (
       <>
-        <rect x="12" y="24" width="26" height="32" {...bg} />
-        <rect x="42" y="16" width="26" height="40" {...bg} />
-        <path d="M10 24 L25 12 L40 24" {...common} />
-        <path d="M40 16 L55 6 L70 16" {...common} />
-        <rect x="18" y="32" width="6" height="6" {...common} />
-        <rect x="27" y="32" width="6" height="6" {...common} />
-        <rect x="48" y="24" width="6" height="6" {...common} />
-        <rect x="57" y="24" width="6" height="6" {...common} />
-        <rect x="51" y="40" width="8" height="16" {...common} />
+        {ground}
+        <rect x="10" y="30" width="37" height="34" {...wall} />
+        <path d="M6 30 L28.5 14 L51 30 Z" {...roof} />
+        <rect x="43" y="18" width="5" height="9" {...wall} />
+        {win(16, 34, 11, 11)}
+        <rect x="14" y="50" width="15" height="14" rx="0.6" {...doorFill} />
+        {win(33, 50, 11, 12, 2, 2)}
+        <line x1="14" y1="57" x2="29" y2="57" {...line} strokeWidth={0.8} />
+        <circle cx="26.5" cy="57.5" r="0.9" {...knob} />
+
+        <rect x="49" y="30" width="37" height="34" {...wall} />
+        <path d="M45 30 L67.5 14 L90 30 Z" {...roof} />
+        {win(69, 34, 11, 11)}
+        <rect x="67" y="50" width="15" height="14" rx="0.6" {...doorFill} />
+        {win(52, 50, 11, 12, 2, 2)}
+        <line x1="67" y1="57" x2="82" y2="57" {...line} strokeWidth={0.8} />
+        <circle cx="69.5" cy="57.5" r="0.9" {...knob} />
       </>
     ),
+    // Northwood — hipped-roof house with a protruding ground-floor bay window,
+    // a central arched entrance under a canopy, and a rooftop chimney.
     northwood: (
       <>
-        <rect x="20" y="26" width="34" height="30" {...bg} />
-        <path d="M18 26 L37 12 L56 26" {...common} />
-        <circle cx="37" cy="20" r="3" {...common} />
-        <rect x="32" y="40" width="10" height="16" {...common} />
-        <rect x="25" y="32" width="6" height="6" {...common} />
-        <rect x="43" y="32" width="6" height="6" {...common} />
+        {ground}
+        <rect x="16" y="30" width="64" height="34" {...wall} />
+        <path d="M12 30 L30 14 L66 14 L84 30 Z" {...roof} />
+        <line x1="30" y1="14" x2="66" y2="14" {...line} strokeWidth={0.9} opacity={0.6} />
+        <rect x="55" y="16" width="5" height="8" {...wall} />
+        {win(23, 34, 11, 11)}
+        {win(62, 34, 11, 11)}
+        {/* protruding bay window */}
+        <path d="M17 64 V50 L23 45 L35 45 L41 50 V64" {...doorFill} />
+        <line x1="23" y1="45" x2="23" y2="64" {...line} strokeWidth={0.8} />
+        <line x1="35" y1="45" x2="35" y2="64" {...line} strokeWidth={0.8} />
+        <line x1="17" y1="55" x2="41" y2="55" {...line} strokeWidth={0.8} />
+        {/* arched entrance */}
+        <path d="M50 64 V53 a5.5 5.5 0 0 1 11 0 V64" {...doorFill} />
+        <path d="M50 55 a5.5 5.5 0 0 1 11 0" {...line} strokeWidth={0.8} />
+        <line x1="47" y1="47.5" x2="64" y2="47.5" {...line} strokeWidth={1.2} />
+        <circle cx="58.5" cy="59" r="0.9" {...knob} />
       </>
     ),
+    // Pinner Green — Victorian terrace of three gabled cottages with shared
+    // party walls, chimneys between them, and paired window-over-door fronts.
     "pinner-green": (
       <>
-        <rect x="14" y="22" width="22" height="34" {...bg} />
-        <rect x="36" y="30" width="18" height="26" {...bg} />
-        <rect x="54" y="24" width="18" height="32" {...bg} />
-        <path d="M12 22 L25 12 L38 22" {...common} />
-        <path d="M52 24 L63 15 L74 24" {...common} />
-        <rect x="20" y="30" width="5" height="5" {...common} />
-        <rect x="28" y="30" width="5" height="5" {...common} />
-        <rect x="40" y="38" width="5" height="5" {...common} />
-        <rect x="60" y="32" width="5" height="5" {...common} />
-        <rect x="20" y="44" width="6" height="12" {...common} />
+        {ground}
+        <rect x="9" y="32" width="26" height="32" {...wall} />
+        <rect x="35" y="32" width="26" height="32" {...wall} />
+        <rect x="61" y="32" width="26" height="32" {...wall} />
+        <path d="M6 32 L22 20 L38 32 Z" {...roof} />
+        <path d="M32 32 L48 20 L64 32 Z" {...roof} />
+        <path d="M58 32 L74 20 L90 32 Z" {...roof} />
+        <rect x="33" y="24" width="4" height="8" {...wall} />
+        <rect x="59" y="24" width="4" height="8" {...wall} />
+        {win(15, 36, 13, 10, 2, 2)}
+        {win(41, 36, 13, 10, 2, 2)}
+        {win(67, 36, 13, 10, 2, 2)}
+        <rect x="17" y="50" width="9" height="14" rx="0.6" {...doorFill} />
+        <rect x="43" y="50" width="9" height="14" rx="0.6" {...doorFill} />
+        <rect x="69" y="50" width="9" height="14" rx="0.6" {...doorFill} />
+        <circle cx="24" cy="57" r="0.8" {...knob} />
+        <circle cx="50" cy="57" r="0.8" {...knob} />
+        <circle cx="76" cy="57" r="0.8" {...knob} />
       </>
     ),
   };
   return (
-    <svg viewBox="0 0 84 64" width="84" height="64" aria-hidden style={{ filter: "drop-shadow(0 0 4px rgba(15,125,255,0.25))" }}>
+    <svg viewBox="0 0 96 72" width="92" height="68" aria-hidden style={{ filter: "drop-shadow(0 0 4px rgba(0,212,255,0.3))" }}>
       {buildings[slug]}
     </svg>
   );
