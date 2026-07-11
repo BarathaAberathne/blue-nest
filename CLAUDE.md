@@ -190,24 +190,31 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
     **Reorder** a past request. Routes `GET/POST/DELETE /order-templates` (staff+management). The admin
     **New order** wizard on `/admin/order-requests` generates the cart + auto-hands it to the extension.
 
-- **MD Command Centre** (`app/admin/command-center/`, frontend-only): a self-contained executive HUD
-  for the Managing Director — a dark-navy + champagne-gold + electric-blue "mission control" dashboard
-  that renders its **own full-screen shell** (deliberately NOT wrapped in `AdminLayout`) at
-  `/admin/command-center`. All figures are **static mock data** (`data.ts`) matching the approved design
-  — none of it (children, attendance, finance, sentiment, compliance) is backend-wired yet. No new npm
-  deps: every chart (financial donut, admission funnel, attendance bars, sentiment spark, radar dials,
-  ring gauges, branch building line-art, centrepiece rings) is hand-rolled SVG in `widgets.tsx`, the HUD
-  line-icons (Blue Nest "Icon Pack v1.0" — neon `#00D4FF` with `#FFC857` gold accents, lucide-compatible
-  API) live in `icons.tsx`, and all motion (logo glow-pulse, rotating rings, radar sweep, sonar pings,
-  flowing connector dashes, AI waveform, live clock) is CSS keyframes. The
-  real Blue Nest logo PNG (`/logo/bluenest-logo.png`) glows via `drop-shadow` in the topbar, centrepiece
-  and system-health radar. All styling is scoped under `.cc-root` in `command-center.css` (palette as
-  `--cc-*` vars) so nothing leaks into the light admin theme; `body:has(.cc-root)` darkens the page.
-  Composition (`CommandCenterClient.tsx`): topbar (clock/logo/wordmark/notifications) · left sidebar
-  (MD profile + nav + system-status radar) · KPI row · Branch Overview centrepiece with 5 branch cards ·
-  Financial/Events/Notifications column · funnel+attendance+sentiment cluster · bottom bar (Quick Actions,
-  Mission Objectives, AI Assistant, System Health). Nav/links are visual only; the page has no auth guard
-  or role wiring (a future `director` role could gate it).
+- **MD Command Centre** (`app/admin/command-center/`, frontend-only): a self-contained **full-screen
+  executive command centre** for the Managing Director — a dark-navy + champagne-gold + electric-blue
+  "mission control" dashboard that renders its **own edge-to-edge shell** (deliberately NOT wrapped in
+  `AdminLayout`) at `/admin/command-center`. The layout is **fluid and fills 100vw × 100vh** (fixed
+  left nav rail + wide scrollable centre + fixed right insight rail — `.cc-body` + `.cc-col-scroll`), no
+  centred narrow container. All figures are **static mock data** (`data.ts`) — none of it (children,
+  attendance, finance, sentiment, compliance, staffing, activity) is backend-wired yet. No new npm deps:
+  every chart (financial donut, admission funnel, attendance bars, sentiment spark, radar dials, ring
+  gauges, source donut, branch building line-art, centrepiece rings) is hand-rolled SVG in `widgets.tsx`,
+  the HUD line-icons (Blue Nest "Icon Pack v1.0" — neon `#36A9FF` electric blue with `#FFC857` gold
+  accents, lucide-compatible API) live in `icons.tsx`, and all motion (logo glow-pulse, rotating rings,
+  radar sweep, sonar pings, flowing connector dashes, AI waveform, live clock) is CSS keyframes. The real
+  Blue Nest logo PNG (`/logo/bluenest-logo.png`) glows via `drop-shadow` in the topbar, centrepiece and
+  system-health radar. All styling is scoped under `.cc-root` in `command-center.css` (palette as `--cc-*`
+  vars: bg `#071321`, panel `#0E223D`, primary `#36A9FF`, accent `#D6B36A`, success `#35D07F`, warning
+  `#FFC857`, error `#FF5C73`) so nothing leaks into the light admin theme; `body:has(.cc-root)` darkens
+  the page. Composition (`CommandCenterClient.tsx`): topbar (clock/logo/wordmark/notifications) · left
+  nav rail (MD profile + nav + system-status radar) · centre workspace (**KPI row 1** + dense **KPI row 2**
+  operational tiles + Branch Overview centrepiece with 5 branch cards + funnel/attendance/sentiment
+  cluster + **occupancy heatmap / enquiry-sources donut / performance gauges** + **staff status /
+  children's status / compliance centre** + bottom bar: Quick Actions, Mission Objectives, **AI Executive
+  Brief** with action buttons, System Health) · right rail (Financial · Upcoming Events · Notifications ·
+  **Live Activity feed** · **Parent Comms**). Nav/links/buttons are visual only; no auth guard or role
+  wiring (a future `director` role could gate it). Not yet built (future): monthly calendar widget,
+  capacity forecast line, expanded finance analytics, interactive branch-hover network.
 
 Planned next: Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 

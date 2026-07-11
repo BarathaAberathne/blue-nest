@@ -77,6 +77,58 @@ export function DonutChart({
   );
 }
 
+// ── Generic donut/pie from weighted slices (e.g. enquiry sources) ───────────
+export function MiniDonut({
+  slices,
+  size = 132,
+  center,
+  sub,
+}: {
+  slices: { pct: number; color: string }[];
+  size?: number;
+  center?: string;
+  sub?: string;
+}) {
+  const r = size / 2 - 12;
+  const cx = size / 2;
+  const cy = size / 2;
+  const c = 2 * Math.PI * r;
+  const gap = 1.5;
+  const withOffset = slices.map((s, i) => ({
+    s,
+    offset: slices.slice(0, i).reduce((acc, p) => acc + p.pct, 0),
+  }));
+  return (
+    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label="Breakdown">
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(54,169,255,0.12)" strokeWidth={11} />
+      {withOffset.map(({ s, offset }) => (
+        <circle
+          key={offset}
+          cx={cx}
+          cy={cy}
+          r={r}
+          fill="none"
+          stroke={s.color}
+          strokeWidth={11}
+          strokeDasharray={`${Math.max(((s.pct - gap) / 100) * c, 0.1)} ${c}`}
+          strokeDashoffset={-((offset / 100) * c)}
+          transform={`rotate(-90 ${cx} ${cy})`}
+        />
+      ))}
+      {center && (
+        <text x={cx} y={cy - 2} textAnchor="middle" fill="#f5f7fa" fontSize="18" fontWeight="700" fontFamily="var(--font-admin-heading)">
+          {center}
+        </text>
+      )}
+      {sub && (
+        <text x={cx} y={cy + 12} textAnchor="middle" fill="#8aa6c6" fontSize="7.5" letterSpacing="1" fontFamily="var(--font-admin-heading)">
+          {sub}
+        </text>
+      )}
+    </svg>
+  );
+}
+
 // ── Circular gauge (occupancy / attendance / conversion) ────────────────────
 export function RingGauge({
   value,

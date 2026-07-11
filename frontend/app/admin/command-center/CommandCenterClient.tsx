@@ -38,21 +38,32 @@ import {
 
 import "./command-center.css";
 import {
+  ACTIVITY_FEED,
+  AI_BRIEF,
   ATTENDANCE,
   BRANCHES,
+  CHILDREN_STATUS,
+  COMPLIANCE,
   CONVERSION_PCT,
+  ENQUIRY_SOURCES,
   EVENTS,
   FINANCE,
   FUNNEL,
   KPIS,
+  KPIS_ROW2,
   NAV_ITEMS,
   NOTIFICATIONS,
   OBJECTIVES,
+  OCCUPANCY_BARS,
+  PARENT_COMMS,
+  PERF_GAUGES,
   QUICK_ACTIONS,
   SENTIMENT,
+  STAFF_STATUS,
   SYSTEM_HEALTH,
   type Branch,
   type Kpi,
+  type MiniKpi,
 } from "./data";
 import {
   AttendanceBars,
@@ -60,6 +71,7 @@ import {
   CentrepieceRings,
   DonutChart,
   Funnel,
+  MiniDonut,
   Radar,
   RingGauge,
   SentimentLine,
@@ -184,8 +196,8 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
   const Icon =
     kpi.kind === "children" ? Children : kpi.kind === "staff" ? Staff : Enquiries;
   return (
-    <Panel className="px-4 py-3" clip>
-      <div className="flex items-center gap-3" style={{ height: 62 }}>
+    <Panel className="px-4 py-2" clip>
+      <div className="flex items-center gap-3" style={{ height: 54 }}>
         {kpi.kind === "occupancy" ? (
           <RingGauge value={92} size={58} color="var(--cc-accent)" track="rgba(214,179,106,0.15)" />
         ) : kpi.kind === "satisfaction" ? (
@@ -265,6 +277,45 @@ function BranchCard({ branch }: { branch: Branch }) {
   );
 }
 
+/* ── Executive KPI tile (second row) ───────────────────────────────────── */
+
+const TONE: Record<string, string> = {
+  ok: "var(--cc-success)",
+  warn: "var(--cc-warning)",
+  bad: "var(--cc-error)",
+  accent: "var(--cc-accent)",
+  muted: "var(--cc-muted)",
+};
+
+function MiniKpiTile({ kpi }: { kpi: MiniKpi }) {
+  const color = kpi.tone ? TONE[kpi.tone] : "var(--cc-text)";
+  return (
+    <div className="cc-tile">
+      <p className="cc-label" style={{ fontSize: 8, color: "var(--cc-muted)", lineHeight: 1.2 }}>
+        {kpi.label}
+      </p>
+      <p className="cc-heading" style={{ fontSize: 19, lineHeight: 1.1, color, marginTop: 3, letterSpacing: "0.01em" }}>
+        {kpi.value}
+      </p>
+    </div>
+  );
+}
+
+/* Small stat row used by Staff Status / Children's Status / Parent Comms. */
+function StatRows({ rows }: { rows: { label: string; count?: number; value?: string; tone?: string }[] }) {
+  return (
+    <div className="mt-2 flex flex-col gap-1.5">
+      {rows.map((r) => (
+        <div key={r.label} className="flex items-center gap-2" style={{ fontSize: 11 }}>
+          <span className="cc-dot" style={{ width: 6, height: 6, color: r.tone ? TONE[r.tone] : "var(--cc-primary)" }} />
+          <span className="cc-label" style={{ flex: 1, color: "var(--cc-muted)" }}>{r.label}</span>
+          <span className="cc-heading" style={{ color: "var(--cc-text)" }}>{r.value ?? r.count}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ── Main composition ──────────────────────────────────────────────────── */
 
 export default function CommandCenterClient() {
@@ -274,7 +325,7 @@ export default function CommandCenterClient() {
     <div className="cc-root">
       <div className="cc-stage">
         {/* ══ Top bar ══════════════════════════════════════════════════ */}
-        <header className="flex items-start justify-between gap-6 mb-3">
+        <header className="flex items-start justify-between gap-6 mb-2">
           <div style={{ width: 230 }}>
             <TopClock />
           </div>
@@ -302,7 +353,7 @@ export default function CommandCenterClient() {
         </header>
 
         {/* sub-header */}
-        <div className="flex justify-center mb-3">
+        <div className="flex justify-center mb-2">
           <p className="cc-label" style={{ fontSize: 10.5, color: "var(--cc-primary-soft)", letterSpacing: "0.24em" }}>
             <span style={{ color: "var(--cc-accent)" }}>◈</span> MD COMMAND CENTER
             <span style={{ color: "var(--cc-muted-dim)", margin: "0 10px" }}>•</span>
@@ -311,20 +362,20 @@ export default function CommandCenterClient() {
         </div>
 
         {/* ══ Body: sidebar | main | right ══════════════════════════════ */}
-        <div className="flex gap-3 items-stretch">
+        <div className="cc-body">
           {/* ── Sidebar ─────────────────────────────────────────── */}
-          <aside style={{ width: 230 }} className="shrink-0 flex flex-col gap-3">
-            <Panel className="px-4 py-4" clip>
+          <aside style={{ width: 230 }} className="shrink-0 flex flex-col gap-2 cc-col-scroll">
+            <Panel className="px-4 py-2" clip>
               <p className="cc-label text-center" style={{ fontSize: 9, color: "var(--cc-muted)", letterSpacing: "0.2em" }}>
                 MD PROFILE
               </p>
-              <div className="flex justify-center my-3">
-                <div style={{ position: "relative", width: 92, height: 92 }}>
+              <div className="flex justify-center my-2">
+                <div style={{ position: "relative", width: 76, height: 76 }}>
                   <div className="cc-spin-slow" style={{ position: "absolute", inset: -6, borderRadius: "50%", border: "1px dashed rgba(214,179,106,0.5)" }} />
                   <div
                     style={{
-                      width: 92,
-                      height: 92,
+                      width: 76,
+                      height: 76,
                       borderRadius: "50%",
                       border: "2px solid var(--cc-accent)",
                       background: "radial-gradient(circle at 50% 30%, #24476f, #0c1c33)",
@@ -370,7 +421,7 @@ export default function CommandCenterClient() {
               </nav>
             </Panel>
 
-            <Panel className="px-4 py-3" clip>
+            <Panel className="px-4 py-2" clip>
               <p className="cc-label" style={{ fontSize: 9, color: "var(--cc-muted)", letterSpacing: "0.16em" }}>
                 SYSTEM STATUS
               </p>
@@ -393,10 +444,10 @@ export default function CommandCenterClient() {
                bottom bar stack beside the full-height sidebar rail, matching the
                design. The sidebar's height therefore follows this whole area (its
                System Status panel pins to the bottom) instead of forcing a gap. ── */}
-          <div className="flex-1 flex flex-col gap-3 min-w-0">
+          <div className="flex-1 flex flex-col gap-2 min-w-0 cc-col-scroll">
             <div className="flex gap-3 items-stretch">
               {/* ── Main workspace ──────────────────────────────────── */}
-              <main className="flex-1 flex flex-col gap-3 min-w-0">
+              <main className="flex-1 flex flex-col gap-2 min-w-0">
             {/* KPI row */}
             <div className="grid grid-cols-5 gap-3">
               {KPIS.map((k) => (
@@ -404,12 +455,21 @@ export default function CommandCenterClient() {
               ))}
             </div>
 
+            {/* Executive KPI row 2 — dense operational tiles */}
+            <Panel className="px-3 py-2" clip>
+              <div className="cc-tiles">
+                {KPIS_ROW2.map((k) => (
+                  <MiniKpiTile key={k.label} kpi={k} />
+                ))}
+              </div>
+            </Panel>
+
             {/* Branch overview centrepiece */}
-            <Panel className="px-4 py-3" clip>
+            <Panel className="px-4 py-2" clip>
               <p className="cc-heading text-center" style={{ fontSize: 15, color: "var(--cc-text)", letterSpacing: "0.2em", marginBottom: 4 }}>
                 BRANCH OVERVIEW
               </p>
-              <div style={{ position: "relative", height: 344 }}>
+              <div style={{ position: "relative", height: 286 }}>
                 {/* Connector lines fanning from the centrepiece to each branch card,
                     with a flowing dash so data appears to stream to the branches */}
                 <svg
@@ -447,8 +507,8 @@ export default function CommandCenterClient() {
                   ))}
                 </svg>
                 {/* Centrepiece */}
-                <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 344, height: 344 }}>
-                  <CentrepieceRings size={344} />
+                <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 300, height: 300 }}>
+                  <CentrepieceRings size={300} />
                   {/* Sonar pings emanating from the core */}
                   <span className="cc-ping" />
                   <span className="cc-ping" style={{ animationDelay: "1.05s" }} />
@@ -473,10 +533,10 @@ export default function CommandCenterClient() {
                 <div style={{ position: "absolute", right: 0, top: 0, width: 300 }}>
                   <BranchCard branch={byCorner("top-right")} />
                 </div>
-                <div style={{ position: "absolute", left: 0, top: 196, width: 300 }}>
+                <div style={{ position: "absolute", left: 0, top: 152, width: 300 }}>
                   <BranchCard branch={byCorner("mid-left")} />
                 </div>
-                <div style={{ position: "absolute", right: 0, top: 196, width: 300 }}>
+                <div style={{ position: "absolute", right: 0, top: 152, width: 300 }}>
                   <BranchCard branch={byCorner("mid-right")} />
                 </div>
                 <div style={{ position: "absolute", left: "50%", bottom: -6, transform: "translateX(-50%)", width: 300 }}>
@@ -487,7 +547,7 @@ export default function CommandCenterClient() {
 
             {/* Bottom cluster: funnel | attendance | sentiment */}
             <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-              <Panel className="px-4 py-3" clip>
+              <Panel className="px-4 py-2" clip>
                 <SectionTitle sub="This Month">ADMISSION PIPELINE</SectionTitle>
                 <div className="mt-2">
                   <Funnel stages={FUNNEL} />
@@ -500,7 +560,7 @@ export default function CommandCenterClient() {
                 </div>
               </Panel>
 
-              <Panel className="px-4 py-3" clip>
+              <Panel className="px-4 py-2" clip>
                 <SectionTitle sub="This Week">ATTENDANCE OVERVIEW</SectionTitle>
                 <div className="flex items-center gap-2 mt-2">
                   <div className="flex-1">
@@ -515,7 +575,7 @@ export default function CommandCenterClient() {
                 </div>
               </Panel>
 
-              <Panel className="px-4 py-3" clip>
+              <Panel className="px-4 py-2" clip>
                 <SectionTitle sub="This Month">PARENT SENTIMENT</SectionTitle>
                 <div className="flex items-center gap-2 mt-2">
                   <div className="flex-1">
@@ -535,11 +595,83 @@ export default function CommandCenterClient() {
                 </div>
               </Panel>
             </div>
+
+            {/* ── Executive widget row A: occupancy · sources · gauges ── */}
+            <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+              <Panel className="px-4 py-2" clip>
+                <SectionTitle sub="Live">OCCUPANCY HEATMAP</SectionTitle>
+                <div className="mt-2 flex flex-col gap-2">
+                  {OCCUPANCY_BARS.map((b) => (
+                    <div key={b.name} className="flex items-center gap-2">
+                      <span className="cc-label" style={{ width: 82, fontSize: 9.5, color: "var(--cc-muted)" }}>{b.name}</span>
+                      <div className="cc-heat-track">
+                        <div className="cc-heat-fill" style={{ width: `${b.pct}%` }} />
+                      </div>
+                      <span className="cc-heading" style={{ width: 34, textAlign: "right", fontSize: 12, color: "var(--cc-text)" }}>{b.pct}%</span>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+
+              <Panel className="px-4 py-2" clip>
+                <SectionTitle sub="This Month">ENQUIRY SOURCES</SectionTitle>
+                <div className="flex items-center gap-3 mt-1">
+                  <MiniDonut slices={ENQUIRY_SOURCES} size={118} center="134" sub="ENQUIRIES" />
+                  <div className="flex-1 flex flex-col gap-1">
+                    {ENQUIRY_SOURCES.map((s) => (
+                      <div key={s.label} className="flex items-center gap-1.5" style={{ fontSize: 9.5 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />
+                        <span className="cc-label" style={{ flex: 1, color: "var(--cc-muted)" }}>{s.label}</span>
+                        <span style={{ color: "var(--cc-text)", fontWeight: 600 }}>{s.pct}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Panel>
+
+              <Panel className="px-4 py-2" clip>
+                <SectionTitle sub="Live">PERFORMANCE</SectionTitle>
+                <div className="grid grid-cols-3 gap-1 mt-2" style={{ justifyItems: "center" }}>
+                  {PERF_GAUGES.map((g) => {
+                    const color = g.tone === "gold" ? "var(--cc-accent)" : g.tone === "green" ? "var(--cc-success)" : "var(--cc-primary)";
+                    return (
+                      <div key={g.label} className="flex flex-col items-center">
+                        <RingGauge value={g.value} size={62} big={`${g.value}%`} color={color} />
+                        <span className="cc-label" style={{ fontSize: 7.5, color: "var(--cc-muted)", marginTop: -2 }}>{g.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Panel>
+            </div>
+
+            {/* ── Executive widget row B: staff · children · compliance ── */}
+            <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+              <Panel className="px-4 py-2" clip>
+                <SectionTitle sub="Today">STAFF STATUS</SectionTitle>
+                <StatRows rows={STAFF_STATUS} />
+              </Panel>
+              <Panel className="px-4 py-2" clip>
+                <SectionTitle sub="Today">CHILDREN&apos;S STATUS</SectionTitle>
+                <StatRows rows={CHILDREN_STATUS} />
+              </Panel>
+              <Panel className="px-4 py-2" clip>
+                <SectionTitle sub="Traffic light">COMPLIANCE CENTRE</SectionTitle>
+                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
+                  {COMPLIANCE.map((c) => (
+                    <div key={c.label} className="flex items-center gap-2" style={{ fontSize: 10.5 }}>
+                      <span className="cc-dot" style={{ width: 7, height: 7, color: TONE[c.status] }} />
+                      <span className="cc-label" style={{ color: "var(--cc-muted)" }}>{c.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            </div>
           </main>
 
           {/* ── Right column ────────────────────────────────────── */}
           <aside style={{ width: 300 }} className="shrink-0 flex flex-col gap-3">
-            <Panel className="px-4 py-3" clip>
+            <Panel className="px-4 py-2" clip>
               <SectionTitle sub="This Month">FINANCIAL OVERVIEW</SectionTitle>
               <div className="flex justify-center my-1" style={{ height: 190 }}>
                 <DonutChart slices={FINANCE.slices} total={FINANCE.total} caption="TOTAL REVENUE" />
@@ -562,7 +694,7 @@ export default function CommandCenterClient() {
               </div>
             </Panel>
 
-            <Panel className="px-4 py-3" clip>
+            <Panel className="px-4 py-2" clip>
               <SectionTitle>UPCOMING EVENTS</SectionTitle>
               <div className="mt-2 flex flex-col gap-2">
                 {EVENTS.map((e) => (
@@ -579,7 +711,7 @@ export default function CommandCenterClient() {
               </div>
             </Panel>
 
-            <Panel className="px-4 py-3 flex-1" clip>
+            <Panel className="px-4 py-3" clip>
               <SectionTitle>NOTIFICATIONS</SectionTitle>
               <div className="mt-2 flex flex-col gap-2.5">
                 {NOTIFICATIONS.map((n) => (
@@ -596,13 +728,39 @@ export default function CommandCenterClient() {
                 <button className="cc-linkbtn">View All Notifications <ChevronRight size={11} /></button>
               </div>
             </Panel>
+
+            {/* ── Live activity feed ── */}
+            <Panel className="px-4 py-3" clip>
+              <SectionTitle sub="Real-time">LIVE ACTIVITY</SectionTitle>
+              <div className="cc-feed mt-2">
+                {ACTIVITY_FEED.map((a, i) => (
+                  <div key={i} className="cc-feed-row">
+                    <span className="cc-heading" style={{ width: 34, fontSize: 10, color: "var(--cc-primary-soft)" }}>{a.time}</span>
+                    <span style={{ flex: 1, fontSize: 10.5, color: "var(--cc-text)", lineHeight: 1.35 }}>{a.text}</span>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+
+            {/* ── Parent communications ── */}
+            <Panel className="px-4 py-3" clip>
+              <SectionTitle sub="Today">PARENT COMMS</SectionTitle>
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
+                {PARENT_COMMS.map((p) => (
+                  <div key={p.label} className="flex items-baseline justify-between gap-2" style={{ fontSize: 10.5 }}>
+                    <span className="cc-label" style={{ color: "var(--cc-muted)" }}>{p.label}</span>
+                    <span className="cc-heading" style={{ color: "var(--cc-text)" }}>{p.value}</span>
+                  </div>
+                ))}
+              </div>
+            </Panel>
               </aside>
             </div>
 
             {/* ══ Bottom bar ═══════════════════════════════════════════════ */}
             <div className="grid gap-3" style={{ gridTemplateColumns: "1.1fr 1.2fr 1fr 1fr" }}>
           {/* Quick actions */}
-          <Panel className="px-4 py-3" clip>
+          <Panel className="px-4 py-2" clip>
             <SectionTitle>QUICK ACTIONS</SectionTitle>
             <div className="grid grid-cols-5 gap-2 mt-2">
               {QUICK_ACTIONS.map((a, i) => {
@@ -621,7 +779,7 @@ export default function CommandCenterClient() {
           </Panel>
 
           {/* Mission objectives */}
-          <Panel className="px-4 py-3" clip>
+          <Panel className="px-4 py-2" clip>
             <SectionTitle>MISSION OBJECTIVES</SectionTitle>
             <div className="mt-2 flex flex-col gap-2.5">
               {OBJECTIVES.map((o) => (
@@ -644,44 +802,57 @@ export default function CommandCenterClient() {
             </div>
           </Panel>
 
-          {/* AI assistant */}
-          <Panel className="px-4 py-3" clip>
-            <SectionTitle>AI ASSISTANT</SectionTitle>
+          {/* AI executive brief */}
+          <Panel className="px-4 py-2" clip>
+            <SectionTitle sub="Executive brief">AI ASSISTANT</SectionTitle>
             <div className="flex items-start gap-3 mt-2">
               <div
                 className="shrink-0 flex items-center justify-center"
                 style={{
-                  width: 54,
-                  height: 54,
+                  width: 48,
+                  height: 48,
                   borderRadius: "50%",
                   border: "1.5px solid var(--cc-accent)",
-                  background: "radial-gradient(circle, rgba(15,125,255,0.25), transparent)",
-                  boxShadow: "0 0 20px rgba(15,125,255,0.4)",
+                  background: "radial-gradient(circle, rgba(54,169,255,0.28), transparent)",
+                  boxShadow: "0 0 20px rgba(54,169,255,0.4)",
                   animation: "cc-pulse 3s ease-in-out infinite",
                   color: "var(--cc-accent)",
                   fontFamily: "var(--font-admin-heading)",
                   fontWeight: 700,
-                  fontSize: 16,
+                  fontSize: 15,
                 }}
               >
                 AI
               </div>
-              <p style={{ fontSize: 11, color: "var(--cc-muted)", lineHeight: 1.5 }}>
-                <span style={{ color: "var(--cc-accent)" }}>Good morning MD,</span> Here&apos;s your overview for today. Would you like a detailed report on any area?
+              <p style={{ fontSize: 10.5, color: "var(--cc-muted)", lineHeight: 1.45 }}>
+                <span style={{ color: "var(--cc-accent)" }}>{AI_BRIEF.greeting}</span> {AI_BRIEF.intro}
               </p>
             </div>
-            <div className="flex items-center gap-2 mt-3">
-              <div className="flex items-end gap-[3px]" style={{ height: 26, flex: 1 }}>
-                {Array.from({ length: 34 }).map((_, i) => (
-                  <span key={i} className="cc-wavebar" style={{ height: 24, animationDelay: `${(i % 10) * 0.09}s` }} />
+            <ul className="mt-2 flex flex-col gap-1">
+              {AI_BRIEF.points.map((p) => (
+                <li key={p} className="flex items-start gap-1.5" style={{ fontSize: 10, color: "var(--cc-text)", lineHeight: 1.35 }}>
+                  <span style={{ color: "var(--cc-primary)" }}>▹</span>
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {AI_BRIEF.actions.map((a) => (
+                <button key={a} className="cc-ai-btn">{a}</button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-end gap-[3px]" style={{ height: 18, flex: 1 }}>
+                {Array.from({ length: 40 }).map((_, i) => (
+                  <span key={i} className="cc-wavebar" style={{ height: 16, animationDelay: `${(i % 10) * 0.09}s` }} />
                 ))}
               </div>
-              <Mic size={16} color={ICON_BLUE} />
+              <Mic size={15} color={ICON_BLUE} />
             </div>
           </Panel>
 
           {/* System health */}
-          <Panel className="px-4 py-3" clip>
+          <Panel className="px-4 py-2" clip>
             <SectionTitle>SYSTEM HEALTH</SectionTitle>
             <div className="flex items-center gap-3 mt-2">
               <div style={{ position: "relative", width: 82, height: 82 }} className="shrink-0">

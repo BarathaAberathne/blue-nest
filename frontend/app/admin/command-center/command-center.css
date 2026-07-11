@@ -11,33 +11,34 @@ body:has(.cc-root) {
 }
 
 .cc-root {
-  --cc-bg: #07111f;
-  --cc-bg-2: #0a1728;
-  --cc-panel: #0d1e34;
-  --cc-panel-2: #0b1a2e;
-  --cc-line: rgba(64, 130, 210, 0.22);
-  --cc-line-strong: rgba(90, 160, 235, 0.45);
-  --cc-primary: #0f7dff;
-  --cc-primary-soft: #4aa3ff;
+  --cc-bg: #071321;
+  --cc-bg-2: #0a1a2e;
+  --cc-panel: #0e223d;
+  --cc-panel-2: #0b1c33;
+  --cc-line: rgba(54, 169, 255, 0.2);
+  --cc-line-strong: rgba(54, 169, 255, 0.42);
+  --cc-primary: #36a9ff;
+  --cc-primary-soft: #5cbaff;
   --cc-accent: #d6b36a;
   --cc-accent-soft: #b99a52;
-  --cc-success: #1ed760;
+  --cc-success: #35d07f;
   --cc-warning: #ffc857;
-  --cc-error: #ff4d6d;
+  --cc-error: #ff5c73;
   --cc-text: #f5f7fa;
-  --cc-muted: #7f9bbd;
-  --cc-muted-dim: #56708f;
+  --cc-muted: #8aa6c6;
+  --cc-muted-dim: #5f7a9c;
 
-  position: relative;
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
   width: 100%;
+  height: 100%;
   color: var(--cc-text);
   background:
     radial-gradient(1200px 700px at 50% -10%, rgba(15, 125, 255, 0.10), transparent 60%),
     radial-gradient(900px 600px at 92% 8%, rgba(214, 179, 106, 0.06), transparent 55%),
     var(--cc-bg);
   font-family: var(--font-admin-body), "Inter", system-ui, sans-serif;
-  overflow-x: auto;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -55,14 +56,36 @@ body:has(.cc-root) {
   z-index: 0;
 }
 
+/* Edge-to-edge, full-viewport executive canvas: fills 100% width and height
+   with no centred narrow container. It is a flex column (topbar → subheader →
+   body); the body's three columns each scroll independently. */
 .cc-stage {
   position: relative;
   z-index: 1;
-  width: 1536px;
-  max-width: 1536px;
-  margin: 0 auto;
-  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 14px 18px;
+  gap: 8px;
 }
+.cc-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 14px;
+  align-items: stretch;
+}
+.cc-col-scroll {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(54, 169, 255, 0.35) transparent;
+}
+.cc-col-scroll::-webkit-scrollbar { width: 7px; }
+.cc-col-scroll::-webkit-scrollbar-thumb { background: rgba(54, 169, 255, 0.3); border-radius: 4px; }
+.cc-col-scroll::-webkit-scrollbar-track { background: transparent; }
 
 .cc-label {
   font-family: var(--font-admin-heading), "Space Grotesk", sans-serif;
@@ -222,7 +245,7 @@ body:has(.cc-root) {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 12px;
+  padding: 5px 12px;
   border-radius: 8px;
   font-size: 12.5px;
   letter-spacing: 0.08em;
@@ -304,4 +327,73 @@ body:has(.cc-root) {
   border-radius: inherit;
   pointer-events: none;
   background: linear-gradient(180deg, transparent, rgba(120, 180, 240, 0.05), transparent);
+}
+
+/* Second-row executive KPI tiles */
+.cc-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  gap: 7px;
+}
+.cc-tile {
+  background: linear-gradient(160deg, rgba(20, 44, 74, 0.55), rgba(9, 24, 42, 0.6));
+  border: 1px solid var(--cc-line);
+  border-radius: 7px;
+  padding: 7px 9px;
+  min-width: 0;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.cc-tile:hover {
+  border-color: var(--cc-line-strong);
+  box-shadow: 0 0 14px rgba(54, 169, 255, 0.14) inset;
+}
+
+/* Occupancy heat bars */
+.cc-heat-track {
+  flex: 1;
+  height: 9px;
+  border-radius: 5px;
+  background: rgba(54, 169, 255, 0.12);
+  overflow: hidden;
+}
+.cc-heat-fill {
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--cc-primary), var(--cc-success));
+  box-shadow: 0 0 10px rgba(54, 169, 255, 0.4);
+}
+
+/* Live activity feed */
+.cc-feed {
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(54, 169, 255, 0.35) transparent;
+}
+.cc-feed::-webkit-scrollbar { width: 5px; }
+.cc-feed::-webkit-scrollbar-thumb { background: rgba(54, 169, 255, 0.3); border-radius: 3px; }
+.cc-feed-row {
+  display: flex;
+  gap: 9px;
+  padding: 5px 0;
+  border-bottom: 1px dashed rgba(54, 169, 255, 0.1);
+}
+
+/* AI executive-brief action buttons */
+.cc-ai-btn {
+  padding: 3px 8px;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  border-radius: 5px;
+  border: 1px solid var(--cc-line-strong);
+  background: rgba(54, 169, 255, 0.08);
+  color: var(--cc-primary-soft);
+  cursor: pointer;
+  transition: all 0.16s;
+  font-family: var(--font-admin-heading), sans-serif;
+}
+.cc-ai-btn:hover {
+  border-color: var(--cc-accent);
+  color: var(--cc-accent);
+  box-shadow: 0 0 12px rgba(214, 179, 106, 0.2);
 }
