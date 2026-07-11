@@ -196,8 +196,10 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   `/admin/command-center`. All figures are **static mock data** (`data.ts`) matching the approved design
   — none of it (children, attendance, finance, sentiment, compliance) is backend-wired yet. No new npm
   deps: every chart (financial donut, admission funnel, attendance bars, sentiment spark, radar dials,
-  ring gauges, branch building line-art, centrepiece rings) is hand-rolled SVG in `widgets.tsx`, and all
-  motion (logo glow-pulse, rotating rings, radar sweep, AI waveform, live clock) is CSS keyframes. The
+  ring gauges, branch building line-art, centrepiece rings) is hand-rolled SVG in `widgets.tsx`, the HUD
+  line-icons (Blue Nest "Icon Pack v1.0" — neon `#00D4FF` with `#FFC857` gold accents, lucide-compatible
+  API) live in `icons.tsx`, and all motion (logo glow-pulse, rotating rings, radar sweep, sonar pings,
+  flowing connector dashes, AI waveform, live clock) is CSS keyframes. The
   real Blue Nest logo PNG (`/logo/bluenest-logo.png`) glows via `drop-shadow` in the topbar, centrepiece
   and system-health radar. All styling is scoped under `.cc-root` in `command-center.css` (palette as
   `--cc-*` vars) so nothing leaks into the light admin theme; `body:has(.cc-root)` darkens the page.

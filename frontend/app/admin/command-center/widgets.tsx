@@ -13,9 +13,13 @@ const SLICE_COLORS: Record<FinanceSlice["color"], string> = {
   accentSofter: "#8fb4d8",
 };
 
+// Round trig-derived SVG coords to 2dp so server and client render identical
+// strings (Node/browser libm can differ in the last float digits → hydration
+// mismatch otherwise — see CLAUDE.md conventions).
+const r2 = (n: number) => Math.round(n * 100) / 100;
 const polar = (cx: number, cy: number, r: number, deg: number) => {
   const a = ((deg - 90) * Math.PI) / 180;
-  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+  return { x: r2(cx + r * Math.cos(a)), y: r2(cy + r * Math.sin(a)) };
 };
 
 // ── Financial donut ───────────────────────────────────────────────────────
@@ -363,26 +367,54 @@ export function Building({ slug }: { slug: BranchSlug }) {
 export function CentrepieceRings({ size = 300 }: { size?: number }) {
   const cx = size / 2;
   const cy = size / 2;
-  const dots = (r: number, count: number) =>
+  const R = size / 2;
+  const dots = (r: number, count: number, color = "#00d4ff", rad = 1.6) =>
     Array.from({ length: count }).map((_, i) => {
       const { x, y } = polar(cx, cy, r, (360 / count) * i);
-      return <circle key={`${r}-${i}`} cx={x} cy={y} r="1.6" fill="#4aa3ff" opacity={0.7} />;
+      return <circle key={`${r}-${i}`} cx={x} cy={y} r={rad} fill={color} opacity={0.75} />;
+    });
+  // Tick marks around a ring (fine HUD graduations).
+  const ticks = (r: number, count: number, len: number) =>
+    Array.from({ length: count }).map((_, i) => {
+      const a = (360 / count) * i;
+      const p1 = polar(cx, cy, r, a);
+      const p2 = polar(cx, cy, r - len, a);
+      return <line key={`t-${r}-${i}`} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="rgba(0,212,255,0.3)" strokeWidth="1" />;
     });
   return (
     <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} aria-hidden style={{ position: "absolute", inset: 0 }}>
       <defs>
         <radialGradient id="cc-core" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="rgba(15,125,255,0.22)" />
-          <stop offset="70%" stopColor="rgba(15,125,255,0.04)" />
+          <stop offset="0%" stopColor="rgba(0,212,255,0.24)" />
+          <stop offset="55%" stopColor="rgba(0,212,255,0.05)" />
           <stop offset="100%" stopColor="transparent" />
         </radialGradient>
+        <linearGradient id="cc-cp-sweep" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="rgba(0,212,255,0)" />
+          <stop offset="100%" stopColor="rgba(0,212,255,0.35)" />
+        </linearGradient>
       </defs>
-      <circle cx={cx} cy={cy} r={size / 2 - 6} fill="url(#cc-core)" />
-      <circle cx={cx} cy={cy} r={size / 2 - 8} fill="none" stroke="rgba(90,160,235,0.25)" strokeWidth="1" strokeDasharray="2 6" className="cc-spin-slow" />
-      <circle cx={cx} cy={cy} r={size / 2 - 34} fill="none" stroke="rgba(214,179,106,0.28)" strokeWidth="1" strokeDasharray="1 10" className="cc-spin-rev" />
-      <circle cx={cx} cy={cy} r={size / 2 - 60} fill="none" stroke="rgba(90,160,235,0.18)" strokeWidth="1" />
-      <g className="cc-spin-slow">{dots(size / 2 - 20, 3)}</g>
-      <g className="cc-spin-rev">{dots(size / 2 - 46, 6)}</g>
+
+      <circle cx={cx} cy={cy} r={R - 6} fill="url(#cc-core)" />
+
+      {/* Rotating radar sweep wedge */}
+      <g className="cc-spin-slow" style={{ transformBox: "fill-box", transformOrigin: "center" }}>
+        <path d={`M${cx} ${cy} L${cx} ${cy - (R - 10)} A${R - 10} ${R - 10} 0 0 1 ${cx + (R - 10) * 0.82} ${cy - (R - 10) * 0.57} Z`} fill="url(#cc-cp-sweep)" opacity={0.5} />
+      </g>
+
+      {/* Concentric rings */}
+      <circle cx={cx} cy={cy} r={R - 8} fill="none" stroke="rgba(0,212,255,0.28)" strokeWidth="1" strokeDasharray="2 6" className="cc-spin-slow" />
+      <circle cx={cx} cy={cy} r={R - 24} fill="none" stroke="rgba(0,212,255,0.12)" strokeWidth="1" />
+      <circle cx={cx} cy={cy} r={R - 40} fill="none" stroke="rgba(214,179,106,0.3)" strokeWidth="1" strokeDasharray="1 10" className="cc-spin-rev" />
+      <circle cx={cx} cy={cy} r={R - 66} fill="none" stroke="rgba(0,212,255,0.16)" strokeWidth="1" />
+
+      {/* Graduation ticks on the outer ring */}
+      <g className="cc-spin-rev">{ticks(R - 8, 48, 4)}</g>
+
+      {/* Orbiting nodes at several radii/speeds */}
+      <g className="cc-spin-slow">{dots(R - 16, 3, "#00d4ff", 2)}</g>
+      <g className="cc-spin-rev">{dots(R - 40, 6, "#00d4ff", 1.6)}</g>
+      <g className="cc-spin-fast">{dots(R - 66, 4, "#d6b36a", 1.5)}</g>
     </svg>
   );
 }

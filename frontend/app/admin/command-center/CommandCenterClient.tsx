@@ -3,33 +3,38 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
-  Baby,
-  BarChart3,
+  Admissions,
+  Attendance,
+  Backup,
   Bell,
-  BookOpen,
-  Building2,
-  CalendarCheck,
-  CalendarDays,
-  CalendarPlus,
+  Branches,
+  Calendar,
   Check,
+  Children,
   ChevronRight,
-  ClipboardList,
-  FileBarChart,
-  FileText,
+  Communication,
+  Curriculum,
+  Dashboard as DashboardIcon,
+  Database,
+  Documents,
+  Enquiries,
+  Events,
+  Finance,
   Home,
-  Mail,
+  ICON_BLUE,
+  ICON_GOLD,
+  Integration,
   Menu,
-  MessagesSquare,
-  MessageSquareText,
   Mic,
-  PoundSterling,
-  Search,
+  Pulse,
+  Reports,
+  Security,
   Send,
   Settings,
+  Staff,
   Star,
-  UserPlus,
-  Users,
-} from "lucide-react";
+  type IconProps,
+} from "./icons";
 
 import "./command-center.css";
 import {
@@ -63,24 +68,37 @@ import {
 
 const LOGO = "/logo/bluenest-logo.png";
 
-const NAV_ICONS: Record<string, typeof Home> = {
-  Dashboard: Home,
-  Branches: Building2,
-  Children: Baby,
-  Staff: Users,
-  Enquiries: MessageSquareText,
-  Admissions: ClipboardList,
-  Finance: PoundSterling,
-  Attendance: CalendarCheck,
-  Curriculum: BookOpen,
-  Communication: MessagesSquare,
-  Events: CalendarDays,
-  Reports: BarChart3,
-  Documents: FileText,
+type IconCmp = (p: IconProps) => React.ReactElement;
+
+const NAV_ICONS: Record<string, IconCmp> = {
+  Dashboard: DashboardIcon,
+  Branches,
+  Children,
+  Staff,
+  Enquiries,
+  Admissions,
+  Finance,
+  Attendance,
+  Curriculum,
+  Communication,
+  Events,
+  Reports,
+  Documents,
   Settings,
 };
 
-const QA_ICONS = [Search, ClipboardList, Send, CalendarCheck, CalendarPlus];
+// Quick actions → pack icons: Add Enquiry, New Admission, Send Message,
+// Approve Leave, Schedule Event.
+const QA_ICONS: IconCmp[] = [Enquiries, Admissions, Send, Attendance, Calendar];
+
+// System-health rows → brand/system pack icons.
+const HEALTH_ICONS: Record<string, IconCmp> = {
+  Database,
+  Security,
+  Backup,
+  Integrations: Integration,
+  Performance: Pulse,
+};
 
 /* ── Small building blocks ─────────────────────────────────────────────── */
 
@@ -164,7 +182,7 @@ function TopClock() {
 
 function KpiCard({ kpi }: { kpi: Kpi }) {
   const Icon =
-    kpi.kind === "children" ? Baby : kpi.kind === "staff" ? Users : MessageSquareText;
+    kpi.kind === "children" ? Children : kpi.kind === "staff" ? Staff : Enquiries;
   return (
     <Panel className="px-4 py-3" clip>
       <div className="flex items-center gap-3" style={{ height: 62 }}>
@@ -181,7 +199,7 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
               boxShadow: "0 0 14px rgba(214,179,106,0.2) inset",
             }}
           >
-            <Star size={22} color="var(--cc-accent)" fill="var(--cc-accent)" />
+            <Star size={22} color={ICON_GOLD} fill={ICON_GOLD} />
           </div>
         ) : (
           <div
@@ -194,7 +212,7 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
               border: "1px solid rgba(90,160,235,0.3)",
             }}
           >
-            <Icon size={24} color="var(--cc-primary-soft)" />
+            <Icon size={24} color={ICON_BLUE} />
           </div>
         )}
         <div className="min-w-0">
@@ -263,7 +281,7 @@ export default function CommandCenterClient() {
 
           <div className="flex-1 flex flex-col items-center pt-1">
             <div className="flex items-center gap-4">
-              <Image src={LOGO} alt="Blue Nest" width={72} height={40} className="cc-logo-glow" style={{ height: 40, width: "auto" }} priority />
+              <Image src={LOGO} alt="Blue Nest" width={73} height={40} className="cc-logo-glow" style={{ width: 73, height: 40 }} priority />
               <div className="text-center">
                 <h1 className="cc-serif" style={{ fontSize: 34, letterSpacing: "0.06em", color: "var(--cc-accent)", lineHeight: 1, textShadow: "0 0 22px rgba(214,179,106,0.35)" }}>
                   BLUE NEST MONTESSORI SCHOOL
@@ -277,7 +295,7 @@ export default function CommandCenterClient() {
 
           <div className="flex items-center gap-2" style={{ width: 230, justifyContent: "flex-end" }}>
             <button className="cc-pill"><Bell size={14} /> 5</button>
-            <button className="cc-pill"><Mail size={14} /> 3</button>
+            <button className="cc-pill"><Communication size={14} /> 3</button>
             <button className="cc-pill" style={{ padding: 8 }}><Settings size={14} /></button>
             <button className="cc-pill" style={{ padding: 8 }}><Menu size={14} /></button>
           </div>
@@ -391,8 +409,9 @@ export default function CommandCenterClient() {
               <p className="cc-heading text-center" style={{ fontSize: 15, color: "var(--cc-text)", letterSpacing: "0.2em", marginBottom: 4 }}>
                 BRANCH OVERVIEW
               </p>
-              <div style={{ position: "relative", height: 300 }}>
-                {/* Connector lines fanning from the centrepiece to each branch card */}
+              <div style={{ position: "relative", height: 344 }}>
+                {/* Connector lines fanning from the centrepiece to each branch card,
+                    with a flowing dash so data appears to stream to the branches */}
                 <svg
                   viewBox="0 0 100 100"
                   preserveAspectRatio="none"
@@ -401,19 +420,20 @@ export default function CommandCenterClient() {
                 >
                   <defs>
                     <linearGradient id="cc-link" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="rgba(15,125,255,0.55)" />
-                      <stop offset="100%" stopColor="rgba(214,179,106,0.5)" />
+                      <stop offset="0%" stopColor="rgba(0,212,255,0.6)" />
+                      <stop offset="100%" stopColor="rgba(255,200,87,0.5)" />
                     </linearGradient>
                   </defs>
                   {[
-                    [31, 24],
-                    [69, 24],
-                    [31, 60],
-                    [69, 60],
-                    [50, 90],
+                    [31, 22],
+                    [69, 22],
+                    [31, 62],
+                    [69, 62],
+                    [50, 91],
                   ].map(([x, y]) => (
                     <line
                       key={`${x}-${y}`}
+                      className="cc-link-flow"
                       x1={50}
                       y1={49}
                       x2={x}
@@ -422,19 +442,25 @@ export default function CommandCenterClient() {
                       strokeWidth={1}
                       strokeDasharray="3 4"
                       vectorEffect="non-scaling-stroke"
-                      opacity={0.55}
+                      opacity={0.6}
                     />
                   ))}
                 </svg>
                 {/* Centrepiece */}
-                <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 300, height: 300 }}>
-                  <CentrepieceRings size={300} />
+                <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 344, height: 344 }}>
+                  <CentrepieceRings size={344} />
+                  {/* Sonar pings emanating from the core */}
+                  <span className="cc-ping" />
+                  <span className="cc-ping" style={{ animationDelay: "1.05s" }} />
+                  <span className="cc-ping" style={{ animationDelay: "2.1s" }} />
                   <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                    <Image src={LOGO} alt="Blue Nest" width={120} height={66} className="cc-logo-glow" style={{ width: 120, height: "auto" }} />
-                    <p className="cc-serif" style={{ fontSize: 22, letterSpacing: "0.22em", color: "var(--cc-primary-soft)", marginTop: 6, textShadow: "0 0 16px rgba(15,125,255,0.6)" }}>
+                    {/* Rotating halo behind the enlarged logo */}
+                    <span className="cc-halo cc-spin-slow" />
+                    <Image src={LOGO} alt="Blue Nest" width={182} height={100} priority className="cc-logo-glow" style={{ width: 182, height: 100, position: "relative" }} />
+                    <p className="cc-serif" style={{ fontSize: 30, letterSpacing: "0.22em", color: "var(--cc-primary-soft)", marginTop: 8, textShadow: "0 0 18px rgba(0,212,255,0.65)" }}>
                       BLUE NEST
                     </p>
-                    <p className="cc-label" style={{ fontSize: 8, letterSpacing: "0.3em", color: "var(--cc-muted)", marginTop: 2 }}>
+                    <p className="cc-label" style={{ fontSize: 9, letterSpacing: "0.34em", color: "var(--cc-muted)", marginTop: 3 }}>
                       MONTESSORI SCHOOL
                     </p>
                   </div>
@@ -447,10 +473,10 @@ export default function CommandCenterClient() {
                 <div style={{ position: "absolute", right: 0, top: 0, width: 300 }}>
                   <BranchCard branch={byCorner("top-right")} />
                 </div>
-                <div style={{ position: "absolute", left: 0, top: 152, width: 300 }}>
+                <div style={{ position: "absolute", left: 0, top: 196, width: 300 }}>
                   <BranchCard branch={byCorner("mid-left")} />
                 </div>
-                <div style={{ position: "absolute", right: 0, top: 152, width: 300 }}>
+                <div style={{ position: "absolute", right: 0, top: 196, width: 300 }}>
                   <BranchCard branch={byCorner("mid-right")} />
                 </div>
                 <div style={{ position: "absolute", left: "50%", bottom: -6, transform: "translateX(-50%)", width: 300 }}>
@@ -541,7 +567,7 @@ export default function CommandCenterClient() {
               <div className="mt-2 flex flex-col gap-2">
                 {EVENTS.map((e) => (
                   <div key={e.title} className="flex items-center gap-2.5">
-                    <CalendarDays size={15} color="var(--cc-primary-soft)" />
+                    <Calendar size={15} color={ICON_BLUE} />
                     <span style={{ flex: 1, fontSize: 11.5, color: "var(--cc-text)" }}>{e.title}</span>
                     <span className="cc-label" style={{ fontSize: 9, color: "var(--cc-accent)" }}>{e.month}</span>
                     <span className="cc-heading" style={{ fontSize: 15, color: "var(--cc-text)", width: 22, textAlign: "right" }}>{e.day}</span>
@@ -558,7 +584,7 @@ export default function CommandCenterClient() {
               <div className="mt-2 flex flex-col gap-2.5">
                 {NOTIFICATIONS.map((n) => (
                   <div key={n.title} className="flex items-start gap-2.5">
-                    <Mail size={14} color={n.severity === "warning" ? "var(--cc-warning)" : "var(--cc-primary-soft)"} style={{ marginTop: 2 }} />
+                    <Communication size={14} color={n.severity === "warning" ? "var(--cc-warning)" : ICON_BLUE} style={{ marginTop: 2 }} />
                     <div className="flex-1 flex items-baseline justify-between gap-2">
                       <span style={{ fontSize: 11.5, color: "var(--cc-text)" }}>{n.title}</span>
                       <span style={{ fontSize: 9.5, color: "var(--cc-muted)", textAlign: "right" }}>{n.meta}</span>
@@ -583,14 +609,14 @@ export default function CommandCenterClient() {
                 const Icon = QA_ICONS[i];
                 return (
                   <button key={a} className="cc-action-btn">
-                    <Icon size={17} color="var(--cc-primary-soft)" />
+                    <Icon size={17} color={ICON_BLUE} />
                     {a}
                   </button>
                 );
               })}
             </div>
             <button className="cc-action-btn mt-2" style={{ flexDirection: "row", width: "100%", justifyContent: "center", gap: 8, fontSize: 11 }}>
-              <FileBarChart size={15} color="var(--cc-accent)" /> GENERATE REPORT
+              <Reports size={15} color={ICON_GOLD} /> GENERATE REPORT
             </button>
           </Panel>
 
@@ -650,7 +676,7 @@ export default function CommandCenterClient() {
                   <span key={i} className="cc-wavebar" style={{ height: 24, animationDelay: `${(i % 10) * 0.09}s` }} />
                 ))}
               </div>
-              <Mic size={16} color="var(--cc-primary-soft)" />
+              <Mic size={16} color={ICON_BLUE} />
             </div>
           </Panel>
 
@@ -660,16 +686,20 @@ export default function CommandCenterClient() {
             <div className="flex items-center gap-3 mt-2">
               <div style={{ position: "relative", width: 82, height: 82 }} className="shrink-0">
                 <Radar size={82} color="#1ed760" />
-                <Image src={LOGO} alt="" width={34} height={19} className="cc-logo-glow" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 34, height: "auto" }} />
+                <Image src={LOGO} alt="" width={34} height={19} className="cc-logo-glow" style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 34, height: 19 }} />
               </div>
               <div className="flex-1 flex flex-col gap-1.5">
-                {SYSTEM_HEALTH.map((h) => (
-                  <div key={h.label} className="flex items-center gap-2" style={{ fontSize: 10 }}>
-                    <span className="cc-dot" style={{ color: h.status === "ok" ? "var(--cc-success)" : "var(--cc-accent)", width: 6, height: 6 }} />
-                    <span className="cc-label" style={{ flex: 1, color: "var(--cc-muted)" }}>{h.label}</span>
-                    <span className="cc-label" style={{ color: h.status === "ok" ? "var(--cc-success)" : "var(--cc-accent)" }}>{h.value}</span>
-                  </div>
-                ))}
+                {SYSTEM_HEALTH.map((h) => {
+                  const HIcon = HEALTH_ICONS[h.label] ?? Pulse;
+                  const tone = h.status === "ok" ? "var(--cc-success)" : "var(--cc-accent)";
+                  return (
+                    <div key={h.label} className="flex items-center gap-2" style={{ fontSize: 10 }}>
+                      <HIcon size={13} color={tone} />
+                      <span className="cc-label" style={{ flex: 1, color: "var(--cc-muted)" }}>{h.label}</span>
+                      <span className="cc-label" style={{ color: tone }}>{h.value}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </Panel>
