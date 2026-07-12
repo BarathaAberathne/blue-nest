@@ -14,6 +14,7 @@ import {
 import "./command-center.css";
 import CommandPalette from "./os/CommandPalette";
 import BranchRadar from "./os/BranchRadar";
+import AITabContent from "./os/AITabs";
 import {
   DOCK_ITEMS, EXEC_KPIS, EXEC_SUMMARY, RISKS, DEADLINES, AI_RAIL, AI_TABS,
   AI_PROMPTS, type AiTab, type AiRailItem,
@@ -246,20 +247,11 @@ function AIWorkspaceCore() {
         ))}
       </div>
       {tab === "Mission Control" ? (
-        <>
-          <div className="cc-core-radar"><BranchRadar /></div>
-          <Conversation tab={tab} />
-        </>
+        <div className="cc-core-radar"><BranchRadar /></div>
       ) : (
-        <div className="cc-core-tabview">
-          <Sparkles size={20} color="var(--cc-primary-soft)" />
-          <p className="cc-heading" style={{ fontSize: 13, color: "var(--cc-text)", marginTop: 8 }}>{tab.toUpperCase()} WORKSPACE</p>
-          <p style={{ fontSize: 11, color: "var(--cc-muted)", marginTop: 4, maxWidth: 360, textAlign: "center", lineHeight: 1.5 }}>
-            The {tab} intelligence view lands in the next stage. Ask the AI below for a live {tab.toLowerCase()} summary now.
-          </p>
-          <div style={{ width: "100%", marginTop: 12 }}><Conversation tab={tab} /></div>
-        </div>
+        <div className="cc-core-tab cc-col-scroll"><AITabContent tab={tab} /></div>
       )}
+      <Conversation tab={tab} />
     </div>
   );
 }

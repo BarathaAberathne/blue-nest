@@ -34,6 +34,7 @@ function RadarNode() {
 function BranchNode({ data }: NodeProps) {
   const m = data.metric as BranchMetric;
   const handlePos = data.handle as Position;
+  const popUp = data.popUp as boolean;
   return (
     <div className="cc-rf-branch">
       <Handle type="source" position={handlePos} style={{ opacity: 0 }} isConnectable={false} />
@@ -43,8 +44,8 @@ function BranchNode({ data }: NodeProps) {
         {m.alerts > 0 && <span className="cc-rf-alert" style={{ color: statusColor(m.status) }}>{m.alerts}</span>}
       </div>
       <div className="cc-rf-branch-sub">{m.children} · {m.occupancy}%</div>
-      {/* Hover: live statistics */}
-      <div className="cc-rf-pop">
+      {/* Hover: live statistics — opens upward for the bottom row so it isn't clipped */}
+      <div className={`cc-rf-pop ${popUp ? "cc-rf-pop--up" : ""}`}>
         <p className="cc-heading" style={{ fontSize: 10, color: "var(--cc-accent)", marginBottom: 3 }}>{m.name.toUpperCase()}</p>
         {[
           ["Attendance", `${m.attendanceToday}%`],
@@ -63,13 +64,14 @@ function BranchNode({ data }: NodeProps) {
 
 const nodeTypes = { radar: RadarNode, branch: BranchNode };
 
-// Radial placement + which centre handle each branch feeds into.
-const LAYOUT: Record<string, { x: number; y: number; handle: Position; center: string }> = {
+// Radial placement + which centre handle each branch feeds into. `popUp` opens
+// the hover popover upward for the bottom row so it isn't clipped by the canvas.
+const LAYOUT: Record<string, { x: number; y: number; handle: Position; center: string; popUp?: boolean }> = {
   harrow: { x: 250, y: 0, handle: Position.Bottom, center: "t" },
   pinner: { x: 10, y: 120, handle: Position.Right, center: "l" },
   borehamwood: { x: 470, y: 120, handle: Position.Left, center: "r" },
-  "pinner-green": { x: 90, y: 330, handle: Position.Top, center: "bl" },
-  northwood: { x: 330, y: 330, handle: Position.Top, center: "b" },
+  "pinner-green": { x: 90, y: 330, handle: Position.Top, center: "bl", popUp: true },
+  northwood: { x: 330, y: 330, handle: Position.Top, center: "b", popUp: true },
 };
 
 export default function BranchRadar() {
@@ -79,7 +81,7 @@ export default function BranchRadar() {
     ];
     for (const m of BRANCH_METRICS) {
       const l = LAYOUT[m.slug];
-      list.push({ id: m.slug, type: "branch", position: { x: l.x, y: l.y }, data: { metric: m, handle: l.handle }, selectable: false });
+      list.push({ id: m.slug, type: "branch", position: { x: l.x, y: l.y }, data: { metric: m, handle: l.handle, popUp: !!l.popUp }, selectable: false });
     }
     return list;
   }, []);

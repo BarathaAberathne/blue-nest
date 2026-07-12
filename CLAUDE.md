@@ -217,11 +217,15 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   Children/Staff/Admissions/Finance/Attendance/Communication/Reports/Settings) · **AI Workspace** (centre,
   the primary surface): an **executive KPI bar** (Children/Occupancy/Attendance/Revenue/Outstanding/
   Safeguarding/Satisfaction/Staff) over three columns — left **Intelligence Rail** (exec summary · health
-  score · branch status · risks · deadlines), centre **Core** (AI tabs Mission-Control/Operations/Finance/
-  Admissions/People/Ofsted/Analytics + the **radar-as-organisation-health** rendered with **React Flow**
-  (`@xyflow/react`) as a branch network — central Blue Nest radar node + 5 branch nodes with animated data
-  edges + hover-expand live stats + a ChatGPT-style **conversational AI** with suggested prompts/voice/
-  attach), right **AI Rail** (unified notifications · approvals · safeguarding · tasks · activity, each with
+  score · branch status · risks · deadlines), centre **Core** — **AI tabs** (Mission-Control/Operations/
+  Finance/Admissions/People/Ofsted/Analytics) that swap the workspace view (`os/AITabs.tsx`: each tab is a
+  dedicated dashboard — Operations = today's ops + branch table; Finance = revenue mix/P&L/budget-vs-actual
+  + per-branch; Admissions = live funnel + sources; People = staff status + gauges; Ofsted = compliance +
+  SEF + actions; Analytics = forecast/trends/gauges). Mission-Control shows the **radar-as-organisation-
+  health** rendered with **React Flow** (`@xyflow/react`) as a branch network — central Blue Nest radar node
+  + 5 branch nodes with animated data edges + hover-expand live stats (bottom-row popovers open upward so
+  they aren't clipped). A ChatGPT-style **conversational AI** (contextual to the active tab; turns "add
+  task …" prompts into tasks) sits below every tab. Right **AI Rail** (unified notifications · approvals · safeguarding · tasks · activity, each with
   priority/branch/time/quick-action) · **Executive Financial Sidebar** (Revenue/CashFlow/Outstanding/Funding
   /Budget/Forecast donut + trend · Calendar · System Health) · full-width **Operational Workspace** strip
   — a **modular workspace** (`os/OpsWorkspace.tsx`, Stage 2): panels (**Tasks** · Attendance · Admissions ·
