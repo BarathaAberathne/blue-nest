@@ -40,14 +40,11 @@ import {
 import "./command-center.css";
 import {
   ACTIVITY_FEED,
-  AI_BRIEF,
+  AI_COMMAND,
   BRANCH_METRICS,
   BRANCHES,
   CALENDAR,
   CAPACITY_FORECAST,
-  CHILDREN_STATUS,
-  COMPLIANCE,
-  ENQUIRY_SOURCES,
   EVENTS,
   FINANCE,
   FINANCE_ANALYTICS,
@@ -56,24 +53,18 @@ import {
   NAV_ITEMS,
   NOTIFICATIONS,
   OBJECTIVES,
-  OCCUPANCY_BARS,
-  PARENT_COMMS,
-  PERF_GAUGES,
   QUICK_ACTIONS,
-  STAFF_STATUS,
   SYSTEM_HEALTH,
   type Branch,
   type Kpi,
   type MiniKpi,
 } from "./data";
 import {
-  Building,
   CentrepieceRings,
   DonutChart,
   Funnel,
   LineChart,
   MiniCalendar,
-  MiniDonut,
   Radar,
   RingGauge,
   SentimentLine,
@@ -318,56 +309,139 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
 
 /* ── Branch card ───────────────────────────────────────────────────────── */
 
+// Simplified branch card — only the operational essentials the AI analyses:
+// name · children · occupancy · today's attendance · traffic-light · alerts.
 function BranchCard({ branch }: { branch: Branch }) {
-  const m = BRANCH_METRICS.find((x) => x.slug === branch.slug);
-  const popRows: [string, string][] = m
-    ? [
-        ["Children", `${m.children}`],
-        ["Staff", `${m.staff}`],
-        ["Occupancy", `${m.occupancy}%`],
-        ["Revenue", m.revenue],
-        ["Open Issues", `${m.issues}`],
-        ["Next Event", m.nextEvent],
-        ["Review", `${m.review}★`],
-      ]
-    : [];
+  const m = BRANCH_METRICS.find((x) => x.slug === branch.slug)!;
+  const statusColor =
+    m.status === "ok" ? "var(--cc-success)" : m.status === "warn" ? "var(--cc-warning)" : "var(--cc-error)";
+  const stat = (label: string, value: string, color = "var(--cc-text)") => (
+    <div>
+      <p className="cc-heading" style={{ fontSize: 15, color, lineHeight: 1 }}>{value}</p>
+      <p className="cc-label" style={{ fontSize: 7.5, color: "var(--cc-muted)", marginTop: 2 }}>{label}</p>
+    </div>
+  );
   return (
-    <Panel className="px-3 py-2.5 cc-branchcard" href={R.dashboard}>
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="cc-dot" style={{ color: "var(--cc-success)" }} />
-        <p className="cc-heading" style={{ fontSize: 12, color: "var(--cc-accent)" }}>
+    <Panel className="px-3 py-2 cc-branchcard" href={R.dashboard}>
+      <div className="flex items-center gap-2">
+        <span className="cc-dot" style={{ color: statusColor, width: 8, height: 8 }} />
+        <p className="cc-heading" style={{ fontSize: 11.5, color: "var(--cc-accent)", flex: 1 }}>
           {branch.name.toUpperCase()}
         </p>
+        {m.alerts > 0 && (
+          <span className="cc-alert-pill" style={{ background: m.status === "warn" ? "rgba(255,200,87,0.16)" : "rgba(255,92,115,0.16)", color: statusColor, borderColor: statusColor }}>
+            {m.alerts} alert{m.alerts > 1 ? "s" : ""}
+          </span>
+        )}
       </div>
+      <div className="grid grid-cols-3 gap-2 mt-2">
+        {stat("Children", `${m.children}`)}
+        {stat("Occupancy", `${m.occupancy}%`, "var(--cc-primary-soft)")}
+        {stat("Today", `${m.attendanceToday}%`, "var(--cc-success)")}
+      </div>
+      <button className="cc-linkbtn" style={{ marginTop: 6 }}>
+        View Details <ChevronRight size={11} />
+      </button>
+    </Panel>
+  );
+}
+
+/* ── AI Command Centre — the "brain" of the dashboard ──────────────────────
+   Executive briefing · confidence · nursery health · recommended actions ·
+   live AI timeline · Ask Blue Nest AI · suggested questions · voice · quick
+   executive actions. All the executive-insight duplicated elsewhere lives here. */
+function AICommandCentre({ go }: { go: (href: string) => void }) {
+  const [q, setQ] = useState("");
+  return (
+    <div className="cc-ai-core">
+      {/* Header: AI orb + title + confidence */}
       <div className="flex items-center gap-3">
-        <Building slug={branch.slug} />
-        <div>
-          <p style={{ fontSize: 15, color: "var(--cc-text)", fontWeight: 700 }}>
-            {branch.children}{" "}
-            <span style={{ fontSize: 10, color: "var(--cc-muted)", fontWeight: 400 }}>Children</span>
-          </p>
-          <p style={{ fontSize: 15, color: "var(--cc-primary-soft)", fontWeight: 700, marginTop: 1 }}>
-            {branch.occupancy}%{" "}
-            <span style={{ fontSize: 10, color: "var(--cc-muted)", fontWeight: 400 }}>Occupancy</span>
-          </p>
-          <button className="cc-linkbtn" style={{ marginTop: 4 }}>
-            View Details <ChevronRight size={11} />
-          </button>
+        <div className="cc-ai-orb">
+          <CentrepieceRings size={64} />
+          <span className="cc-ai-orb-label">AI</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="cc-heading" style={{ fontSize: 16, color: "var(--cc-text)", letterSpacing: "0.14em" }}>AI COMMAND CENTRE</p>
+          <p className="cc-label" style={{ fontSize: 9, color: "var(--cc-primary-soft)" }}>BLUE NEST EXECUTIVE INTELLIGENCE</p>
+        </div>
+        <div className="cc-conf">
+          <span className="cc-label" style={{ fontSize: 8, color: "var(--cc-muted)" }}>AI CONFIDENCE</span>
+          <span className="cc-heading" style={{ fontSize: 18, color: "var(--cc-success)" }}>{AI_COMMAND.confidence}%</span>
         </div>
       </div>
-      {/* Hover: extended branch intelligence */}
-      <div className="cc-branch-pop">
-        <p className="cc-heading" style={{ fontSize: 11, color: "var(--cc-accent)", marginBottom: 4 }}>
-          {branch.name.toUpperCase()}
-        </p>
-        {popRows.map(([k, v]) => (
-          <div key={k} className="cc-pop-row">
-            <span className="cc-label" style={{ color: "var(--cc-muted)" }}>{k}</span>
-            <span style={{ color: k === "Open Issues" && v !== "0" ? "var(--cc-warning)" : "var(--cc-text)", fontWeight: 600 }}>{v}</span>
+
+      {/* Nursery health + executive briefing */}
+      <div className="flex items-center gap-4 mt-3">
+        <div className="flex flex-col items-center shrink-0">
+          <RingGauge value={AI_COMMAND.health} size={96} big={`${AI_COMMAND.health}`} small="HEALTH" color="var(--cc-success)" />
+          <span className="cc-label" style={{ fontSize: 8, color: "var(--cc-success)", marginTop: -2 }}>NURSERY {AI_COMMAND.healthLabel}</span>
+        </div>
+        <div className="flex-1">
+          <p style={{ fontSize: 12, color: "var(--cc-text)", lineHeight: 1.4 }}>
+            <span style={{ color: "var(--cc-accent)" }}>{AI_COMMAND.greeting}</span> {AI_COMMAND.summary}
+          </p>
+          <div className="cc-ai-wave mt-2">
+            {Array.from({ length: 48 }).map((_, i) => (
+              <span key={i} className="cc-wavebar" style={{ height: 14, animationDelay: `${(i % 12) * 0.08}s` }} />
+            ))}
+            <Mic size={15} color={ICON_BLUE} />
           </div>
+        </div>
+      </div>
+
+      {/* Recommended actions */}
+      <div className="mt-3">
+        <p className="cc-heading" style={{ fontSize: 10, color: "var(--cc-accent)", letterSpacing: "0.12em" }}>RECOMMENDED ACTIONS</p>
+        <div className="mt-1.5 flex flex-col gap-1">
+          {AI_COMMAND.recommendations.map((r) => (
+            <div key={r.text} className="cc-rec-row">
+              <span className="cc-dot" style={{ width: 6, height: 6, color: TONE[r.tone] }} />
+              <span style={{ flex: 1, fontSize: 10.5, color: "var(--cc-text)", lineHeight: 1.3 }}>{r.text}</span>
+              <button className="cc-rec-btn" onClick={() => go(R.dashboard)}>{r.action}</button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Live AI timeline */}
+      <div className="mt-3">
+        <p className="cc-heading" style={{ fontSize: 10, color: "var(--cc-accent)", letterSpacing: "0.12em" }}>LIVE AI TIMELINE</p>
+        <div className="cc-feed mt-1" style={{ maxHeight: 96 }}>
+          {ACTIVITY_FEED.map((a, i) => (
+            <div key={i} className="cc-feed-row">
+              <span className="cc-heading" style={{ width: 34, fontSize: 9.5, color: "var(--cc-primary-soft)" }}>{a.time}</span>
+              <span style={{ flex: 1, fontSize: 10, color: "var(--cc-text)", lineHeight: 1.3 }}>{a.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Ask Blue Nest AI */}
+      <div className="mt-3">
+        <div className="cc-ask">
+          <input
+            className="cc-ask-input"
+            placeholder="Ask Blue Nest AI…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") go(R.dashboard); }}
+          />
+          <button className="cc-ask-send" onClick={() => go(R.dashboard)}><Send size={14} color="#fff" /></button>
+        </div>
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {AI_COMMAND.suggestedQuestions.map((sq) => (
+            <button key={sq} className="cc-chip-q" onClick={() => setQ(sq)}>{sq}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick executive actions */}
+      <div className="flex flex-wrap gap-1.5 mt-3 pt-2" style={{ borderTop: "1px solid var(--cc-line)" }}>
+        {AI_COMMAND.quickActions.map((a, i) => (
+          <button key={a} className="cc-ai-btn" onClick={() => go([R.analytics, R.enquiries, R.activity, R.dashboard][i] ?? R.dashboard)}>{a}</button>
         ))}
       </div>
-    </Panel>
+    </div>
   );
 }
 
@@ -392,21 +466,6 @@ function MiniKpiTile({ kpi }: { kpi: MiniKpi }) {
       <p className="cc-heading" style={{ fontSize: 19, lineHeight: 1.1, color, marginTop: 3, letterSpacing: "0.01em" }}>
         {kpi.value}
       </p>
-    </div>
-  );
-}
-
-/* Small stat row used by Staff Status / Children's Status / Parent Comms. */
-function StatRows({ rows }: { rows: { label: string; count?: number; value?: string; tone?: string }[] }) {
-  return (
-    <div className="mt-2 flex flex-col gap-1.5">
-      {rows.map((r) => (
-        <div key={r.label} className="flex items-center gap-2" style={{ fontSize: 11 }}>
-          <span className="cc-dot" style={{ width: 6, height: 6, color: r.tone ? TONE[r.tone] : "var(--cc-primary)" }} />
-          <span className="cc-label" style={{ flex: 1, color: "var(--cc-muted)" }}>{r.label}</span>
-          <span className="cc-heading" style={{ color: "var(--cc-text)" }}>{r.value ?? r.count}</span>
-        </div>
-      ))}
     </div>
   );
 }
@@ -462,15 +521,20 @@ export default function CommandCenterClient() {
       )
     : KPIS;
 
-  // Overlay live figures onto the relevant second-row tiles.
-  const tiles: MiniKpi[] = pipeline.live
-    ? KPIS_ROW2.map((t) => {
-        if (t.label === "Booked Visits") return { ...t, value: String(pipeline.bookedVisits) };
-        if (t.label === "Applications") return { ...t, value: String(pipeline.applications) };
-        if (t.label === "Enquiry Response" && pipeline.avgResponse) return { ...t, value: pipeline.avgResponse };
-        return t;
-      })
-    : KPIS_ROW2;
+  // Operational second-row tiles only (executive-summary KPIs now live in the
+  // AI Command Centre, so we keep just the raw operational figures here).
+  const OP_LABELS = [
+    "Today's Attendance", "Checked In", "Staff Present", "Outstanding Fees",
+    "Funding Pending", "Booked Visits", "Available Places",
+  ];
+  const opTiles: MiniKpi[] = KPIS_ROW2.filter((t) => OP_LABELS.includes(t.label)).map((t) => {
+    if (pipeline.live && t.label === "Booked Visits") return { ...t, value: String(pipeline.bookedVisits) };
+    return t;
+  });
+
+  // Branch cards, positioned around the AI core: 3 left, 2 right.
+  const leftBranches = [byCorner("top-left"), byCorner("mid-left"), byCorner("bottom")];
+  const rightBranches = [byCorner("top-right"), byCorner("mid-right")];
 
   return (
     <div className="cc-root">
@@ -606,97 +670,66 @@ export default function CommandCenterClient() {
               ))}
             </div>
 
-            {/* Executive KPI row 2 — dense operational tiles */}
+            {/* Operational KPI tiles (executive-summary KPIs moved into the AI core) */}
             <Panel className="px-3 py-2" clip>
               <div className="cc-tiles">
-                {tiles.map((k) => (
+                {opTiles.map((k) => (
                   <MiniKpiTile key={k.label} kpi={k} />
                 ))}
               </div>
             </Panel>
 
-            {/* Branch overview centrepiece */}
-            <Panel className="px-4 py-2" clip>
-              <p className="cc-heading text-center" style={{ fontSize: 15, color: "var(--cc-text)", letterSpacing: "0.2em", marginBottom: 4 }}>
-                BRANCH OVERVIEW
-              </p>
-              <div style={{ position: "relative", height: 286 }}>
-                {/* Connector lines fanning from the centrepiece to each branch card,
-                    with a flowing dash so data appears to stream to the branches */}
-                <svg
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                  aria-hidden
-                  style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
-                >
+            {/* ══ AI COMMAND CENTRE — the hero. Branch intelligence flanks the AI
+                brain; animated data lines stream every branch's data into the core. ══ */}
+            <Panel className="px-4 py-3 cc-aihero" clip>
+              <div className="flex items-baseline justify-between mb-2">
+                <p className="cc-heading" style={{ fontSize: 14, color: "var(--cc-text)", letterSpacing: "0.2em" }}>MISSION CONTROL</p>
+                <span className="cc-label" style={{ fontSize: 9, color: "var(--cc-muted)" }}>Branches → Attendance → Finance → AI → Decisions</span>
+              </div>
+              <div className="cc-aigrid">
+                {/* Animated data-flow connectors: branch cards → AI core */}
+                <svg className="cc-flow" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
                   <defs>
-                    <linearGradient id="cc-link" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="rgba(0,212,255,0.6)" />
-                      <stop offset="100%" stopColor="rgba(255,200,87,0.5)" />
+                    <linearGradient id="cc-flow-grad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="rgba(54,169,255,0.15)" />
+                      <stop offset="100%" stopColor="rgba(54,169,255,0.65)" />
                     </linearGradient>
                   </defs>
                   {[
-                    [31, 22],
-                    [69, 22],
-                    [31, 62],
-                    [69, 62],
-                    [50, 91],
-                  ].map(([x, y]) => (
-                    <line
-                      key={`${x}-${y}`}
-                      className="cc-link-flow"
-                      x1={50}
-                      y1={49}
-                      x2={x}
-                      y2={y}
-                      stroke="url(#cc-link)"
-                      strokeWidth={1}
-                      strokeDasharray="3 4"
-                      vectorEffect="non-scaling-stroke"
-                      opacity={0.6}
-                    />
+                    [20, 20], [20, 50], [20, 80], [80, 30], [80, 70],
+                  ].map(([x, y], i) => (
+                    <g key={`${x}-${y}`}>
+                      <line className="cc-link-flow" x1={x} y1={y} x2={50} y2={50} stroke="url(#cc-flow-grad)" strokeWidth={1} strokeDasharray="3 5" vectorEffect="non-scaling-stroke" opacity={0.55} />
+                      <circle r="0.8" fill="#5cbaff" opacity="0.9">
+                        <animate attributeName="cx" from={x} to={50} dur="2.6s" begin={`${i * 0.45}s`} repeatCount="indefinite" />
+                        <animate attributeName="cy" from={y} to={50} dur="2.6s" begin={`${i * 0.45}s`} repeatCount="indefinite" />
+                      </circle>
+                    </g>
                   ))}
                 </svg>
-                {/* Centrepiece */}
-                <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: 300, height: 300 }}>
-                  <CentrepieceRings size={300} />
-                  {/* Sonar pings emanating from the core */}
-                  <span className="cc-ping" />
-                  <span className="cc-ping" style={{ animationDelay: "1.05s" }} />
-                  <span className="cc-ping" style={{ animationDelay: "2.1s" }} />
-                  <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                    {/* Rotating halo behind the enlarged logo */}
-                    <span className="cc-halo cc-spin-slow" />
-                    <Image src={LOGO} alt="Blue Nest" width={182} height={100} priority className="cc-logo-glow" style={{ width: 182, height: 100, position: "relative" }} />
-                    <p className="cc-serif" style={{ fontSize: 30, letterSpacing: "0.22em", color: "var(--cc-primary-soft)", marginTop: 8, textShadow: "0 0 18px rgba(0,212,255,0.65)" }}>
-                      BLUE NEST
-                    </p>
-                    <p className="cc-label" style={{ fontSize: 9, letterSpacing: "0.34em", color: "var(--cc-muted)", marginTop: 3 }}>
-                      MONTESSORI SCHOOL
-                    </p>
-                  </div>
+
+                {/* Left branch column (Harrow · Pinner · Pinner Green) */}
+                <div className="cc-aicol">
+                  {leftBranches.map((b) => (
+                    <BranchCard key={b.slug} branch={b} />
+                  ))}
                 </div>
 
-                {/* Branch cards positioned around */}
-                <div style={{ position: "absolute", left: 0, top: 0, width: 300 }}>
-                  <BranchCard branch={byCorner("top-left")} />
+                {/* AI core — the brain */}
+                <div className="cc-aicol-mid">
+                  <AICommandCentre go={go} />
                 </div>
-                <div style={{ position: "absolute", right: 0, top: 0, width: 300 }}>
-                  <BranchCard branch={byCorner("top-right")} />
-                </div>
-                <div style={{ position: "absolute", left: 0, top: 152, width: 300 }}>
-                  <BranchCard branch={byCorner("mid-left")} />
-                </div>
-                <div style={{ position: "absolute", right: 0, top: 152, width: 300 }}>
-                  <BranchCard branch={byCorner("mid-right")} />
-                </div>
-                <div style={{ position: "absolute", left: "50%", bottom: -6, transform: "translateX(-50%)", width: 300 }}>
-                  <BranchCard branch={byCorner("bottom")} />
+
+                {/* Right branch column (Borehamwood · Northwood) */}
+                <div className="cc-aicol">
+                  {rightBranches.map((b) => (
+                    <BranchCard key={b.slug} branch={b} />
+                  ))}
                 </div>
               </div>
             </Panel>
 
-            {/* Bottom cluster: funnel | attendance | sentiment */}
+            {/* ══ Operational dashboards: Admissions | Attendance | Sentiment ══ */}
             <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
               <Panel className="px-4 py-2" clip href="/admin/inquiries/dashboard">
                 <SectionTitle sub={pipeline.live ? "● Live" : "This Month"}>ADMISSION PIPELINE</SectionTitle>
@@ -757,77 +790,6 @@ export default function CommandCenterClient() {
               </Panel>
             </div>
 
-            {/* ── Executive widget row A: occupancy · sources · gauges ── */}
-            <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-              <Panel className="px-4 py-2" clip href="/admin/dashboard">
-                <SectionTitle sub="Live">OCCUPANCY HEATMAP</SectionTitle>
-                <div className="mt-2 flex flex-col gap-2">
-                  {OCCUPANCY_BARS.map((b) => (
-                    <div key={b.name} className="flex items-center gap-2">
-                      <span className="cc-label" style={{ width: 82, fontSize: 9.5, color: "var(--cc-muted)" }}>{b.name}</span>
-                      <div className="cc-heat-track">
-                        <div className="cc-heat-fill" style={{ width: `${b.pct}%` }} />
-                      </div>
-                      <span className="cc-heading" style={{ width: 34, textAlign: "right", fontSize: 12, color: "var(--cc-text)" }}>{b.pct}%</span>
-                    </div>
-                  ))}
-                </div>
-              </Panel>
-
-              <Panel className="px-4 py-2" clip href="/admin/inquiries/dashboard">
-                <SectionTitle sub="This Month">ENQUIRY SOURCES</SectionTitle>
-                <div className="flex items-center gap-3 mt-1">
-                  <MiniDonut slices={ENQUIRY_SOURCES} size={118} center="134" sub="ENQUIRIES" />
-                  <div className="flex-1 flex flex-col gap-1">
-                    {ENQUIRY_SOURCES.map((s) => (
-                      <div key={s.label} className="flex items-center gap-1.5" style={{ fontSize: 9.5 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />
-                        <span className="cc-label" style={{ flex: 1, color: "var(--cc-muted)" }}>{s.label}</span>
-                        <span style={{ color: "var(--cc-text)", fontWeight: 600 }}>{s.pct}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Panel>
-
-              <Panel className="px-4 py-2" clip href="/admin/dashboard">
-                <SectionTitle sub="Live">PERFORMANCE</SectionTitle>
-                <div className="grid grid-cols-3 gap-1 mt-2" style={{ justifyItems: "center" }}>
-                  {PERF_GAUGES.map((g) => {
-                    const color = g.tone === "gold" ? "var(--cc-accent)" : g.tone === "green" ? "var(--cc-success)" : "var(--cc-primary)";
-                    return (
-                      <div key={g.label} className="flex flex-col items-center">
-                        <RingGauge value={g.value} size={62} big={`${g.value}%`} color={color} />
-                        <span className="cc-label" style={{ fontSize: 7.5, color: "var(--cc-muted)", marginTop: -2 }}>{g.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Panel>
-            </div>
-
-            {/* ── Executive widget row B: staff · children · compliance ── */}
-            <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-              <Panel className="px-4 py-2" clip href="/admin/users">
-                <SectionTitle sub="Today">STAFF STATUS</SectionTitle>
-                <StatRows rows={STAFF_STATUS} />
-              </Panel>
-              <Panel className="px-4 py-2" clip href="/admin/inquiries">
-                <SectionTitle sub="Today">CHILDREN&apos;S STATUS</SectionTitle>
-                <StatRows rows={CHILDREN_STATUS} />
-              </Panel>
-              <Panel className="px-4 py-2" clip href="/admin/dashboard">
-                <SectionTitle sub="Traffic light">COMPLIANCE CENTRE</SectionTitle>
-                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
-                  {COMPLIANCE.map((c) => (
-                    <div key={c.label} className="flex items-center gap-2" style={{ fontSize: 10.5 }}>
-                      <span className="cc-dot" style={{ width: 7, height: 7, color: TONE[c.status] }} />
-                      <span className="cc-label" style={{ color: "var(--cc-muted)" }}>{c.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </Panel>
-            </div>
           </main>
 
           {/* ── Right column ────────────────────────────────────── */}
@@ -909,36 +871,11 @@ export default function CommandCenterClient() {
               </div>
             </Panel>
 
-            {/* ── Live activity feed ── */}
-            <Panel className="px-4 py-3" clip href="/admin/activity">
-              <SectionTitle sub="Real-time">LIVE ACTIVITY</SectionTitle>
-              <div className="cc-feed mt-2">
-                {ACTIVITY_FEED.map((a, i) => (
-                  <div key={i} className="cc-feed-row">
-                    <span className="cc-heading" style={{ width: 34, fontSize: 10, color: "var(--cc-primary-soft)" }}>{a.time}</span>
-                    <span style={{ flex: 1, fontSize: 10.5, color: "var(--cc-text)", lineHeight: 1.35 }}>{a.text}</span>
-                  </div>
-                ))}
-              </div>
-            </Panel>
-
-            {/* ── Parent communications ── */}
-            <Panel className="px-4 py-3" clip href="/admin/inquiries">
-              <SectionTitle sub="Today">PARENT COMMS</SectionTitle>
-              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
-                {PARENT_COMMS.map((p) => (
-                  <div key={p.label} className="flex items-baseline justify-between gap-2" style={{ fontSize: 10.5 }}>
-                    <span className="cc-label" style={{ color: "var(--cc-muted)" }}>{p.label}</span>
-                    <span className="cc-heading" style={{ color: "var(--cc-text)" }}>{p.value}</span>
-                  </div>
-                ))}
-              </div>
-            </Panel>
               </aside>
             </div>
 
-            {/* ══ Bottom bar ═══════════════════════════════════════════════ */}
-            <div className="grid gap-3" style={{ gridTemplateColumns: "1.1fr 1.2fr 1fr 1fr" }}>
+            {/* ══ Productivity bar (AI moved to the centre hero) ═══════════ */}
+            <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1.4fr 1fr" }}>
           {/* Quick actions */}
           <Panel className="px-4 py-2" clip>
             <SectionTitle>QUICK ACTIONS</SectionTitle>
@@ -979,61 +916,6 @@ export default function CommandCenterClient() {
             </div>
             <div className="flex justify-center mt-2 pt-1.5">
               <button className="cc-linkbtn">View All Objectives <ChevronRight size={11} /></button>
-            </div>
-          </Panel>
-
-          {/* AI executive brief */}
-          <Panel className="px-4 py-2" clip>
-            <SectionTitle sub="Executive brief">AI ASSISTANT</SectionTitle>
-            <div className="flex items-start gap-3 mt-2">
-              <div
-                className="shrink-0 flex items-center justify-center"
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: "50%",
-                  border: "1.5px solid var(--cc-accent)",
-                  background: "radial-gradient(circle, rgba(54,169,255,0.28), transparent)",
-                  boxShadow: "0 0 20px rgba(54,169,255,0.4)",
-                  animation: "cc-pulse 3s ease-in-out infinite",
-                  color: "var(--cc-accent)",
-                  fontFamily: "var(--font-admin-heading)",
-                  fontWeight: 700,
-                  fontSize: 15,
-                }}
-              >
-                AI
-              </div>
-              <p style={{ fontSize: 10.5, color: "var(--cc-muted)", lineHeight: 1.45 }}>
-                <span style={{ color: "var(--cc-accent)" }}>{AI_BRIEF.greeting}</span> {AI_BRIEF.intro}
-              </p>
-            </div>
-            <ul className="mt-2 flex flex-col gap-1">
-              {AI_BRIEF.points.map((p) => (
-                <li key={p} className="flex items-start gap-1.5" style={{ fontSize: 10, color: "var(--cc-text)", lineHeight: 1.35 }}>
-                  <span style={{ color: "var(--cc-primary)" }}>▹</span>
-                  <span>{p}</span>
-                </li>
-              ))}
-            </ul>
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {AI_BRIEF.actions.map((a, i) => (
-                <button
-                  key={a}
-                  className="cc-ai-btn"
-                  onClick={() => go([R.analytics, R.enquiries, R.activity, R.dashboard, R.dashboard][i] ?? R.dashboard)}
-                >
-                  {a}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <div className="flex items-end gap-[3px]" style={{ height: 18, flex: 1 }}>
-                {Array.from({ length: 40 }).map((_, i) => (
-                  <span key={i} className="cc-wavebar" style={{ height: 16, animationDelay: `${(i % 10) * 0.09}s` }} />
-                ))}
-              </div>
-              <Mic size={15} color={ICON_BLUE} />
             </div>
           </Panel>
 

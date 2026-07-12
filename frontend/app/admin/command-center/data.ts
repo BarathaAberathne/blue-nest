@@ -143,6 +143,9 @@ export type BranchMetric = {
   children: number;
   staff: number;
   occupancy: number;
+  attendanceToday: number; // % present today
+  status: "ok" | "warn" | "bad"; // traffic-light health
+  alerts: number; // open alerts / issues
   revenue: string;
   issues: number;
   nextEvent: string;
@@ -156,36 +159,70 @@ const mkAtt = (avg: number, pts: number[]) => ({ average: avg, days: DAYS.map((d
 
 export const BRANCH_METRICS: BranchMetric[] = [
   {
-    slug: "harrow", name: "Harrow", children: 128, staff: 22, occupancy: 95, revenue: "£72,400",
+    slug: "harrow", name: "Harrow", children: 128, staff: 22, occupancy: 95, attendanceToday: 96,
+    status: "ok", alerts: 0, revenue: "£72,400",
     issues: 0, nextEvent: "Sports Day · 12 May", review: 4.9,
     attendance: mkAtt(95, [94, 95, 96, 95, 94]),
     sentiment: { score: 4.9, points: [0.4, 0.46, 0.42, 0.55, 0.6, 0.66, 0.72, 0.8, 0.86, 0.92] },
   },
   {
-    slug: "pinner", name: "Pinner", children: 142, staff: 24, occupancy: 94, revenue: "£78,900",
+    slug: "pinner", name: "Pinner", children: 142, staff: 24, occupancy: 94, attendanceToday: 94,
+    status: "ok", alerts: 1, revenue: "£78,900",
     issues: 1, nextEvent: "Parent Workshop · 31 May", review: 4.8,
     attendance: mkAtt(94, [93, 94, 95, 94, 93]),
     sentiment: { score: 4.8, points: [0.36, 0.4, 0.34, 0.48, 0.52, 0.58, 0.64, 0.72, 0.78, 0.88] },
   },
   {
-    slug: "borehamwood", name: "Borehamwood", children: 96, staff: 18, occupancy: 93, revenue: "£54,200",
+    slug: "borehamwood", name: "Borehamwood", children: 96, staff: 18, occupancy: 93, attendanceToday: 91,
+    status: "warn", alerts: 2, revenue: "£54,200",
     issues: 2, nextEvent: "Graduation · 24 May", review: 4.7,
     attendance: mkAtt(92, [91, 93, 94, 92, 90]),
     sentiment: { score: 4.6, points: [0.3, 0.36, 0.32, 0.4, 0.46, 0.44, 0.52, 0.6, 0.64, 0.74] },
   },
   {
-    slug: "northwood", name: "Northwood", children: 44, staff: 9, occupancy: 88, revenue: "£24,800",
+    slug: "northwood", name: "Northwood", children: 44, staff: 9, occupancy: 88, attendanceToday: 88,
+    status: "warn", alerts: 1, revenue: "£24,800",
     issues: 0, nextEvent: "Open Day · 07 Jun", review: 4.8,
     attendance: mkAtt(89, [88, 90, 91, 89, 87]),
     sentiment: { score: 4.7, points: [0.34, 0.4, 0.38, 0.46, 0.5, 0.56, 0.62, 0.68, 0.74, 0.82] },
   },
   {
-    slug: "pinner-green", name: "Pinner Green", children: 102, staff: 19, occupancy: 90, revenue: "£58,300",
+    slug: "pinner-green", name: "Pinner Green", children: 102, staff: 19, occupancy: 90, attendanceToday: 92,
+    status: "ok", alerts: 1, revenue: "£58,300",
     issues: 1, nextEvent: "Coffee Morning · 03 Jun", review: 4.8,
     attendance: mkAtt(91, [90, 92, 93, 91, 90]),
     sentiment: { score: 4.8, points: [0.38, 0.42, 0.4, 0.5, 0.54, 0.6, 0.66, 0.72, 0.8, 0.9] },
   },
 ];
+
+// ── AI Command Centre (the "brain": briefing, confidence, health, actions,
+// timeline, suggested questions, quick executive actions) ───────────────────
+export const AI_COMMAND = {
+  confidence: 94, // AI confidence %
+  health: 92, // Nursery Health score
+  healthLabel: "STRONG",
+  greeting: "Good morning, Mahesh.",
+  summary: "The group is performing well. Two branches need attention today.",
+  recommendations: [
+    { text: "Review 2 safeguarding actions at Borehamwood", tone: "bad" as const, action: "Review" },
+    { text: "Approve funding reconciliation (due today)", tone: "warn" as const, action: "Approve" },
+    { text: "Follow up 6 new enquiries to protect conversion", tone: "warn" as const, action: "Assign" },
+    { text: "Cover Northwood ratio gap tomorrow AM", tone: "warn" as const, action: "Roster" },
+    { text: "Harrow occupancy +3% — promote waitlist offers", tone: "ok" as const, action: "Act" },
+  ],
+  suggestedQuestions: [
+    "Which branch needs my attention today?",
+    "Forecast next term's occupancy",
+    "Summarise yesterday's incidents",
+    "Where are we losing enquiries?",
+  ],
+  quickActions: [
+    "Generate Daily Report",
+    "Email Branch Managers",
+    "Summarise Yesterday",
+    "Forecast Next Week",
+  ],
+};
 
 // ── Capacity forecast (normalised occupancy 0..1 per range) ─────────────────
 export const CAPACITY_FORECAST: Record<"7d" | "30d" | "term", { labels: string[]; points: number[] }> = {

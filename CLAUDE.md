@@ -210,18 +210,22 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   system-health radar. All styling is scoped under `.cc-root` in `command-center.css` (palette as `--cc-*`
   vars: bg `#071321`, panel `#0E223D`, primary `#36A9FF`, accent `#D6B36A`, success `#35D07F`, warning
   `#FFC857`, error `#FF5C73`) so nothing leaks into the light admin theme; `body:has(.cc-root)` darkens
-  the page. Composition (`CommandCenterClient.tsx`): topbar (clock/logo/wordmark/notifications) · left
-  nav rail (MD profile + nav + system-status radar) · centre workspace (**KPI row 1** + dense **KPI row 2**
-  operational tiles + Branch Overview centrepiece with 5 branch cards + funnel/attendance/sentiment
-  cluster (funnel + **per-branch scrollable attendance & parent-sentiment**, one chart per branch) +
-  **occupancy heatmap / enquiry-sources donut / performance gauges** + **staff status / children's status
-  / compliance centre** + bottom bar: Quick Actions, Mission Objectives, **AI Executive Brief** with action
-  buttons, System Health) · right rail (**expanded Financial analytics** with revenue/expenses/profit/
-  funding/outstanding/cashflow + budget-vs-actual trend · **Capacity Forecast** with 7d/30d/term tabs ·
-  **monthly Calendar** with colour-coded event dots · Notifications · **Live Activity feed** · **Parent
-  Comms**). Branch cards are **interactive** — hover reveals a per-branch intelligence popover (children,
-  staff, occupancy, revenue, open issues, next event, review). Per-branch figures come from
-  `BRANCH_METRICS` in `data.ts`. **Widgets are wired into the CMS**: every KPI card/tile, section panel,
+  the page. The dashboard is **restructured around a central AI Command Centre** (the "brain") rather than
+  a grid of equal widgets. Composition (`CommandCenterClient.tsx`): topbar (clock/logo/wordmark/notifications)
+  · left nav rail (MD profile + nav + system-status radar — unchanged) · centre workspace: **operational
+  KPIs** (row 1 big cards + a compact row of 7 operational tiles) then the **MISSION CONTROL** hero — the
+  large **`AICommandCentre`** core (executive briefing, AI-confidence, **Nursery Health** score, recommended
+  actions, live AI timeline, Ask-Blue-Nest-AI input + suggested questions, voice waveform, quick executive
+  actions) **flanked by 5 simplified branch cards** (name · children · occupancy · today's attendance ·
+  traffic-light status · open alerts · view details) with **animated data-flow lines + moving packets
+  streaming each branch's data into the core**; below it an operational row (**Admission Pipeline** · **per-
+  branch Attendance** · **per-branch Parent Sentiment**) and a productivity bar (**Quick Actions** ·
+  **Mission Objectives** · **System Health**) · right rail (operational only, no AI): **expanded Financial
+  analytics** (revenue/expenses/profit/funding/outstanding/cashflow + budget-vs-actual) · **Capacity
+  Forecast** (7d/30d/term tabs) · **monthly Calendar** · Notifications. Executive insight lives **only** in
+  the AI core — the old bottom AI Assistant, Live Activity, Parent Comms, occupancy heatmap, enquiry-sources
+  donut, performance gauges and staff/children/compliance panels were **removed as duplicates**. AI data is
+  in `AI_COMMAND`; per-branch figures in `BRANCH_METRICS` (`data.ts`). **Widgets are wired into the CMS**: every KPI card/tile, section panel,
   branch card, sidebar nav item, quick action, AI-brief button and topbar control is clickable and
   `router.push`es into the relevant existing admin page (see the `R` route map + `NAV_LINKS`/`KPI_LINKS`/
   `tileLink` in `CommandCenterClient.tsx`; modules without a page yet fall back to the closest one). The
