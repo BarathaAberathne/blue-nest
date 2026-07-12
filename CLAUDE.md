@@ -209,26 +209,30 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   Blue Nest logo PNG (`/logo/bluenest-logo.png`) glows via `drop-shadow` in the topbar, centrepiece and
   system-health radar. All styling is scoped under `.cc-root` in `command-center.css` (palette as `--cc-*`
   vars: bg `#071321`, panel `#0E223D`, primary `#36A9FF`, accent `#D6B36A`, success `#35D07F`, warning
-  `#FFC857`, error `#FF5C73`) so nothing leaks into the light admin theme; `body:has(.cc-root)` darkens
-  the page. The dashboard is **restructured around a central AI Command Centre** (the "brain") rather than
-  a grid of equal widgets. Composition (`CommandCenterClient.tsx`): topbar (clock/logo/wordmark/notifications)
-  · left nav rail (MD profile + nav + system-status radar — unchanged) · centre workspace: **operational
-  KPIs** (row 1 big cards + a compact row of 7 operational tiles) then the **MISSION CONTROL** hero — the
-  large **`AICommandCentre`** core (executive briefing, AI-confidence, **Nursery Health** score, recommended
-  actions, live AI timeline, Ask-Blue-Nest-AI input + suggested questions, voice waveform, quick executive
-  actions) **flanked by 5 simplified branch cards** (name · children · occupancy · today's attendance ·
-  traffic-light status · open alerts · view details) with **animated data-flow lines + moving packets
-  streaming each branch's data into the core**; below it an operational row (**Admission Pipeline** · **per-
-  branch Attendance** · **per-branch Parent Sentiment**) and a productivity bar (**Quick Actions** ·
-  **Mission Objectives** · **System Health**) · right rail (operational only, no AI): **expanded Financial
-  analytics** (revenue/expenses/profit/funding/outstanding/cashflow + budget-vs-actual) · **Capacity
-  Forecast** (7d/30d/term tabs) · **monthly Calendar** · Notifications. Executive insight lives **only** in
-  the AI core — the old bottom AI Assistant, Live Activity, Parent Comms, occupancy heatmap, enquiry-sources
-  donut, performance gauges and staff/children/compliance panels were **removed as duplicates**. AI data is
-  in `AI_COMMAND`; per-branch figures in `BRANCH_METRICS` (`data.ts`). **Widgets are wired into the CMS**: every KPI card/tile, section panel,
-  branch card, sidebar nav item, quick action, AI-brief button and topbar control is clickable and
-  `router.push`es into the relevant existing admin page (see the `R` route map + `NAV_LINKS`/`KPI_LINKS`/
-  `tileLink` in `CommandCenterClient.tsx`; modules without a page yet fall back to the closest one). The
+  `#FFC857`, error `#FF5C73`) so nothing leaks into the light admin theme; `body:has(.cc-root),
+  body:has(.cc-os)` darkens the page. **Stage-1 executive-OS rebuild** (`CommandCenterClient.tsx` renders the
+  `.cc-os` shell; supporting parts in `os/`): a four-region desktop-app layout — **Header** (logo · school
+  name · MISSION CONTROL chip · global ⌘K search · clock · notifications/messages · profile) · **collapsible
+  navigation Dock** (72px collapsed → 240px on hover / pin, framer-motion, macOS-style; Dashboard/Branches/
+  Children/Staff/Admissions/Finance/Attendance/Communication/Reports/Settings) · **AI Workspace** (centre,
+  the primary surface): an **executive KPI bar** (Children/Occupancy/Attendance/Revenue/Outstanding/
+  Safeguarding/Satisfaction/Staff) over three columns — left **Intelligence Rail** (exec summary · health
+  score · branch status · risks · deadlines), centre **Core** (AI tabs Mission-Control/Operations/Finance/
+  Admissions/People/Ofsted/Analytics + the **radar-as-organisation-health** rendered with **React Flow**
+  (`@xyflow/react`) as a branch network — central Blue Nest radar node + 5 branch nodes with animated data
+  edges + hover-expand live stats + a ChatGPT-style **conversational AI** with suggested prompts/voice/
+  attach), right **AI Rail** (unified notifications · approvals · safeguarding · tasks · activity, each with
+  priority/branch/time/quick-action) · **Executive Financial Sidebar** (Revenue/CashFlow/Outstanding/Funding
+  /Budget/Forecast donut + trend · Calendar · System Health) · full-width **Operational Workspace** strip
+  (Attendance · Admissions · Parent Sentiment · Revenue trend — *draggable/resizable/saveable is Stage 2*).
+  A global **command palette** (`cmdk`, ⌘K / click search) is the AI-navigation layer — "Open Harrow", "Show
+  today's absences", etc. route into the CMS. Motion uses the already-installed **framer-motion**; new deps
+  are only **`cmdk`** + **`@xyflow/react`** (Tailwind stays v3). Data: `os/osdata.ts` (dock/KPI-bar/rails/
+  tabs/prompts/palette) + `data.ts` (`AI_COMMAND`, `BRANCH_METRICS`, finance, calendar). The old
+  widget-grid composition (bottom AI Assistant, Live Activity, Parent Comms, occupancy heatmap, enquiry-
+  sources, performance gauges, staff/children/compliance, static branch overview) was **removed/absorbed**.
+  Widgets/nav/palette are wired into the CMS via `router.push` (dock hrefs + `PALETTE_COMMANDS` in `osdata.ts`;
+  modules without a page fall back to the closest one). The
   `director` role (above) is its intended audience. **The enquiries/admissions pipeline is live-wired**:
   `live.ts` (`useEnquiryPipeline`) fetches `GET /admin/enquiries/stats` with the signed-in token and feeds
   the real funnel + conversion, the Enquiries KPI, and the Booked-Visits/Applications/Enquiry-Response
