@@ -438,8 +438,12 @@ export function Radar({ size = 96, color = "#1ed760", logo }: { size?: number; c
       ))}
       <line x1={cx} y1="4" x2={cx} y2={size - 4} stroke={color} strokeOpacity="0.18" strokeWidth="1" />
       <line x1="4" y1={cy} x2={size - 4} y2={cy} stroke={color} strokeOpacity="0.18" strokeWidth="1" />
-      <g className="cc-spin-fast" style={{ transformBox: "fill-box" }}>
+      {/* Sweep rotates around the radar centre (cx,cy) via SMIL — reliable
+          regardless of transform-box quirks. */}
+      <g>
         <path d={`M${cx} ${cy} L${cx} 5 A${cy - 4} ${cy - 4} 0 0 1 ${size - 6} ${cy} Z`} fill={`url(#cc-sweep-${size})`} />
+        <line x1={cx} y1={cy} x2={size - 5} y2={cy} stroke={color} strokeWidth="1.3" strokeOpacity="0.8" />
+        <animateTransform attributeName="transform" attributeType="XML" type="rotate" from={`0 ${cx} ${cy}`} to={`360 ${cx} ${cy}`} dur="3.6s" repeatCount="indefinite" />
       </g>
       <circle cx={cx} cy={cy} r={size / 2 - 4} fill={`url(#cc-radar-${size}-${color.slice(1)})`} />
       {logo && (
@@ -625,9 +629,12 @@ export function CentrepieceRings({ size = 300 }: { size?: number }) {
 
       <circle cx={cx} cy={cy} r={R - 6} fill="url(#cc-core)" />
 
-      {/* Rotating radar sweep wedge */}
-      <g className="cc-spin-slow" style={{ transformBox: "fill-box", transformOrigin: "center" }}>
+      {/* Radar sweep wedge — rotates around the centre (cx,cy) via SMIL so it
+          sweeps cleanly instead of wobbling around its own bounding box. */}
+      <g>
         <path d={`M${cx} ${cy} L${cx} ${cy - (R - 10)} A${R - 10} ${R - 10} 0 0 1 ${cx + (R - 10) * 0.82} ${cy - (R - 10) * 0.57} Z`} fill="url(#cc-cp-sweep)" opacity={0.5} />
+        <line x1={cx} y1={cy} x2={cx + (R - 10) * 0.82} y2={cy - (R - 10) * 0.57} stroke="rgba(0,212,255,0.6)" strokeWidth="1.6" />
+        <animateTransform attributeName="transform" attributeType="XML" type="rotate" from={`0 ${cx} ${cy}`} to={`360 ${cx} ${cy}`} dur="6s" repeatCount="indefinite" />
       </g>
 
       {/* Concentric rings */}
