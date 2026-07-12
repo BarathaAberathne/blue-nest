@@ -19,6 +19,10 @@ const (
 	RoleFinance     Role = "finance"     // analytics, spend, audit
 	RoleAdmissions  Role = "admissions"  // enquiries / admissions CRM
 	RoleProcurement Role = "procurement" // supply requests, purchase orders, suppliers
+	// Executive oversight role: the Managing Director. Broad read/oversight access
+	// (like a general manager, minus account management); lands on the MD Command
+	// Centre. See models/permission.go for its permission set.
+	RoleDirector Role = "director"
 )
 
 // ManagementRoles are every non-customer back-office role (they reach the admin
@@ -26,6 +30,7 @@ const (
 var ManagementRoles = []Role{
 	RoleSuperAdmin, RoleAdmin, RoleBranchManager,
 	RoleFinance, RoleAdmissions, RoleProcurement, RoleStaff,
+	RoleDirector,
 }
 
 type User struct {

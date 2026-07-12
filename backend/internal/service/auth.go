@@ -241,6 +241,7 @@ func (s *authService) AdminLogin(ctx context.Context, req models.LoginRequest) (
 	return s.loginWithRoleGuard(ctx, req, []models.Role{
 		models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager,
 		models.RoleFinance, models.RoleAdmissions, models.RoleProcurement, models.RoleStaff,
+		models.RoleDirector,
 	})
 }
 
@@ -408,7 +409,7 @@ func isAssignableRole(role models.Role) bool {
 	switch role {
 	case models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager,
 		models.RoleFinance, models.RoleAdmissions, models.RoleProcurement,
-		models.RoleStaff, models.RoleCustomer:
+		models.RoleStaff, models.RoleCustomer, models.RoleDirector:
 		return true
 	default:
 		return false

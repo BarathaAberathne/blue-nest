@@ -35,8 +35,12 @@ Role hierarchy (`backend/internal/models/user.go` `Role`; `frontend/types` `User
   `admissions` (dashboard + enquiries CRM), `procurement` (dashboard + supply requests/POs/catalogue +
   suppliers + spend). Each enters the admin shell but `AdminLayout` shows only the sections its permissions
   allow and bounces it off any other `/admin/*` page.
+- **`director`** (Managing Director) — executive oversight role with broad read/manage access (same reach
+  as a general manager, minus account management). After login it lands on the **MD Command Centre**
+  (`/admin/command-center`), which is also the first sidebar item for anyone with `dashboard.view`. Assign
+  it on `/admin/users`, or seed one via `DEFAULT_DIRECTOR_EMAIL/PASSWORD` (`make seed-users`).
 Guards: `AdminOnly` = super_admin|admin|branch_manager; `ManagementOnly` = those + finance|admissions|
-procurement (the outer gate on the admin route group); `SuperAdminOnly` = super_admin. **Granular
+procurement|director (the outer gate on the admin route group); `SuperAdminOnly` = super_admin. **Granular
 permissions** (`models/permission.go`): a `Permission` set + a `role→[]Permission` map + `HasPermission`;
 gate a route with `middleware.RequirePermission(models.PermX)` and a UI section by checking
 `lib/usePermissions.ts` `has(perm)` (sourced from `GET /auth/me` → `{role, permissions}`). Add a role to a
@@ -217,8 +221,11 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   **monthly Calendar** with colour-coded event dots · Notifications · **Live Activity feed** · **Parent
   Comms**). Branch cards are **interactive** — hover reveals a per-branch intelligence popover (children,
   staff, occupancy, revenue, open issues, next event, review). Per-branch figures come from
-  `BRANCH_METRICS` in `data.ts`. Nav/links/buttons are visual only; no auth guard or role wiring (a future
-  `director` role could gate it).
+  `BRANCH_METRICS` in `data.ts`. **Widgets are wired into the CMS**: every KPI card/tile, section panel,
+  branch card, sidebar nav item, quick action, AI-brief button and topbar control is clickable and
+  `router.push`es into the relevant existing admin page (see the `R` route map + `NAV_LINKS`/`KPI_LINKS`/
+  `tileLink` in `CommandCenterClient.tsx`; modules without a page yet fall back to the closest one). The
+  figures themselves are still static mock. The `director` role (above) is its intended audience.
 
 Planned next: Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 

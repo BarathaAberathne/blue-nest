@@ -163,7 +163,8 @@ export type UserRole =
   | "super_admin"
   | "finance"
   | "admissions"
-  | "procurement";
+  | "procurement"
+  | "director";
 
 export interface User {
   id: string;

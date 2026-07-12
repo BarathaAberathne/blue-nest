@@ -90,7 +90,7 @@ func AdminOnly(next http.Handler) http.Handler {
 func ManagementOnly(next http.Handler) http.Handler {
 	return RequireRole(
 		"super_admin", "admin", "branch_manager",
-		"finance", "admissions", "procurement",
+		"finance", "admissions", "procurement", "director",
 	)(next)
 }
 

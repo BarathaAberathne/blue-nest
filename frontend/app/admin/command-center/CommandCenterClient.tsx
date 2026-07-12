@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   Admissions,
   Attendance,
@@ -83,6 +84,64 @@ import {
 
 const LOGO = "/logo/bluenest-logo.png";
 
+// ── CMS wiring: map every widget to the existing admin page it drills into.
+// Pages that exist today: /admin/dashboard, /admin/inquiries(+/dashboard),
+// /admin/orders, /admin/products, /admin/procurement(+/analytics,/suppliers),
+// /admin/order-requests, /admin/purchase-carts, /admin/catalogue, /admin/blog,
+// /admin/activity, /admin/users. Modules with no page yet fall back to the
+// most relevant existing one.
+const R = {
+  dashboard: "/admin/dashboard",
+  enquiries: "/admin/inquiries",
+  enquiriesDash: "/admin/inquiries/dashboard",
+  analytics: "/admin/procurement/analytics",
+  procurement: "/admin/procurement",
+  orders: "/admin/orders",
+  users: "/admin/users",
+  activity: "/admin/activity",
+  blog: "/admin/blog",
+} as const;
+
+// Sidebar nav → existing route (modules without a page point at the closest one).
+const NAV_LINKS: Record<string, string> = {
+  Dashboard: "/admin/command-center",
+  Branches: R.dashboard,
+  Children: R.enquiries,
+  Staff: R.users,
+  Enquiries: R.enquiries,
+  Admissions: R.enquiriesDash,
+  Finance: R.analytics,
+  Attendance: R.dashboard,
+  Curriculum: R.blog,
+  Communication: R.enquiries,
+  Events: R.dashboard,
+  Reports: R.analytics,
+  Documents: R.activity,
+  Settings: R.users,
+};
+
+// First KPI row → route by kind.
+const KPI_LINKS: Record<Kpi["kind"], string> = {
+  children: R.enquiries,
+  staff: R.users,
+  enquiries: R.enquiries,
+  occupancy: R.dashboard,
+  satisfaction: R.dashboard,
+};
+
+// Second KPI row tiles → route by topic (finance / enquiries / people / else).
+function tileLink(label: string): string {
+  const l = label.toLowerCase();
+  if (/(fee|revenue|expense|profit|funding|payroll|cash)/.test(l)) return R.analytics;
+  if (/(enquir|visit|application|lead|admission|response)/.test(l)) return R.enquiries;
+  if (/(staff|agency)/.test(l)) return R.users;
+  if (/(review|website|users|marketing|campaign|newsletter)/.test(l)) return R.analytics;
+  return R.dashboard;
+}
+
+// Quick actions → destination page.
+const QA_LINKS = [R.enquiries, R.enquiriesDash, R.enquiries, R.users, R.dashboard];
+
 type IconCmp = (p: IconProps) => React.ReactElement;
 
 const NAV_ICONS: Record<string, IconCmp> = {
@@ -121,13 +180,22 @@ function Panel({
   children,
   className = "",
   clip = false,
+  href,
 }: {
   children: React.ReactNode;
   className?: string;
   clip?: boolean;
+  href?: string;
 }) {
+  const router = useRouter();
   return (
-    <div className={`cc-panel ${clip ? "cc-panel--clip" : ""} ${className}`}>
+    <div
+      className={`cc-panel ${clip ? "cc-panel--clip" : ""} ${href ? "cc-panel--link" : ""} ${className}`}
+      onClick={href ? () => router.push(href) : undefined}
+      role={href ? "link" : undefined}
+      tabIndex={href ? 0 : undefined}
+      onKeyDown={href ? (e) => { if (e.key === "Enter") router.push(href); } : undefined}
+    >
       <span className="cc-bracket tl" />
       <span className="cc-bracket tr" />
       <span className="cc-bracket bl" />
@@ -199,7 +267,7 @@ function KpiCard({ kpi }: { kpi: Kpi }) {
   const Icon =
     kpi.kind === "children" ? Children : kpi.kind === "staff" ? Staff : Enquiries;
   return (
-    <Panel className="px-4 py-2" clip>
+    <Panel className="px-4 py-2" clip href={KPI_LINKS[kpi.kind]}>
       <div className="flex items-center gap-3" style={{ height: 54 }}>
         {kpi.kind === "occupancy" ? (
           <RingGauge value={92} size={58} color="var(--cc-accent)" track="rgba(214,179,106,0.15)" />
@@ -265,7 +333,7 @@ function BranchCard({ branch }: { branch: Branch }) {
       ]
     : [];
   return (
-    <Panel className="px-3 py-2.5 cc-branchcard">
+    <Panel className="px-3 py-2.5 cc-branchcard" href={R.dashboard}>
       <div className="flex items-center gap-2 mb-1.5">
         <span className="cc-dot" style={{ color: "var(--cc-success)" }} />
         <p className="cc-heading" style={{ fontSize: 12, color: "var(--cc-accent)" }}>
@@ -315,9 +383,10 @@ const TONE: Record<string, string> = {
 };
 
 function MiniKpiTile({ kpi }: { kpi: MiniKpi }) {
+  const router = useRouter();
   const color = kpi.tone ? TONE[kpi.tone] : "var(--cc-text)";
   return (
-    <div className="cc-tile">
+    <div className="cc-tile cc-tile--link" onClick={() => router.push(tileLink(kpi.label))}>
       <p className="cc-label" style={{ fontSize: 8, color: "var(--cc-muted)", lineHeight: 1.2 }}>
         {kpi.label}
       </p>
@@ -350,7 +419,7 @@ function ForecastCard() {
   const f = CAPACITY_FORECAST[range];
   const label = range === "7d" ? "next 7 days" : range === "30d" ? "next 30 days" : "next term";
   return (
-    <Panel className="px-4 py-2" clip>
+    <Panel className="px-4 py-2" clip href="/admin/dashboard">
       <div className="flex items-center justify-between">
         <p className="cc-heading" style={{ fontSize: 12 }}>CAPACITY FORECAST</p>
         <div className="flex gap-1">
@@ -378,6 +447,8 @@ function ForecastCard() {
 /* ── Main composition ──────────────────────────────────────────────────── */
 
 export default function CommandCenterClient() {
+  const router = useRouter();
+  const go = (href: string) => router.push(href);
   const byCorner = (c: Branch["corner"]) => BRANCHES.find((b) => b.corner === c)!;
 
   return (
@@ -404,10 +475,10 @@ export default function CommandCenterClient() {
           </div>
 
           <div className="flex items-center gap-2" style={{ width: 230, justifyContent: "flex-end" }}>
-            <button className="cc-pill"><Bell size={14} /> 5</button>
-            <button className="cc-pill"><Communication size={14} /> 3</button>
-            <button className="cc-pill" style={{ padding: 8 }}><Settings size={14} /></button>
-            <button className="cc-pill" style={{ padding: 8 }}><Menu size={14} /></button>
+            <button className="cc-pill" onClick={() => go(R.activity)}><Bell size={14} /> 5</button>
+            <button className="cc-pill" onClick={() => go(R.enquiries)}><Communication size={14} /> 3</button>
+            <button className="cc-pill" style={{ padding: 8 }} onClick={() => go(R.users)}><Settings size={14} /></button>
+            <button className="cc-pill" style={{ padding: 8 }} onClick={() => go(R.dashboard)}><Menu size={14} /></button>
           </div>
         </header>
 
@@ -470,7 +541,7 @@ export default function CommandCenterClient() {
                   const Icon = NAV_ICONS[item] ?? Home;
                   const active = item === "Dashboard";
                   return (
-                    <button key={item} className={`cc-nav-item ${active ? "cc-nav-item--active" : ""}`}>
+                    <button key={item} className={`cc-nav-item ${active ? "cc-nav-item--active" : ""}`} onClick={() => go(NAV_LINKS[item] ?? R.dashboard)}>
                       <Icon size={15} />
                       <span className="flex-1 text-left">{item}</span>
                       {active && <ChevronRight size={13} />}
@@ -606,7 +677,7 @@ export default function CommandCenterClient() {
 
             {/* Bottom cluster: funnel | attendance | sentiment */}
             <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-              <Panel className="px-4 py-2" clip>
+              <Panel className="px-4 py-2" clip href="/admin/inquiries/dashboard">
                 <SectionTitle sub="This Month">ADMISSION PIPELINE</SectionTitle>
                 <div className="mt-2">
                   <Funnel stages={FUNNEL} />
@@ -620,7 +691,7 @@ export default function CommandCenterClient() {
               </Panel>
 
               {/* Attendance — one chart per branch, scrollable */}
-              <Panel className="px-4 py-2" clip>
+              <Panel className="px-4 py-2" clip href="/admin/dashboard">
                 <SectionTitle sub="Per branch · scroll">ATTENDANCE OVERVIEW</SectionTitle>
                 <div className="cc-scrolly mt-1" style={{ maxHeight: 190 }}>
                   {BRANCH_METRICS.map((m) => (
@@ -644,7 +715,7 @@ export default function CommandCenterClient() {
               </Panel>
 
               {/* Parent sentiment — one spark per branch, scrollable */}
-              <Panel className="px-4 py-2" clip>
+              <Panel className="px-4 py-2" clip href="/admin/dashboard">
                 <SectionTitle sub="Per branch · scroll">PARENT SENTIMENT</SectionTitle>
                 <div className="cc-scrolly mt-1" style={{ maxHeight: 190 }}>
                   {BRANCH_METRICS.map((m) => (
@@ -667,7 +738,7 @@ export default function CommandCenterClient() {
 
             {/* ── Executive widget row A: occupancy · sources · gauges ── */}
             <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-              <Panel className="px-4 py-2" clip>
+              <Panel className="px-4 py-2" clip href="/admin/dashboard">
                 <SectionTitle sub="Live">OCCUPANCY HEATMAP</SectionTitle>
                 <div className="mt-2 flex flex-col gap-2">
                   {OCCUPANCY_BARS.map((b) => (
@@ -682,7 +753,7 @@ export default function CommandCenterClient() {
                 </div>
               </Panel>
 
-              <Panel className="px-4 py-2" clip>
+              <Panel className="px-4 py-2" clip href="/admin/inquiries/dashboard">
                 <SectionTitle sub="This Month">ENQUIRY SOURCES</SectionTitle>
                 <div className="flex items-center gap-3 mt-1">
                   <MiniDonut slices={ENQUIRY_SOURCES} size={118} center="134" sub="ENQUIRIES" />
@@ -698,7 +769,7 @@ export default function CommandCenterClient() {
                 </div>
               </Panel>
 
-              <Panel className="px-4 py-2" clip>
+              <Panel className="px-4 py-2" clip href="/admin/dashboard">
                 <SectionTitle sub="Live">PERFORMANCE</SectionTitle>
                 <div className="grid grid-cols-3 gap-1 mt-2" style={{ justifyItems: "center" }}>
                   {PERF_GAUGES.map((g) => {
@@ -716,15 +787,15 @@ export default function CommandCenterClient() {
 
             {/* ── Executive widget row B: staff · children · compliance ── */}
             <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-              <Panel className="px-4 py-2" clip>
+              <Panel className="px-4 py-2" clip href="/admin/users">
                 <SectionTitle sub="Today">STAFF STATUS</SectionTitle>
                 <StatRows rows={STAFF_STATUS} />
               </Panel>
-              <Panel className="px-4 py-2" clip>
+              <Panel className="px-4 py-2" clip href="/admin/inquiries">
                 <SectionTitle sub="Today">CHILDREN&apos;S STATUS</SectionTitle>
                 <StatRows rows={CHILDREN_STATUS} />
               </Panel>
-              <Panel className="px-4 py-2" clip>
+              <Panel className="px-4 py-2" clip href="/admin/dashboard">
                 <SectionTitle sub="Traffic light">COMPLIANCE CENTRE</SectionTitle>
                 <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
                   {COMPLIANCE.map((c) => (
@@ -740,7 +811,7 @@ export default function CommandCenterClient() {
 
           {/* ── Right column ────────────────────────────────────── */}
           <aside style={{ width: 300 }} className="shrink-0 flex flex-col gap-3">
-            <Panel className="px-4 py-2" clip>
+            <Panel className="px-4 py-2" clip href="/admin/procurement/analytics">
               <SectionTitle sub="This Month">FINANCIAL OVERVIEW</SectionTitle>
               <div className="flex justify-center my-1" style={{ height: 190 }}>
                 <DonutChart slices={FINANCE.slices} total={FINANCE.total} caption="TOTAL REVENUE" />
@@ -782,7 +853,7 @@ export default function CommandCenterClient() {
             <ForecastCard />
 
             {/* Monthly calendar (replaces the small events card) */}
-            <Panel className="px-4 py-2" clip>
+            <Panel className="px-4 py-2" clip href="/admin/dashboard">
               <SectionTitle sub={CALENDAR.label}>CALENDAR</SectionTitle>
               <div className="mt-2">
                 <MiniCalendar year={CALENDAR.year} month={CALENDAR.month} events={CALENDAR.events} legend={CALENDAR.legend} />
@@ -799,7 +870,7 @@ export default function CommandCenterClient() {
               </div>
             </Panel>
 
-            <Panel className="px-4 py-3" clip>
+            <Panel className="px-4 py-3" clip href="/admin/activity">
               <SectionTitle>NOTIFICATIONS</SectionTitle>
               <div className="mt-2 flex flex-col gap-2.5">
                 {NOTIFICATIONS.map((n) => (
@@ -818,7 +889,7 @@ export default function CommandCenterClient() {
             </Panel>
 
             {/* ── Live activity feed ── */}
-            <Panel className="px-4 py-3" clip>
+            <Panel className="px-4 py-3" clip href="/admin/activity">
               <SectionTitle sub="Real-time">LIVE ACTIVITY</SectionTitle>
               <div className="cc-feed mt-2">
                 {ACTIVITY_FEED.map((a, i) => (
@@ -831,7 +902,7 @@ export default function CommandCenterClient() {
             </Panel>
 
             {/* ── Parent communications ── */}
-            <Panel className="px-4 py-3" clip>
+            <Panel className="px-4 py-3" clip href="/admin/inquiries">
               <SectionTitle sub="Today">PARENT COMMS</SectionTitle>
               <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
                 {PARENT_COMMS.map((p) => (
@@ -854,20 +925,20 @@ export default function CommandCenterClient() {
               {QUICK_ACTIONS.map((a, i) => {
                 const Icon = QA_ICONS[i];
                 return (
-                  <button key={a} className="cc-action-btn">
+                  <button key={a} className="cc-action-btn" onClick={() => go(QA_LINKS[i] ?? R.dashboard)}>
                     <Icon size={17} color={ICON_BLUE} />
                     {a}
                   </button>
                 );
               })}
             </div>
-            <button className="cc-action-btn mt-2" style={{ flexDirection: "row", width: "100%", justifyContent: "center", gap: 8, fontSize: 11 }}>
+            <button className="cc-action-btn mt-2" style={{ flexDirection: "row", width: "100%", justifyContent: "center", gap: 8, fontSize: 11 }} onClick={() => go(R.analytics)}>
               <Reports size={15} color={ICON_GOLD} /> GENERATE REPORT
             </button>
           </Panel>
 
           {/* Mission objectives */}
-          <Panel className="px-4 py-2" clip>
+          <Panel className="px-4 py-2" clip href="/admin/dashboard">
             <SectionTitle>MISSION OBJECTIVES</SectionTitle>
             <div className="mt-2 flex flex-col gap-2.5">
               {OBJECTIVES.map((o) => (
@@ -925,8 +996,14 @@ export default function CommandCenterClient() {
               ))}
             </ul>
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {AI_BRIEF.actions.map((a) => (
-                <button key={a} className="cc-ai-btn">{a}</button>
+              {AI_BRIEF.actions.map((a, i) => (
+                <button
+                  key={a}
+                  className="cc-ai-btn"
+                  onClick={() => go([R.analytics, R.enquiries, R.activity, R.dashboard, R.dashboard][i] ?? R.dashboard)}
+                >
+                  {a}
+                </button>
               ))}
             </div>
             <div className="flex items-center gap-2 mt-2">
@@ -940,7 +1017,7 @@ export default function CommandCenterClient() {
           </Panel>
 
           {/* System health */}
-          <Panel className="px-4 py-2" clip>
+          <Panel className="px-4 py-2" clip href="/admin/activity">
             <SectionTitle>SYSTEM HEALTH</SectionTitle>
             <div className="flex items-center gap-3 mt-2">
               <div style={{ position: "relative", width: 82, height: 82 }} className="shrink-0">

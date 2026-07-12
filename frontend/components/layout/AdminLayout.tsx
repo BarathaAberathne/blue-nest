@@ -15,6 +15,7 @@ import {
   Library,
   LogOut,
   Package,
+  Radar,
   ShoppingBag,
   ShoppingCart,
   Tag,
@@ -39,6 +40,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     heading: null,
     items: [
+      { label: "Command Centre", href: "/admin/command-center", icon: Radar, permission: "dashboard.view" },
       { label: "Main Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
       { label: "Inquiries", href: "/admin/inquiries", icon: Inbox, permission: "enquiries.manage" },
     ],
@@ -88,7 +90,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { ready, isAuthenticated, user, hasAnyRole, ensureAuthenticated } = useAuthGuard("/admin/login");
   const { has, ready: permsReady } = usePermissions();
   const isManagement = hasAnyRole([
-    "super_admin", "admin", "branch_manager", "finance", "admissions", "procurement",
+    "super_admin", "admin", "branch_manager", "finance", "admissions", "procurement", "director",
   ]);
   const isStaff = user?.role === "staff";
   const allowed = isManagement || isStaff;
@@ -100,7 +102,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const canSee = (item: NavItem): boolean => {
     if (permsReady) return has(item.permission);
     if (user?.role === "super_admin") return true;
-    if (user?.role === "admin" || user?.role === "branch_manager") return item.permission !== "users.manage";
+    if (user?.role === "admin" || user?.role === "branch_manager" || user?.role === "director") return item.permission !== "users.manage";
     return item.permission === "dashboard.view";
   };
 

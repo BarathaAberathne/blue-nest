@@ -41,6 +41,13 @@ var rolePermissions = map[Role][]Permission{
 		PermProcurementView, PermProcurementManage, PermSuppliersManage,
 		PermFinanceView, PermAuditView, PermBranchesManage,
 	},
+	// Director (Managing Director): broad executive oversight across the whole
+	// back office — same reach as a general manager, minus account management.
+	RoleDirector: {
+		PermDashboardView, PermStoreManage, PermBlogManage, PermEnquiriesManage,
+		PermProcurementView, PermProcurementManage, PermSuppliersManage,
+		PermFinanceView, PermAuditView, PermBranchesManage,
+	},
 	RoleFinance: {
 		PermDashboardView, PermFinanceView, PermProcurementView, PermAuditView,
 	},

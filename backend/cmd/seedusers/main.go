@@ -78,6 +78,10 @@ func main() {
 		// super_admin (see upsertUser role-fix below) — this is the migration.
 		{envPrefix: "DEFAULT_ADMIN", role: models.RoleSuperAdmin, defaultFN: "Admin", defaultLN: "User"},
 		{envPrefix: "DEFAULT_CUSTOMER", role: models.RoleCustomer, defaultFN: "Test", defaultLN: "Customer"},
+		// Optional MD account for the executive Command Centre. Only seeded when
+		// DEFAULT_DIRECTOR_EMAIL/PASSWORD are set (otherwise assign the role on
+		// /admin/users). Director lands on /admin/command-center after login.
+		{envPrefix: "DEFAULT_DIRECTOR", role: models.RoleDirector, defaultFN: "Managing", defaultLN: "Director"},
 	}
 
 	seededAny := false
