@@ -224,7 +224,11 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   attach), right **AI Rail** (unified notifications · approvals · safeguarding · tasks · activity, each with
   priority/branch/time/quick-action) · **Executive Financial Sidebar** (Revenue/CashFlow/Outstanding/Funding
   /Budget/Forecast donut + trend · Calendar · System Health) · full-width **Operational Workspace** strip
-  (Attendance · Admissions · Parent Sentiment · Revenue trend — *draggable/resizable/saveable is Stage 2*).
+  — a **modular workspace** (`os/OpsWorkspace.tsx`, Stage 2): panels (Attendance · Admissions · Parent
+  Sentiment · Revenue · Occupancy · Calendar · Enquiry Sources · Finance) are **drag-reordered** (framer-
+  motion `Reorder`), **resized** (S/M/L column span), shown/hidden/added, the strip height is drag-
+  resizable, and the whole layout **saves to localStorage** (`cc-ops-layout-v2`) — Edit-mode toolbar with
+  Add/Reset/Save/Done. No new deps (framer-motion only).
   A global **command palette** (`cmdk`, ⌘K / click search) is the AI-navigation layer — "Open Harrow", "Show
   today's absences", etc. route into the CMS. Motion uses the already-installed **framer-motion**; new deps
   are only **`cmdk`** + **`@xyflow/react`** (Tailwind stays v3). Data: `os/osdata.ts` (dock/KPI-bar/rails/

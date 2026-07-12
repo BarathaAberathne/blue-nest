@@ -22,8 +22,8 @@ import {
   AI_COMMAND, BRANCH_METRICS, CALENDAR, FINANCE, FINANCE_ANALYTICS,
   SYSTEM_HEALTH,
 } from "./data";
-import { DonutChart, LineChart, MiniCalendar, RingGauge, SentimentLine } from "./widgets";
-import { useEnquiryPipeline } from "./live";
+import { DonutChart, LineChart, MiniCalendar, RingGauge } from "./widgets";
+import OpsWorkspace from "./os/OpsWorkspace";
 
 const LOGO = "/logo/bluenest-logo.png";
 const TONE: Record<string, string> = {
@@ -296,65 +296,6 @@ function FinancialSidebar({ go }: { go: (href: string) => void }) {
   );
 }
 
-/* ── Operational workspace (bottom strip — Stage 2 makes it draggable) ────── */
-function OperationalWorkspace() {
-  const pipeline = useEnquiryPipeline();
-  return (
-    <div className="cc-ops">
-      <div className="cc-ops-head">
-        <p className="cc-heading" style={{ fontSize: 10.5, letterSpacing: "0.14em", color: "var(--cc-text)" }}>OPERATIONAL WORKSPACE</p>
-        <span className="cc-label" style={{ fontSize: 8, color: "var(--cc-muted-dim)" }}>Drag · resize · save layout — Stage 2</span>
-      </div>
-      <div className="cc-ops-row">
-        <div className="cc-ops-panel">
-          <p className="cc-ops-title">ATTENDANCE</p>
-          <div className="cc-col-scroll" style={{ maxHeight: 120 }}>
-            {BRANCH_METRICS.map((m) => (
-              <div key={m.slug} className="cc-brow">
-                <span className="cc-label" style={{ width: 78, fontSize: 9, color: "var(--cc-muted)" }}>{m.name}</span>
-                <div className="cc-heat-track"><div className="cc-heat-fill" style={{ width: `${m.attendanceToday}%` }} /></div>
-                <span className="cc-heading" style={{ width: 30, textAlign: "right", fontSize: 11, color: "var(--cc-text)" }}>{m.attendanceToday}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="cc-ops-panel">
-          <p className="cc-ops-title">ADMISSIONS {pipeline.live && <span style={{ color: "var(--cc-success)", fontSize: 8 }}>● LIVE</span>}</p>
-          <div className="flex flex-col gap-1 mt-1">
-            {pipeline.funnel.map((f) => (
-              <div key={f.label} className="flex items-baseline justify-between gap-2" style={{ fontSize: 10.5 }}>
-                <span className="cc-label" style={{ color: f.highlight ? "var(--cc-accent)" : "var(--cc-muted)" }}>{f.label}</span>
-                <span className="cc-heading" style={{ color: f.highlight ? "var(--cc-accent)" : "var(--cc-text)" }}>{f.value}</span>
-              </div>
-            ))}
-            <div className="flex items-baseline justify-between gap-2 mt-1 pt-1" style={{ borderTop: "1px solid var(--cc-line)", fontSize: 10.5 }}>
-              <span className="cc-label" style={{ color: "var(--cc-muted)" }}>Conversion</span>
-              <span className="cc-heading" style={{ color: "var(--cc-accent)" }}>{pipeline.conversion}%</span>
-            </div>
-          </div>
-        </div>
-        <div className="cc-ops-panel">
-          <p className="cc-ops-title">PARENT SENTIMENT</p>
-          <div className="cc-col-scroll" style={{ maxHeight: 120 }}>
-            {BRANCH_METRICS.map((m) => (
-              <div key={m.slug} className="cc-brow">
-                <div style={{ width: 78 }}>
-                  <p className="cc-heading" style={{ fontSize: 9.5, color: "var(--cc-accent)" }}>{m.name}</p>
-                  <p style={{ fontSize: 11, color: "var(--cc-text)" }}>{m.sentiment.score}★</p>
-                </div>
-                <div style={{ flex: 1 }}><SentimentLine points={m.sentiment.points} height={34} /></div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="cc-ops-panel">
-          <p className="cc-ops-title">REVENUE TREND</p>
-          <div className="mt-1"><LineChart points={FINANCE_ANALYTICS.trend} budget={FINANCE_ANALYTICS.budget} height={104} /></div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ── Reusable section wrapper ─────────────────────────────────────────────── */
 function Section({ title, sub, onOpen, children }: { title: string; sub?: string; onOpen?: () => void; children: React.ReactNode }) {
@@ -419,8 +360,8 @@ export default function CommandCenterClient() {
         <FinancialSidebar go={go} />
       </div>
 
-      {/* ── Operational workspace (full-width bottom) ── */}
-      <OperationalWorkspace />
+      {/* ── Operational workspace (full-width bottom, modular) ── */}
+      <OpsWorkspace />
     </div>
   );
 }
