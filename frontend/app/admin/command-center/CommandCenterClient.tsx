@@ -47,12 +47,10 @@ import {
   CAPACITY_FORECAST,
   CHILDREN_STATUS,
   COMPLIANCE,
-  CONVERSION_PCT,
   ENQUIRY_SOURCES,
   EVENTS,
   FINANCE,
   FINANCE_ANALYTICS,
-  FUNNEL,
   KPIS,
   KPIS_ROW2,
   NAV_ITEMS,
@@ -81,6 +79,7 @@ import {
   SentimentLine,
   Stars,
 } from "./widgets";
+import { useEnquiryPipeline } from "./live";
 
 const LOGO = "/logo/bluenest-logo.png";
 
@@ -451,6 +450,28 @@ export default function CommandCenterClient() {
   const go = (href: string) => router.push(href);
   const byCorner = (c: Branch["corner"]) => BRANCHES.find((b) => b.corner === c)!;
 
+  // Live enquiries/admissions pipeline (real backend data when signed in).
+  const pipeline = useEnquiryPipeline();
+
+  // Overlay live enquiry figures onto the first KPI row (Enquiries card).
+  const kpis: Kpi[] = pipeline.live
+    ? KPIS.map((k) =>
+        k.kind === "enquiries"
+          ? { ...k, value: String(pipeline.enquiriesTotal), sub: `+${pipeline.enquiriesNew} new` }
+          : k,
+      )
+    : KPIS;
+
+  // Overlay live figures onto the relevant second-row tiles.
+  const tiles: MiniKpi[] = pipeline.live
+    ? KPIS_ROW2.map((t) => {
+        if (t.label === "Booked Visits") return { ...t, value: String(pipeline.bookedVisits) };
+        if (t.label === "Applications") return { ...t, value: String(pipeline.applications) };
+        if (t.label === "Enquiry Response" && pipeline.avgResponse) return { ...t, value: pipeline.avgResponse };
+        return t;
+      })
+    : KPIS_ROW2;
+
   return (
     <div className="cc-root">
       <div className="cc-stage">
@@ -580,7 +601,7 @@ export default function CommandCenterClient() {
               <main className="flex-1 flex flex-col gap-2 min-w-0">
             {/* KPI row */}
             <div className="grid grid-cols-5 gap-3">
-              {KPIS.map((k) => (
+              {kpis.map((k) => (
                 <KpiCard key={k.key} kpi={k} />
               ))}
             </div>
@@ -588,7 +609,7 @@ export default function CommandCenterClient() {
             {/* Executive KPI row 2 — dense operational tiles */}
             <Panel className="px-3 py-2" clip>
               <div className="cc-tiles">
-                {KPIS_ROW2.map((k) => (
+                {tiles.map((k) => (
                   <MiniKpiTile key={k.label} kpi={k} />
                 ))}
               </div>
@@ -678,13 +699,13 @@ export default function CommandCenterClient() {
             {/* Bottom cluster: funnel | attendance | sentiment */}
             <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
               <Panel className="px-4 py-2" clip href="/admin/inquiries/dashboard">
-                <SectionTitle sub="This Month">ADMISSION PIPELINE</SectionTitle>
+                <SectionTitle sub={pipeline.live ? "● Live" : "This Month"}>ADMISSION PIPELINE</SectionTitle>
                 <div className="mt-2">
-                  <Funnel stages={FUNNEL} />
+                  <Funnel stages={pipeline.funnel} />
                 </div>
                 <div className="flex justify-end mt-1">
                   <div className="flex flex-col items-center">
-                    <RingGauge value={CONVERSION_PCT} size={64} big={`${CONVERSION_PCT}%`} color="var(--cc-accent)" track="rgba(214,179,106,0.15)" />
+                    <RingGauge value={pipeline.conversion} size={64} big={`${pipeline.conversion}%`} color="var(--cc-accent)" track="rgba(214,179,106,0.15)" />
                     <span className="cc-label" style={{ fontSize: 8, color: "var(--cc-muted)" }}>CONVERSION</span>
                   </div>
                 </div>

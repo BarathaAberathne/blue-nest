@@ -225,7 +225,13 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   branch card, sidebar nav item, quick action, AI-brief button and topbar control is clickable and
   `router.push`es into the relevant existing admin page (see the `R` route map + `NAV_LINKS`/`KPI_LINKS`/
   `tileLink` in `CommandCenterClient.tsx`; modules without a page yet fall back to the closest one). The
-  figures themselves are still static mock. The `director` role (above) is its intended audience.
+  `director` role (above) is its intended audience. **The enquiries/admissions pipeline is live-wired**:
+  `live.ts` (`useEnquiryPipeline`) fetches `GET /admin/enquiries/stats` with the signed-in token and feeds
+  the real funnel + conversion, the Enquiries KPI, and the Booked-Visits/Applications/Enquiry-Response
+  tiles (Admission Pipeline shows a **● Live** tag). It **falls back to the static mock** when there's no
+  token or the request fails (CORS/permissions), so the page still renders for an anonymous demo. All
+  other figures (children, attendance, finance, sentiment, compliance, staffing, activity) remain mock —
+  the enquiries pipeline is the first module connected to real backend data.
 
 Planned next: Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 
