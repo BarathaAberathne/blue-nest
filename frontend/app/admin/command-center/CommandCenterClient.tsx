@@ -24,6 +24,7 @@ import {
 } from "./data";
 import { DonutChart, LineChart, MiniCalendar, RingGauge } from "./widgets";
 import OpsWorkspace from "./os/OpsWorkspace";
+import { addTask } from "./os/tasks";
 
 const LOGO = "/logo/bluenest-logo.png";
 const TONE: Record<string, string> = {
@@ -197,11 +198,16 @@ function Conversation({ tab }: { tab: AiTab }) {
   const send = (text: string) => {
     const t = text.trim();
     if (!t) return;
-    setMessages((m) => [
-      ...m,
-      { role: "user", text: t },
-      { role: "ai", text: `Working on “${t}” for ${tab}. I'll pull the latest branch data and prepare it — this is a Stage-1 preview of the conversational layer.` },
-    ]);
+    // AI task creation: "add task …", "task: …", "remind me to …" → creates a task.
+    const taskMatch = t.match(/^(?:add task|task|remind me(?: to)?|todo)[:\s-]+(.+)$/i);
+    let reply: string;
+    if (taskMatch) {
+      const task = addTask({ title: taskMatch[1], source: "ai" });
+      reply = `Added “${task.title}” to your tasks. You can manage it in the Tasks widget or the board.`;
+    } else {
+      reply = `Working on “${t}” for ${tab}. I'll pull the latest branch data and prepare it — this is a Stage-1 preview of the conversational layer.`;
+    }
+    setMessages((m) => [...m, { role: "user", text: t }, { role: "ai", text: reply }]);
     setInput("");
   };
   return (

@@ -10,9 +10,10 @@ import {
 } from "../data";
 import { LineChart, MiniCalendar, MiniDonut, SentimentLine } from "../widgets";
 import { useEnquiryPipeline, type LivePipeline } from "../live";
+import TasksPanel from "./TasksPanel";
 
 /* ── Panel registry ───────────────────────────────────────────────────────── */
-type PanelId = "attendance" | "admissions" | "sentiment" | "revenue" | "occupancy" | "calendar" | "sources" | "finance";
+type PanelId = "tasks" | "attendance" | "admissions" | "sentiment" | "revenue" | "occupancy" | "calendar" | "sources" | "finance";
 
 const heatRows = (get: (m: (typeof BRANCH_METRICS)[number]) => number) => (
   <div className="flex flex-col gap-1.5">
@@ -28,6 +29,8 @@ const heatRows = (get: (m: (typeof BRANCH_METRICS)[number]) => number) => (
 
 function renderPanel(id: PanelId, pipeline: LivePipeline) {
   switch (id) {
+    case "tasks":
+      return <TasksPanel />;
     case "attendance":
       return heatRows((m) => m.attendanceToday);
     case "occupancy":
@@ -95,19 +98,19 @@ function renderPanel(id: PanelId, pipeline: LivePipeline) {
 }
 
 const PANEL_TITLES: Record<PanelId, string> = {
-  attendance: "Attendance", admissions: "Admissions", sentiment: "Parent Sentiment",
+  tasks: "Tasks", attendance: "Attendance", admissions: "Admissions", sentiment: "Parent Sentiment",
   revenue: "Revenue Trend", occupancy: "Occupancy", calendar: "Calendar",
   sources: "Enquiry Sources", finance: "Finance Snapshot",
 };
 
 type Item = { id: PanelId; span: 1 | 2 | 3 };
 const DEFAULT_ITEMS: Item[] = [
+  { id: "tasks", span: 1 },
   { id: "attendance", span: 1 },
   { id: "admissions", span: 1 },
   { id: "sentiment", span: 1 },
-  { id: "revenue", span: 1 },
 ];
-const ALL_IDS: PanelId[] = ["attendance", "admissions", "sentiment", "revenue", "occupancy", "calendar", "sources", "finance"];
+const ALL_IDS: PanelId[] = ["tasks", "attendance", "admissions", "sentiment", "revenue", "occupancy", "calendar", "sources", "finance"];
 const LS_KEY = "cc-ops-layout-v2";
 
 /* ── Modular operational workspace ────────────────────────────────────────── */

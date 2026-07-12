@@ -224,11 +224,17 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   attach), right **AI Rail** (unified notifications · approvals · safeguarding · tasks · activity, each with
   priority/branch/time/quick-action) · **Executive Financial Sidebar** (Revenue/CashFlow/Outstanding/Funding
   /Budget/Forecast donut + trend · Calendar · System Health) · full-width **Operational Workspace** strip
-  — a **modular workspace** (`os/OpsWorkspace.tsx`, Stage 2): panels (Attendance · Admissions · Parent
-  Sentiment · Revenue · Occupancy · Calendar · Enquiry Sources · Finance) are **drag-reordered** (framer-
-  motion `Reorder`), **resized** (S/M/L column span), shown/hidden/added, the strip height is drag-
+  — a **modular workspace** (`os/OpsWorkspace.tsx`, Stage 2): panels (**Tasks** · Attendance · Admissions ·
+  Parent Sentiment · Revenue · Occupancy · Calendar · Enquiry Sources · Finance) are **drag-reordered**
+  (framer-motion `Reorder`), **resized** (S/M/L column span), shown/hidden/added, the strip height is drag-
   resizable, and the whole layout **saves to localStorage** (`cc-ops-layout-v2`) — Edit-mode toolbar with
-  Add/Reset/Save/Done. No new deps (framer-motion only).
+  Add/Reset/Save/Done. No new deps (framer-motion only). A **Tasks** widget (`os/TasksPanel.tsx`) lets the
+  MD create tasks **manually or via AI** (the ✨ button pulls from `AI_COMMAND.recommendations`; the AI chat
+  turns "add task …"/"remind me to …" into tasks). Tasks live in a shared store (`os/tasks.ts`, localStorage
+  `cc-tasks-v1`, reactive `useTasks()`), so the widget, the AI conversation and the **placeholder Kanban
+  board** at `/admin/command-center/board` (`os/BoardClient.tsx` — 3 columns To Do/In Progress/Done, clearly
+  labelled "PREVIEW · FULL BOARD COMING SOON") all stay in sync. A real backend-backed Kanban (assignees,
+  due dates, drag-drop, per-branch swimlanes) is the planned follow-up.
   A global **command palette** (`cmdk`, ⌘K / click search) is the AI-navigation layer — "Open Harrow", "Show
   today's absences", etc. route into the CMS. Motion uses the already-installed **framer-motion**; new deps
   are only **`cmdk`** + **`@xyflow/react`** (Tailwind stays v3). Data: `os/osdata.ts` (dock/KPI-bar/rails/
