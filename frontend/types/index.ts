@@ -653,6 +653,8 @@ export interface DashboardWidget {
 export interface DashboardLayout {
   id?: string;
   user_id?: string;
+  name?: string;
+  active?: boolean;
   widgets: DashboardWidget[];
   updated_at?: string;
 }

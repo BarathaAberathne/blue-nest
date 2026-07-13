@@ -115,9 +115,13 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/auth/me", authH.Me)
 
 			// Per-user customizable dashboard layout (any authenticated user).
+			// A user can keep several named layouts and switch the active one.
 			dashH := handler.NewDashboardLayoutHandler(svc.DashboardLayouts)
-			r.Get("/me/dashboard", dashH.Get)
-			r.Put("/me/dashboard", dashH.Save)
+			r.Get("/me/dashboard", dashH.Get)          // active layout
+			r.Put("/me/dashboard", dashH.Save)         // save named layout (defaults to active)
+			r.Get("/me/dashboards", dashH.List)        // all named layouts
+			r.Post("/me/dashboards/activate", dashH.Activate)
+			r.Delete("/me/dashboards/{name}", dashH.Delete)
 
 			// Cart
 			cartH := handler.NewCartHandler(svc.Cart)

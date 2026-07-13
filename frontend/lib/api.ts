@@ -380,11 +380,17 @@ export const api = {
   // Identity + capabilities (drives nav/page gating)
   getMe: (token: string) => apiFetch<Me>("/api/v1/auth/me", { token }),
 
-  // Per-user customizable dashboard layout
+  // Per-user customizable dashboard layouts (named; one active at a time)
   getDashboardLayout: (token: string) =>
     apiFetch<DashboardLayout>("/api/v1/me/dashboard", { token }),
-  saveDashboardLayout: (token: string, widgets: DashboardWidget[]) =>
-    apiFetch<DashboardLayout>("/api/v1/me/dashboard", { method: "PUT", body: JSON.stringify({ widgets }), token }),
+  saveDashboardLayout: (token: string, widgets: DashboardWidget[], name?: string) =>
+    apiFetch<DashboardLayout>("/api/v1/me/dashboard", { method: "PUT", body: JSON.stringify({ widgets, name }), token }),
+  listDashboardLayouts: (token: string) =>
+    apiFetch<{ layouts: DashboardLayout[] }>("/api/v1/me/dashboards", { token }),
+  activateDashboardLayout: (token: string, name: string) =>
+    apiFetch<DashboardLayout>("/api/v1/me/dashboards/activate", { method: "POST", body: JSON.stringify({ name }), token }),
+  deleteDashboardLayout: (token: string, name: string) =>
+    apiFetch<{ active: string }>(`/api/v1/me/dashboards/${encodeURIComponent(name)}`, { method: "DELETE", token }),
 
   // Suppliers (managed vendor directory — admin CRUD)
   adminGetSuppliers: (token: string) =>
