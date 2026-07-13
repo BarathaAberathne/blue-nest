@@ -659,6 +659,23 @@ export interface DashboardLayout {
   updated_at?: string;
 }
 
+// Org-wide dashboard template curated by a Super Admin; can be the default for
+// one or more roles (B3.3b).
+export interface DashboardProfile {
+  id?: string;
+  name: string;
+  slug: string;
+  description?: string;
+  widgets: DashboardWidget[];
+  default_for_roles: UserRole[];
+  updated_at?: string;
+}
+
+export interface DashboardProfilesResponse {
+  profiles: DashboardProfile[];
+  roles: { role: UserRole; label: string }[];
+}
+
 // ── Suppliers (managed vendor directory) ─────────────────────────────────────
 export interface Supplier {
   id: string;

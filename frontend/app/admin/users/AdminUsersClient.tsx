@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import RolesPanel from "./RolesPanel";
+import DashboardProfilesPanel from "./DashboardProfilesPanel";
 import type { Branch, User, UserRole } from "@/types";
 
 type Role = UserRole;
@@ -431,6 +432,7 @@ export default function AdminUsersClient() {
       </div>
 
       <RolesPanel />
+      <DashboardProfilesPanel />
     </>
   );
 }

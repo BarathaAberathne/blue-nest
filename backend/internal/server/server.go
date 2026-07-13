@@ -75,6 +75,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	orderTemplateRepo := repository.NewOrderTemplateRepository(db)
 	supplierRepo := repository.NewSupplierRepository(db)
 	dashboardLayoutRepo := repository.NewDashboardLayoutRepository(db)
+	dashboardProfileRepo := repository.NewDashboardProfileRepository(db)
 	roomRepo := repository.NewRoomRepository(db)
 	childRepo := repository.NewChildRepository(db)
 	attendanceRepo := repository.NewAttendanceRepository(db)
@@ -96,31 +97,32 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	// Services
 	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays)
 	svc := routes.Services{
-		Auth:             authSvc,
-		Products:         service.NewProductService(productRepo),
-		Cart:             service.NewCartService(cartRepo, productRepo),
-		Checkout:         service.NewCheckoutService(orderRepo, cartRepo, productRepo, branchRepo, cfg.Stripe.SecretKey, cfg.App.Env),
-		Orders:           service.NewOrderService(orderRepo),
-		Blog:             service.NewBlogService(blogRepo),
-		Branches:         service.NewBranchService(branchRepo, counterRepo),
-		Enquiries:        service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo),
-		Comments:         service.NewCommentService(commentRepo),
-		Audit:            service.NewAuditService(auditRepo),
-		OrderRequests:    service.NewOrderRequestService(orderRequestRepo, userRepo, counterRepo),
-		Catalogue:        service.NewCatalogueService(catalogueRepo),
-		OrderTemplates:   service.NewOrderTemplateService(orderTemplateRepo),
-		Suppliers:        service.NewSupplierService(supplierRepo),
-		Procurement:      service.NewProcurementAnalyticsService(orderRequestRepo, purchaseCartRepo),
-		DashboardLayouts: service.NewDashboardLayoutService(dashboardLayoutRepo),
-		Rooms:            service.NewRoomService(roomRepo),
-		Children:         service.NewChildService(childRepo, roomRepo, counterRepo),
-		Attendance:       service.NewAttendanceService(attendanceRepo, childRepo),
-		Staff:            service.NewStaffService(staffRepo, counterRepo, authSvc),
-		StaffAttendance:  service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo),
-		DailyRecords:     service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo),
-		BranchOverview:   service.NewBranchOverviewService(childRepo, roomRepo, attendanceRepo, staffRepo, staffAttendanceRepo, dailyRecordRepo, enquiryRepo),
-		GBP:              service.NewGBPService(gbpRepo, branchRepo),
-		Roles:            service.NewRoleService(roleRepo),
+		Auth:              authSvc,
+		Products:          service.NewProductService(productRepo),
+		Cart:              service.NewCartService(cartRepo, productRepo),
+		Checkout:          service.NewCheckoutService(orderRepo, cartRepo, productRepo, branchRepo, cfg.Stripe.SecretKey, cfg.App.Env),
+		Orders:            service.NewOrderService(orderRepo),
+		Blog:              service.NewBlogService(blogRepo),
+		Branches:          service.NewBranchService(branchRepo, counterRepo),
+		Enquiries:         service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo),
+		Comments:          service.NewCommentService(commentRepo),
+		Audit:             service.NewAuditService(auditRepo),
+		OrderRequests:     service.NewOrderRequestService(orderRequestRepo, userRepo, counterRepo),
+		Catalogue:         service.NewCatalogueService(catalogueRepo),
+		OrderTemplates:    service.NewOrderTemplateService(orderTemplateRepo),
+		Suppliers:         service.NewSupplierService(supplierRepo),
+		Procurement:       service.NewProcurementAnalyticsService(orderRequestRepo, purchaseCartRepo),
+		DashboardLayouts:  service.NewDashboardLayoutService(dashboardLayoutRepo),
+		DashboardProfiles: service.NewDashboardProfileService(dashboardProfileRepo),
+		Rooms:             service.NewRoomService(roomRepo),
+		Children:          service.NewChildService(childRepo, roomRepo, counterRepo),
+		Attendance:        service.NewAttendanceService(attendanceRepo, childRepo),
+		Staff:             service.NewStaffService(staffRepo, counterRepo, authSvc),
+		StaffAttendance:   service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo),
+		DailyRecords:      service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo),
+		BranchOverview:    service.NewBranchOverviewService(childRepo, roomRepo, attendanceRepo, staffRepo, staffAttendanceRepo, dailyRecordRepo, enquiryRepo),
+		GBP:               service.NewGBPService(gbpRepo, branchRepo),
+		Roles:             service.NewRoleService(roleRepo),
 	}
 
 	// Seed built-in roles + load the effective role→permission cache so

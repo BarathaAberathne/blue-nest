@@ -13,15 +13,17 @@ import (
 )
 
 type DashboardLayoutHandler struct {
-	svc service.DashboardLayoutService
+	svc      service.DashboardLayoutService
+	profiles service.DashboardProfileService
 }
 
-func NewDashboardLayoutHandler(svc service.DashboardLayoutService) *DashboardLayoutHandler {
-	return &DashboardLayoutHandler{svc: svc}
+func NewDashboardLayoutHandler(svc service.DashboardLayoutService, profiles service.DashboardProfileService) *DashboardLayoutHandler {
+	return &DashboardLayoutHandler{svc: svc, profiles: profiles}
 }
 
-// Get returns the caller's active dashboard layout. When none exists the response
-// is an empty widget list, so the UI applies its defaults.
+// Get returns the caller's active dashboard layout. When they haven't saved one,
+// it falls back to the org profile assigned to their role (B3.3b), and finally
+// to an empty widget list so the UI applies its built-in defaults.
 func (h *DashboardLayoutHandler) Get(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(middleware.UserIDKey).(string)
 	layout, err := h.svc.Active(r.Context(), userID)
@@ -29,11 +31,19 @@ func (h *DashboardLayoutHandler) Get(w http.ResponseWriter, r *http.Request) {
 		response.InternalError(w, "failed to load layout")
 		return
 	}
-	if layout == nil {
-		response.OK(w, map[string]interface{}{"widgets": []models.DashboardWidget{}, "name": models.DefaultLayoutName})
+	if layout != nil {
+		response.OK(w, layout)
 		return
 	}
-	response.OK(w, layout)
+	// No personal layout — inherit the role's default profile if one is assigned.
+	role, _ := r.Context().Value(middleware.UserRoleKey).(string)
+	if h.profiles != nil {
+		if p, perr := h.profiles.ResolveForRole(r.Context(), models.Role(role)); perr == nil && p != nil {
+			response.OK(w, map[string]interface{}{"widgets": p.Widgets, "name": p.Name, "source": "profile"})
+			return
+		}
+	}
+	response.OK(w, map[string]interface{}{"widgets": []models.DashboardWidget{}, "name": models.DefaultLayoutName})
 }
 
 // List returns every named layout the caller has saved (active first).

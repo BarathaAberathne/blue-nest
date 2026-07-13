@@ -14,6 +14,7 @@ import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { ORDER_STATUS_META } from "@/lib/admin-status";
 import { displayRef } from "@/lib/ref";
+import { DASHBOARD_WIDGET_KEYS, DASHBOARD_WIDGET_TITLES } from "@/lib/dashboard-widgets";
 import type { AccentName } from "@/lib/admin-theme";
 import type { BlogPost, DashboardLayout, DashboardWidget, Enquiry, Order, OrderRequest, Permission, ProcurementAnalytics, Product, UserRole } from "@/types";
 
@@ -24,13 +25,8 @@ function fmtDate(iso: string) { return new Date(iso).toLocaleDateString("en-GB",
 const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0);
 
 // The customizable widgets, in default order. Saved layouts re-order / hide / size them.
-const WIDGET_TITLES: Record<string, string> = {
-  kpis: "Key metrics",
-  lowstock: "Low-stock alerts",
-  "recent-orders": "Recent orders",
-  "quick-actions": "Quick actions",
-};
-const DEFAULT_ORDER = ["kpis", "lowstock", "recent-orders", "quick-actions"];
+const WIDGET_TITLES = DASHBOARD_WIDGET_TITLES;
+const DEFAULT_ORDER = DASHBOARD_WIDGET_KEYS;
 const DEFAULT_LAYOUT_NAME = "My Dashboard"; // must match models.DefaultLayoutName
 
 export default function DashboardClient() {

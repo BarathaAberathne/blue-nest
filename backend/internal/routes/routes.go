@@ -18,32 +18,33 @@ import (
 )
 
 type Services struct {
-	Auth             service.AuthService
-	Products         service.ProductService
-	Cart             service.CartService
-	Checkout         service.CheckoutService
-	Orders           service.OrderService
-	Blog             service.BlogService
-	Branches         service.BranchService
-	Enquiries        service.EnquiryService
-	Comments         service.CommentService
-	Audit            service.AuditService
-	OrderRequests    service.OrderRequestService
-	Catalogue        service.CatalogueService
-	PurchaseCarts    service.PurchaseCartService
-	OrderTemplates   service.OrderTemplateService
-	Suppliers        service.SupplierService
-	Procurement      service.ProcurementAnalyticsService
-	DashboardLayouts service.DashboardLayoutService
-	Rooms            service.RoomService
-	Children         service.ChildService
-	Attendance       service.AttendanceService
-	Staff            service.StaffService
-	StaffAttendance  service.StaffAttendanceService
-	DailyRecords     service.DailyRecordService
-	BranchOverview   service.BranchOverviewService
-	GBP              service.GBPService
-	Roles            service.RoleService
+	Auth              service.AuthService
+	Products          service.ProductService
+	Cart              service.CartService
+	Checkout          service.CheckoutService
+	Orders            service.OrderService
+	Blog              service.BlogService
+	Branches          service.BranchService
+	Enquiries         service.EnquiryService
+	Comments          service.CommentService
+	Audit             service.AuditService
+	OrderRequests     service.OrderRequestService
+	Catalogue         service.CatalogueService
+	PurchaseCarts     service.PurchaseCartService
+	OrderTemplates    service.OrderTemplateService
+	Suppliers         service.SupplierService
+	Procurement       service.ProcurementAnalyticsService
+	DashboardLayouts  service.DashboardLayoutService
+	DashboardProfiles service.DashboardProfileService
+	Rooms             service.RoomService
+	Children          service.ChildService
+	Attendance        service.AttendanceService
+	Staff             service.StaffService
+	StaffAttendance   service.StaffAttendanceService
+	DailyRecords      service.DailyRecordService
+	BranchOverview    service.BranchOverviewService
+	GBP               service.GBPService
+	Roles             service.RoleService
 }
 
 type Repos struct {
@@ -116,10 +117,10 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 
 			// Per-user customizable dashboard layout (any authenticated user).
 			// A user can keep several named layouts and switch the active one.
-			dashH := handler.NewDashboardLayoutHandler(svc.DashboardLayouts)
-			r.Get("/me/dashboard", dashH.Get)          // active layout
-			r.Put("/me/dashboard", dashH.Save)         // save named layout (defaults to active)
-			r.Get("/me/dashboards", dashH.List)        // all named layouts
+			dashH := handler.NewDashboardLayoutHandler(svc.DashboardLayouts, svc.DashboardProfiles)
+			r.Get("/me/dashboard", dashH.Get)   // active layout
+			r.Put("/me/dashboard", dashH.Save)  // save named layout (defaults to active)
+			r.Get("/me/dashboards", dashH.List) // all named layouts
 			r.Post("/me/dashboards/activate", dashH.Activate)
 			r.Delete("/me/dashboards/{name}", dashH.Delete)
 
@@ -374,6 +375,12 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Post("/admin/roles", adminRoleH.Create)
 				r.Put("/admin/roles/{name}", adminRoleH.UpdatePermissions)
 				r.Delete("/admin/roles/{name}", adminRoleH.Delete)
+
+				// Org dashboard profiles / role defaults — super admin only.
+				adminDashProfileH := adminHandler.NewAdminDashboardProfileHandler(svc.DashboardProfiles, svc.Audit)
+				r.Get("/admin/dashboard-profiles", adminDashProfileH.List)
+				r.Post("/admin/dashboard-profiles", adminDashProfileH.Save)
+				r.Delete("/admin/dashboard-profiles/{slug}", adminDashProfileH.Delete)
 			})
 		})
 	})
