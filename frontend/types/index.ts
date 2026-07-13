@@ -283,7 +283,41 @@ export type UserRole =
   | "procurement"
   | "director"
   | "regional_manager"
-  | "deputy_manager";
+  | "deputy_manager"
+  | "eyfs_lead"
+  | "senco"
+  | "office_admin"
+  | "finance_officer"
+  | "hr_officer"
+  | "admissions_officer"
+  | "room_leader"
+  | "practitioner"
+  | "apprentice"
+  | "kitchen"
+  | "maintenance"
+  | "external_inspector"
+  | (string & {}); // custom roles (super-admin created)
+
+export interface RoleDefinition {
+  id?: string;
+  name: string;
+  label: string;
+  permissions: string[];
+  is_custom: boolean;
+  dashboard?: string;
+}
+
+export interface PermissionInfo {
+  key: string;
+  label: string;
+  category: string;
+}
+
+export interface RolesResponse {
+  roles: RoleDefinition[];
+  catalogue: PermissionInfo[];
+  categories: string[];
+}
 
 export interface User {
   id: string;

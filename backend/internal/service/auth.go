@@ -409,15 +409,15 @@ func (s *authService) FindUserByEmail(ctx context.Context, email string) (*model
 
 // isAssignableRole reports whether a role can be assigned to a user account.
 func isAssignableRole(role models.Role) bool {
-	switch role {
-	case models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager,
-		models.RoleFinance, models.RoleAdmissions, models.RoleProcurement,
-		models.RoleStaff, models.RoleCustomer, models.RoleDirector,
-		models.RoleRegionalManager, models.RoleDeputyManager:
+	if role == models.RoleCustomer {
 		return true
-	default:
-		return false
 	}
+	for _, r := range models.ManagementRoles {
+		if r == role {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *authService) UpsertOAuthUser(ctx context.Context, email, firstName, lastName, provider, providerID string) (*models.AuthResponse, error) {

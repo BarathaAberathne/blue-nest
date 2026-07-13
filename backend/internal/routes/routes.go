@@ -43,6 +43,7 @@ type Services struct {
 	DailyRecords     service.DailyRecordService
 	BranchOverview   service.BranchOverviewService
 	GBP              service.GBPService
+	Roles            service.RoleService
 }
 
 type Repos struct {
@@ -362,6 +363,13 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Put("/admin/users/{id}", adminUserH.Update)
 				r.Post("/admin/users/{id}/reset-password", adminUserH.ResetPassword)
 				r.Delete("/admin/users/{id}", adminUserH.Delete)
+
+				// Roles & permissions builder — super admin only.
+				adminRoleH := adminHandler.NewAdminRoleHandler(svc.Roles, svc.Audit)
+				r.Get("/admin/roles", adminRoleH.List)
+				r.Post("/admin/roles", adminRoleH.Create)
+				r.Put("/admin/roles/{name}", adminRoleH.UpdatePermissions)
+				r.Delete("/admin/roles/{name}", adminRoleH.Delete)
 			})
 		})
 	})

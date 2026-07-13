@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
+import RolesPanel from "./RolesPanel";
 import type { Branch, User, UserRole } from "@/types";
 
 type Role = UserRole;
@@ -13,7 +14,7 @@ type Role = UserRole;
 const ORG_WIDE_ROLES: Role[] = ["super_admin", "admin", "director"];
 const needsScope = (r: Role) => !ORG_WIDE_ROLES.includes(r) && r !== "customer";
 
-const ROLE_BADGE: Record<Role, string> = {
+const ROLE_BADGE: Record<string, string> = {
   super_admin: "bg-rose-100 text-rose-700",
   admin: "bg-purple-100 text-purple-700",
   director: "bg-sky-100 text-sky-700",
@@ -44,7 +45,12 @@ type EditState = {
   branch_slugs: string[];
 };
 
-const ROLES: Role[] = ["staff", "branch_manager", "deputy_manager", "regional_manager", "finance", "admissions", "procurement", "director", "admin", "super_admin", "customer"];
+const ROLES: Role[] = [
+  "staff", "practitioner", "apprentice", "room_leader", "eyfs_lead", "senco",
+  "office_admin", "admissions_officer", "finance_officer", "hr_officer", "kitchen", "maintenance",
+  "deputy_manager", "branch_manager", "regional_manager", "director",
+  "external_inspector", "finance", "admissions", "procurement", "admin", "super_admin", "customer",
+];
 
 export default function AdminUsersClient() {
   const [users, setUsers] = useState<User[]>([]);
@@ -423,6 +429,8 @@ export default function AdminUsersClient() {
           </tbody>
         </table>
       </div>
+
+      <RolesPanel />
     </>
   );
 }

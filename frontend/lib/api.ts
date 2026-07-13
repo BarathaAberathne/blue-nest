@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryPage, EnquiryStats, EnquiryTasks, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
+import type { AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryPage, EnquiryStats, EnquiryTasks, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -297,6 +297,14 @@ export const api = {
   adminDeleteBlogPost: (token: string, id: string) =>
     apiFetch(`/api/v1/admin/blog/posts/${id}`, { method: "DELETE", token }),
   adminGetUsers: (token: string) => apiFetch("/api/v1/admin/users", { token }),
+  // Roles & permissions (super-admin Permission Builder)
+  adminGetRoles: (token: string) => apiFetch<RolesResponse>("/api/v1/admin/roles", { token }),
+  adminUpdateRolePermissions: (token: string, name: string, permissions: string[]) =>
+    apiFetch<RoleDefinition>(`/api/v1/admin/roles/${name}`, { method: "PUT", body: JSON.stringify({ permissions }), token }),
+  adminCreateRole: (token: string, body: { name: string; label: string; permissions: string[] }) =>
+    apiFetch<RoleDefinition>("/api/v1/admin/roles", { method: "POST", body: JSON.stringify(body), token }),
+  adminDeleteRole: (token: string, name: string) =>
+    apiFetch(`/api/v1/admin/roles/${name}`, { method: "DELETE", token }),
   adminCreateUser: (token: string, body: unknown) =>
     apiFetch("/api/v1/admin/users", { method: "POST", body: JSON.stringify(body), token }),
   adminUpdateUser: (token: string, id: string, body: unknown) =>

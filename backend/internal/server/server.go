@@ -82,6 +82,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	staffAttendanceRepo := repository.NewStaffAttendanceRepository(db)
 	dailyRecordRepo := repository.NewDailyRecordRepository(db)
 	gbpRepo := repository.NewGBPRepository(db)
+	roleRepo := repository.NewRoleRepository(db)
 	mailer := email.New(email.Config{
 		Host:         cfg.SMTP.Host,
 		Port:         cfg.SMTP.Port,
@@ -119,6 +120,13 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		DailyRecords:     service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo),
 		BranchOverview:   service.NewBranchOverviewService(childRepo, roomRepo, attendanceRepo, staffRepo, staffAttendanceRepo, dailyRecordRepo, enquiryRepo),
 		GBP:              service.NewGBPService(gbpRepo, branchRepo),
+		Roles:            service.NewRoleService(roleRepo),
+	}
+
+	// Seed built-in roles + load the effective role→permission cache so
+	// HasPermission reflects any Super-Admin edits (falls back to defaults).
+	if err := svc.Roles.EnsureSeeded(context.Background()); err != nil {
+		log.Warn("could not seed/load roles", "err", err)
 	}
 
 	// Sourcing engine: enable supplier adapters per config (off by default; the
