@@ -8,6 +8,10 @@ const (
 	CounterOrderRequest = "order_request"
 	CounterPurchaseCart = "purchase_cart"
 	CounterOrder        = "order"
+	CounterChild        = "child"
+	CounterStaff        = "staff"
+	CounterDailyRecord  = "daily_record"
+	CounterBranch       = "branch"
 )
 
 // Ref prefixes for each entity (human-readable ID = PREFIX-YEAR-NNNNNN).
@@ -15,6 +19,10 @@ const (
 	RefPrefixOrderRequest = "SR"  // supply request
 	RefPrefixPurchaseCart = "PO"  // purchase order
 	RefPrefixOrder        = "ORD" // customer store order
+	RefPrefixChild        = "CHD" // enrolled child
+	RefPrefixStaff        = "STF" // staff member
+	RefPrefixDailyRecord  = "LOG" // daily record (observation/incident/etc.)
+	RefPrefixBranch       = "BR"  // branch / nursery location
 )
 
 // FormatRef builds a zero-padded reference, e.g. FormatRef("SR", 2026, 45) →

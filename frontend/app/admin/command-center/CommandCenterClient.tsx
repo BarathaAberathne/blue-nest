@@ -16,13 +16,14 @@ import CommandPalette from "./os/CommandPalette";
 import BranchRadar from "./os/BranchRadar";
 import AITabContent from "./os/AITabs";
 import {
-  DOCK_ITEMS, EXEC_KPIS, EXEC_SUMMARY, RISKS, DEADLINES, AI_RAIL, AI_TABS,
+  DOCK_ITEMS, EXEC_KPIS, EXEC_SUMMARY, MD_PROFILE, RISKS, DEADLINES, AI_RAIL, AI_TABS,
   AI_PROMPTS, type AiTab, type AiRailItem,
 } from "./os/osdata";
 import {
-  AI_COMMAND, BRANCH_METRICS, CALENDAR, FINANCE, FINANCE_ANALYTICS,
+  AI_COMMAND, CALENDAR, FINANCE, FINANCE_ANALYTICS,
   SYSTEM_HEALTH,
 } from "./data";
+import { useChildrenStats, useAttendanceToday, useBranchMetrics, useStaffStats, useDailyStats } from "./live";
 import { DonutChart, LineChart, MiniCalendar, RingGauge } from "./widgets";
 import OpsWorkspace from "./os/OpsWorkspace";
 import { addTask } from "./os/tasks";
@@ -86,22 +87,52 @@ function useClock() {
 }
 
 /* ── Executive KPI bar ────────────────────────────────────────────────────── */
+// dayLabel returns "today" when the figures are for the current date, else a
+// short date like "12 Jul" — so a KPI sourced from the latest register day
+// (e.g. before today's register is taken) reads honestly instead of "today".
+function dayLabel(date: string): string {
+  if (!date) return "today";
+  const today = new Date().toISOString().slice(0, 10);
+  if (date === today) return "today";
+  const d = new Date(date);
+  return Number.isNaN(d.getTime()) ? "today" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
 function KpiBar() {
+  const children = useChildrenStats();
+  const attendance = useAttendanceToday();
+  const staff = useStaffStats();
+  const daily = useDailyStats();
+  const attLabel = attendance.live ? dayLabel(attendance.date) : "today";
+  // Live overrides for the backed KPIs; the rest stay on mock.
+  const overrides: Record<string, { value: string; sub?: string }> = {
+    Children: { value: String(children.total), sub: children.live ? `${children.active} active` : undefined },
+    Occupancy: { value: `${children.occupancyRate}%`, sub: "all branches" },
+    Attendance: { value: `${attendance.attendanceRate}%`, sub: `children · ${attLabel}` },
+    Safeguarding: { value: String(daily.safeguardingOpen), sub: "open" },
+    Staff: { value: String(staff.total), sub: `${staff.present} present` },
+  };
   return (
     <div className="cc-kpibar">
-      {EXEC_KPIS.map((k) => (
-        <div key={k.label} className="cc-kpicell">
-          <p className="cc-label" style={{ fontSize: 8, color: "var(--cc-muted)" }}>{k.label}</p>
-          <p className="cc-heading" style={{ fontSize: 19, color: k.tone ? TONE[k.tone] : "var(--cc-text)", lineHeight: 1.1 }}>{k.value}</p>
-          {k.sub && <p style={{ fontSize: 8, color: "var(--cc-muted-dim)" }}>{k.sub}</p>}
-        </div>
-      ))}
+      {EXEC_KPIS.map((k) => {
+        const o = overrides[k.label];
+        const value = o ? o.value : k.value;
+        const sub = o && o.sub !== undefined ? o.sub : k.sub;
+        return (
+          <div key={k.label} className="cc-kpicell">
+            <p className="cc-label" style={{ fontSize: 8, color: "var(--cc-muted)" }}>{k.label}</p>
+            <p className="cc-heading" style={{ fontSize: 19, color: k.tone ? TONE[k.tone] : "var(--cc-text)", lineHeight: 1.1 }}>{value}</p>
+            {sub && <p style={{ fontSize: 8, color: "var(--cc-muted-dim)" }}>{sub}</p>}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 /* ── Left intelligence rail ───────────────────────────────────────────────── */
 function IntelligenceRail() {
+  const { metrics: branches } = useBranchMetrics();
   return (
     <aside className="cc-intel cc-col-scroll">
       <Section title="EXECUTIVE SUMMARY">
@@ -123,11 +154,11 @@ function IntelligenceRail() {
           </div>
         </div>
       </Section>
-      <Section title="BRANCH STATUS">
+      <Section title="BRANCH OCCUPANCY">
         <div className="flex flex-col gap-1.5">
-          {BRANCH_METRICS.map((m) => (
+          {branches.map((m) => (
             <div key={m.slug} className="flex items-center gap-2" style={{ fontSize: 10.5 }}>
-              <span className="cc-dot" style={{ width: 7, height: 7, color: statusColor(m.status) }} />
+              <span className="cc-dot" style={{ width: 7, height: 7, color: statusColor(m.status) }} title={`Status: ${m.status}`} />
               <span className="cc-label" style={{ flex: 1, color: "var(--cc-muted)" }}>{m.name}</span>
               <span className="cc-heading" style={{ color: "var(--cc-text)" }}>{m.occupancy}%</span>
             </div>
@@ -340,7 +371,13 @@ export default function CommandCenterClient() {
           <span className="cc-label" style={{ fontSize: 11, color: "var(--cc-muted)" }} suppressHydrationWarning>{time}</span>
           <button className="cc-hbtn" onClick={() => go("/admin/activity")}><Bell size={15} /><span className="cc-hbadge">5</span></button>
           <button className="cc-hbtn" onClick={() => go("/admin/inquiries")}><Mail size={15} /><span className="cc-hbadge">3</span></button>
-          <div className="cc-hprofile">MD</div>
+          <div className="flex items-center gap-2" title={`${MD_PROFILE.name} · ${MD_PROFILE.title}`}>
+            <div className="hidden sm:block text-right leading-tight">
+              <p className="cc-heading" style={{ fontSize: 11, color: "var(--cc-text)" }}>{MD_PROFILE.nickname}</p>
+              <p className="cc-label" style={{ fontSize: 8, color: "var(--cc-muted)" }}>{MD_PROFILE.title}</p>
+            </div>
+            <div className="cc-hprofile">{MD_PROFILE.initials}</div>
+          </div>
         </div>
       </header>
 

@@ -15,15 +15,24 @@ const (
 	PermSuppliersManage   Permission = "suppliers.manage"   // supplier directory CRUD
 	PermFinanceView       Permission = "finance.view"       // spend, procurement analytics
 	PermAuditView         Permission = "audit.view"         // activity / audit log
-	PermBranchesManage    Permission = "branches.manage"
-	PermUsersManage       Permission = "users.manage" // account management (super admin)
+	PermBranchesManage    Permission = "branches.manage" // view + edit in-scope branches
+	PermBranchAdmin       Permission = "branch.admin"    // branch lifecycle: create/delete/archive/merge/assign/GBP (super admin)
+	PermUsersManage       Permission = "users.manage"    // account management (super admin)
+	// Nursery operations (Phase 1)
+	PermChildrenManage   Permission = "children.manage"   // child records + rooms
+	PermAttendanceManage Permission = "attendance.manage" // daily attendance register
+	// Staff / HR (Phase 2)
+	PermStaffManage Permission = "staff.manage" // staff records + staff attendance
+	// Daily records / safeguarding (Phase 3)
+	PermDailyLogsManage Permission = "daily_logs.manage" // observations, incidents, safeguarding, medication, meals
 )
 
 // AllPermissions is the full set, granted to super_admin/admin.
 var AllPermissions = []Permission{
 	PermDashboardView, PermStoreManage, PermBlogManage, PermEnquiriesManage,
 	PermProcurementView, PermProcurementManage, PermSuppliersManage,
-	PermFinanceView, PermAuditView, PermBranchesManage, PermUsersManage,
+	PermFinanceView, PermAuditView, PermBranchesManage, PermBranchAdmin, PermUsersManage,
+	PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage,
 }
 
 // rolePermissions maps each role to its capability set. Customers/staff have no
@@ -35,11 +44,13 @@ var rolePermissions = map[Role][]Permission{
 		PermDashboardView, PermStoreManage, PermBlogManage, PermEnquiriesManage,
 		PermProcurementView, PermProcurementManage, PermSuppliersManage,
 		PermFinanceView, PermAuditView, PermBranchesManage,
+		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage,
 	},
 	RoleBranchManager: {
 		PermDashboardView, PermStoreManage, PermBlogManage, PermEnquiriesManage,
 		PermProcurementView, PermProcurementManage, PermSuppliersManage,
 		PermFinanceView, PermAuditView, PermBranchesManage,
+		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage,
 	},
 	// Director (Managing Director): broad executive oversight across the whole
 	// back office — same reach as a general manager, minus account management.
@@ -47,6 +58,7 @@ var rolePermissions = map[Role][]Permission{
 		PermDashboardView, PermStoreManage, PermBlogManage, PermEnquiriesManage,
 		PermProcurementView, PermProcurementManage, PermSuppliersManage,
 		PermFinanceView, PermAuditView, PermBranchesManage,
+		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage,
 	},
 	RoleFinance: {
 		PermDashboardView, PermFinanceView, PermProcurementView, PermAuditView,
@@ -57,6 +69,19 @@ var rolePermissions = map[Role][]Permission{
 	RoleProcurement: {
 		PermDashboardView, PermProcurementView, PermProcurementManage,
 		PermSuppliersManage, PermFinanceView,
+	},
+	// Regional Manager: multi-branch oversight (scoped to User.BranchSlugs by the
+	// policy layer). Full operational reach across their branches; no lifecycle.
+	RoleRegionalManager: {
+		PermDashboardView, PermBranchesManage, PermEnquiriesManage,
+		PermFinanceView, PermAuditView,
+		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage,
+	},
+	// Deputy Manager: assists one branch — same operational reach as a branch
+	// manager minus finance/payroll approval.
+	RoleDeputyManager: {
+		PermDashboardView, PermBranchesManage, PermEnquiriesManage,
+		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage,
 	},
 }
 

@@ -15,15 +15,131 @@ export interface BranchAdmissions {
   notes?: string;
 }
 
+export interface BranchHours {
+  day: string;
+  open?: string;
+  close?: string;
+  closed?: boolean;
+}
+
+export interface BranchGoogle {
+  place_id?: string;
+  location_id?: string;
+  review_url?: string;
+  maps_url?: string;
+  rating?: number;
+  review_count?: number;
+  business_status?: string;
+  last_sync?: string;
+}
+
+export interface BranchSocial {
+  facebook?: string;
+  instagram?: string;
+  website?: string;
+}
+
+export interface BranchManagers {
+  director?: string;
+  regional?: string;
+  branch_manager?: string;
+  deputy?: string;
+  assistant?: string;
+  key_persons?: string[];
+}
+
 export interface Branch {
   id: string;
+  ref?: string; // BR-YYYY-NNNNNN
   slug: string;
   name: string;
   status: BranchStatus;
   short_description: string;
   hero_image_url?: string;
+  logo_url?: string;
+  gallery?: string[];
   contact: BranchContact;
   admissions: BranchAdmissions;
+  postcode?: string;
+  lat?: number;
+  lng?: number;
+  website?: string;
+  parking?: string;
+  opening_hours?: BranchHours[];
+  capacity?: number;
+  age_groups?: string[];
+  ofsted_rating?: string;
+  ofsted_report_url?: string;
+  google?: BranchGoogle;
+  social?: BranchSocial;
+  managers?: BranchManagers;
+  group_id?: string;
+  archived_at?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type BranchInput = Omit<Branch, "id" | "ref" | "archived_at" | "created_at" | "updated_at" | "managers">;
+
+// Aggregated per-branch rollup (enterprise list rows).
+export interface BranchOverviewRow {
+  slug: string;
+  name: string;
+  ref?: string;
+  status: string;
+  manager_id?: string;
+  children: number;
+  capacity: number;
+  occupancy: number;
+  staff: number;
+  staff_present: number;
+  rooms: number;
+  enquiries: number;
+  new_enquiries: number;
+  attendance_today: number;
+  safeguarding_open: number;
+  medication_due: number;
+  rating: number;
+  ofsted?: string;
+  performance: number;
+  lat?: number;
+  lng?: number;
+}
+
+export interface BranchActivityItem {
+  time: string;
+  text: string;
+  kind: string;
+}
+
+// Per-branch executive dashboard (mini Command Centre).
+export interface BranchDashboard {
+  slug: string;
+  name: string;
+  date: string;
+  children_active: number;
+  children_present: number;
+  children_expected: number;
+  attendance_rate: number;
+  capacity: number;
+  occupancy: number;
+  available: number;
+  staff_total: number;
+  staff_present: number;
+  staff_on_leave: number;
+  rooms: number;
+  enquiries: number;
+  new_enquiries: number;
+  medication_due: number;
+  safeguarding_open: number;
+  incidents_today: number;
+  meals_served: number;
+  rating: number;
+  review_count: number;
+  ofsted?: string;
+  performance: number;
+  birthdays: string[];
+  activity: BranchActivityItem[];
 }
 
 // ── Product ──────────────────────────────────────────────────────────────────
@@ -164,7 +280,9 @@ export type UserRole =
   | "finance"
   | "admissions"
   | "procurement"
-  | "director";
+  | "director"
+  | "regional_manager"
+  | "deputy_manager";
 
 export interface User {
   id: string;
@@ -476,7 +594,12 @@ export type Permission =
   | "finance.view"
   | "audit.view"
   | "branches.manage"
-  | "users.manage";
+  | "branch.admin"
+  | "users.manage"
+  | "children.manage"
+  | "attendance.manage"
+  | "staff.manage"
+  | "daily_logs.manage";
 
 export interface Me {
   id: string;
@@ -683,4 +806,274 @@ export interface OrderRequest {
   delivered_at?: string;
   created_at: string;
   updated_at: string;
+}
+
+// ── Nursery: rooms, children & attendance (Phase 1) ──────────────────────────
+export interface Room {
+  id: string;
+  branch_slug: string;
+  name: string;
+  age_range?: string;
+  capacity: number;
+  staff_ratio?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface RoomInput {
+  branch_slug: string;
+  name: string;
+  age_range?: string;
+  capacity?: number;
+  staff_ratio?: number;
+}
+
+export type ChildStatus = "active" | "waitlist" | "left";
+
+export interface Guardian {
+  name: string;
+  relation?: string;
+  email?: string;
+  phone?: string;
+  primary?: boolean;
+}
+
+export interface ChildSession {
+  day: string;
+  type: string; // full | am | pm
+}
+
+export interface Child {
+  id: string;
+  ref?: string; // CHD-YYYY-NNNNNN
+  first_name: string;
+  last_name: string;
+  dob?: string; // YYYY-MM-DD
+  gender?: string;
+  branch_slug: string;
+  room_id?: string;
+  status: ChildStatus;
+  start_date?: string;
+  guardians?: Guardian[];
+  funding_type: string; // none | 15h | 30h
+  sessions?: ChildSession[];
+  allergies?: string;
+  dietary_reqs?: string;
+  medical_notes?: string;
+  enquiry_id?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ChildInput {
+  first_name: string;
+  last_name: string;
+  dob?: string;
+  gender?: string;
+  branch_slug: string;
+  room_id?: string;
+  status?: ChildStatus;
+  start_date?: string;
+  guardians?: Guardian[];
+  funding_type?: string;
+  sessions?: ChildSession[];
+  allergies?: string;
+  dietary_reqs?: string;
+  medical_notes?: string;
+}
+
+export interface ChildStatPoint {
+  label: string;
+  value: number;
+}
+
+export interface BranchChildStat {
+  branch: string;
+  children: number;
+  capacity: number;
+  occupancy_rate: number;
+}
+
+export interface ChildStats {
+  total: number;
+  active: number;
+  waitlist: number;
+  capacity: number;
+  available: number;
+  occupancy_rate: number;
+  by_branch: ChildStatPoint[];
+  by_age_group: ChildStatPoint[];
+  branches: BranchChildStat[];
+}
+
+export type AttendanceStatus = "expected" | "present" | "absent" | "holiday" | "sick";
+
+export interface AttendanceRecord {
+  id: string;
+  child_id: string;
+  child_name: string;
+  branch_slug: string;
+  room_id?: string;
+  date: string;
+  status: AttendanceStatus;
+  check_in?: string;
+  check_out?: string;
+  checked_in_by?: string;
+  checked_out_by?: string;
+  late_pickup: boolean;
+  notes?: string;
+}
+
+export interface BranchAttendanceStat {
+  branch: string;
+  present: number;
+  expected: number;
+  attendance_rate: number;
+}
+
+export interface AttendanceStats {
+  date: string;
+  present: number;
+  checked_in: number;
+  absent: number;
+  expected: number;
+  attendance_rate: number;
+  late_pickups: number;
+  branches: BranchAttendanceStat[];
+}
+
+// ── People / HR: staff & staff attendance (Phase 2) ──────────────────────────
+export type StaffStatus = "active" | "on_leave" | "inactive";
+export type StaffType = "permanent" | "agency" | "bank";
+
+export interface Staff {
+  id: string;
+  ref?: string; // STF-YYYY-NNNNNN
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+  branch_slug: string;
+  room_id?: string;
+  job_title?: string;
+  staff_type: StaffType;
+  status: StaffStatus;
+  start_date?: string;
+  contract_hours?: number;
+  qualifications?: string[];
+  dbs_number?: string;
+  dbs_expiry?: string;
+  first_aid_expiry?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface StaffInput {
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+  branch_slug: string;
+  room_id?: string;
+  job_title?: string;
+  staff_type?: StaffType;
+  status?: StaffStatus;
+  start_date?: string;
+  contract_hours?: number;
+  qualifications?: string[];
+  dbs_number?: string;
+  dbs_expiry?: string;
+  first_aid_expiry?: string;
+}
+
+export interface BranchStaffStat {
+  branch: string;
+  total: number;
+  present: number;
+}
+
+export interface StaffStats {
+  date: string;
+  attendance_rate: number;
+  total: number;
+  present: number;
+  on_leave: number;
+  training: number;
+  sick: number;
+  late_arrival: number;
+  agency: number;
+  absent: number;
+  dbs_expiring: number;
+  branches: BranchStaffStat[];
+}
+
+export type StaffAttendanceStatus = "expected" | "present" | "absent" | "leave" | "sick" | "training";
+
+export interface StaffAttendanceRecord {
+  id: string;
+  staff_id: string;
+  staff_name: string;
+  branch_slug: string;
+  date: string;
+  status: StaffAttendanceStatus;
+  clock_in?: string;
+  clock_out?: string;
+  late_arrival: boolean;
+  notes?: string;
+}
+
+// ── Daily records: observations, incidents, safeguarding, medication, meals (Phase 3) ──
+export type DailyRecordType = "observation" | "incident" | "safeguarding" | "medication" | "meal";
+export type DailyRecordStatus = "open" | "resolved" | "administered" | "logged";
+
+export interface DailyRecord {
+  id: string;
+  ref?: string; // LOG-YYYY-NNNNNN
+  type: DailyRecordType;
+  child_id?: string;
+  child_name?: string;
+  branch_slug: string;
+  room_id?: string;
+  date: string;
+  title: string;
+  detail?: string;
+  status: DailyRecordStatus;
+  severity?: string; // low | medium | high
+  author?: string;
+  eyfs_areas?: string[];
+  next_steps?: string;
+  medication?: string;
+  dose?: string;
+  meal_type?: string;
+  eaten?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DailyRecordInput {
+  type: DailyRecordType;
+  child_id?: string;
+  branch_slug: string;
+  room_id?: string;
+  date?: string;
+  title: string;
+  detail?: string;
+  status?: DailyRecordStatus;
+  severity?: string;
+  eyfs_areas?: string[];
+  next_steps?: string;
+  medication?: string;
+  dose?: string;
+  meal_type?: string;
+  eaten?: string;
+}
+
+export interface DailyStats {
+  date: string;
+  safeguarding_open: number;
+  incidents_today: number;
+  medication_due: number;
+  meals_served: number;
+  observations_week: number;
+  by_type: { label: string; count: number }[];
 }

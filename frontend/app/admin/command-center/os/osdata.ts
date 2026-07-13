@@ -5,15 +5,23 @@
 export const DOCK_ITEMS = [
   { key: "dashboard", label: "Dashboard", href: "/admin/command-center" },
   { key: "branches", label: "Branches", href: "/admin/dashboard" },
-  { key: "children", label: "Children", href: "/admin/inquiries" },
-  { key: "staff", label: "Staff", href: "/admin/users" },
+  { key: "children", label: "Children", href: "/admin/children" },
+  { key: "staff", label: "Staff", href: "/admin/staff" },
   { key: "admissions", label: "Admissions", href: "/admin/inquiries/dashboard" },
   { key: "finance", label: "Finance", href: "/admin/procurement/analytics" },
-  { key: "attendance", label: "Attendance", href: "/admin/dashboard" },
+  { key: "attendance", label: "Attendance", href: "/admin/attendance" },
   { key: "communication", label: "Communication", href: "/admin/inquiries" },
   { key: "reports", label: "Reports", href: "/admin/procurement/analytics" },
   { key: "settings", label: "Settings", href: "/admin/users" },
 ] as const;
+
+// The Managing Director whose executive OS this is.
+export const MD_PROFILE = {
+  name: "Devinde Ratnayake",
+  nickname: "Dev",
+  title: "Managing Director",
+  initials: "DR",
+};
 
 export type ExecKpi = { label: string; value: string; sub?: string; tone?: "ok" | "warn" | "bad" | "accent" };
 
@@ -30,7 +38,7 @@ export const EXEC_KPIS: ExecKpi[] = [
 
 // Left intelligence rail
 export const EXEC_SUMMARY = {
-  greeting: "Good morning, Mahesh.",
+  greeting: "Good morning, Dev.",
   lines: [
     "Group health is strong — 92/100.",
     "Two branches need attention today.",

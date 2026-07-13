@@ -11,7 +11,9 @@ const ROLE_BADGE: Record<Role, string> = {
   super_admin: "bg-rose-100 text-rose-700",
   admin: "bg-purple-100 text-purple-700",
   director: "bg-sky-100 text-sky-700",
+  regional_manager: "bg-cyan-100 text-cyan-700",
   branch_manager: "bg-blue-100 text-blue-700",
+  deputy_manager: "bg-indigo-100 text-indigo-700",
   finance: "bg-teal-100 text-teal-700",
   admissions: "bg-amber-100 text-amber-700",
   procurement: "bg-indigo-100 text-indigo-700",
@@ -34,7 +36,7 @@ type EditState = {
   role: Role;
 };
 
-const ROLES: Role[] = ["staff", "branch_manager", "finance", "admissions", "procurement", "director", "admin", "super_admin", "customer"];
+const ROLES: Role[] = ["staff", "branch_manager", "deputy_manager", "regional_manager", "finance", "admissions", "procurement", "director", "admin", "super_admin", "customer"];
 
 export default function AdminUsersClient() {
   const [users, setUsers] = useState<User[]>([]);

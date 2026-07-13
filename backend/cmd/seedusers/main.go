@@ -40,10 +40,11 @@ import (
 )
 
 type seedSpec struct {
-	envPrefix string // e.g. "DEFAULT_ADMIN" or "DEFAULT_CUSTOMER"
-	role      models.Role
-	defaultFN string
-	defaultLN string
+	envPrefix   string // e.g. "DEFAULT_ADMIN" or "DEFAULT_CUSTOMER"
+	role        models.Role
+	defaultFN   string
+	defaultLN   string
+	branchSlugs []string // branch scope for scoped roles (regional/branch managers)
 }
 
 func main() {
@@ -82,6 +83,11 @@ func main() {
 		// DEFAULT_DIRECTOR_EMAIL/PASSWORD are set (otherwise assign the role on
 		// /admin/users). Director lands on /admin/command-center after login.
 		{envPrefix: "DEFAULT_DIRECTOR", role: models.RoleDirector, defaultFN: "Managing", defaultLN: "Director"},
+		// Optional branch-scoped demo accounts for the Branch Management System.
+		// Regional Manager sees Northwood + Pinner + Pinner Green (not Harrow);
+		// Branch Manager sees Harrow only. Seeded only when their env vars are set.
+		{envPrefix: "DEFAULT_REGIONAL", role: models.RoleRegionalManager, defaultFN: "Regional", defaultLN: "Manager", branchSlugs: []string{"northwood", "pinner", "pinner-green"}},
+		{envPrefix: "DEFAULT_BRANCH_MANAGER", role: models.RoleBranchManager, defaultFN: "Branch", defaultLN: "Manager", branchSlugs: []string{"harrow"}},
 	}
 
 	seededAny := false
@@ -99,6 +105,7 @@ func main() {
 		if err := upsertUser(ctx, col, s.role, email, password,
 			firstNonEmpty(os.Getenv(s.envPrefix+"_FIRST_NAME"), s.defaultFN),
 			firstNonEmpty(os.Getenv(s.envPrefix+"_LAST_NAME"), s.defaultLN),
+			s.branchSlugs,
 		); err != nil {
 			log.Fatalf("seed %s (%s): %v", s.role, email, err)
 		}
@@ -112,7 +119,7 @@ func main() {
 	log.Println("\nUser seed complete ✓")
 }
 
-func upsertUser(ctx context.Context, col *mongo.Collection, role models.Role, email, password, firstName, lastName string) error {
+func upsertUser(ctx context.Context, col *mongo.Collection, role models.Role, email, password, firstName, lastName string, branchSlugs []string) error {
 	if len(password) < 8 {
 		return fmt.Errorf("password for %s must be at least 8 characters", email)
 	}
@@ -128,7 +135,7 @@ func upsertUser(ctx context.Context, col *mongo.Collection, role models.Role, em
 		}
 		if _, upErr := col.UpdateOne(ctx,
 			bson.M{"_id": existing.ID},
-			bson.M{"$set": bson.M{"role": role, "updated_at": time.Now()}},
+			bson.M{"$set": bson.M{"role": role, "branch_slugs": branchSlugs, "updated_at": time.Now()}},
 		); upErr != nil {
 			return upErr
 		}
@@ -152,6 +159,7 @@ func upsertUser(ctx context.Context, col *mongo.Collection, role models.Role, em
 		FirstName:    firstName,
 		LastName:     lastName,
 		Role:         role,
+		BranchSlugs:  branchSlugs,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}

@@ -238,11 +238,7 @@ func (s *authService) AdminLogin(ctx context.Context, req models.LoginRequest) (
 	// Staff are allowed in: they sign into the same back-office shell (a
 	// restricted "Staff Portal" — see AdminLayout) as management. Only customers
 	// are excluded from the admin login.
-	return s.loginWithRoleGuard(ctx, req, []models.Role{
-		models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager,
-		models.RoleFinance, models.RoleAdmissions, models.RoleProcurement, models.RoleStaff,
-		models.RoleDirector,
-	})
+	return s.loginWithRoleGuard(ctx, req, models.ManagementRoles)
 }
 
 func (s *authService) CreateAdminUser(ctx context.Context, req models.AdminCreateUserRequest) (*models.User, error) {
@@ -409,7 +405,8 @@ func isAssignableRole(role models.Role) bool {
 	switch role {
 	case models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager,
 		models.RoleFinance, models.RoleAdmissions, models.RoleProcurement,
-		models.RoleStaff, models.RoleCustomer, models.RoleDirector:
+		models.RoleStaff, models.RoleCustomer, models.RoleDirector,
+		models.RoleRegionalManager, models.RoleDeputyManager:
 		return true
 	default:
 		return false

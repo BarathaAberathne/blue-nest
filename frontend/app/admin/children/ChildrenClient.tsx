@@ -1,0 +1,259 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Baby, Download, Plus, Search, Users, X } from "lucide-react";
+import { api } from "@/lib/api";
+import { getAccessToken } from "@/lib/auth";
+import { branchShortName } from "@/lib/branch";
+import StatCard from "@/components/admin/ui/StatCard";
+import StageBadge from "@/components/admin/ui/StageBadge";
+import { ageLabel, childStatusAccent, fundingLabel } from "@/lib/child";
+import type { Branch, Child, ChildInput, ChildStats, Room } from "@/types";
+
+const emptyForm: ChildInput = {
+  first_name: "", last_name: "", dob: "", gender: "", branch_slug: "", room_id: "",
+  status: "active", start_date: "", funding_type: "none", allergies: "", dietary_reqs: "", medical_notes: "",
+  guardians: [{ name: "", relation: "Mother", email: "", phone: "", primary: true }],
+};
+
+export default function ChildrenClient() {
+  const [children, setChildren] = useState<Child[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [stats, setStats] = useState<ChildStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [branchFilter, setBranchFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [q, setQ] = useState("");
+
+  const [form, setForm] = useState<ChildInput>(emptyForm);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    const token = getAccessToken();
+    if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
+    const [c, b, r, s] = await Promise.allSettled([
+      api.adminGetChildren(token), api.getBranches(), api.adminGetRooms(token), api.adminGetChildStats(token),
+    ]);
+    if (c.status === "fulfilled") setChildren((c.value as Child[]) ?? []);
+    if (b.status === "fulfilled") setBranches((b.value as Branch[]) ?? []);
+    if (r.status === "fulfilled") setRooms((r.value as Room[]) ?? []);
+    if (s.status === "fulfilled") setStats(s.value as ChildStats);
+    setLoading(false);
+  };
+  useEffect(() => { void load(); }, []);
+
+  const branchName = useMemo(() => {
+    const m = new Map(branches.map((b) => [b.slug, branchShortName(b)]));
+    return (slug: string) => m.get(slug) ?? slug;
+  }, [branches]);
+  const roomName = useMemo(() => {
+    const m = new Map(rooms.map((r) => [r.id, r.name]));
+    return (id?: string) => (id ? m.get(id) ?? "—" : "—");
+  }, [rooms]);
+
+  const rows = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return children.filter((c) => {
+      if (branchFilter && c.branch_slug !== branchFilter) return false;
+      if (statusFilter && c.status !== statusFilter) return false;
+      if (needle) {
+        const hay = `${c.first_name} ${c.last_name} ${c.ref ?? ""}`.toLowerCase();
+        if (!hay.includes(needle)) return false;
+      }
+      return true;
+    });
+  }, [children, branchFilter, statusFilter, q]);
+
+  const roomsForBranch = useMemo(
+    () => rooms.filter((r) => r.branch_slug === form.branch_slug),
+    [rooms, form.branch_slug],
+  );
+
+  const exportCsv = () => {
+    const header = ["Ref", "First name", "Last name", "DOB", "Age", "Branch", "Room", "Status", "Funding", "Start date"];
+    const lines = rows.map((c) => [
+      c.ref ?? "", c.first_name, c.last_name, c.dob ?? "", ageLabel(c.dob),
+      branchName(c.branch_slug), roomName(c.room_id), c.status, fundingLabel(c.funding_type), c.start_date ?? "",
+    ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","));
+    const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `children-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const openCreate = () => {
+    setForm({ ...emptyForm, branch_slug: branchFilter || branches[0]?.slug || "", guardians: [{ name: "", relation: "Mother", email: "", phone: "", primary: true }] });
+    setShowForm(true);
+  };
+
+  const save = async () => {
+    const token = getAccessToken();
+    if (!token || !form.first_name.trim() || !form.last_name.trim() || !form.branch_slug) {
+      setError("First name, last name and branch are required."); return;
+    }
+    setSaving(true); setError(null);
+    try {
+      const payload: ChildInput = { ...form, guardians: (form.guardians ?? []).filter((g) => g.name.trim()) };
+      await api.adminCreateChild(token, payload);
+      setShowForm(false);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save child");
+    } finally { setSaving(false); }
+  };
+
+  const setField = (patch: Partial<ChildInput>) => setForm((f) => ({ ...f, ...patch }));
+  const setGuardian = (patch: Partial<NonNullable<ChildInput["guardians"]>[number]>) =>
+    setForm((f) => ({ ...f, guardians: [{ ...(f.guardians?.[0] ?? { name: "", primary: true }), ...patch }] }));
+
+  return (
+    <>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-slate-900">Children</h1>
+          <p className="text-sm text-slate-500">Enrolled &amp; waitlisted children across every branch — the foundation record for occupancy &amp; attendance.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={exportCsv} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            <Download className="h-4 w-4" /> CSV
+          </button>
+          <button type="button" onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700">
+            <Plus className="h-4 w-4" /> Add child
+          </button>
+        </div>
+      </div>
+
+      {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
+
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Total children" value={stats?.total ?? children.length} icon={Baby} accent="blue" />
+        <StatCard label="Active" value={stats?.active ?? "—"} sub={`${stats?.waitlist ?? 0} on waitlist`} icon={Users} accent="green" />
+        <StatCard label="Occupancy" value={stats ? `${stats.occupancy_rate}%` : "—"} sub={stats ? `capacity ${stats.capacity}` : undefined} accent="teal" progress={stats?.occupancy_rate} />
+        <StatCard label="Available places" value={stats?.available ?? "—"} accent="amber" />
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or ref…" className="rounded-lg border border-slate-200 py-2 pl-8 pr-3 text-sm" />
+        </div>
+        <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <option value="">All branches</option>
+          {branches.map((b) => <option key={b.slug} value={b.slug}>{branchShortName(b)}</option>)}
+        </select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="waitlist">Waitlist</option>
+          <option value="left">Left</option>
+        </select>
+        <span className="ml-auto text-sm text-slate-400">{rows.length} shown</span>
+      </div>
+
+      <div className="card overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500"><tr>{["Ref", "Name", "Age", "Branch", "Room", "Funding", "Status"].map((h) => <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>)}</tr></thead>
+          <tbody className="divide-y divide-slate-100">
+            {loading ? (
+              <tr><td colSpan={7} className="px-4 py-6 text-slate-400">Loading…</td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">No children match.</td></tr>
+            ) : rows.map((c) => (
+              <tr key={c.id} className="cursor-pointer hover:bg-slate-50">
+                <td className="px-4 py-3 font-mono text-xs text-slate-500"><Link href={`/admin/children/${c.id}`} className="hover:text-teal-600">{c.ref ?? "—"}</Link></td>
+                <td className="px-4 py-3 font-medium text-slate-900"><Link href={`/admin/children/${c.id}`} className="hover:text-teal-600">{c.first_name} {c.last_name}</Link></td>
+                <td className="px-4 py-3 text-slate-500">{ageLabel(c.dob)}</td>
+                <td className="px-4 py-3 text-slate-500">{branchName(c.branch_slug)}</td>
+                <td className="px-4 py-3 text-slate-500">{roomName(c.room_id)}</td>
+                <td className="px-4 py-3 text-slate-500">{fundingLabel(c.funding_type)}</td>
+                <td className="px-4 py-3"><StageBadge label={c.status} accent={childStatusAccent[c.status]} withDot /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl max-h-[85vh] overflow-auto rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <h2 className="text-lg font-heading font-bold text-slate-900">Add child</h2>
+              <button type="button" onClick={() => setShowForm(false)} aria-label="Close" className="text-slate-400 hover:text-slate-700"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
+              <Field label="First name *"><input value={form.first_name} onChange={(e) => setField({ first_name: e.target.value })} className="inp" /></Field>
+              <Field label="Last name *"><input value={form.last_name} onChange={(e) => setField({ last_name: e.target.value })} className="inp" /></Field>
+              <Field label="Date of birth"><input type="date" value={form.dob} onChange={(e) => setField({ dob: e.target.value })} className="inp" /></Field>
+              <Field label="Gender">
+                <select value={form.gender} onChange={(e) => setField({ gender: e.target.value })} className="inp bg-white">
+                  <option value="">—</option><option value="female">Female</option><option value="male">Male</option><option value="other">Other</option>
+                </select>
+              </Field>
+              <Field label="Branch *">
+                <select value={form.branch_slug} onChange={(e) => setField({ branch_slug: e.target.value, room_id: "" })} className="inp bg-white">
+                  <option value="">Select branch…</option>
+                  {branches.map((b) => <option key={b.slug} value={b.slug}>{branchShortName(b)}</option>)}
+                </select>
+              </Field>
+              <Field label="Room">
+                <select value={form.room_id} onChange={(e) => setField({ room_id: e.target.value })} className="inp bg-white" disabled={!form.branch_slug}>
+                  <option value="">Unassigned</option>
+                  {roomsForBranch.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              </Field>
+              <Field label="Status">
+                <select value={form.status} onChange={(e) => setField({ status: e.target.value as ChildInput["status"] })} className="inp bg-white">
+                  <option value="active">Active</option><option value="waitlist">Waitlist</option><option value="left">Left</option>
+                </select>
+              </Field>
+              <Field label="Funding">
+                <select value={form.funding_type} onChange={(e) => setField({ funding_type: e.target.value })} className="inp bg-white">
+                  <option value="none">Private (none)</option><option value="15h">15 hours</option><option value="30h">30 hours</option>
+                </select>
+              </Field>
+              <Field label="Start date"><input type="date" value={form.start_date} onChange={(e) => setField({ start_date: e.target.value })} className="inp" /></Field>
+
+              <div className="sm:col-span-2 mt-2 border-t border-slate-100 pt-3 text-xs font-bold uppercase tracking-widest text-slate-400">Primary guardian</div>
+              <Field label="Name"><input value={form.guardians?.[0]?.name ?? ""} onChange={(e) => setGuardian({ name: e.target.value })} className="inp" /></Field>
+              <Field label="Relation">
+                <select value={form.guardians?.[0]?.relation ?? "Mother"} onChange={(e) => setGuardian({ relation: e.target.value })} className="inp bg-white">
+                  <option>Mother</option><option>Father</option><option>Guardian</option>
+                </select>
+              </Field>
+              <Field label="Email"><input type="email" value={form.guardians?.[0]?.email ?? ""} onChange={(e) => setGuardian({ email: e.target.value })} className="inp" /></Field>
+              <Field label="Phone"><input value={form.guardians?.[0]?.phone ?? ""} onChange={(e) => setGuardian({ phone: e.target.value })} className="inp" /></Field>
+
+              <div className="sm:col-span-2 mt-2 border-t border-slate-100 pt-3 text-xs font-bold uppercase tracking-widest text-slate-400">Care notes</div>
+              <Field label="Allergies"><input value={form.allergies} onChange={(e) => setField({ allergies: e.target.value })} className="inp" /></Field>
+              <Field label="Dietary requirements"><input value={form.dietary_reqs} onChange={(e) => setField({ dietary_reqs: e.target.value })} className="inp" /></Field>
+              <div className="sm:col-span-2"><Field label="Medical notes"><textarea value={form.medical_notes} onChange={(e) => setField({ medical_notes: e.target.value })} rows={2} className="inp" /></Field></div>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-4">
+              <button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+              <button type="button" onClick={save} disabled={saving} className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">{saving ? "Saving…" : "Create child"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        :global(.inp) { width: 100%; border-radius: 0.5rem; border: 1px solid rgb(226 232 240); padding: 0.5rem 0.75rem; font-size: 0.875rem; }
+      `}</style>
+    </>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs uppercase tracking-wider text-slate-400">{label}</label>
+      {children}
+    </div>
+  );
+}

@@ -6,18 +6,18 @@ import {
   Pencil, Check, Plus, RotateCcw, GripVertical, X, Scaling,
 } from "lucide-react";
 import {
-  BRANCH_METRICS, FINANCE_ANALYTICS, ENQUIRY_SOURCES, CALENDAR,
+  FINANCE_ANALYTICS, ENQUIRY_SOURCES, CALENDAR, type BranchMetric,
 } from "../data";
 import { LineChart, MiniCalendar, MiniDonut, SentimentLine } from "../widgets";
-import { useEnquiryPipeline, type LivePipeline } from "../live";
+import { useEnquiryPipeline, useBranchMetrics, type LivePipeline } from "../live";
 import TasksPanel from "./TasksPanel";
 
 /* ── Panel registry ───────────────────────────────────────────────────────── */
 type PanelId = "tasks" | "attendance" | "admissions" | "sentiment" | "revenue" | "occupancy" | "calendar" | "sources" | "finance";
 
-const heatRows = (get: (m: (typeof BRANCH_METRICS)[number]) => number) => (
+const heatRows = (branches: BranchMetric[], get: (m: BranchMetric) => number) => (
   <div className="flex flex-col gap-1.5">
-    {BRANCH_METRICS.map((m) => (
+    {branches.map((m) => (
       <div key={m.slug} className="flex items-center gap-2">
         <span className="cc-label" style={{ width: 80, fontSize: 9, color: "var(--cc-muted)" }}>{m.name}</span>
         <div className="cc-heat-track"><div className="cc-heat-fill" style={{ width: `${get(m)}%` }} /></div>
@@ -27,14 +27,14 @@ const heatRows = (get: (m: (typeof BRANCH_METRICS)[number]) => number) => (
   </div>
 );
 
-function renderPanel(id: PanelId, pipeline: LivePipeline) {
+function renderPanel(id: PanelId, pipeline: LivePipeline, branches: BranchMetric[]) {
   switch (id) {
     case "tasks":
       return <TasksPanel />;
     case "attendance":
-      return heatRows((m) => m.attendanceToday);
+      return heatRows(branches, (m) => m.attendanceToday);
     case "occupancy":
-      return heatRows((m) => m.occupancy);
+      return heatRows(branches, (m) => m.occupancy);
     case "admissions":
       return (
         <div className="flex flex-col gap-1">
@@ -53,7 +53,7 @@ function renderPanel(id: PanelId, pipeline: LivePipeline) {
     case "sentiment":
       return (
         <div className="flex flex-col gap-1">
-          {BRANCH_METRICS.map((m) => (
+          {branches.map((m) => (
             <div key={m.slug} className="cc-brow">
               <div style={{ width: 84 }}>
                 <p className="cc-heading" style={{ fontSize: 9.5, color: "var(--cc-accent)" }}>{m.name}</p>
@@ -98,7 +98,7 @@ function renderPanel(id: PanelId, pipeline: LivePipeline) {
 }
 
 const PANEL_TITLES: Record<PanelId, string> = {
-  tasks: "Tasks", attendance: "Attendance", admissions: "Admissions", sentiment: "Parent Sentiment",
+  tasks: "Tasks", attendance: "Child Attendance", admissions: "Admissions", sentiment: "Parent Sentiment",
   revenue: "Revenue Trend", occupancy: "Occupancy", calendar: "Calendar",
   sources: "Enquiry Sources", finance: "Finance Snapshot",
 };
@@ -116,6 +116,7 @@ const LS_KEY = "cc-ops-layout-v2";
 /* ── Modular operational workspace ────────────────────────────────────────── */
 export default function OpsWorkspace() {
   const pipeline = useEnquiryPipeline();
+  const { metrics: branches } = useBranchMetrics();
   const [items, setItems] = useState<Item[]>(DEFAULT_ITEMS);
   const [height, setHeight] = useState(232);
   const [edit, setEdit] = useState(false);
@@ -218,7 +219,7 @@ export default function OpsWorkspace() {
                 </div>
               )}
             </div>
-            <div className="cc-ops-item-body cc-col-scroll">{renderPanel(it.id, pipeline)}</div>
+            <div className="cc-ops-item-body cc-col-scroll">{renderPanel(it.id, pipeline, branches)}</div>
           </Reorder.Item>
         ))}
       </Reorder.Group>

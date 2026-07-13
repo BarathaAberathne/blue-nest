@@ -1,11 +1,11 @@
 "use client";
 
 import {
-  BRANCH_METRICS, FINANCE, FINANCE_ANALYTICS, CAPACITY_FORECAST, ENQUIRY_SOURCES,
-  STAFF_STATUS, COMPLIANCE, PERF_GAUGES, AI_COMMAND,
+  FINANCE, FINANCE_ANALYTICS, CAPACITY_FORECAST, ENQUIRY_SOURCES,
+  STAFF_STATUS, COMPLIANCE, PERF_GAUGES, AI_COMMAND, type BranchMetric,
 } from "../data";
 import { DonutChart, LineChart, MiniDonut, RingGauge, Funnel, SentimentLine } from "../widgets";
-import { useEnquiryPipeline } from "../live";
+import { useEnquiryPipeline, useBranchMetrics, useAttendanceToday, useStaffStats, useDailyStats, staffPresentByBranch } from "../live";
 import type { AiTab } from "./osdata";
 
 const TONE: Record<string, string> = {
@@ -46,12 +46,12 @@ function Rows({ rows }: { rows: [string, string, string?][] }) {
     </div>
   );
 }
-function BranchTable({ cols, cell }: { cols: string[]; cell: (m: (typeof BRANCH_METRICS)[number]) => (string | { v: string; c: string })[] }) {
+function BranchTable({ cols, cell, branches }: { cols: string[]; cell: (m: BranchMetric) => (string | { v: string; c: string })[]; branches: BranchMetric[] }) {
   return (
     <table className="cc-tab-table">
       <thead><tr><th>Branch</th>{cols.map((c) => <th key={c}>{c}</th>)}</tr></thead>
       <tbody>
-        {BRANCH_METRICS.map((m) => (
+        {branches.map((m) => (
           <tr key={m.slug}>
             <td><span className="cc-dot" style={{ width: 6, height: 6, color: statusColor(m.status), marginRight: 5 }} />{m.name}</td>
             {cell(m).map((c, i) => <td key={i} style={{ color: typeof c === "object" ? c.c : "var(--cc-text)" }}>{typeof c === "object" ? c.v : c}</td>)}
@@ -64,24 +64,40 @@ function BranchTable({ cols, cell }: { cols: string[]; cell: (m: (typeof BRANCH_
 
 export default function AITabContent({ tab }: { tab: AiTab }) {
   const pipeline = useEnquiryPipeline();
+  const { metrics: branches } = useBranchMetrics();
+  const attendance = useAttendanceToday();
+  const staff = useStaffStats();
+  const daily = useDailyStats();
+  const staffPresent = staffPresentByBranch(staff);
+  // Live "Staff Today" tiles when the staff module has data; else the mock.
+  const staffTiles = staff.live
+    ? [
+        { label: "Present", count: staff.present, tone: "ok" as const },
+        { label: "Annual Leave", count: staff.onLeave, tone: "muted" as const },
+        { label: "Training", count: staff.training, tone: "muted" as const },
+        { label: "Sick Leave", count: staff.sick, tone: "bad" as const },
+        { label: "Late Arrival", count: staff.lateArrival, tone: "warn" as const },
+        { label: "Agency Staff", count: staff.agency, tone: "warn" as const },
+      ]
+    : STAFF_STATUS;
 
   if (tab === "Operations")
     return (
       <div className="cc-tab-grid">
         <Card title="TODAY · GROUP" span={3}>
           <div className="cc-tab-tiles">
-            <Tile label="Checked In" value="472" tone="ok" />
-            <Tile label="Attendance" value="93%" tone="ok" />
-            <Tile label="Staff Present" value="71" />
-            <Tile label="Safeguarding" value="2" tone="warn" />
-            <Tile label="Late Pickups" value="4" tone="warn" />
-            <Tile label="Meals Served" value="386" />
-            <Tile label="Medication Due" value="5" tone="warn" />
-            <Tile label="Incidents" value="1" tone="bad" />
+            <Tile label="Children In" value={String(attendance.present)} tone="ok" />
+            <Tile label="Child Attendance" value={`${attendance.attendanceRate}%`} tone="ok" />
+            <Tile label="Staff Present" value={String(staff.present)} />
+            <Tile label="Safeguarding" value={String(daily.safeguardingOpen)} tone="warn" />
+            <Tile label="Late Pickups" value={String(attendance.latePickups)} tone="warn" />
+            <Tile label="Meals Served" value={String(daily.mealsServed)} />
+            <Tile label="Medication Due" value={String(daily.medicationDue)} tone="warn" />
+            <Tile label="Incidents" value={String(daily.incidentsToday)} tone="bad" />
           </div>
         </Card>
         <Card title="BRANCH OPERATIONS" span={3}>
-          <BranchTable cols={["Attendance", "Occupancy", "Staff", "Alerts"]} cell={(m) => [
+          <BranchTable branches={branches} cols={["Child Att.", "Occupancy", "Staff", "Alerts"]} cell={(m) => [
             `${m.attendanceToday}%`, `${m.occupancy}%`, `${m.staff}`,
             { v: `${m.alerts}`, c: m.alerts > 1 ? "var(--cc-warning)" : "var(--cc-text)" },
           ]} />
@@ -102,7 +118,7 @@ export default function AITabContent({ tab }: { tab: AiTab }) {
           <LineChart points={FINANCE_ANALYTICS.trend} budget={FINANCE_ANALYTICS.budget} height={128} />
         </Card>
         <Card title="REVENUE BY BRANCH" span={3}>
-          <BranchTable cols={["Revenue", "Occupancy", "Children"]} cell={(m) => [m.revenue, `${m.occupancy}%`, `${m.children}`]} />
+          <BranchTable branches={branches} cols={["Revenue", "Occupancy", "Children"]} cell={(m) => [m.revenue, `${m.occupancy}%`, `${m.children}`]} />
         </Card>
       </div>
     );
@@ -145,7 +161,7 @@ export default function AITabContent({ tab }: { tab: AiTab }) {
       <div className="cc-tab-grid">
         <Card title="STAFF TODAY" span={2}>
           <div className="cc-tab-tiles">
-            {STAFF_STATUS.map((s) => <Tile key={s.label} label={s.label} value={String(s.count)} tone={s.tone} />)}
+            {staffTiles.map((s) => <Tile key={s.label} label={s.label} value={String(s.count)} tone={s.tone} />)}
           </div>
         </Card>
         <Card title="WORKFORCE">
@@ -159,7 +175,7 @@ export default function AITabContent({ tab }: { tab: AiTab }) {
           </div>
         </Card>
         <Card title="STAFF BY BRANCH" span={3}>
-          <BranchTable cols={["Staff", "Present", "Ratio"]} cell={(m) => [`${m.staff}`, `${Math.max(m.staff - m.alerts, 0)}`, { v: m.alerts > 1 ? "watch" : "ok", c: m.alerts > 1 ? "var(--cc-warning)" : "var(--cc-success)" }]} />
+          <BranchTable branches={branches} cols={["Staff", "Present", "Ratio"]} cell={(m) => [`${m.staff}`, `${staffPresent.get(m.slug) ?? Math.max(m.staff - m.alerts, 0)}`, { v: m.alerts > 1 ? "watch" : "ok", c: m.alerts > 1 ? "var(--cc-warning)" : "var(--cc-success)" }]} />
         </Card>
       </div>
     );
@@ -186,8 +202,8 @@ export default function AITabContent({ tab }: { tab: AiTab }) {
         <Card title="OPEN ACTIONS" span={3}>
           <div className="flex flex-col gap-1.5">
             {[
-              { t: "Update Borehamwood safeguarding log", p: "high" },
-              { t: "Renew 2 DBS checks (expiring)", p: "med" },
+              { t: `Review ${daily.safeguardingOpen} open safeguarding concern${daily.safeguardingOpen === 1 ? "" : "s"}`, p: "high" },
+              { t: `Renew ${staff.dbsExpiring} DBS check${staff.dbsExpiring === 1 ? "" : "s"} (expiring)`, p: "med" },
               { t: "Refresh First Aid certificates ×3", p: "med" },
               { t: "Complete SEF section 4", p: "low" },
             ].map((a) => (

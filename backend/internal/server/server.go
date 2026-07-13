@@ -75,6 +75,12 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	orderTemplateRepo := repository.NewOrderTemplateRepository(db)
 	supplierRepo := repository.NewSupplierRepository(db)
 	dashboardLayoutRepo := repository.NewDashboardLayoutRepository(db)
+	roomRepo := repository.NewRoomRepository(db)
+	childRepo := repository.NewChildRepository(db)
+	attendanceRepo := repository.NewAttendanceRepository(db)
+	staffRepo := repository.NewStaffRepository(db)
+	staffAttendanceRepo := repository.NewStaffAttendanceRepository(db)
+	dailyRecordRepo := repository.NewDailyRecordRepository(db)
 	mailer := email.New(email.Config{
 		Host:         cfg.SMTP.Host,
 		Port:         cfg.SMTP.Port,
@@ -93,7 +99,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Checkout:         service.NewCheckoutService(orderRepo, cartRepo, productRepo, branchRepo, cfg.Stripe.SecretKey, cfg.App.Env),
 		Orders:           service.NewOrderService(orderRepo),
 		Blog:             service.NewBlogService(blogRepo),
-		Branches:         service.NewBranchService(branchRepo),
+		Branches:         service.NewBranchService(branchRepo, counterRepo),
 		Enquiries:        service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo),
 		Comments:         service.NewCommentService(commentRepo),
 		Audit:            service.NewAuditService(auditRepo),
@@ -103,6 +109,13 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Suppliers:        service.NewSupplierService(supplierRepo),
 		Procurement:      service.NewProcurementAnalyticsService(orderRequestRepo, purchaseCartRepo),
 		DashboardLayouts: service.NewDashboardLayoutService(dashboardLayoutRepo),
+		Rooms:            service.NewRoomService(roomRepo),
+		Children:         service.NewChildService(childRepo, roomRepo, counterRepo),
+		Attendance:       service.NewAttendanceService(attendanceRepo, childRepo),
+		Staff:            service.NewStaffService(staffRepo, counterRepo),
+		StaffAttendance:  service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo),
+		DailyRecords:     service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo),
+		BranchOverview:   service.NewBranchOverviewService(childRepo, roomRepo, attendanceRepo, staffRepo, staffAttendanceRepo, dailyRecordRepo, enquiryRepo),
 	}
 
 	// Sourcing engine: enable supplier adapters per config (off by default; the

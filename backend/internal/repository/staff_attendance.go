@@ -1,0 +1,96 @@
+package repository
+
+import (
+	"context"
+	"time"
+
+	"github.com/blue-nest-montessori/api/internal/models"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+type StaffAttendanceRepository interface {
+	// Upsert writes one record per (staff, date); returns the stored record.
+	Upsert(ctx context.Context, rec models.StaffAttendanceRecord) (*models.StaffAttendanceRecord, error)
+	FindByDate(ctx context.Context, date, branch string) ([]models.StaffAttendanceRecord, error)
+	FindByStaffDate(ctx context.Context, staffID, date string) (*models.StaffAttendanceRecord, error)
+	// LatestDate returns the most recent date (YYYY-MM-DD) with any record, or
+	// "" when empty. Optionally scoped to a branch.
+	LatestDate(ctx context.Context, branch string) (string, error)
+}
+
+type staffAttendanceRepository struct {
+	col *mongo.Collection
+}
+
+func NewStaffAttendanceRepository(db *mongo.Database) StaffAttendanceRepository {
+	return &staffAttendanceRepository{col: db.Collection("staff_attendance")}
+}
+
+func (r *staffAttendanceRepository) Upsert(ctx context.Context, rec models.StaffAttendanceRecord) (*models.StaffAttendanceRecord, error) {
+	now := time.Now()
+	rec.UpdatedAt = now
+	set := bson.M{
+		"staff_id":     rec.StaffID,
+		"staff_name":   rec.StaffName,
+		"branch_slug":  rec.BranchSlug,
+		"date":         rec.Date,
+		"status":       rec.Status,
+		"late_arrival": rec.LateArrival,
+		"notes":        rec.Notes,
+		"updated_at":   now,
+	}
+	if rec.ClockIn != nil {
+		set["clock_in"] = rec.ClockIn
+	}
+	if rec.ClockOut != nil {
+		set["clock_out"] = rec.ClockOut
+	}
+	update := bson.M{"$set": set, "$setOnInsert": bson.M{"created_at": now}}
+	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
+	var out models.StaffAttendanceRecord
+	err := r.col.FindOneAndUpdate(ctx, bson.M{"staff_id": rec.StaffID, "date": rec.Date}, update, opts).Decode(&out)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (r *staffAttendanceRepository) FindByDate(ctx context.Context, date, branch string) ([]models.StaffAttendanceRecord, error) {
+	filter := bson.M{"date": date}
+	if branch != "" {
+		filter["branch_slug"] = branch
+	}
+	cursor, err := r.col.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.StaffAttendanceRecord, 0)
+	return out, cursor.All(ctx, &out)
+}
+
+func (r *staffAttendanceRepository) LatestDate(ctx context.Context, branch string) (string, error) {
+	filter := bson.M{}
+	if branch != "" {
+		filter["branch_slug"] = branch
+	}
+	opts := options.FindOne().SetSort(bson.D{{Key: "date", Value: -1}}).SetProjection(bson.M{"date": 1})
+	var rec models.StaffAttendanceRecord
+	err := r.col.FindOne(ctx, filter, opts).Decode(&rec)
+	if err == mongo.ErrNoDocuments {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return rec.Date, nil
+}
+
+func (r *staffAttendanceRepository) FindByStaffDate(ctx context.Context, staffID, date string) (*models.StaffAttendanceRecord, error) {
+	var rec models.StaffAttendanceRecord
+	if err := r.col.FindOne(ctx, bson.M{"staff_id": staffID, "date": date}).Decode(&rec); err != nil {
+		return nil, err
+	}
+	return &rec, nil
+}

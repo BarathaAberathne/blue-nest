@@ -4,7 +4,8 @@ import { useMemo } from "react";
 import Image from "next/image";
 import { ReactFlow, Handle, Position, type Node, type Edge, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { BRANCH_METRICS, AI_COMMAND, type BranchMetric } from "../data";
+import { AI_COMMAND, type BranchMetric } from "../data";
+import { useBranchMetrics } from "../live";
 import { CentrepieceRings } from "../widgets";
 
 const LOGO = "/logo/bluenest-logo.png";
@@ -75,20 +76,21 @@ const LAYOUT: Record<string, { x: number; y: number; handle: Position; center: s
 };
 
 export default function BranchRadar() {
+  const { metrics } = useBranchMetrics();
   const nodes: Node[] = useMemo(() => {
     const list: Node[] = [
       { id: "radar", type: "radar", position: { x: 210, y: 150 }, data: {}, draggable: false, selectable: false },
     ];
-    for (const m of BRANCH_METRICS) {
+    for (const m of metrics) {
       const l = LAYOUT[m.slug];
       list.push({ id: m.slug, type: "branch", position: { x: l.x, y: l.y }, data: { metric: m, handle: l.handle, popUp: !!l.popUp }, selectable: false });
     }
     return list;
-  }, []);
+  }, [metrics]);
 
   const edges: Edge[] = useMemo(
     () =>
-      BRANCH_METRICS.map((m) => ({
+      metrics.map((m) => ({
         id: `e-${m.slug}`,
         source: m.slug,
         target: "radar",
@@ -96,7 +98,7 @@ export default function BranchRadar() {
         animated: true,
         style: { stroke: "rgba(54,169,255,0.55)", strokeWidth: 1.4 },
       })),
-    [],
+    [metrics],
   );
 
   return (

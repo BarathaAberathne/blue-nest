@@ -34,6 +34,13 @@ type Services struct {
 	Suppliers        service.SupplierService
 	Procurement      service.ProcurementAnalyticsService
 	DashboardLayouts service.DashboardLayoutService
+	Rooms            service.RoomService
+	Children         service.ChildService
+	Attendance       service.AttendanceService
+	Staff            service.StaffService
+	StaffAttendance  service.StaffAttendanceService
+	DailyRecords     service.DailyRecordService
+	BranchOverview   service.BranchOverviewService
 }
 
 type Repos struct {
@@ -258,6 +265,85 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Use(middleware.RequirePermission(models.PermFinanceView))
 				adminProcurementH := adminHandler.NewAdminProcurementHandler(svc.Procurement)
 				r.Get("/admin/procurement/analytics", adminProcurementH.Analytics)
+			})
+
+			// Nursery — children & rooms (foundation records).
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermChildrenManage))
+				adminRoomH := adminHandler.NewAdminRoomHandler(svc.Rooms, svc.Audit)
+				r.Get("/admin/rooms", adminRoomH.List)
+				r.Get("/admin/rooms/{id}", adminRoomH.Get)
+				r.Post("/admin/rooms", adminRoomH.Create)
+				r.Put("/admin/rooms/{id}", adminRoomH.Update)
+				r.Delete("/admin/rooms/{id}", adminRoomH.Delete)
+
+				adminChildH := adminHandler.NewAdminChildHandler(svc.Children, svc.Audit)
+				r.Get("/admin/children", adminChildH.List)
+				r.Get("/admin/children/stats", adminChildH.Stats)
+				r.Get("/admin/children/{id}", adminChildH.Get)
+				r.Post("/admin/children", adminChildH.Create)
+				r.Put("/admin/children/{id}", adminChildH.Update)
+				r.Delete("/admin/children/{id}", adminChildH.Delete)
+			})
+
+			// Nursery — daily attendance register.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermAttendanceManage))
+				adminAttendanceH := adminHandler.NewAdminAttendanceHandler(svc.Attendance, svc.Audit)
+				r.Get("/admin/attendance", adminAttendanceH.Register)
+				r.Get("/admin/attendance/today", adminAttendanceH.Today)
+				r.Post("/admin/attendance/check-in", adminAttendanceH.CheckIn)
+				r.Post("/admin/attendance/check-out", adminAttendanceH.CheckOut)
+				r.Patch("/admin/attendance/mark", adminAttendanceH.Mark)
+			})
+
+			// People / HR — staff records & staff attendance.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermStaffManage))
+				adminStaffH := adminHandler.NewAdminStaffHandler(svc.Staff, svc.Audit)
+				r.Get("/admin/staff", adminStaffH.List)
+				r.Get("/admin/staff/{id}", adminStaffH.Get)
+				r.Post("/admin/staff", adminStaffH.Create)
+				r.Put("/admin/staff/{id}", adminStaffH.Update)
+				r.Delete("/admin/staff/{id}", adminStaffH.Delete)
+
+				adminStaffAttH := adminHandler.NewAdminStaffAttendanceHandler(svc.StaffAttendance, svc.Audit)
+				r.Get("/admin/staff-attendance", adminStaffAttH.Register)
+				r.Get("/admin/staff-attendance/today", adminStaffAttH.Today)
+				r.Post("/admin/staff-attendance/clock-in", adminStaffAttH.ClockIn)
+				r.Post("/admin/staff-attendance/clock-out", adminStaffAttH.ClockOut)
+				r.Patch("/admin/staff-attendance/mark", adminStaffAttH.Mark)
+			})
+
+			// Organisation — Branch Management System (Branch as the central hub).
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermBranchesManage))
+				adminBranchH := adminHandler.NewAdminBranchHandler(svc.Branches, svc.BranchOverview, svc.Audit)
+				r.Get("/admin/branches", adminBranchH.List)
+				r.Get("/admin/branches/overview", adminBranchH.Overview)
+				r.Get("/admin/branches/{slug}", adminBranchH.Get)
+				r.Get("/admin/branches/{slug}/dashboard", adminBranchH.Dashboard)
+				r.Put("/admin/branches/{slug}", adminBranchH.Update) // scope-checked in handler
+				// Lifecycle — super admin only.
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequirePermission(models.PermBranchAdmin))
+					r.Post("/admin/branches", adminBranchH.Create)
+					r.Patch("/admin/branches/{slug}/managers", adminBranchH.SetManagers)
+					r.Post("/admin/branches/{slug}/archive", adminBranchH.Archive)
+				})
+			})
+
+			// Nursery — daily records (observations, incidents, safeguarding, medication, meals).
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermDailyLogsManage))
+				adminDailyH := adminHandler.NewAdminDailyRecordHandler(svc.DailyRecords, svc.Audit)
+				r.Get("/admin/daily-records", adminDailyH.List)
+				r.Get("/admin/daily-records/stats", adminDailyH.Stats)
+				r.Get("/admin/daily-records/{id}", adminDailyH.Get)
+				r.Post("/admin/daily-records", adminDailyH.Create)
+				r.Put("/admin/daily-records/{id}", adminDailyH.Update)
+				r.Patch("/admin/daily-records/{id}/status", adminDailyH.SetStatus)
+				r.Delete("/admin/daily-records/{id}", adminDailyH.Delete)
 			})
 
 			// Account management — super admin only.

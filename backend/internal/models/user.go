@@ -23,6 +23,10 @@ const (
 	// (like a general manager, minus account management); lands on the MD Command
 	// Centre. See models/permission.go for its permission set.
 	RoleDirector Role = "director"
+	// Branch-scoped management roles (Branch module, Phase B1). Regional spans
+	// several assigned branches (User.BranchSlugs); Deputy assists a single branch.
+	RoleRegionalManager Role = "regional_manager"
+	RoleDeputyManager   Role = "deputy_manager"
 )
 
 // ManagementRoles are every non-customer back-office role (they reach the admin
@@ -30,7 +34,7 @@ const (
 var ManagementRoles = []Role{
 	RoleSuperAdmin, RoleAdmin, RoleBranchManager,
 	RoleFinance, RoleAdmissions, RoleProcurement, RoleStaff,
-	RoleDirector,
+	RoleDirector, RoleRegionalManager, RoleDeputyManager,
 }
 
 type User struct {

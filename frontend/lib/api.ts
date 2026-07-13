@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AuditLog, CatalogueItem, DashboardLayout, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryPage, EnquiryStats, EnquiryTasks, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, Supplier, SupplierInput, User } from "@/types";
+import type { AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryPage, EnquiryStats, EnquiryTasks, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -438,4 +438,126 @@ export const api = {
       body: JSON.stringify({ items }),
       token,
     }),
+
+  // Nursery — rooms
+  adminGetRooms: (token: string, branch?: string) =>
+    apiFetch<Room[]>(`/api/v1/admin/rooms${branch ? `?branch=${encodeURIComponent(branch)}` : ""}`, { token }),
+  adminCreateRoom: (token: string, body: RoomInput) =>
+    apiFetch<Room>("/api/v1/admin/rooms", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateRoom: (token: string, id: string, body: RoomInput) =>
+    apiFetch<Room>(`/api/v1/admin/rooms/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminDeleteRoom: (token: string, id: string) =>
+    apiFetch(`/api/v1/admin/rooms/${id}`, { method: "DELETE", token }),
+
+  // Nursery — children
+  adminGetChildren: (token: string, params?: { branch?: string; room?: string; status?: string; q?: string }) => {
+    const qs = new URLSearchParams();
+    if (params) for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
+    const s = qs.toString();
+    return apiFetch<Child[]>(`/api/v1/admin/children${s ? `?${s}` : ""}`, { token });
+  },
+  adminGetChildStats: (token: string) =>
+    apiFetch<ChildStats>("/api/v1/admin/children/stats", { token }),
+  adminGetChild: (token: string, id: string) =>
+    apiFetch<Child>(`/api/v1/admin/children/${id}`, { token }),
+  adminCreateChild: (token: string, body: ChildInput) =>
+    apiFetch<Child>("/api/v1/admin/children", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateChild: (token: string, id: string, body: ChildInput) =>
+    apiFetch<Child>(`/api/v1/admin/children/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminDeleteChild: (token: string, id: string) =>
+    apiFetch(`/api/v1/admin/children/${id}`, { method: "DELETE", token }),
+
+  // Nursery — attendance register
+  adminGetRegister: (token: string, params?: { date?: string; branch?: string }) => {
+    const qs = new URLSearchParams();
+    if (params) for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
+    const s = qs.toString();
+    return apiFetch<AttendanceRecord[]>(`/api/v1/admin/attendance${s ? `?${s}` : ""}`, { token });
+  },
+  adminGetAttendanceToday: (token: string, params?: { date?: string; branch?: string }) => {
+    const qs = new URLSearchParams();
+    if (params) for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
+    const s = qs.toString();
+    return apiFetch<AttendanceStats>(`/api/v1/admin/attendance/today${s ? `?${s}` : ""}`, { token });
+  },
+  adminCheckIn: (token: string, body: { child_id: string; date?: string; notes?: string }) =>
+    apiFetch<AttendanceRecord>("/api/v1/admin/attendance/check-in", { method: "POST", body: JSON.stringify(body), token }),
+  adminCheckOut: (token: string, body: { child_id: string; date?: string; late_pickup?: boolean }) =>
+    apiFetch<AttendanceRecord>("/api/v1/admin/attendance/check-out", { method: "POST", body: JSON.stringify(body), token }),
+  adminMarkAttendance: (token: string, body: { child_id: string; date?: string; status: string; notes?: string }) =>
+    apiFetch<AttendanceRecord>("/api/v1/admin/attendance/mark", { method: "PATCH", body: JSON.stringify(body), token }),
+
+  // People / HR — staff
+  adminGetStaff: (token: string, params?: { branch?: string; status?: string; type?: string; q?: string }) => {
+    const qs = new URLSearchParams();
+    if (params) for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
+    const s = qs.toString();
+    return apiFetch<Staff[]>(`/api/v1/admin/staff${s ? `?${s}` : ""}`, { token });
+  },
+  adminGetStaffMember: (token: string, id: string) =>
+    apiFetch<Staff>(`/api/v1/admin/staff/${id}`, { token }),
+  adminCreateStaff: (token: string, body: StaffInput) =>
+    apiFetch<Staff>("/api/v1/admin/staff", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateStaff: (token: string, id: string, body: StaffInput) =>
+    apiFetch<Staff>(`/api/v1/admin/staff/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminDeleteStaff: (token: string, id: string) =>
+    apiFetch(`/api/v1/admin/staff/${id}`, { method: "DELETE", token }),
+
+  // People / HR — staff attendance register
+  adminGetStaffRegister: (token: string, params?: { date?: string; branch?: string }) => {
+    const qs = new URLSearchParams();
+    if (params) for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
+    const s = qs.toString();
+    return apiFetch<StaffAttendanceRecord[]>(`/api/v1/admin/staff-attendance${s ? `?${s}` : ""}`, { token });
+  },
+  adminGetStaffStats: (token: string, params?: { date?: string; branch?: string }) => {
+    const qs = new URLSearchParams();
+    if (params) for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
+    const s = qs.toString();
+    return apiFetch<StaffStats>(`/api/v1/admin/staff-attendance/today${s ? `?${s}` : ""}`, { token });
+  },
+  adminStaffClockIn: (token: string, body: { staff_id: string; date?: string; notes?: string }) =>
+    apiFetch<StaffAttendanceRecord>("/api/v1/admin/staff-attendance/clock-in", { method: "POST", body: JSON.stringify(body), token }),
+  adminStaffClockOut: (token: string, body: { staff_id: string; date?: string }) =>
+    apiFetch<StaffAttendanceRecord>("/api/v1/admin/staff-attendance/clock-out", { method: "POST", body: JSON.stringify(body), token }),
+  adminMarkStaffAttendance: (token: string, body: { staff_id: string; date?: string; status: string; notes?: string }) =>
+    apiFetch<StaffAttendanceRecord>("/api/v1/admin/staff-attendance/mark", { method: "PATCH", body: JSON.stringify(body), token }),
+
+  // Nursery — daily records (observations, incidents, safeguarding, medication, meals)
+  adminGetDailyRecords: (token: string, params?: { type?: string; child?: string; branch?: string; status?: string; date?: string; since?: string; q?: string; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params) for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") qs.set(k, String(v));
+    const s = qs.toString();
+    return apiFetch<DailyRecord[]>(`/api/v1/admin/daily-records${s ? `?${s}` : ""}`, { token });
+  },
+  adminGetDailyStats: (token: string, date?: string) =>
+    apiFetch<DailyStats>(`/api/v1/admin/daily-records/stats${date ? `?date=${date}` : ""}`, { token }),
+  adminGetDailyRecord: (token: string, id: string) =>
+    apiFetch<DailyRecord>(`/api/v1/admin/daily-records/${id}`, { token }),
+  adminCreateDailyRecord: (token: string, body: DailyRecordInput) =>
+    apiFetch<DailyRecord>("/api/v1/admin/daily-records", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateDailyRecord: (token: string, id: string, body: DailyRecordInput) =>
+    apiFetch<DailyRecord>(`/api/v1/admin/daily-records/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminSetDailyRecordStatus: (token: string, id: string, status: string) =>
+    apiFetch<DailyRecord>(`/api/v1/admin/daily-records/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }), token }),
+  adminDeleteDailyRecord: (token: string, id: string) =>
+    apiFetch(`/api/v1/admin/daily-records/${id}`, { method: "DELETE", token }),
+
+  // Branch Management System (Branch as the central hub)
+  adminGetBranches: (token: string, archived = false) =>
+    apiFetch<Branch[]>(`/api/v1/admin/branches${archived ? "?archived=true" : ""}`, { token }),
+  adminGetBranchOverview: (token: string) =>
+    apiFetch<BranchOverviewRow[]>("/api/v1/admin/branches/overview", { token }),
+  adminGetBranch: (token: string, slug: string) =>
+    apiFetch<Branch>(`/api/v1/admin/branches/${slug}`, { token }),
+  adminGetBranchDashboard: (token: string, slug: string) =>
+    apiFetch<BranchDashboard>(`/api/v1/admin/branches/${slug}/dashboard`, { token }),
+  adminCreateBranch: (token: string, body: BranchInput) =>
+    apiFetch<Branch>("/api/v1/admin/branches", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateBranch: (token: string, slug: string, body: BranchInput) =>
+    apiFetch<Branch>(`/api/v1/admin/branches/${slug}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminSetBranchManagers: (token: string, slug: string, body: BranchManagers) =>
+    apiFetch<Branch>(`/api/v1/admin/branches/${slug}/managers`, { method: "PATCH", body: JSON.stringify(body), token }),
+  adminArchiveBranch: (token: string, slug: string, restore = false) =>
+    apiFetch(`/api/v1/admin/branches/${slug}/archive${restore ? "?restore=true" : ""}`, { method: "POST", token }),
 };

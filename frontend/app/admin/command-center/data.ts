@@ -201,7 +201,7 @@ export const AI_COMMAND = {
   confidence: 94, // AI confidence %
   health: 92, // Nursery Health score
   healthLabel: "STRONG",
-  greeting: "Good morning, Mahesh.",
+  greeting: "Good morning, Dev.",
   summary: "The group is performing well. Two branches need attention today.",
   recommendations: [
     { text: "Review 2 safeguarding actions at Borehamwood", tone: "bad" as const, action: "Review" },
@@ -377,7 +377,7 @@ export const PERF_GAUGES: { label: string; value: number; tone: "blue" | "gold" 
 
 // ── AI executive brief ──────────────────────────────────────────────────────
 export const AI_BRIEF = {
-  greeting: "Good morning, Mahesh.",
+  greeting: "Good morning, Dev.",
   intro: "Here are today's priorities across the group:",
   points: [
     "Harrow occupancy increased 3% week-on-week.",
