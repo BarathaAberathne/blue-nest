@@ -3,9 +3,15 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
-import type { User, UserRole } from "@/types";
+import { branchShortName } from "@/lib/branch";
+import type { Branch, User, UserRole } from "@/types";
 
 type Role = UserRole;
+
+// Org-wide roles see every branch; customers have no back-office scope. Everyone
+// else is branch-scoped, so the create/edit forms show a branch picker for them.
+const ORG_WIDE_ROLES: Role[] = ["super_admin", "admin", "director"];
+const needsScope = (r: Role) => !ORG_WIDE_ROLES.includes(r) && r !== "customer";
 
 const ROLE_BADGE: Record<Role, string> = {
   super_admin: "bg-rose-100 text-rose-700",
@@ -27,6 +33,7 @@ type CreatePayload = {
   first_name: string;
   last_name: string;
   role: Role;
+  branch_slugs: string[];
 };
 
 type EditState = {
@@ -34,12 +41,14 @@ type EditState = {
   first_name: string;
   last_name: string;
   role: Role;
+  branch_slugs: string[];
 };
 
 const ROLES: Role[] = ["staff", "branch_manager", "deputy_manager", "regional_manager", "finance", "admissions", "procurement", "director", "admin", "super_admin", "customer"];
 
 export default function AdminUsersClient() {
   const [users, setUsers] = useState<User[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -52,7 +61,20 @@ export default function AdminUsersClient() {
     first_name: "",
     last_name: "",
     role: "customer",
+    branch_slugs: [],
   });
+
+  const branchLabel = (slug: string) => {
+    const b = branches.find((x) => x.slug === slug);
+    return b ? branchShortName(b) : slug;
+  };
+  const scopeSummary = (u: User) => {
+    if (ORG_WIDE_ROLES.includes(u.role as Role)) return "All branches";
+    if (!u.branch_slugs || u.branch_slugs.length === 0) return "—";
+    return u.branch_slugs.map(branchLabel).join(", ");
+  };
+  const toggleSlug = (slugs: string[], slug: string) =>
+    slugs.includes(slug) ? slugs.filter((s) => s !== slug) : [...slugs, slug];
 
   const token = typeof window !== "undefined" ? getAccessToken() : "";
 
@@ -64,8 +86,12 @@ export default function AdminUsersClient() {
     }
     try {
       setError(null);
-      const data = (await api.adminGetUsers(token)) as User[];
+      const [data, br] = await Promise.all([
+        api.adminGetUsers(token) as Promise<User[]>,
+        api.getBranches().catch(() => []) as Promise<Branch[]>,
+      ]);
       setUsers(Array.isArray(data) ? data : []);
+      setBranches(Array.isArray(br) ? br : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load users");
     } finally {
@@ -84,9 +110,10 @@ export default function AdminUsersClient() {
     setSaving(true);
     setError(null);
     try {
-      await api.adminCreateUser(token, form);
+      // Only send scope for branch-scoped roles (org-wide roles see everything).
+      await api.adminCreateUser(token, { ...form, branch_slugs: needsScope(form.role) ? form.branch_slugs : [] });
       await loadUsers();
-      setForm({ email: "", password: "", first_name: "", last_name: "", role: "customer" });
+      setForm({ email: "", password: "", first_name: "", last_name: "", role: "customer", branch_slugs: [] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create user");
     } finally {
@@ -103,6 +130,7 @@ export default function AdminUsersClient() {
         first_name: editState.first_name,
         last_name: editState.last_name,
         role: editState.role,
+        branch_slugs: needsScope(editState.role) ? editState.branch_slugs : [],
       });
       setEditState(null);
       await loadUsers();
@@ -202,6 +230,26 @@ export default function AdminUsersClient() {
             </option>
           ))}
         </select>
+        {needsScope(form.role) ? (
+          <div className="sm:col-span-2 lg:col-span-3 rounded-lg border border-gray-100 bg-gray-50 p-3">
+            <p className="mb-1.5 text-xs font-medium text-gray-600">Branch scope <span className="font-normal text-gray-400">— which branches this {form.role.replace("_", " ")} can access</span></p>
+            <div className="flex flex-wrap gap-2">
+              {branches.map((b) => {
+                const on = form.branch_slugs.includes(b.slug);
+                return (
+                  <button key={b.slug} type="button" onClick={() => setForm((p) => ({ ...p, branch_slugs: toggleSlug(p.branch_slugs, b.slug) }))}
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition ${on ? "bg-teal-100 text-teal-700 ring-1 ring-teal-300" : "border border-gray-200 text-gray-500 hover:bg-white"}`}>
+                    {branchShortName(b)}
+                  </button>
+                );
+              })}
+              {branches.length === 0 && <span className="text-xs text-gray-400">No branches loaded.</span>}
+            </div>
+            {form.branch_slugs.length === 0 && <p className="mt-1.5 text-xs text-amber-600">⚠ No branch selected — this user would see no branches on login.</p>}
+          </div>
+        ) : (
+          <div className="hidden lg:block" />
+        )}
         <button type="submit" className="btn-primary text-sm py-2" disabled={saving}>
           {saving ? "Creating..." : "Create User"}
         </button>
@@ -215,6 +263,7 @@ export default function AdminUsersClient() {
               <th className="px-4 py-3 text-left font-medium">Name</th>
               <th className="px-4 py-3 text-left font-medium">Email</th>
               <th className="px-4 py-3 text-left font-medium">Role</th>
+              <th className="px-4 py-3 text-left font-medium">Branch scope</th>
               <th className="px-4 py-3 text-left font-medium">Joined</th>
               <th className="px-4 py-3 text-left font-medium">Actions</th>
             </tr>
@@ -222,13 +271,13 @@ export default function AdminUsersClient() {
           <tbody className="divide-y divide-gray-100">
             {loading ? (
               <tr>
-                <td className="px-4 py-6 text-gray-500" colSpan={5}>
+                <td className="px-4 py-6 text-gray-500" colSpan={6}>
                   Loading users...
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td className="px-4 py-6 text-gray-500" colSpan={5}>
+                <td className="px-4 py-6 text-gray-500" colSpan={6}>
                   No users found.
                 </td>
               </tr>
@@ -285,6 +334,27 @@ export default function AdminUsersClient() {
                         </span>
                       )}
                     </td>
+                    <td className="px-4 py-3 text-xs">
+                      {isEditing ? (
+                        !needsScope(editState.role) ? (
+                          <span className="text-gray-400">{ORG_WIDE_ROLES.includes(editState.role) ? "All branches" : "—"}</span>
+                        ) : (
+                          <div className="flex max-w-xs flex-wrap gap-1">
+                            {branches.map((b) => {
+                              const on = editState.branch_slugs.includes(b.slug);
+                              return (
+                                <button key={b.slug} type="button" onClick={() => setEditState((s) => s && { ...s, branch_slugs: toggleSlug(s.branch_slugs, b.slug) })}
+                                  className={`rounded-full px-2 py-0.5 text-[0.7rem] font-medium transition ${on ? "bg-teal-100 text-teal-700 ring-1 ring-teal-300" : "border border-gray-200 text-gray-400 hover:bg-gray-50"}`}>
+                                  {branchShortName(b)}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )
+                      ) : (
+                        <span className="text-gray-600">{scopeSummary(user)}</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
                       {user.created_at
                         ? new Date(user.created_at).toLocaleDateString("en-GB")
@@ -320,6 +390,7 @@ export default function AdminUsersClient() {
                                   first_name: user.first_name,
                                   last_name: user.last_name,
                                   role: user.role as Role,
+                                  branch_slugs: user.branch_slugs ?? [],
                                 })
                               }
                               className="text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline"

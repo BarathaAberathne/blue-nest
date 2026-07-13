@@ -195,20 +195,34 @@ export default function BranchProfileClient({ slug }: { slug: string }) {
       {tab === "management" && (
         <div className="card p-5">
           <h2 className="mb-1 text-sm font-bold uppercase tracking-widest text-slate-400">Leadership</h2>
-          <p className="mb-4 text-sm text-slate-500">Assign existing staff to leadership roles — a relationship, never a duplicate record. Saving requires Super Admin.</p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {([["branch_manager", "Branch Manager"], ["deputy", "Deputy Manager"], ["assistant", "Assistant Manager"], ["regional", "Regional Manager"]] as const).map(([key, label]) => (
-              <Field key={key} label={label}>
-                <select value={managers?.[key] ?? ""} onChange={(e) => setManagers((m) => ({ ...m, [key]: e.target.value }))} className="inp bg-white">
-                  <option value="">Unassigned</option>
-                  {staff.map((s) => <option key={s.id} value={s.id}>{s.first_name} {s.last_name} · {s.job_title}</option>)}
-                </select>
-              </Field>
-            ))}
-          </div>
-          <div className="mt-4 flex justify-end">
-            <button type="button" onClick={saveManagers} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"><Save className="h-4 w-4" />{saving ? "Saving…" : "Save leadership"}</button>
-          </div>
+          <p className="mb-4 text-sm text-slate-500">
+            Assign an existing <strong>staff member</strong> to each leadership role — a relationship, never a duplicate record. These are drawn from this branch&apos;s <strong>staff records</strong> (People → Staff), not user login accounts. Saving requires Super Admin.
+          </p>
+          {staff.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
+              No staff records at {branchShortName(branch)} yet.{" "}
+              <Link href={`/admin/staff?branch=${branch.slug}`} className="font-medium text-teal-600 hover:underline">Add a staff member</Link> first, then assign them here.
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {([["branch_manager", "Branch Manager"], ["deputy", "Deputy Manager"], ["assistant", "Assistant Manager"], ["regional", "Regional Manager"]] as const).map(([key, label]) => (
+                  <Field key={key} label={label}>
+                    <select value={managers?.[key] ?? ""} onChange={(e) => setManagers((m) => ({ ...m, [key]: e.target.value }))} className="inp bg-white">
+                      <option value="">Unassigned</option>
+                      {staff.map((s) => <option key={s.id} value={s.id}>{s.first_name} {s.last_name} · {s.job_title}</option>)}
+                    </select>
+                  </Field>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-slate-400">
+                Can&apos;t find someone? They need a <Link href={`/admin/staff?branch=${branch.slug}`} className="text-teal-600 hover:underline">staff record at {branchShortName(branch)}</Link> — a user account alone isn&apos;t enough.
+              </p>
+              <div className="mt-4 flex justify-end">
+                <button type="button" onClick={saveManagers} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"><Save className="h-4 w-4" />{saving ? "Saving…" : "Save leadership"}</button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
