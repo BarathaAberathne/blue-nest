@@ -93,8 +93,9 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	})
 
 	// Services
+	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays)
 	svc := routes.Services{
-		Auth:             service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays),
+		Auth:             authSvc,
 		Products:         service.NewProductService(productRepo),
 		Cart:             service.NewCartService(cartRepo, productRepo),
 		Checkout:         service.NewCheckoutService(orderRepo, cartRepo, productRepo, branchRepo, cfg.Stripe.SecretKey, cfg.App.Env),
@@ -113,7 +114,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Rooms:            service.NewRoomService(roomRepo),
 		Children:         service.NewChildService(childRepo, roomRepo, counterRepo),
 		Attendance:       service.NewAttendanceService(attendanceRepo, childRepo),
-		Staff:            service.NewStaffService(staffRepo, counterRepo),
+		Staff:            service.NewStaffService(staffRepo, counterRepo, authSvc),
 		StaffAttendance:  service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo),
 		DailyRecords:     service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo),
 		BranchOverview:   service.NewBranchOverviewService(childRepo, roomRepo, attendanceRepo, staffRepo, staffAttendanceRepo, dailyRecordRepo, enquiryRepo),

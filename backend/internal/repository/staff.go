@@ -104,6 +104,7 @@ func (r *staffRepository) Update(ctx context.Context, id string, s models.Staff)
 		"dbs_number":       s.DBSNumber,
 		"dbs_expiry":       s.DBSExpiry,
 		"first_aid_expiry": s.FirstAidExpiry,
+		"user_id":          s.UserID,
 		"updated_at":       time.Now(),
 	}}
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)

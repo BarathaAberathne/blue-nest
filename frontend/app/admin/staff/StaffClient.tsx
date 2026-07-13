@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Download, Plus, Search, ShieldCheck, UserCheck, Users, X } from "lucide-react";
+import { Download, KeyRound, Plus, Search, ShieldCheck, UserCheck, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
@@ -15,7 +15,11 @@ const emptyForm: StaffInput = {
   first_name: "", last_name: "", email: "", phone: "", branch_slug: "", room_id: "",
   job_title: "", staff_type: "permanent", status: "active", start_date: "", contract_hours: 40,
   qualifications: [], dbs_number: "", dbs_expiry: "", first_aid_expiry: "",
+  enable_login: false, login_role: "staff", login_password: "",
 };
+
+// Roles that can be granted to a person's optional system login.
+const LOGIN_ROLES = ["staff", "branch_manager", "deputy_manager", "regional_manager", "finance", "admissions", "procurement"] as const;
 
 export default function StaffClient() {
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -153,7 +157,10 @@ export default function StaffClient() {
               return (
                 <tr key={s.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-mono text-xs text-slate-500"><Link href={`/admin/staff/${s.id}`} className="hover:text-teal-600">{s.ref ?? "—"}</Link></td>
-                  <td className="px-4 py-3 font-medium text-slate-900"><Link href={`/admin/staff/${s.id}`} className="hover:text-teal-600">{s.first_name} {s.last_name}</Link></td>
+                  <td className="px-4 py-3 font-medium text-slate-900">
+                    <Link href={`/admin/staff/${s.id}`} className="hover:text-teal-600">{s.first_name} {s.last_name}</Link>
+                    {s.user_id && <span className="ml-2 inline-flex items-center gap-1 align-middle text-[0.7rem] font-medium text-teal-600" title="Has a system login"><KeyRound className="h-3 w-3" /> login</span>}
+                  </td>
                   <td className="px-4 py-3 text-slate-500">{s.job_title || "—"}</td>
                   <td className="px-4 py-3"><StageBadge label={staffTypeLabel[s.staff_type]} accent={staffTypeAccent[s.staff_type]} withDot={false} /></td>
                   <td className="px-4 py-3 text-slate-500">{branchName(s.branch_slug)}</td>
@@ -201,6 +208,25 @@ export default function StaffClient() {
               <Field label="DBS expiry"><input type="date" value={form.dbs_expiry} onChange={(e) => setField({ dbs_expiry: e.target.value })} className="inp" /></Field>
               <Field label="Paediatric first aid expiry"><input type="date" value={form.first_aid_expiry} onChange={(e) => setField({ first_aid_expiry: e.target.value })} className="inp" /></Field>
               <div className="sm:col-span-2"><Field label="Qualifications (comma-separated)"><input value={(form.qualifications ?? []).join(", ")} onChange={(e) => setField({ qualifications: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })} placeholder="Level 3 Early Years, Paediatric First Aid" className="inp" /></Field></div>
+
+              <div className="sm:col-span-2 mt-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
+                <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
+                  <input type="checkbox" checked={!!form.enable_login} onChange={(e) => setField({ enable_login: e.target.checked })} className="h-4 w-4 rounded" />
+                  Enable system login for this person
+                </label>
+                <p className="mt-1 text-xs text-slate-400">One profile — the same person, with an optional login. They&apos;ll sign in with their email, scoped to {form.branch_slug ? branchName(form.branch_slug) : "their branch"}.</p>
+                {form.enable_login && (
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Field label="Login role">
+                      <select value={form.login_role} onChange={(e) => setField({ login_role: e.target.value as StaffInput["login_role"] })} className="inp bg-white">
+                        {LOGIN_ROLES.map((r) => <option key={r} value={r}>{r.replace("_", " ")}</option>)}
+                      </select>
+                    </Field>
+                    <Field label="Password (min 8 chars)"><input type="password" value={form.login_password ?? ""} onChange={(e) => setField({ login_password: e.target.value })} placeholder="Leave blank to link an existing account" className="inp" /></Field>
+                    {!form.email && <p className="sm:col-span-2 text-xs text-amber-600">⚠ An email is required to enable login.</p>}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-4">
               <button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>

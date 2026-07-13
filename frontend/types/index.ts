@@ -965,6 +965,7 @@ export interface Staff {
   dbs_number?: string;
   dbs_expiry?: string;
   first_aid_expiry?: string;
+  user_id?: string; // linked login account (empty = HR-only, no login)
   created_at?: string;
   updated_at?: string;
 }
@@ -985,6 +986,10 @@ export interface StaffInput {
   dbs_number?: string;
   dbs_expiry?: string;
   first_aid_expiry?: string;
+  // Optional system login (People, login optional)
+  enable_login?: boolean;
+  login_role?: UserRole;
+  login_password?: string;
 }
 
 export interface BranchStaffStat {

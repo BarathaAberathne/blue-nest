@@ -164,6 +164,7 @@ type AuthService interface {
 	ListAdminUsers(ctx context.Context) ([]models.User, error)
 	ListAllUsers(ctx context.Context) ([]models.User, error)
 	UpdateUser(ctx context.Context, id string, req models.AdminUpdateUserRequest) (*models.User, error)
+	FindUserByEmail(ctx context.Context, email string) (*models.User, error)
 	ResetPassword(ctx context.Context, id, newPassword string) error
 	DeleteUser(ctx context.Context, id string) error
 	UpsertOAuthUser(ctx context.Context, email, firstName, lastName, provider, providerID string) (*models.AuthResponse, error)
@@ -398,6 +399,12 @@ func (s *authService) ResetPassword(ctx context.Context, id, newPassword string)
 
 func (s *authService) DeleteUser(ctx context.Context, id string) error {
 	return s.users.Delete(ctx, id)
+}
+
+// FindUserByEmail looks up a login account by email (nil when none). Used by the
+// staff module to link an existing account when enabling a person's login.
+func (s *authService) FindUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	return s.users.FindByEmail(ctx, normalizeEmail(email))
 }
 
 // isAssignableRole reports whether a role can be assigned to a user account.

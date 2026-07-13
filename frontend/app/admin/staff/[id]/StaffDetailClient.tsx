@@ -41,6 +41,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
       staff_type: member.staff_type, status: member.status, start_date: member.start_date ?? "",
       contract_hours: member.contract_hours ?? 0, qualifications: member.qualifications ?? [],
       dbs_number: member.dbs_number ?? "", dbs_expiry: member.dbs_expiry ?? "", first_aid_expiry: member.first_aid_expiry ?? "",
+      enable_login: false, login_role: "staff", login_password: "",
     });
     setEditing(true);
   };
@@ -104,6 +105,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
               <Item label="Start date" value={fmtDate(member.start_date)} />
               <Item label="Contract hours" value={member.contract_hours ? `${member.contract_hours}h / week` : "—"} />
               <Item label="Email" value={member.email || "—"} />
+              <Item label="System login" value={member.user_id ? "Enabled" : "None"} />
               <Item label="Phone" value={member.phone || "—"} />
             </dl>
 
@@ -163,6 +165,28 @@ export default function StaffDetailClient({ id }: { id: string }) {
           <Field label="DBS expiry"><input type="date" value={form.dbs_expiry} onChange={(e) => setField({ dbs_expiry: e.target.value })} className="inp" /></Field>
           <Field label="Paediatric first aid expiry"><input type="date" value={form.first_aid_expiry} onChange={(e) => setField({ first_aid_expiry: e.target.value })} className="inp" /></Field>
           <div className="sm:col-span-2"><Field label="Qualifications (comma-separated)"><input value={(form.qualifications ?? []).join(", ")} onChange={(e) => setField({ qualifications: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })} className="inp" /></Field></div>
+
+          <div className="sm:col-span-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
+            {member.user_id ? (
+              <p className="text-sm text-slate-600">This person has a system login. Re-tick below to change their login role — it stays scoped to this branch.</p>
+            ) : (
+              <p className="text-sm text-slate-600">This person is an HR-only record with no login.</p>
+            )}
+            <label className="mt-2 flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
+              <input type="checkbox" checked={!!form.enable_login} onChange={(e) => setField({ enable_login: e.target.checked })} className="h-4 w-4 rounded" />
+              {member.user_id ? "Update login role" : "Enable system login"}
+            </label>
+            {form.enable_login && (
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Field label="Login role">
+                  <select value={form.login_role} onChange={(e) => setField({ login_role: e.target.value as StaffInput["login_role"] })} className="inp bg-white">
+                    {["staff", "branch_manager", "deputy_manager", "regional_manager", "finance", "admissions", "procurement"].map((r) => <option key={r} value={r}>{r.replace("_", " ")}</option>)}
+                  </select>
+                </Field>
+                {!member.user_id && <Field label="Password (min 8 chars)"><input type="password" value={form.login_password ?? ""} onChange={(e) => setField({ login_password: e.target.value })} placeholder="Leave blank to link existing account" className="inp" /></Field>}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

@@ -45,8 +45,12 @@ type Staff struct {
 	DBSNumber      string             `bson:"dbs_number,omitempty"   json:"dbs_number,omitempty"`
 	DBSExpiry      string             `bson:"dbs_expiry,omitempty"   json:"dbs_expiry,omitempty"` // YYYY-MM-DD
 	FirstAidExpiry string             `bson:"first_aid_expiry,omitempty" json:"first_aid_expiry,omitempty"`
-	CreatedAt      time.Time          `bson:"created_at"             json:"created_at"`
-	UpdatedAt      time.Time          `bson:"updated_at"             json:"updated_at"`
+	// UserID links this person to their system login account (users collection)
+	// when they can sign in. Empty = HR-only record, no login. This is the
+	// "one People entity, login optional" model (B3).
+	UserID    string    `bson:"user_id,omitempty" json:"user_id,omitempty"`
+	CreatedAt time.Time `bson:"created_at"        json:"created_at"`
+	UpdatedAt time.Time `bson:"updated_at"        json:"updated_at"`
 }
 
 type StaffRequest struct {
@@ -65,6 +69,11 @@ type StaffRequest struct {
 	DBSNumber      string      `json:"dbs_number"`
 	DBSExpiry      string      `json:"dbs_expiry"`
 	FirstAidExpiry string      `json:"first_aid_expiry"`
+	// Optional system login: when EnableLogin is true the person is provisioned
+	// (or linked to) a user account with LoginRole, scoped to their branch.
+	EnableLogin   bool   `json:"enable_login"`
+	LoginRole     Role   `json:"login_role"`
+	LoginPassword string `json:"login_password"`
 }
 
 // ── Stats payload (drives the People tab + Staff KPIs) ───────────────────────
