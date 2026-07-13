@@ -21,6 +21,9 @@ type BranchRepository interface {
 	Update(ctx context.Context, slug string, b models.Branch) (*models.Branch, error)
 	SetManagers(ctx context.Context, slug string, m models.BranchManagers) (*models.Branch, error)
 	Archive(ctx context.Context, slug string, archived bool) error
+	// UpdateGoogleCache refreshes the cached GBP signals from a digest ingest
+	// (leaves the admin-set links untouched).
+	UpdateGoogleCache(ctx context.Context, slug string, rating float64, reviewCount int) error
 }
 
 type branchRepository struct {
@@ -111,6 +114,18 @@ func (r *branchRepository) SetManagers(ctx context.Context, slug string, m model
 		return nil, err
 	}
 	return &out, nil
+}
+
+func (r *branchRepository) UpdateGoogleCache(ctx context.Context, slug string, rating float64, reviewCount int) error {
+	now := time.Now()
+	_, err := r.col.UpdateOne(ctx, bson.M{"slug": slug}, bson.M{"$set": bson.M{
+		"google.rating":          rating,
+		"google.review_count":    reviewCount,
+		"google.last_sync":       now,
+		"google.business_status": "OPERATIONAL",
+		"updated_at":             now,
+	}})
+	return err
 }
 
 func (r *branchRepository) Archive(ctx context.Context, slug string, archived bool) error {

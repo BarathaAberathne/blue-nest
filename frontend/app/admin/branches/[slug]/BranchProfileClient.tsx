@@ -15,7 +15,23 @@ import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import ProgressBar from "@/components/admin/ui/ProgressBar";
 import Tabs from "@/components/ui/Tabs";
+import ReviewsTab from "./ReviewsTab";
 import type { Branch, BranchDashboard, BranchInput, Child, Room, Staff } from "@/types";
+
+// branchBriefing turns the live dashboard into a short rule-based morning
+// briefing (the per-branch AI voice — same stub pattern as the MD Command
+// Centre; no external LLM call). Returns prioritised insight lines.
+function branchBriefing(name: string, d: BranchDashboard): { tone: "ok" | "warn" | "bad"; text: string }[] {
+  const out: { tone: "ok" | "warn" | "bad"; text: string }[] = [];
+  out.push({ tone: d.performance >= 90 ? "ok" : d.performance >= 80 ? "warn" : "bad", text: `${name} is performing at ${d.performance}/100 this morning.` });
+  if (d.safeguarding_open > 0) out.push({ tone: "bad", text: `${d.safeguarding_open} open safeguarding action${d.safeguarding_open > 1 ? "s" : ""} — review before the morning huddle.` });
+  if (d.staff_present < d.staff_total - Math.ceil(d.staff_total * 0.15)) out.push({ tone: "warn", text: `Staffing is light — ${d.staff_present}/${d.staff_total} in (${d.staff_on_leave} on leave). Check ratios.` });
+  out.push({ tone: d.attendance_rate >= 90 ? "ok" : "warn", text: `Attendance is ${d.attendance_rate}% — ${d.children_present} of ${d.children_expected} children in.` });
+  if (d.available > 0) out.push({ tone: "ok", text: `${d.available} places free (${d.occupancy}% occupancy) — ${d.new_enquiries} new enquir${d.new_enquiries === 1 ? "y" : "ies"} to convert.` });
+  if (d.medication_due > 0) out.push({ tone: "warn", text: `${d.medication_due} medication${d.medication_due > 1 ? "s" : ""} due today — confirm consent forms.` });
+  if (d.birthdays.length > 0) out.push({ tone: "ok", text: `🎂 ${d.birthdays.length} birthday${d.birthdays.length > 1 ? "s" : ""} today: ${d.birthdays.join(", ")}.` });
+  return out;
+}
 
 const TABS = [
   { key: "dashboard", label: "Dashboard" }, { key: "general", label: "General" },
@@ -165,6 +181,42 @@ export default function BranchProfileClient({ slug }: { slug: string }) {
               )}
             </div>
           </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {/* Per-branch AI morning briefing (rule-based from live metrics) */}
+            <div className="card p-5 lg:col-span-2">
+              <div className="mb-3 flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white">AI</span>
+                <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">Blue Nest AI · {branchShortName(branch)}</h2>
+              </div>
+              <ul className="space-y-2">
+                {branchBriefing(branchShortName(branch), dash).map((l, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: l.tone === "ok" ? ACCENT.green.solid : l.tone === "warn" ? ACCENT.amber.solid : ACCENT.red.solid }} />
+                    <span className="text-slate-700">{l.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* Performance breakdown (weighted Branch Health) */}
+            <div className="card p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">Branch health</h2>
+                <span className="text-lg font-bold" style={{ color: ACCENT[performanceAccent(dash.performance)].solid }}>{dash.performance}%</span>
+              </div>
+              <div className="space-y-2">
+                {(dash.performance_breakdown?.dimensions ?? []).map((d) => (
+                  <div key={d.label} className="text-xs">
+                    <div className="mb-0.5 flex items-center justify-between">
+                      <span className="text-slate-500">{d.label} <span className="text-slate-300">· {d.weight}%</span></span>
+                      <span className="font-semibold text-slate-700">{d.score}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-slate-100"><div className="h-1.5 rounded-full" style={{ width: `${d.score}%`, background: ACCENT[performanceAccent(d.score)].solid }} /></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -273,12 +325,13 @@ export default function BranchProfileClient({ slug }: { slug: string }) {
           summary="Every change to this branch is recorded in the group activity log." />
       )}
 
-      {["finance", "communications", "events", "reviews", "settings"].includes(tab) && (
+      {tab === "reviews" && <ReviewsTab slug={slug} />}
+
+      {["finance", "communications", "events", "settings"].includes(tab) && (
         <div className="card p-10 text-center">
           <p className="text-sm font-medium text-slate-600">{TABS.find((t) => t.key === tab)?.label}</p>
           <p className="mt-1 text-sm text-slate-400">
-            {tab === "reviews" ? "Google reviews analytics land in Phase B2 (GBP digest ingest)." :
-             tab === "finance" ? "Branch finance (fees, invoices, funding) lands in a later phase." :
+            {tab === "finance" ? "Branch finance (fees, invoices, funding) lands in a later phase." :
              "Coming in a later phase of the Branch module."}
           </p>
         </div>

@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryPage, EnquiryStats, EnquiryTasks, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
+import type { AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryPage, EnquiryStats, EnquiryTasks, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -552,6 +552,8 @@ export const api = {
     apiFetch<Branch>(`/api/v1/admin/branches/${slug}`, { token }),
   adminGetBranchDashboard: (token: string, slug: string) =>
     apiFetch<BranchDashboard>(`/api/v1/admin/branches/${slug}/dashboard`, { token }),
+  adminGetBranchReviews: (token: string, slug: string) =>
+    apiFetch<ReviewsAnalytics>(`/api/v1/admin/branches/${slug}/reviews`, { token }),
   adminCreateBranch: (token: string, body: BranchInput) =>
     apiFetch<Branch>("/api/v1/admin/branches", { method: "POST", body: JSON.stringify(body), token }),
   adminUpdateBranch: (token: string, slug: string, body: BranchInput) =>

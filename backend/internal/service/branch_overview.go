@@ -110,27 +110,53 @@ func (s *branchOverviewService) rollup(ctx context.Context, slug string, capacit
 	return r
 }
 
-// performance is a lightweight composite health score (0–100). B2 replaces this
-// with the full weighted model (finance, staff stability, satisfaction, …).
-func performance(r branchRollup, rating float64) int {
-	ratingPct := 0
+func clamp100(v int) int {
+	if v < 0 {
+		return 0
+	}
+	if v > 100 {
+		return 100
+	}
+	return v
+}
+
+// performanceDimensions is the weighted Branch Health model (B2). Weights sum to
+// 100. Finance & parent-satisfaction proxy off reviews until those modules land.
+func performanceDimensions(r branchRollup, rating float64) []models.PerfDimension {
+	ratingPct := 80 // neutral when no reviews yet
 	if rating > 0 {
 		ratingPct = int(rating / 5 * 100)
-	} else {
-		ratingPct = 80 // no reviews yet → neutral
 	}
-	alertsPenalty := (r.safeguardingOpen*10 + r.incidentsToday*5)
-	if alertsPenalty > 100 {
-		alertsPenalty = 100
+	staffStability := 100
+	if r.staffTotal > 0 {
+		staffStability = percent(r.staffPresent, r.staffTotal)
 	}
-	score := float64(r.occupancy)*0.3 + float64(r.attendanceRate)*0.3 + float64(ratingPct)*0.2 + float64(100-alertsPenalty)*0.2
-	if score < 0 {
-		score = 0
+	compliance := clamp100(100 - (r.safeguardingOpen*15 + r.incidentsToday*8))
+	admissions := clamp100(60 + r.newEnquiries*8)
+	return []models.PerfDimension{
+		{Label: "Occupancy", Score: clamp100(r.occupancy), Weight: 20},
+		{Label: "Attendance", Score: clamp100(r.attendanceRate), Weight: 20},
+		{Label: "Reviews", Score: clamp100(ratingPct), Weight: 15},
+		{Label: "Staff stability", Score: clamp100(staffStability), Weight: 15},
+		{Label: "Compliance", Score: compliance, Weight: 15},
+		{Label: "Admissions", Score: admissions, Weight: 15},
 	}
-	if score > 100 {
-		score = 100
+}
+
+func overallPerformance(dims []models.PerfDimension) int {
+	total, weight := 0.0, 0.0
+	for _, d := range dims {
+		total += float64(d.Score) * float64(d.Weight)
+		weight += float64(d.Weight)
 	}
-	return int(score + 0.5)
+	if weight == 0 {
+		return 0
+	}
+	return int(total/weight + 0.5)
+}
+
+func performance(r branchRollup, rating float64) int {
+	return overallPerformance(performanceDimensions(r, rating))
 }
 
 func (s *branchOverviewService) Overview(ctx context.Context, branches []models.Branch) ([]models.BranchOverviewRow, error) {
@@ -166,8 +192,11 @@ func (s *branchOverviewService) Dashboard(ctx context.Context, b *models.Branch)
 		Enquiries: r.enquiries, NewEnquiries: r.newEnquiries,
 		MedicationDue: r.medicationDue, SafeguardingOpen: r.safeguardingOpen, IncidentsToday: r.incidentsToday, MealsServed: r.mealsServed,
 		Rating: b.Google.Rating, ReviewCount: b.Google.ReviewCount, Ofsted: b.OfstedRating,
-		Performance: performance(r, b.Google.Rating), Birthdays: r.birthdays,
+		Birthdays: r.birthdays,
 	}
+	dims := performanceDimensions(r, b.Google.Rating)
+	d.Performance = overallPerformance(dims)
+	d.PerformanceBreakdown = models.BranchPerformance{Overall: d.Performance, Dimensions: dims}
 	// Live activity: most-recent daily records for this branch.
 	if recs, err := s.daily.FindAll(ctx, repository.DailyRecordFilter{Branch: b.Slug, Limit: 8}); err == nil {
 		for _, rec := range recs {

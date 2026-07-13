@@ -6,6 +6,7 @@ import (
 	"github.com/blue-nest-montessori/api/internal/config"
 	"github.com/blue-nest-montessori/api/internal/handler"
 	adminHandler "github.com/blue-nest-montessori/api/internal/handler/admin"
+	"github.com/blue-nest-montessori/api/internal/handler/integrations"
 	"github.com/blue-nest-montessori/api/internal/handler/webhooks"
 	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -41,6 +42,7 @@ type Services struct {
 	StaffAttendance  service.StaffAttendanceService
 	DailyRecords     service.DailyRecordService
 	BranchOverview   service.BranchOverviewService
+	GBP              service.GBPService
 }
 
 type Repos struct {
@@ -64,6 +66,10 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 	// ── Stripe webhook (raw body required before JSON middleware) ───────────
 	stripeWH := webhooks.NewStripeWebhookHandler(stripeWebhookSecret, repos.Orders, repos.Products, repos.Branches, repos.Mailer, repos.OrderAdminTo, repos.OrderBATo)
 	r.Post("/api/v1/webhooks/stripe", stripeWH.Handle)
+
+	// ── GBP digest ingest (shared-secret webhook, no user JWT) ──────────────
+	gbpWH := integrations.NewGBPHandler(svc.GBP, cfg.GBPIngestSecret)
+	r.Post("/api/v1/integrations/gbp/digest", gbpWH.IngestDigest)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// ── Auth ──────────────────────────────────────────────────────────
@@ -318,11 +324,12 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			// Organisation — Branch Management System (Branch as the central hub).
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermBranchesManage))
-				adminBranchH := adminHandler.NewAdminBranchHandler(svc.Branches, svc.BranchOverview, svc.Audit)
+				adminBranchH := adminHandler.NewAdminBranchHandler(svc.Branches, svc.BranchOverview, svc.GBP, svc.Audit)
 				r.Get("/admin/branches", adminBranchH.List)
 				r.Get("/admin/branches/overview", adminBranchH.Overview)
 				r.Get("/admin/branches/{slug}", adminBranchH.Get)
 				r.Get("/admin/branches/{slug}/dashboard", adminBranchH.Dashboard)
+				r.Get("/admin/branches/{slug}/reviews", adminBranchH.Reviews)
 				r.Put("/admin/branches/{slug}", adminBranchH.Update) // scope-checked in handler
 				// Lifecycle — super admin only.
 				r.Group(func(r chi.Router) {

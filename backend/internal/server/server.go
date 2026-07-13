@@ -81,6 +81,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	staffRepo := repository.NewStaffRepository(db)
 	staffAttendanceRepo := repository.NewStaffAttendanceRepository(db)
 	dailyRecordRepo := repository.NewDailyRecordRepository(db)
+	gbpRepo := repository.NewGBPRepository(db)
 	mailer := email.New(email.Config{
 		Host:         cfg.SMTP.Host,
 		Port:         cfg.SMTP.Port,
@@ -116,6 +117,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		StaffAttendance:  service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo),
 		DailyRecords:     service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo),
 		BranchOverview:   service.NewBranchOverviewService(childRepo, roomRepo, attendanceRepo, staffRepo, staffAttendanceRepo, dailyRecordRepo, enquiryRepo),
+		GBP:              service.NewGBPService(gbpRepo, branchRepo),
 	}
 
 	// Sourcing engine: enable supplier adapters per config (off by default; the

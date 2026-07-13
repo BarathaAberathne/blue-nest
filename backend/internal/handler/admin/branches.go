@@ -15,11 +15,12 @@ import (
 type AdminBranchHandler struct {
 	svc      service.BranchService
 	overview service.BranchOverviewService
+	gbp      service.GBPService
 	audit    service.AuditService
 }
 
-func NewAdminBranchHandler(svc service.BranchService, overview service.BranchOverviewService, audit service.AuditService) *AdminBranchHandler {
-	return &AdminBranchHandler{svc: svc, overview: overview, audit: audit}
+func NewAdminBranchHandler(svc service.BranchService, overview service.BranchOverviewService, gbp service.GBPService, audit service.AuditService) *AdminBranchHandler {
+	return &AdminBranchHandler{svc: svc, overview: overview, gbp: gbp, audit: audit}
 }
 
 // caller resolves the authenticated user's role + branch scope from context.
@@ -89,6 +90,21 @@ func (h *AdminBranchHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.OK(w, dash)
+}
+
+func (h *AdminBranchHandler) Reviews(w http.ResponseWriter, r *http.Request) {
+	role, scope := caller(r)
+	slug := chi.URLParam(r, "slug")
+	if !policy.CanScope(role, scope, slug) {
+		response.Forbidden(w, "branch not in your scope")
+		return
+	}
+	analytics, err := h.gbp.BranchReviews(r.Context(), slug)
+	if err != nil {
+		response.InternalError(w, "failed to load reviews")
+		return
+	}
+	response.OK(w, analytics)
 }
 
 func (h *AdminBranchHandler) Create(w http.ResponseWriter, r *http.Request) {

@@ -138,6 +138,7 @@ export interface BranchDashboard {
   review_count: number;
   ofsted?: string;
   performance: number;
+  performance_breakdown?: BranchPerformance;
   birthdays: string[];
   activity: BranchActivityItem[];
 }
@@ -1077,3 +1078,47 @@ export interface DailyStats {
   observations_week: number;
   by_type: { label: string; count: number }[];
 }
+
+// ── GBP / Reviews / Performance (Branch Management B2) ───────────────────────
+export interface LabelCount { label: string; count: number; }
+export interface SentimentSplit { positive: number; neutral: number; negative: number; }
+
+export interface GBPReview {
+  id: string;
+  branch_slug: string;
+  review_id: string;
+  author: string;
+  rating: number;
+  text?: string;
+  date: string;
+  reply?: string;
+  sentiment?: string;
+}
+
+export interface GBPInsights {
+  search_views: number;
+  direction_requests: number;
+  calls: number;
+  website_clicks: number;
+  new_photos: number;
+  questions: number;
+}
+
+export interface ReviewsAnalytics {
+  slug: string;
+  rating: number;
+  review_count: number;
+  last_sync?: string;
+  stale: boolean;
+  distribution: number[]; // [1★,2★,3★,4★,5★]
+  sentiment: SentimentSplit;
+  keywords: LabelCount[];
+  pending_replies: number;
+  trend: { date: string; rating: number }[];
+  insights: GBPInsights;
+  recent: GBPReview[] | null;
+  negative: GBPReview[] | null;
+}
+
+export interface PerfDimension { label: string; score: number; weight: number; }
+export interface BranchPerformance { overall: number; dimensions: PerfDimension[]; }
