@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,7 +17,7 @@ import BranchRadar from "./os/BranchRadar";
 import AITabContent from "./os/AITabs";
 import {
   DOCK_ITEMS, EXEC_KPIS, EXEC_SUMMARY, MD_PROFILE, RISKS, DEADLINES, AI_RAIL, AI_TABS,
-  AI_PROMPTS, type AiTab, type AiRailItem,
+  AI_PROMPTS, MESSAGES, type AiTab, type AiRailItem,
 } from "./os/osdata";
 import {
   AI_COMMAND, CALENDAR, FINANCE, FINANCE_ANALYTICS,
@@ -340,6 +340,120 @@ function Section({ title, sub, onOpen, children }: { title: string; sub?: string
   );
 }
 
+/* ── Header controls: notifications + messages dropdowns ──────────────────── */
+function HeaderControls({ go }: { go: (href: string) => void }) {
+  const [open, setOpen] = useState<null | "notif" | "msg">(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(null);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(null); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  const notifCount = AI_RAIL.length;
+  const msgCount = MESSAGES.filter((m) => m.unread).length;
+
+  return (
+    <div className="cc-hmenus" ref={wrapRef}>
+      <button
+        className={`cc-hbtn ${open === "notif" ? "cc-hbtn--on" : ""}`}
+        onClick={() => setOpen((o) => (o === "notif" ? null : "notif"))}
+        title="Notifications" aria-label="Notifications"
+      >
+        <Bell size={15} /><span className="cc-hbadge">{notifCount}</span>
+      </button>
+      <button
+        className={`cc-hbtn ${open === "msg" ? "cc-hbtn--on" : ""}`}
+        onClick={() => setOpen((o) => (o === "msg" ? null : "msg"))}
+        title="Messages" aria-label="Messages"
+      >
+        <Mail size={15} />{msgCount > 0 && <span className="cc-hbadge">{msgCount}</span>}
+      </button>
+
+      <AnimatePresence>
+        {open === "notif" && (
+          <motion.div
+            className="cc-hpop" initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.14 }}
+          >
+            <div className="cc-hpop-head">
+              <div>
+                <p className="cc-heading" style={{ fontSize: 11, letterSpacing: "0.14em", color: "var(--cc-text)" }}>NOTIFICATIONS</p>
+                <p className="cc-label" style={{ fontSize: 8, color: "var(--cc-muted)" }}>{notifCount} ACTIVE · GROUP-WIDE</p>
+              </div>
+              <span className="cc-hpop-dot" />
+            </div>
+            <div className="cc-hpop-list">
+              {AI_RAIL.map((it, i) => {
+                const Icon = RAIL_ICONS[it.kind];
+                return (
+                  <div key={i} className="cc-hpop-item">
+                    <span className="cc-rail-pri" style={{ background: TONE[it.priority] }} />
+                    <Icon size={14} color={TONE[it.priority]} style={{ marginTop: 1 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 10.5, color: "var(--cc-text)", lineHeight: 1.3 }}>{it.text}</p>
+                      <p className="cc-label" style={{ fontSize: 8, color: "var(--cc-muted-dim)" }}>{it.branch} · {it.time}</p>
+                    </div>
+                    <button className="cc-rail-act" onClick={() => { setOpen(null); go("/admin/activity"); }}>{it.action}</button>
+                  </div>
+                );
+              })}
+            </div>
+            <button className="cc-hpop-foot" onClick={() => { setOpen(null); go("/admin/activity"); }}>
+              View activity log <ChevronRight size={11} />
+            </button>
+          </motion.div>
+        )}
+
+        {open === "msg" && (
+          <motion.div
+            className="cc-hpop cc-hpop--msg" initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.14 }}
+          >
+            <div className="cc-hpop-head">
+              <div>
+                <p className="cc-heading" style={{ fontSize: 11, letterSpacing: "0.14em", color: "var(--cc-text)" }}>MESSAGES</p>
+                <p className="cc-label" style={{ fontSize: 8, color: "var(--cc-muted)" }}>{msgCount} UNREAD · TEAM INBOX</p>
+              </div>
+              <span className="cc-hpop-dot" />
+            </div>
+            <div className="cc-hpop-list">
+              {MESSAGES.map((m, i) => (
+                <div key={i} className={`cc-hpop-msg ${m.unread ? "cc-hpop-msg--unread" : ""}`}>
+                  <div className="cc-hpop-avatar">{m.initials}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="cc-heading" style={{ fontSize: 10.5, color: "var(--cc-text)" }}>{m.from}</p>
+                      <span className="cc-label" style={{ fontSize: 8, color: "var(--cc-muted-dim)", whiteSpace: "nowrap" }}>{m.time}</span>
+                    </div>
+                    <p className="cc-label" style={{ fontSize: 8, color: "var(--cc-muted)", marginBottom: 2 }}>{m.role} · {m.branch}</p>
+                    <p style={{ fontSize: 10, color: "var(--cc-muted)", lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{m.preview}</p>
+                  </div>
+                  {m.unread && <span className="cc-hpop-unreaddot" />}
+                </div>
+              ))}
+            </div>
+            <button className="cc-hpop-foot" onClick={() => { setOpen(null); go("/admin/inquiries"); }}>
+              Open inbox <ChevronRight size={11} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 /* ── Root shell ───────────────────────────────────────────────────────────── */
 export default function CommandCenterClient() {
   const router = useRouter();
@@ -369,8 +483,7 @@ export default function CommandCenterClient() {
         </button>
         <div className="flex items-center gap-2">
           <span className="cc-label" style={{ fontSize: 11, color: "var(--cc-muted)" }} suppressHydrationWarning>{time}</span>
-          <button className="cc-hbtn" onClick={() => go("/admin/activity")}><Bell size={15} /><span className="cc-hbadge">5</span></button>
-          <button className="cc-hbtn" onClick={() => go("/admin/inquiries")}><Mail size={15} /><span className="cc-hbadge">3</span></button>
+          <HeaderControls go={go} />
           <div className="flex items-center gap-2" title={`${MD_PROFILE.name} · ${MD_PROFILE.title}`}>
             <div className="hidden sm:block text-right leading-tight">
               <p className="cc-heading" style={{ fontSize: 11, color: "var(--cc-text)" }}>{MD_PROFILE.nickname}</p>

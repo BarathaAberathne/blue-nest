@@ -79,6 +79,25 @@ export const AI_RAIL: AiRailItem[] = [
   { kind: "notification", priority: "low", branch: "Group", time: "08:30", text: "Newsletter sent · 1,240 parents", action: "Open" },
 ];
 
+// Header inbox — direct messages surfaced by the Mail control
+export type InboxMessage = {
+  from: string;
+  role: string;
+  initials: string;
+  branch: string;
+  time: string;
+  preview: string;
+  unread: boolean;
+};
+
+export const MESSAGES: InboxMessage[] = [
+  { from: "Priya Sharma", role: "Branch Manager", initials: "PS", branch: "Harrow", time: "09:12", preview: "Room 2 ratio covered for tomorrow — confirming AM staffing now.", unread: true },
+  { from: "James Okafor", role: "Finance Lead", initials: "JO", branch: "Group", time: "08:57", preview: "Funding reconciliation ready for your sign-off before noon.", unread: true },
+  { from: "Aisha Bello", role: "Admissions", initials: "AB", branch: "Pinner", time: "08:41", preview: "Two new visit requests this week — shall I book Thursday?", unread: true },
+  { from: "Tom Fielding", role: "Branch Manager", initials: "TF", branch: "Northwood", time: "Yesterday", preview: "Newsletter went out to 1,240 parents — engagement looks strong.", unread: false },
+  { from: "Ofsted Liaison", role: "Compliance", initials: "OL", branch: "Group", time: "Yesterday", preview: "SEF draft updated ahead of the readiness review.", unread: false },
+];
+
 export const AI_TABS = [
   "Mission Control", "Operations", "Finance", "Admissions", "People", "Ofsted", "Analytics",
 ] as const;
