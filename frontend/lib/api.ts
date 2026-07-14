@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
+import type { AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskSession, KioskStaffResult, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -182,6 +182,28 @@ export const api = {
     apiFetch("/api/v1/contact", { method: "POST", body: JSON.stringify(body) }),
   // Returns the full matching set (no pagination) — used by the pipeline and
   // follow-up views. Pass params for server-side filtering/sorting.
+  // ── Kiosk (entrance tablet — device token, not a user JWT) ─────────────────
+  kioskSession: (deviceToken: string) =>
+    apiFetch<KioskSession>("/api/v1/kiosk/session", { method: "POST", headers: { "X-Kiosk-Token": deviceToken } }),
+  kioskSearch: (deviceToken: string, q: string) =>
+    apiFetch<KioskStaffResult[]>(`/api/v1/kiosk/staff?q=${encodeURIComponent(q)}`, { headers: { "X-Kiosk-Token": deviceToken } }),
+  kioskClockIn: (deviceToken: string, staffId: string, pin: string) =>
+    apiFetch<StaffAttendanceRecord>("/api/v1/kiosk/clock-in", { method: "POST", headers: { "X-Kiosk-Token": deviceToken }, body: JSON.stringify({ staff_id: staffId, pin }) }),
+  kioskClockOut: (deviceToken: string, staffId: string, pin: string) =>
+    apiFetch<StaffAttendanceRecord>("/api/v1/kiosk/clock-out", { method: "POST", headers: { "X-Kiosk-Token": deviceToken }, body: JSON.stringify({ staff_id: staffId, pin }) }),
+
+  // ── Kiosk device management + staff PIN (admin, staff.manage) ──────────────
+  adminListKioskDevices: (token: string, branch?: string) =>
+    apiFetch<KioskDevice[]>(`/api/v1/admin/kiosk-devices${branch ? `?branch=${branch}` : ""}`, { token }),
+  adminCreateKioskDevice: (token: string, body: { name: string; branch_slug: string }) =>
+    apiFetch<{ device: KioskDevice; token: string }>("/api/v1/admin/kiosk-devices", { method: "POST", body: JSON.stringify(body), token }),
+  adminSetKioskDeviceActive: (token: string, id: string, active: boolean) =>
+    apiFetch<{ active: boolean }>(`/api/v1/admin/kiosk-devices/${id}`, { method: "PATCH", body: JSON.stringify({ active }), token }),
+  adminDeleteKioskDevice: (token: string, id: string) =>
+    apiFetch<void>(`/api/v1/admin/kiosk-devices/${id}`, { method: "DELETE", token }),
+  adminSetStaffPIN: (token: string, staffId: string, pin: string) =>
+    apiFetch<{ has_pin: boolean }>(`/api/v1/admin/staff/${staffId}/pin`, { method: "PUT", body: JSON.stringify({ pin }), token }),
+
   adminGetEnquiries: (token: string, params?: EnquiryListParams) =>
     apiFetch<Enquiry[]>(`/api/v1/admin/enquiries${enquiryQuery(params)}`, { token }),
 

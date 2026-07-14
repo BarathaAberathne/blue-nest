@@ -48,7 +48,11 @@ type Staff struct {
 	// UserID links this person to their system login account (users collection)
 	// when they can sign in. Empty = HR-only record, no login. This is the
 	// "one People entity, login optional" model (B3).
-	UserID    string    `bson:"user_id,omitempty" json:"user_id,omitempty"`
+	UserID string `bson:"user_id,omitempty" json:"user_id,omitempty"`
+	// PINHash is the bcrypt of the staff member's kiosk clock-in PIN. Never
+	// serialised to JSON; HasPIN exposes only whether one is set (computed).
+	PINHash   string    `bson:"pin_hash,omitempty" json:"-"`
+	HasPIN    bool      `bson:"-"                  json:"has_pin"`
 	CreatedAt time.Time `bson:"created_at"        json:"created_at"`
 	UpdatedAt time.Time `bson:"updated_at"        json:"updated_at"`
 }

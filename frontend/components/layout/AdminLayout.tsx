@@ -25,6 +25,7 @@ import {
   ShoppingCart,
   Tag,
   Truck,
+  MonitorSmartphone,
   UserCheck,
   Users,
 } from "lucide-react";
@@ -69,10 +70,11 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    heading: "People",
+    heading: "HR",
     items: [
-      { label: "Staff",           href: "/admin/staff",            icon: Users, permission: "staff.manage" },
-      { label: "Staff Rota",      href: "/admin/staff-attendance", icon: UserCheck, permission: "staff.manage" },
+      { label: "Staff",              href: "/admin/staff",              icon: Users, permission: "staff.manage" },
+      { label: "Attendance",         href: "/admin/staff-attendance",   icon: UserCheck, permission: "staff.manage" },
+      { label: "Attendance Devices", href: "/admin/attendance-devices", icon: MonitorSmartphone, permission: "staff.manage" },
     ],
   },
   {
@@ -173,9 +175,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!ready || !isAuthenticated || !allowed) return null;
 
   const currentPage =
-    [...allItems(NAV_SECTIONS), ...allItems(STAFF_SECTIONS)].find((n) =>
-      pathname.startsWith(n.href),
-    )?.label ?? "Admin";
+    [...allItems(NAV_SECTIONS), ...allItems(STAFF_SECTIONS)]
+      .filter((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href)))
+      .sort((a, b) => b.href.length - a.href.length)[0]?.label ?? "Admin";
 
   const initials = user
     ? `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`.toUpperCase() ||

@@ -1035,6 +1035,7 @@ export interface Staff {
   dbs_expiry?: string;
   first_aid_expiry?: string;
   user_id?: string; // linked login account (empty = HR-only, no login)
+  has_pin?: boolean; // whether a kiosk clock-in PIN is set
   created_at?: string;
   updated_at?: string;
 }
@@ -1095,6 +1096,41 @@ export interface StaffAttendanceRecord {
   clock_out?: string;
   late_arrival: boolean;
   notes?: string;
+  source?: string;
+  device_id?: string;
+  worked_minutes?: number;
+  break_minutes?: number;
+  late_minutes?: number;
+  missing_clockout?: boolean;
+}
+
+// ── Kiosk (entrance tablet) ──────────────────────────────────────────────────
+export interface KioskSession {
+  device_id: string;
+  device_name: string;
+  branch_slug: string;
+  branch_name: string;
+}
+
+export interface KioskStaffResult {
+  id: string;
+  name: string;
+  job_title?: string;
+  room_name?: string;
+  has_pin: boolean;
+  clocked_in: boolean;
+  clocked_out: boolean;
+  status?: string;
+}
+
+export interface KioskDevice {
+  id: string;
+  name: string;
+  branch_slug: string;
+  token_hint: string;
+  active: boolean;
+  last_seen_at?: string;
+  created_at: string;
 }
 
 // ── Daily records: observations, incidents, safeguarding, medication, meals (Phase 3) ──

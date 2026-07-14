@@ -23,6 +23,7 @@ type StaffRepository interface {
 	FindAll(ctx context.Context, f StaffFilter) ([]models.Staff, error)
 	FindByID(ctx context.Context, id string) (*models.Staff, error)
 	Update(ctx context.Context, id string, s models.Staff) (*models.Staff, error)
+	SetPINHash(ctx context.Context, id, hash string) error
 	Delete(ctx context.Context, id string) error
 }
 
@@ -68,7 +69,13 @@ func (r *staffRepository) FindAll(ctx context.Context, f StaffFilter) ([]models.
 		return nil, err
 	}
 	out := make([]models.Staff, 0)
-	return out, cursor.All(ctx, &out)
+	if err := cursor.All(ctx, &out); err != nil {
+		return nil, err
+	}
+	for i := range out {
+		out[i].HasPIN = out[i].PINHash != ""
+	}
+	return out, nil
 }
 
 func (r *staffRepository) FindByID(ctx context.Context, id string) (*models.Staff, error) {
@@ -80,7 +87,18 @@ func (r *staffRepository) FindByID(ctx context.Context, id string) (*models.Staf
 	if err = r.col.FindOne(ctx, bson.M{"_id": oid}).Decode(&s); err != nil {
 		return nil, err
 	}
+	s.HasPIN = s.PINHash != ""
 	return &s, nil
+}
+
+// SetPINHash sets (or clears, when hash is empty) a staff member's kiosk PIN.
+func (r *staffRepository) SetPINHash(ctx context.Context, id, hash string) error {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": bson.M{"pin_hash": hash, "updated_at": time.Now()}})
+	return err
 }
 
 func (r *staffRepository) Update(ctx context.Context, id string, s models.Staff) (*models.Staff, error) {

@@ -261,6 +261,25 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   other figures (children, attendance, finance, sentiment, compliance, staffing, activity) remain mock —
   the enquiries pipeline is the first module connected to real backend data.
 
+- **Staff Attendance / Kiosk** (HR module, being built in phases — **Phase A DELIVERED**): the
+  authoritative source of staff working hours for payroll. Extends the existing `StaffAttendanceRecord`
+  (`models/staff_attendance.go`) additively — breaks[], capture context (source kiosk|manual|import,
+  device_id, ip), computed worked/break/late minutes, missing_clockout, shift_id (Phase B), append-only
+  `corrections[]`. **Entrance-tablet kiosk** (`app/kiosk/`, full-screen, outside AdminLayout): staff search
+  their name + enter a **PIN** to clock in/out. Isolated `/kiosk` API (device-token auth via `X-Kiosk-Token`
+  header + `middleware.KioskAuth`, rate-limited via `middleware.RateLimit`) exposes ONLY session/search/
+  clock-in/clock-out within the device's branch — never the CMS. `KioskService` (`service/kiosk.go`)
+  authenticates devices (bcrypt token hash), searches staff, and clocks via the shared
+  `StaffAttendanceService.ClockIn/ClockOut(cc ClockContext)` so kiosk + admin write identical records.
+  Double-clock prevention + PIN check server-side; offline queue + auto-sync client-side. New: `KioskDevice`
+  (`kiosk_devices`, per-branch tablets, tokens shown once), `Staff.PINHash` (bcrypt, `has_pin` computed).
+  Admin: **HR** sidebar group (Staff · Attendance · Attendance Devices); device management at
+  `/admin/attendance-devices` (create/list/toggle/delete, `staff.manage`); per-staff PIN on the staff detail
+  page. `make backfill-refs` unaffected. **Phase B** = Rota scheduling (staff→room/timeslot/day) + shift
+  matching (real overtime/early-departure); **C** = manager/admin dashboards + attendance table + manual
+  corrections; **D** = Payroll summary from attendance; **E** = reports (CSV/Excel/PDF) + notifications.
+  Future-ready: QR/NFC/biometric/GPS attach to the same clock request + PIN abstraction.
+
 Planned next: Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 
 ## Procurement Management module — roadmap (Phases 1–4 DELIVERED)

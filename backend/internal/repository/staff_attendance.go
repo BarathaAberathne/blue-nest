@@ -31,21 +31,34 @@ func NewStaffAttendanceRepository(db *mongo.Database) StaffAttendanceRepository 
 func (r *staffAttendanceRepository) Upsert(ctx context.Context, rec models.StaffAttendanceRecord) (*models.StaffAttendanceRecord, error) {
 	now := time.Now()
 	rec.UpdatedAt = now
+	// Persist the full record so all attendance fields (capture context, breaks,
+	// computed minutes) survive. clock_in/out are set explicitly — including nil,
+	// so Mark(absent) and re-clock-in correctly clear stale times.
 	set := bson.M{
-		"staff_id":     rec.StaffID,
-		"staff_name":   rec.StaffName,
-		"branch_slug":  rec.BranchSlug,
-		"date":         rec.Date,
-		"status":       rec.Status,
-		"late_arrival": rec.LateArrival,
-		"notes":        rec.Notes,
-		"updated_at":   now,
-	}
-	if rec.ClockIn != nil {
-		set["clock_in"] = rec.ClockIn
-	}
-	if rec.ClockOut != nil {
-		set["clock_out"] = rec.ClockOut
+		"staff_id":                rec.StaffID,
+		"staff_name":              rec.StaffName,
+		"branch_slug":             rec.BranchSlug,
+		"date":                    rec.Date,
+		"status":                  rec.Status,
+		"clock_in":                rec.ClockIn,
+		"clock_out":               rec.ClockOut,
+		"late_arrival":            rec.LateArrival,
+		"notes":                   rec.Notes,
+		"source":                  rec.Source,
+		"device_id":               rec.DeviceID,
+		"ip":                      rec.IP,
+		"location":                rec.Location,
+		"created_by":              rec.CreatedBy,
+		"breaks":                  rec.Breaks,
+		"shift_id":                rec.ShiftID,
+		"missing_clockout":        rec.MissingClockOut,
+		"worked_minutes":          rec.WorkedMinutes,
+		"break_minutes":           rec.BreakMinutes,
+		"overtime_minutes":        rec.OvertimeMinutes,
+		"late_minutes":            rec.LateMinutes,
+		"early_departure_minutes": rec.EarlyDepartureMinutes,
+		"corrections":             rec.Corrections,
+		"updated_at":              now,
 	}
 	update := bson.M{"$set": set, "$setOnInsert": bson.M{"created_at": now}}
 	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)

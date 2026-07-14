@@ -44,7 +44,7 @@ func (h *AdminStaffAttendanceHandler) ClockIn(w http.ResponseWriter, r *http.Req
 		response.BadRequest(w, err.Error())
 		return
 	}
-	rec, err := h.svc.ClockIn(r.Context(), req, attendanceActor(r))
+	rec, err := h.svc.ClockIn(r.Context(), req, service.ClockContext{Source: models.AttSourceManual, ActorID: attendanceActor(r)})
 	if err != nil {
 		response.BadRequest(w, err.Error())
 		return
@@ -59,7 +59,7 @@ func (h *AdminStaffAttendanceHandler) ClockOut(w http.ResponseWriter, r *http.Re
 		response.BadRequest(w, err.Error())
 		return
 	}
-	rec, err := h.svc.ClockOut(r.Context(), req, attendanceActor(r))
+	rec, err := h.svc.ClockOut(r.Context(), req, service.ClockContext{Source: models.AttSourceManual, ActorID: attendanceActor(r)})
 	if err != nil {
 		response.BadRequest(w, err.Error())
 		return

@@ -11,10 +11,28 @@ import (
 	"github.com/blue-nest-montessori/api/internal/repository"
 )
 
+// ClockContext carries where/how a clock action came from — the kiosk fills in
+// device/ip/location; the admin path fills in ActorID. It keeps the attendance
+// record's capture provenance without changing the clock request shapes.
+type ClockContext struct {
+	Source   models.AttendanceSource
+	DeviceID string
+	IP       string
+	Location string
+	ActorID  string
+}
+
+func (c ClockContext) source() models.AttendanceSource {
+	if c.Source == "" {
+		return models.AttSourceManual
+	}
+	return c.Source
+}
+
 type StaffAttendanceService interface {
 	Register(ctx context.Context, date, branch string) ([]models.StaffAttendanceRecord, error)
-	ClockIn(ctx context.Context, req models.StaffClockInRequest, actor string) (*models.StaffAttendanceRecord, error)
-	ClockOut(ctx context.Context, req models.StaffClockOutRequest, actor string) (*models.StaffAttendanceRecord, error)
+	ClockIn(ctx context.Context, req models.StaffClockInRequest, cc ClockContext) (*models.StaffAttendanceRecord, error)
+	ClockOut(ctx context.Context, req models.StaffClockOutRequest, cc ClockContext) (*models.StaffAttendanceRecord, error)
 	Mark(ctx context.Context, req models.StaffAttendanceMarkRequest, actor string) (*models.StaffAttendanceRecord, error)
 	TodayStats(ctx context.Context, date, branch string) (*models.StaffStats, error)
 }
@@ -89,36 +107,98 @@ func (s *staffAttendanceService) baseRecord(ctx context.Context, staffID, date s
 	}, nil
 }
 
-// lateThreshold: clock-in after 09:00 counts as a late arrival.
+// lateThreshold: clock-in after 09:00 counts as a late arrival. Until shifts
+// exist (Phase B) this fixed threshold also drives late_minutes.
+const lateHour, lateMinute = 9, 0
+
 func isLate(t time.Time) bool {
-	return t.Hour() > 9 || (t.Hour() == 9 && t.Minute() > 0)
+	return t.Hour() > lateHour || (t.Hour() == lateHour && t.Minute() > lateMinute)
 }
 
-func (s *staffAttendanceService) ClockIn(ctx context.Context, req models.StaffClockInRequest, actor string) (*models.StaffAttendanceRecord, error) {
+// lateMinutes returns minutes past the 09:00 threshold (0 if on time).
+func lateMinutes(t time.Time) int {
+	if !isLate(t) {
+		return 0
+	}
+	threshold := time.Date(t.Year(), t.Month(), t.Day(), lateHour, lateMinute, 0, 0, t.Location())
+	return int(t.Sub(threshold).Minutes())
+}
+
+// breakMinutes sums completed breaks (both ends set).
+func breakMinutes(breaks []models.BreakEntry) int {
+	total := 0
+	for _, b := range breaks {
+		if b.Start != nil && b.End != nil && b.End.After(*b.Start) {
+			total += int(b.End.Sub(*b.Start).Minutes())
+		}
+	}
+	return total
+}
+
+// applyCapture stamps the capture context onto a record.
+func applyCapture(rec *models.StaffAttendanceRecord, cc ClockContext) {
+	rec.Source = cc.source()
+	if cc.DeviceID != "" {
+		rec.DeviceID = cc.DeviceID
+	}
+	if cc.IP != "" {
+		rec.IP = cc.IP
+	}
+	if cc.Location != "" {
+		rec.Location = cc.Location
+	}
+	if cc.ActorID != "" {
+		rec.CreatedBy = cc.ActorID
+	}
+}
+
+func (s *staffAttendanceService) ClockIn(ctx context.Context, req models.StaffClockInRequest, cc ClockContext) (*models.StaffAttendanceRecord, error) {
 	rec, err := s.baseRecord(ctx, req.StaffID, req.Date)
 	if err != nil {
 		return nil, err
+	}
+	if rec.ClockIn != nil && rec.ClockOut == nil {
+		return nil, errors.New("already clocked in")
 	}
 	now := time.Now()
 	rec.Status = models.StaffAttPresent
 	rec.ClockIn = &now
+	rec.ClockOut = nil
 	rec.LateArrival = isLate(now)
+	rec.LateMinutes = lateMinutes(now)
+	rec.MissingClockOut = false
 	if req.Notes != "" {
 		rec.Notes = req.Notes
 	}
+	applyCapture(&rec, cc)
 	return s.repo.Upsert(ctx, rec)
 }
 
-func (s *staffAttendanceService) ClockOut(ctx context.Context, req models.StaffClockOutRequest, actor string) (*models.StaffAttendanceRecord, error) {
+func (s *staffAttendanceService) ClockOut(ctx context.Context, req models.StaffClockOutRequest, cc ClockContext) (*models.StaffAttendanceRecord, error) {
 	rec, err := s.baseRecord(ctx, req.StaffID, req.Date)
 	if err != nil {
 		return nil, err
+	}
+	if rec.ClockIn == nil {
+		return nil, errors.New("not clocked in yet")
+	}
+	if rec.ClockOut != nil {
+		return nil, errors.New("already clocked out")
 	}
 	now := time.Now()
 	rec.ClockOut = &now
 	if rec.Status == models.StaffAttExpected || rec.Status == "" {
 		rec.Status = models.StaffAttPresent
 	}
+	// Worked = clock_out − clock_in − completed breaks (the payroll base).
+	rec.BreakMinutes = breakMinutes(rec.Breaks)
+	worked := int(now.Sub(*rec.ClockIn).Minutes()) - rec.BreakMinutes
+	if worked < 0 {
+		worked = 0
+	}
+	rec.WorkedMinutes = worked
+	rec.MissingClockOut = false
+	applyCapture(&rec, cc)
 	return s.repo.Upsert(ctx, rec)
 }
 
