@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
+import type { AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -205,6 +205,16 @@ export const api = {
     apiFetch<void>(`/api/v1/admin/kiosk-devices/${id}`, { method: "DELETE", token }),
   adminSetStaffPIN: (token: string, staffId: string, pin: string) =>
     apiFetch<{ has_pin: boolean }>(`/api/v1/admin/staff/${staffId}/pin`, { method: "PUT", body: JSON.stringify({ pin }), token }),
+
+  // ── Rota / shifts (staff.manage) ──────────────────────────────────────────
+  adminGetShifts: (token: string, branch: string, week: string) =>
+    apiFetch<Shift[]>(`/api/v1/admin/shifts?branch=${branch}&week=${week}`, { token }),
+  adminCreateShift: (token: string, body: ShiftInput) =>
+    apiFetch<Shift>("/api/v1/admin/shifts", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateShift: (token: string, id: string, body: ShiftInput) =>
+    apiFetch<Shift>(`/api/v1/admin/shifts/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminDeleteShift: (token: string, id: string) =>
+    apiFetch<void>(`/api/v1/admin/shifts/${id}`, { method: "DELETE", token }),
 
   adminGetEnquiries: (token: string, params?: EnquiryListParams) =>
     apiFetch<Enquiry[]>(`/api/v1/admin/enquiries${enquiryQuery(params)}`, { token }),

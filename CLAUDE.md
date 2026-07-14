@@ -279,6 +279,13 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   matching (real overtime/early-departure); **C** = manager/admin dashboards + attendance table + manual
   corrections; **D** = Payroll summary from attendance; **E** = reports (CSV/Excel/PDF) + notifications.
   Future-ready: QR/NFC/biometric/GPS attach to the same clock request + PIN abstraction.
+  **Phase B DELIVERED** — **Rota scheduling**: new `Shift` (`shifts` collection, staff→branch/room/date/
+  start/end) + repo/service/admin CRUD (`/admin/shifts`, `staff.manage`). Weekly **rota planner** at
+  `/admin/rota` (HR nav): branch + week picker, staff rows × 7 days, click a cell to assign/edit/delete a
+  shift (room dropdown + start/end + presets). **Shift matching** wired into `StaffAttendanceService`:
+  clock-in computes late_minutes vs `shift.start` (falls back to the 09:00 threshold when unrostered),
+  clock-out computes overtime_minutes / early_departure_minutes vs `shift.end`, and stores `shift_id` on
+  the record — so those figures are now real.
 
 Planned next: Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 

@@ -82,6 +82,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	staffRepo := repository.NewStaffRepository(db)
 	staffAttendanceRepo := repository.NewStaffAttendanceRepository(db)
 	kioskDeviceRepo := repository.NewKioskDeviceRepository(db)
+	shiftRepo := repository.NewShiftRepository(db)
 	dailyRecordRepo := repository.NewDailyRecordRepository(db)
 	gbpRepo := repository.NewGBPRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
@@ -97,7 +98,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 
 	// Services
 	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays)
-	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo)
+	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo)
 	svc := routes.Services{
 		Auth:              authSvc,
 		Products:          service.NewProductService(productRepo),
@@ -122,6 +123,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Staff:             service.NewStaffService(staffRepo, counterRepo, authSvc),
 		StaffAttendance:   staffAttSvc,
 		Kiosk:             service.NewKioskService(kioskDeviceRepo, staffRepo, staffAttendanceRepo, branchRepo, roomRepo, staffAttSvc),
+		Shifts:            service.NewShiftService(shiftRepo, staffRepo, roomRepo),
 		DailyRecords:      service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo),
 		BranchOverview:    service.NewBranchOverviewService(childRepo, roomRepo, attendanceRepo, staffRepo, staffAttendanceRepo, dailyRecordRepo, enquiryRepo),
 		GBP:               service.NewGBPService(gbpRepo, branchRepo),

@@ -43,6 +43,7 @@ type Services struct {
 	Staff             service.StaffService
 	StaffAttendance   service.StaffAttendanceService
 	Kiosk             service.KioskService
+	Shifts            service.ShiftService
 	DailyRecords      service.DailyRecordService
 	BranchOverview    service.BranchOverviewService
 	GBP               service.GBPService
@@ -342,6 +343,13 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Post("/admin/staff-attendance/clock-in", adminStaffAttH.ClockIn)
 				r.Post("/admin/staff-attendance/clock-out", adminStaffAttH.ClockOut)
 				r.Patch("/admin/staff-attendance/mark", adminStaffAttH.Mark)
+
+				// Rota / shift scheduling.
+				adminShiftH := adminHandler.NewAdminShiftHandler(svc.Shifts, svc.Audit)
+				r.Get("/admin/shifts", adminShiftH.List)
+				r.Post("/admin/shifts", adminShiftH.Create)
+				r.Put("/admin/shifts/{id}", adminShiftH.Update)
+				r.Delete("/admin/shifts/{id}", adminShiftH.Delete)
 
 				// Kiosk device management + staff PIN provisioning.
 				adminKioskH := adminHandler.NewAdminKioskHandler(svc.Kiosk, svc.Audit)

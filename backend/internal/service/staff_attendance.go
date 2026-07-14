@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -38,12 +39,13 @@ type StaffAttendanceService interface {
 }
 
 type staffAttendanceService struct {
-	repo  repository.StaffAttendanceRepository
-	staff repository.StaffRepository
+	repo   repository.StaffAttendanceRepository
+	staff  repository.StaffRepository
+	shifts repository.ShiftRepository // optional; enables shift-based late/overtime
 }
 
-func NewStaffAttendanceService(repo repository.StaffAttendanceRepository, staff repository.StaffRepository) StaffAttendanceService {
-	return &staffAttendanceService{repo: repo, staff: staff}
+func NewStaffAttendanceService(repo repository.StaffAttendanceRepository, staff repository.StaffRepository, shifts repository.ShiftRepository) StaffAttendanceService {
+	return &staffAttendanceService{repo: repo, staff: staff, shifts: shifts}
 }
 
 func (s *staffAttendanceService) activeStaff(ctx context.Context, branch string) ([]models.Staff, error) {
@@ -124,6 +126,35 @@ func lateMinutes(t time.Time) int {
 	return int(t.Sub(threshold).Minutes())
 }
 
+// shiftFor returns the staff member's shift for the date, or nil (no shift repo
+// wired, unrostered, or lookup error → nil, so callers fall back to the fixed
+// threshold).
+func (s *staffAttendanceService) shiftFor(ctx context.Context, staffID, date string) *models.Shift {
+	if s.shifts == nil {
+		return nil
+	}
+	sh, err := s.shifts.FindByStaffDate(ctx, staffID, date)
+	if err != nil {
+		return nil
+	}
+	return sh
+}
+
+// minsFromShiftTime returns (clock − HH:MM) in signed minutes on clock's date.
+func minsFromShiftTime(clock time.Time, hhmm string) (int, bool) {
+	parts := strings.Split(hhmm, ":")
+	if len(parts) != 2 {
+		return 0, false
+	}
+	h, err1 := strconv.Atoi(parts[0])
+	m, err2 := strconv.Atoi(parts[1])
+	if err1 != nil || err2 != nil {
+		return 0, false
+	}
+	ref := time.Date(clock.Year(), clock.Month(), clock.Day(), h, m, 0, 0, clock.Location())
+	return int(clock.Sub(ref).Minutes()), true
+}
+
 // breakMinutes sums completed breaks (both ends set).
 func breakMinutes(breaks []models.BreakEntry) int {
 	total := 0
@@ -164,9 +195,20 @@ func (s *staffAttendanceService) ClockIn(ctx context.Context, req models.StaffCl
 	rec.Status = models.StaffAttPresent
 	rec.ClockIn = &now
 	rec.ClockOut = nil
-	rec.LateArrival = isLate(now)
-	rec.LateMinutes = lateMinutes(now)
 	rec.MissingClockOut = false
+	// Late is measured against the rostered shift start when one exists, else
+	// against the fixed 09:00 threshold.
+	if sh := s.shiftFor(ctx, rec.StaffID, rec.Date); sh != nil {
+		rec.ShiftID = sh.ID.Hex()
+		if diff, ok := minsFromShiftTime(now, sh.StartTime); ok && diff > 0 {
+			rec.LateArrival, rec.LateMinutes = true, diff
+		} else {
+			rec.LateArrival, rec.LateMinutes = false, 0
+		}
+	} else {
+		rec.LateArrival = isLate(now)
+		rec.LateMinutes = lateMinutes(now)
+	}
 	if req.Notes != "" {
 		rec.Notes = req.Notes
 	}
@@ -198,6 +240,18 @@ func (s *staffAttendanceService) ClockOut(ctx context.Context, req models.StaffC
 	}
 	rec.WorkedMinutes = worked
 	rec.MissingClockOut = false
+	// Overtime / early departure measured against the rostered shift end.
+	rec.OvertimeMinutes, rec.EarlyDepartureMinutes = 0, 0
+	if sh := s.shiftFor(ctx, rec.StaffID, rec.Date); sh != nil {
+		rec.ShiftID = sh.ID.Hex()
+		if diff, ok := minsFromShiftTime(now, sh.EndTime); ok {
+			if diff > 0 {
+				rec.OvertimeMinutes = diff
+			} else if diff < 0 {
+				rec.EarlyDepartureMinutes = -diff
+			}
+		}
+	}
 	applyCapture(&rec, cc)
 	return s.repo.Upsert(ctx, rec)
 }

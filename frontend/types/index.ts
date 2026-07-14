@@ -1152,6 +1152,28 @@ export interface KioskOverview {
   summary: KioskSummary;
 }
 
+// ── Rota / shifts ────────────────────────────────────────────────────────────
+export interface Shift {
+  id: string;
+  staff_id: string;
+  staff_name: string;
+  branch_slug: string;
+  room_id?: string;
+  room_name?: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  notes?: string;
+}
+export interface ShiftInput {
+  staff_id: string;
+  room_id?: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  notes?: string;
+}
+
 // ── Daily records: observations, incidents, safeguarding, medication, meals (Phase 3) ──
 export type DailyRecordType = "observation" | "incident" | "safeguarding" | "medication" | "meal";
 export type DailyRecordStatus = "open" | "resolved" | "administered" | "logged";

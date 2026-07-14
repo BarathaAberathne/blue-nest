@@ -25,6 +25,7 @@ import {
   ShoppingCart,
   Tag,
   Truck,
+  CalendarClock,
   MonitorSmartphone,
   UserCheck,
   Users,
@@ -73,6 +74,7 @@ const NAV_SECTIONS: NavSection[] = [
     heading: "HR",
     items: [
       { label: "Staff",              href: "/admin/staff",              icon: Users, permission: "staff.manage" },
+      { label: "Rota",               href: "/admin/rota",               icon: CalendarClock, permission: "staff.manage" },
       { label: "Attendance",         href: "/admin/staff-attendance",   icon: UserCheck, permission: "staff.manage" },
       { label: "Attendance Devices", href: "/admin/attendance-devices", icon: MonitorSmartphone, permission: "staff.manage" },
     ],
