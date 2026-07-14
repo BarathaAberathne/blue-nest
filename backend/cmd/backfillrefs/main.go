@@ -46,7 +46,7 @@ func main() {
 	}
 	db := client.Database(cfg.Mongo.Database)
 	counter := repository.NewCounterRepository(db)
-	log.Printf("Connected → %s / db=%s", cfg.Mongo.URI, cfg.Mongo.Database)
+	log.Printf("Connected → db=%s", cfg.Mongo.Database)
 
 	targets := []struct {
 		collection, counterName, prefix string
