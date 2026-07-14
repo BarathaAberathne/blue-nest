@@ -60,7 +60,7 @@ func main() {
 	if err = client.Ping(ctx, nil); err != nil {
 		log.Fatalf("ping: %v", err)
 	}
-	log.Printf("Connected → %s / db=%s", cfg.Mongo.URI, cfg.Mongo.Database)
+	log.Printf("Connected → db=%s", cfg.Mongo.Database)
 
 	rows := parseOrders()
 	log.Printf("Parsed %d unique Gompels products from order CSVs", len(rows))
