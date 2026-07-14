@@ -29,7 +29,8 @@ function branchBriefing(name: string, d: BranchDashboard): { tone: "ok" | "warn"
   out.push({ tone: d.attendance_rate >= 90 ? "ok" : "warn", text: `Attendance is ${d.attendance_rate}% — ${d.children_present} of ${d.children_expected} children in.` });
   if (d.available > 0) out.push({ tone: "ok", text: `${d.available} places free (${d.occupancy}% occupancy) — ${d.new_enquiries} new enquir${d.new_enquiries === 1 ? "y" : "ies"} to convert.` });
   if (d.medication_due > 0) out.push({ tone: "warn", text: `${d.medication_due} medication${d.medication_due > 1 ? "s" : ""} due today — confirm consent forms.` });
-  if (d.birthdays.length > 0) out.push({ tone: "ok", text: `🎂 ${d.birthdays.length} birthday${d.birthdays.length > 1 ? "s" : ""} today: ${d.birthdays.join(", ")}.` });
+  const bdays = d.birthdays ?? [];
+  if (bdays.length > 0) out.push({ tone: "ok", text: `🎂 ${bdays.length} birthday${bdays.length > 1 ? "s" : ""} today: ${bdays.join(", ")}.` });
   return out;
 }
 
@@ -156,9 +157,9 @@ export default function BranchProfileClient({ slug }: { slug: string }) {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="card p-5 lg:col-span-2">
               <h2 className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-400">Live activity</h2>
-              {dash.activity.length === 0 ? <p className="text-sm text-slate-400">No recent records.</p> : (
+              {(dash.activity ?? []).length === 0 ? <p className="text-sm text-slate-400">No recent records.</p> : (
                 <ul className="divide-y divide-slate-100">
-                  {dash.activity.map((a, i) => (
+                  {(dash.activity ?? []).map((a, i) => (
                     <li key={i} className="flex items-center gap-3 py-2.5 text-sm">
                       <StageBadge label={a.kind} accent="slate" withDot={false} />
                       <span className="flex-1 text-slate-700">{a.text}</span>
@@ -176,8 +177,8 @@ export default function BranchProfileClient({ slug }: { slug: string }) {
                 <Row icon={DoorOpen} label="Rooms" value={dash.rooms} />
               </div>
               <h2 className="mb-2 mt-6 text-sm font-bold uppercase tracking-widest text-slate-400">Birthdays 🎂</h2>
-              {dash.birthdays.length === 0 ? <p className="text-sm text-slate-400">None today.</p> : (
-                <div className="flex flex-wrap gap-2">{dash.birthdays.map((b) => <StageBadge key={b} label={b} accent="rose" withDot={false} />)}</div>
+              {(dash.birthdays ?? []).length === 0 ? <p className="text-sm text-slate-400">None today.</p> : (
+                <div className="flex flex-wrap gap-2">{(dash.birthdays ?? []).map((b) => <StageBadge key={b} label={b} accent="rose" withDot={false} />)}</div>
               )}
             </div>
           </div>
