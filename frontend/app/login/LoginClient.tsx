@@ -5,17 +5,18 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageWrapper from "@/components/ui/PageWrapper";
 import { api } from "@/lib/api";
-import { getAuthUser, setAuthSession } from "@/lib/auth";
+import { getAuthUser, isManagementRole, setAuthSession } from "@/lib/auth";
 import { mergeGuestCartToServer } from "@/lib/cart-sync";
 import type { AuthResponse, UserRole } from "@/types";
 
-const isAdminRole = (role: UserRole) =>
-  role === "super_admin" || role === "admin" || role === "branch_manager";
-
-// Where a user lands after signing in, by role.
+// Where a user lands after signing in, by role. Staff get their supply-request
+// portal, the director opens the Command Centre, every other management role
+// (incl. deputy/regional managers, specialists and custom roles) lands on the
+// admin dashboard, and parents fall through to their account area.
 const landingFor = (role: UserRole, fallback: string) => {
-  if (isAdminRole(role)) return "/admin/dashboard";
   if (role === "staff") return "/admin/my-requests";
+  if (role === "director") return "/admin/command-center";
+  if (isManagementRole(role)) return "/admin/dashboard";
   return fallback;
 };
 
@@ -35,8 +36,8 @@ export default function LoginClient() {
     // back-office, not the parent account area.
     const existing = getAuthUser();
     if (existing) {
-      if (isAdminRole(existing.role)) router.push("/admin/dashboard");
-      else if (existing.role === "staff") router.push("/admin/my-requests");
+      const dest = landingFor(existing.role, "");
+      if (dest) router.push(dest);
     }
   }, [router]);
 

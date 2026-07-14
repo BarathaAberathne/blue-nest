@@ -29,7 +29,7 @@ import {
   Users,
 } from "lucide-react";
 import { useAuthGuard } from "@/lib/useAuthGuard";
-import { clearAuthSession } from "@/lib/auth";
+import { clearAuthSession, isManagementRole } from "@/lib/auth";
 import { usePermissions, clearPermissionsCache } from "@/lib/usePermissions";
 import NotificationBell from "@/components/admin/NotificationBell";
 import type { Permission, UserRole } from "@/types";
@@ -117,12 +117,12 @@ const allItems = (sections: NavSection[]) => sections.flatMap((s) => s.items);
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { ready, isAuthenticated, user, hasAnyRole, ensureAuthenticated } = useAuthGuard("/admin/login");
+  const { ready, isAuthenticated, user, ensureAuthenticated } = useAuthGuard("/admin/login");
   const { has, ready: permsReady } = usePermissions();
-  const isManagement = hasAnyRole([
-    "super_admin", "admin", "branch_manager", "finance", "admissions", "procurement", "director",
-  ]);
   const isStaff = user?.role === "staff";
+  // Every non-customer, non-staff role reaches the management shell; the
+  // per-section permission checks below then scope what each one actually sees.
+  const isManagement = isManagementRole(user?.role);
   const allowed = isManagement || isStaff;
 
   // Each item is shown only if the user holds its permission. Until /auth/me

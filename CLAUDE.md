@@ -42,8 +42,11 @@ Role hierarchy (`backend/internal/models/user.go` `Role`; `frontend/types` `User
   shell outside `AdminLayout`) is guarded by `command-center/AccessGuard.tsx`, which bounces any other role
   to `/admin/dashboard`. Assign the director role on `/admin/users`, or seed one via
   `DEFAULT_DIRECTOR_EMAIL/PASSWORD` (`make seed-users`).
-Guards: `AdminOnly` = super_admin|admin|branch_manager; `ManagementOnly` = those + finance|admissions|
-procurement|director (the outer gate on the admin route group); `SuperAdminOnly` = super_admin. **Granular
+Guards: `AdminOnly` = super_admin|admin|branch_manager; `ManagementOnly` = the outer gate on the admin route
+group — admits **any back-office role** (every built-in management role + specialists + custom roles; i.e.
+anything that isn't `customer` or `staff`), leaving per-resource `RequirePermission` to scope access. The
+frontend mirrors this with `lib/auth.ts` `isManagementRole` (used by `AdminLayout` + login routing) — keep
+the two in sync. `SuperAdminOnly` = super_admin. **Granular
 permissions** (`models/permission.go`): a `Permission` set + a `role→[]Permission` map + `HasPermission`;
 gate a route with `middleware.RequirePermission(models.PermX)` and a UI section by checking
 `lib/usePermissions.ts` `has(perm)` (sourced from `GET /auth/me` → `{role, permissions}`). Add a role to a

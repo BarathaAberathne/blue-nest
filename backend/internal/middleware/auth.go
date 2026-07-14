@@ -99,12 +99,21 @@ func AdminOnly(next http.Handler) http.Handler {
 // plus the Phase-4 specialists). It is the outer gate on the admin route group;
 // individual resources are then gated by RequirePermission, so a specialist role
 // only reaches the sections its permission set allows.
+// ManagementOnly is the outer gate on the admin management route group. It
+// admits every back-office role — all built-in management roles (incl. director,
+// regional/deputy manager and the specialist officers) plus any custom role —
+// and leaves the per-resource RequirePermission middleware to scope what each
+// one can actually do. Only parent/customers and staff (who have their own
+// supply-request portal) are excluded.
 func ManagementOnly(next http.Handler) http.Handler {
-	return RequireRole(
-		"super_admin", "admin", "branch_manager",
-		"finance", "admissions", "procurement", "director",
-		"regional_manager", "deputy_manager",
-	)(next)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		role, _ := r.Context().Value(UserRoleKey).(string)
+		if role == "" || role == "customer" || role == "staff" {
+			response.Forbidden(w, "insufficient permissions")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // SuperAdminOnly permits only the top-level super admin (account management).

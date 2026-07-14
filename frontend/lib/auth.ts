@@ -9,6 +9,15 @@ function isBrowser() {
   return typeof window !== "undefined";
 }
 
+// A back-office (management) role is anything that isn't a parent/customer or a
+// staff practitioner. This deliberately covers every built-in management role
+// (incl. director, regional/deputy manager and the specialist officers) plus
+// any custom role, so the admin shell and login routing never have to track a
+// hardcoded list. Staff get their own portal; customers get the parent account.
+export function isManagementRole(role?: string | null): boolean {
+  return !!role && role !== "customer" && role !== "staff";
+}
+
 export function getAccessToken(): string {
   if (!isBrowser()) return "";
   return window.localStorage.getItem(ACCESS_TOKEN_KEY) ?? "";
