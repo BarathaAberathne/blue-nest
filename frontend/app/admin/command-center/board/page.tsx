@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import BoardClient from "../os/BoardClient";
+import AccessGuard from "../AccessGuard";
 
 // Placeholder Kanban board for Command Centre tasks. Shares the task store with
 // the Tasks widget; a full backend-backed board (assignees, due dates, drag-drop,
@@ -10,5 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default function BoardPage() {
-  return <BoardClient />;
+  return (
+    <AccessGuard>
+      <BoardClient />
+    </AccessGuard>
+  );
 }
