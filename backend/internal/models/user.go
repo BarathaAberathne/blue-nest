@@ -19,6 +19,28 @@ const (
 	RoleFinance     Role = "finance"     // analytics, spend, audit
 	RoleAdmissions  Role = "admissions"  // enquiries / admissions CRM
 	RoleProcurement Role = "procurement" // supply requests, purchase orders, suppliers
+	// Executive oversight role: the Managing Director. Broad read/oversight access
+	// (like a general manager, minus account management); lands on the MD Command
+	// Centre. See models/permission.go for its permission set.
+	RoleDirector Role = "director"
+	// Branch-scoped management roles (Branch module, Phase B1). Regional spans
+	// several assigned branches (User.BranchSlugs); Deputy assists a single branch.
+	RoleRegionalManager Role = "regional_manager"
+	RoleDeputyManager   Role = "deputy_manager"
+	// Enterprise role catalogue (Phase B3). Practitioner/support tiers; each is
+	// branch-scoped via User.BranchSlugs and governed by its permission set.
+	RoleEYFSLead          Role = "eyfs_lead"
+	RoleSENCO             Role = "senco"
+	RoleOfficeAdmin       Role = "office_admin"
+	RoleFinanceOfficer    Role = "finance_officer"
+	RoleHROfficer         Role = "hr_officer"
+	RoleAdmissionsOfficer Role = "admissions_officer"
+	RoleRoomLeader        Role = "room_leader"
+	RolePractitioner      Role = "practitioner"
+	RoleApprentice        Role = "apprentice"
+	RoleKitchen           Role = "kitchen"
+	RoleMaintenance       Role = "maintenance"
+	RoleExternalInspector Role = "external_inspector"
 )
 
 // ManagementRoles are every non-customer back-office role (they reach the admin
@@ -26,6 +48,10 @@ const (
 var ManagementRoles = []Role{
 	RoleSuperAdmin, RoleAdmin, RoleBranchManager,
 	RoleFinance, RoleAdmissions, RoleProcurement, RoleStaff,
+	RoleDirector, RoleRegionalManager, RoleDeputyManager,
+	RoleEYFSLead, RoleSENCO, RoleOfficeAdmin, RoleFinanceOfficer, RoleHROfficer,
+	RoleAdmissionsOfficer, RoleRoomLeader, RolePractitioner, RoleApprentice,
+	RoleKitchen, RoleMaintenance, RoleExternalInspector,
 }
 
 type User struct {

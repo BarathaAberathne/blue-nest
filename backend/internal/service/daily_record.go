@@ -1,0 +1,162 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/repository"
+)
+
+type DailyRecordService interface {
+	List(ctx context.Context, f repository.DailyRecordFilter) ([]models.DailyRecord, error)
+	GetByID(ctx context.Context, id string) (*models.DailyRecord, error)
+	Create(ctx context.Context, req models.DailyRecordRequest) (*models.DailyRecord, error)
+	Update(ctx context.Context, id string, req models.DailyRecordRequest) (*models.DailyRecord, error)
+	SetStatus(ctx context.Context, id string, status models.DailyRecordStatus) (*models.DailyRecord, error)
+	Delete(ctx context.Context, id string) error
+	Stats(ctx context.Context, date string) (*models.DailyStats, error)
+}
+
+type dailyRecordService struct {
+	repo     repository.DailyRecordRepository
+	children repository.ChildRepository
+	counters repository.CounterRepository
+}
+
+func NewDailyRecordService(repo repository.DailyRecordRepository, children repository.ChildRepository, counters repository.CounterRepository) DailyRecordService {
+	return &dailyRecordService{repo: repo, children: children, counters: counters}
+}
+
+func (s *dailyRecordService) List(ctx context.Context, f repository.DailyRecordFilter) ([]models.DailyRecord, error) {
+	return s.repo.FindAll(ctx, f)
+}
+func (s *dailyRecordService) GetByID(ctx context.Context, id string) (*models.DailyRecord, error) {
+	return s.repo.FindByID(ctx, id)
+}
+
+// defaultStatus picks the initial lifecycle for a record type.
+func defaultStatus(t models.DailyRecordType) models.DailyRecordStatus {
+	switch t {
+	case models.RecIncident, models.RecSafeguarding, models.RecMedication:
+		return models.RecOpen
+	default:
+		return models.RecLogged
+	}
+}
+
+func (s *dailyRecordService) apply(ctx context.Context, rec *models.DailyRecord, req models.DailyRecordRequest) error {
+	rec.Type = req.Type
+	rec.BranchSlug = strings.TrimSpace(req.BranchSlug)
+	rec.RoomID = strings.TrimSpace(req.RoomID)
+	rec.Title = strings.TrimSpace(req.Title)
+	rec.Detail = strings.TrimSpace(req.Detail)
+	rec.Severity = strings.TrimSpace(req.Severity)
+	rec.EYFSAreas = req.EYFSAreas
+	rec.NextSteps = strings.TrimSpace(req.NextSteps)
+	rec.Medication = strings.TrimSpace(req.Medication)
+	rec.Dose = strings.TrimSpace(req.Dose)
+	rec.MealType = strings.TrimSpace(req.MealType)
+	rec.Eaten = strings.TrimSpace(req.Eaten)
+	if req.Date != "" {
+		rec.Date = req.Date
+	}
+	if req.Status != "" {
+		rec.Status = req.Status
+	}
+	// Resolve the child (denormalise name; inherit branch/room if not supplied).
+	rec.ChildID = strings.TrimSpace(req.ChildID)
+	if rec.ChildID != "" {
+		if child, err := s.children.FindByID(ctx, rec.ChildID); err == nil && child != nil {
+			rec.ChildName = strings.TrimSpace(child.FirstName + " " + child.LastName)
+			if rec.BranchSlug == "" {
+				rec.BranchSlug = child.BranchSlug
+			}
+			if rec.RoomID == "" {
+				rec.RoomID = child.RoomID
+			}
+		}
+	}
+	return nil
+}
+
+func (s *dailyRecordService) Create(ctx context.Context, req models.DailyRecordRequest) (*models.DailyRecord, error) {
+	if strings.TrimSpace(string(req.Type)) == "" {
+		return nil, errors.New("record type is required")
+	}
+	if strings.TrimSpace(req.Title) == "" {
+		return nil, errors.New("title is required")
+	}
+	rec := &models.DailyRecord{
+		Date:   time.Now().Format("2006-01-02"),
+		Status: defaultStatus(req.Type),
+	}
+	if err := s.apply(ctx, rec, req); err != nil {
+		return nil, err
+	}
+	if rec.BranchSlug == "" {
+		return nil, errors.New("branch is required")
+	}
+	year := time.Now().Year()
+	seq, err := s.counters.Next(ctx, models.CounterDailyRecord+"-"+strconv.Itoa(year))
+	if err != nil {
+		return nil, err
+	}
+	rec.Ref = models.FormatRef(models.RefPrefixDailyRecord, year, seq)
+	if err := s.repo.Create(ctx, rec); err != nil {
+		return nil, err
+	}
+	return rec, nil
+}
+
+func (s *dailyRecordService) Update(ctx context.Context, id string, req models.DailyRecordRequest) (*models.DailyRecord, error) {
+	existing, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.apply(ctx, existing, req); err != nil {
+		return nil, err
+	}
+	return s.repo.Update(ctx, id, *existing)
+}
+
+func (s *dailyRecordService) SetStatus(ctx context.Context, id string, status models.DailyRecordStatus) (*models.DailyRecord, error) {
+	if strings.TrimSpace(string(status)) == "" {
+		return nil, errors.New("status is required")
+	}
+	return s.repo.UpdateStatus(ctx, id, status)
+}
+
+func (s *dailyRecordService) Delete(ctx context.Context, id string) error {
+	return s.repo.Delete(ctx, id)
+}
+
+func (s *dailyRecordService) Stats(ctx context.Context, date string) (*models.DailyStats, error) {
+	if date == "" {
+		date = time.Now().Format("2006-01-02")
+	}
+	weekAgo := time.Now().AddDate(0, 0, -7).Format("2006-01-02")
+
+	count := func(f repository.DailyRecordFilter) int {
+		n, err := s.repo.Count(ctx, f)
+		if err != nil {
+			return 0
+		}
+		return n
+	}
+
+	stats := &models.DailyStats{Date: date}
+	stats.SafeguardingOpen = count(repository.DailyRecordFilter{Type: string(models.RecSafeguarding), Status: string(models.RecOpen)})
+	stats.IncidentsToday = count(repository.DailyRecordFilter{Type: string(models.RecIncident), Date: date})
+	stats.MedicationDue = count(repository.DailyRecordFilter{Type: string(models.RecMedication), Status: string(models.RecOpen), Date: date})
+	stats.MealsServed = count(repository.DailyRecordFilter{Type: string(models.RecMeal), Date: date})
+	stats.ObservationsWeek = count(repository.DailyRecordFilter{Type: string(models.RecObservation), Since: weekAgo})
+
+	for _, t := range []models.DailyRecordType{models.RecObservation, models.RecIncident, models.RecSafeguarding, models.RecMedication, models.RecMeal} {
+		stats.ByType = append(stats.ByType, models.LabelCount{Label: string(t), Count: count(repository.DailyRecordFilter{Type: string(t), Date: date})})
+	}
+	return stats, nil
+}

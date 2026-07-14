@@ -164,6 +164,7 @@ type AuthService interface {
 	ListAdminUsers(ctx context.Context) ([]models.User, error)
 	ListAllUsers(ctx context.Context) ([]models.User, error)
 	UpdateUser(ctx context.Context, id string, req models.AdminUpdateUserRequest) (*models.User, error)
+	FindUserByEmail(ctx context.Context, email string) (*models.User, error)
 	ResetPassword(ctx context.Context, id, newPassword string) error
 	DeleteUser(ctx context.Context, id string) error
 	UpsertOAuthUser(ctx context.Context, email, firstName, lastName, provider, providerID string) (*models.AuthResponse, error)
@@ -238,10 +239,7 @@ func (s *authService) AdminLogin(ctx context.Context, req models.LoginRequest) (
 	// Staff are allowed in: they sign into the same back-office shell (a
 	// restricted "Staff Portal" — see AdminLayout) as management. Only customers
 	// are excluded from the admin login.
-	return s.loginWithRoleGuard(ctx, req, []models.Role{
-		models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager,
-		models.RoleFinance, models.RoleAdmissions, models.RoleProcurement, models.RoleStaff,
-	})
+	return s.loginWithRoleGuard(ctx, req, models.ManagementRoles)
 }
 
 func (s *authService) CreateAdminUser(ctx context.Context, req models.AdminCreateUserRequest) (*models.User, error) {
@@ -403,16 +401,23 @@ func (s *authService) DeleteUser(ctx context.Context, id string) error {
 	return s.users.Delete(ctx, id)
 }
 
+// FindUserByEmail looks up a login account by email (nil when none). Used by the
+// staff module to link an existing account when enabling a person's login.
+func (s *authService) FindUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	return s.users.FindByEmail(ctx, normalizeEmail(email))
+}
+
 // isAssignableRole reports whether a role can be assigned to a user account.
 func isAssignableRole(role models.Role) bool {
-	switch role {
-	case models.RoleSuperAdmin, models.RoleAdmin, models.RoleBranchManager,
-		models.RoleFinance, models.RoleAdmissions, models.RoleProcurement,
-		models.RoleStaff, models.RoleCustomer:
+	if role == models.RoleCustomer {
 		return true
-	default:
-		return false
 	}
+	for _, r := range models.ManagementRoles {
+		if r == role {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *authService) UpsertOAuthUser(ctx context.Context, email, firstName, lastName, provider, providerID string) (*models.AuthResponse, error) {

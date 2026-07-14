@@ -15,6 +15,7 @@ type contextKey string
 const UserIDKey contextKey = "userID"
 const UserRoleKey contextKey = "userRole"
 const UserEmailKey contextKey = "userEmail"
+const UserBranchesKey contextKey = "userBranches"
 
 func Auth(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -51,9 +52,20 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 				return
 			}
 
+			// branch_slugs is a JSON array in the token; normalise to []string.
+			var branches []string
+			if raw, ok := claims["branch_slugs"].([]interface{}); ok {
+				for _, v := range raw {
+					if s, ok := v.(string); ok {
+						branches = append(branches, s)
+					}
+				}
+			}
+
 			ctx := context.WithValue(r.Context(), UserIDKey, userID)
 			ctx = context.WithValue(ctx, UserRoleKey, role)
 			ctx = context.WithValue(ctx, UserEmailKey, email)
+			ctx = context.WithValue(ctx, UserBranchesKey, branches)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -90,7 +102,8 @@ func AdminOnly(next http.Handler) http.Handler {
 func ManagementOnly(next http.Handler) http.Handler {
 	return RequireRole(
 		"super_admin", "admin", "branch_manager",
-		"finance", "admissions", "procurement",
+		"finance", "admissions", "procurement", "director",
+		"regional_manager", "deputy_manager",
 	)(next)
 }
 

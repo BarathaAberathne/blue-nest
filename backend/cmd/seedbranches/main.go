@@ -39,22 +39,46 @@ func main() {
 
 	coll := client.Database(cfg.Mongo.Database).Collection("branches")
 
-	if err = coll.Drop(ctx); err != nil {
-		log.Fatalf("drop: %v", err)
-	}
-	log.Println("Dropped existing branches collection")
-
+	// Idempotent upsert by slug (never drop) — the branches collection is now the
+	// hub other modules (children/staff/rooms/…) reference, and admins edit rich
+	// fields via the UI, so a re-seed must not wipe their changes. We only $set
+	// the seed-owned marketing/starter fields, leaving admin-managed fields
+	// (managers, gallery, custom hours, etc.) and operational links intact on
+	// existing rows; new fields are added on first run.
 	branches := models.SeedBranches()
-	docs := make([]interface{}, len(branches))
-	for i, b := range branches {
-		docs[i] = b
+	for _, b := range branches {
+		set := bson.M{
+			"name": b.Name, "status": b.Status, "short_description": b.ShortDescription,
+			"contact": b.Contact, "admissions": b.Admissions,
+			"lat": b.Lat, "lng": b.Lng, "postcode": b.Postcode, "capacity": b.Capacity,
+			"age_groups": b.AgeGroups, "opening_hours": b.OpeningHours, "logo_url": b.LogoURL,
+			"website": b.Website, "ofsted_rating": b.OfstedRating, "social": b.Social, "updated_at": b.UpdatedAt,
+			// Starter Google signals (rating/review links). The GBP digest ingest
+			// (B2) refreshes these from the real profile; until then the seed values
+			// stand. Merged with $ so any live-synced last_sync survives.
+			"google.rating":          b.Google.Rating,
+			"google.review_count":    b.Google.ReviewCount,
+			"google.maps_url":        b.Google.MapsURL,
+			"google.review_url":      b.Google.ReviewURL,
+			"google.business_status": b.Google.BusinessStatus,
+		}
+		res, err := coll.UpdateOne(ctx,
+			bson.M{"slug": b.Slug},
+			bson.M{
+				"$set":         set,
+				"$setOnInsert": bson.M{"slug": b.Slug, "created_at": b.CreatedAt},
+			},
+			options.Update().SetUpsert(true),
+		)
+		if err != nil {
+			log.Fatalf("upsert %s: %v", b.Slug, err)
+		}
+		if res.UpsertedCount > 0 {
+			log.Printf("  + inserted %s", b.Slug)
+		} else {
+			log.Printf("  ✓ updated  %s", b.Slug)
+		}
 	}
-
-	res, err := coll.InsertMany(ctx, docs)
-	if err != nil {
-		log.Fatalf("insertMany: %v", err)
-	}
-	log.Printf("Inserted %d branches", len(res.InsertedIDs))
 
 	// Unique index on slug — same guarantee we just added for users.email, so
 	// nobody can `db.branches.insertOne({slug:"harrow",...})` and shadow the

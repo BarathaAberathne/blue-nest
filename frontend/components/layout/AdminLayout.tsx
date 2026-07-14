@@ -5,20 +5,27 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import {
   Activity,
+  Baby,
   BarChart3,
   BookOpen,
+  Building2,
+  CalendarCheck,
   ClipboardList,
+  DoorOpen,
   ExternalLink,
   Inbox,
   LayoutDashboard,
   LayoutGrid,
   Library,
   LogOut,
+  NotebookPen,
   Package,
+  Radar,
   ShoppingBag,
   ShoppingCart,
   Tag,
   Truck,
+  UserCheck,
   Users,
 } from "lucide-react";
 import { useAuthGuard } from "@/lib/useAuthGuard";
@@ -39,8 +46,31 @@ const NAV_SECTIONS: NavSection[] = [
   {
     heading: null,
     items: [
+      { label: "Command Centre", href: "/admin/command-center", icon: Radar, permission: "dashboard.view" },
       { label: "Main Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
       { label: "Inquiries", href: "/admin/inquiries", icon: Inbox, permission: "enquiries.manage" },
+    ],
+  },
+  {
+    heading: "Organisation",
+    items: [
+      { label: "Branches", href: "/admin/branches", icon: Building2, permission: "branches.manage" },
+    ],
+  },
+  {
+    heading: "Nursery",
+    items: [
+      { label: "Children",         href: "/admin/children",   icon: Baby, permission: "children.manage" },
+      { label: "Child Attendance", href: "/admin/attendance", icon: CalendarCheck, permission: "attendance.manage" },
+      { label: "Daily Log",        href: "/admin/daily-log",  icon: NotebookPen, permission: "daily_logs.manage" },
+      { label: "Rooms",            href: "/admin/rooms",      icon: DoorOpen, permission: "children.manage" },
+    ],
+  },
+  {
+    heading: "People",
+    items: [
+      { label: "Staff",           href: "/admin/staff",            icon: Users, permission: "staff.manage" },
+      { label: "Staff Rota",      href: "/admin/staff-attendance", icon: UserCheck, permission: "staff.manage" },
     ],
   },
   {
@@ -88,7 +118,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { ready, isAuthenticated, user, hasAnyRole, ensureAuthenticated } = useAuthGuard("/admin/login");
   const { has, ready: permsReady } = usePermissions();
   const isManagement = hasAnyRole([
-    "super_admin", "admin", "branch_manager", "finance", "admissions", "procurement",
+    "super_admin", "admin", "branch_manager", "finance", "admissions", "procurement", "director",
   ]);
   const isStaff = user?.role === "staff";
   const allowed = isManagement || isStaff;
@@ -100,7 +130,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const canSee = (item: NavItem): boolean => {
     if (permsReady) return has(item.permission);
     if (user?.role === "super_admin") return true;
-    if (user?.role === "admin" || user?.role === "branch_manager") return item.permission !== "users.manage";
+    if (user?.role === "admin" || user?.role === "branch_manager" || user?.role === "director") return item.permission !== "users.manage";
     return item.permission === "dashboard.view";
   };
 
