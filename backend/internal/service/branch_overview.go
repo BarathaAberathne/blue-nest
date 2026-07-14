@@ -194,10 +194,14 @@ func (s *branchOverviewService) Dashboard(ctx context.Context, b *models.Branch)
 		Rating: b.Google.Rating, ReviewCount: b.Google.ReviewCount, Ofsted: b.OfstedRating,
 		Birthdays: r.birthdays,
 	}
+	if d.Birthdays == nil {
+		d.Birthdays = []string{} // never emit null — the UI reads .length
+	}
 	dims := performanceDimensions(r, b.Google.Rating)
 	d.Performance = overallPerformance(dims)
 	d.PerformanceBreakdown = models.BranchPerformance{Overall: d.Performance, Dimensions: dims}
 	// Live activity: most-recent daily records for this branch.
+	d.Activity = []models.BranchActivityItem{}
 	if recs, err := s.daily.FindAll(ctx, repository.DailyRecordFilter{Branch: b.Slug, Limit: 8}); err == nil {
 		for _, rec := range recs {
 			d.Activity = append(d.Activity, models.BranchActivityItem{
