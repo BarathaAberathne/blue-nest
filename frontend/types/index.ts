@@ -1207,9 +1207,10 @@ export interface KioskOverview {
 // ── Rota / shifts ────────────────────────────────────────────────────────────
 export interface Shift {
   id: string;
-  staff_id: string;
+  staff_id?: string;
   staff_name: string;
   branch_slug: string;
+  external?: boolean; // off-roster cover / visitor (no staff record)
   room_id?: string;
   room_name?: string;
   date: string;
@@ -1218,7 +1219,10 @@ export interface Shift {
   notes?: string;
 }
 export interface ShiftInput {
-  staff_id: string;
+  staff_id?: string;
+  external?: boolean;
+  staff_name?: string;  // required when external
+  branch_slug?: string; // required when external
   room_id?: string;
   date: string;
   start_time: string;

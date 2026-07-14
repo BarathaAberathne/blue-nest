@@ -21,7 +21,26 @@ type ClockContext struct {
 	IP       string
 	Location string
 	ActorID  string
+	// Allowed restricts which branches the actor may write to (nil = org-wide, no
+	// restriction). Set from the caller's branch scope so a branch manager can't
+	// clock/correct another branch's staff.
+	Allowed []string
 }
+
+// branchAllowed reports whether a branch is within an allowed set (nil = any).
+func branchAllowed(allowed []string, branch string) bool {
+	if allowed == nil {
+		return true
+	}
+	for _, s := range allowed {
+		if s == branch {
+			return true
+		}
+	}
+	return false
+}
+
+var errOutsideScope = errors.New("outside your branch scope")
 
 func (c ClockContext) source() models.AttendanceSource {
 	if c.Source == "" {
@@ -34,14 +53,14 @@ type StaffAttendanceService interface {
 	Register(ctx context.Context, date, branch string) ([]models.StaffAttendanceRecord, error)
 	ClockIn(ctx context.Context, req models.StaffClockInRequest, cc ClockContext) (*models.StaffAttendanceRecord, error)
 	ClockOut(ctx context.Context, req models.StaffClockOutRequest, cc ClockContext) (*models.StaffAttendanceRecord, error)
-	Mark(ctx context.Context, req models.StaffAttendanceMarkRequest, actor string) (*models.StaffAttendanceRecord, error)
+	Mark(ctx context.Context, req models.StaffAttendanceMarkRequest, actor string, allowed []string) (*models.StaffAttendanceRecord, error)
 	TodayStats(ctx context.Context, date, branch string) (*models.StaffStats, error)
 	// DaySummary is the attendance-dashboard KPI payload for a date + branch
 	// (company-wide with a per-branch breakdown when branch is empty).
 	DaySummary(ctx context.Context, date, branch string) (*models.AttendanceDaySummary, error)
 	// Correct applies a manager's manual edit, appending an audit correction and
 	// recomputing the derived minutes.
-	Correct(ctx context.Context, id string, req models.AttendanceCorrectionRequest, actorID, actorName string) (*models.StaffAttendanceRecord, error)
+	Correct(ctx context.Context, id string, req models.AttendanceCorrectionRequest, actorID, actorName string, allowed []string) (*models.StaffAttendanceRecord, error)
 }
 
 type staffAttendanceService struct {
@@ -215,6 +234,9 @@ func (s *staffAttendanceService) ClockIn(ctx context.Context, req models.StaffCl
 	if err != nil {
 		return nil, err
 	}
+	if !branchAllowed(cc.Allowed, rec.BranchSlug) {
+		return nil, errOutsideScope
+	}
 	if rec.ClockIn != nil && rec.ClockOut == nil {
 		return nil, errors.New("already clocked in")
 	}
@@ -247,6 +269,9 @@ func (s *staffAttendanceService) ClockOut(ctx context.Context, req models.StaffC
 	rec, err := s.baseRecord(ctx, req.StaffID, req.Date)
 	if err != nil {
 		return nil, err
+	}
+	if !branchAllowed(cc.Allowed, rec.BranchSlug) {
+		return nil, errOutsideScope
 	}
 	if rec.ClockIn == nil {
 		return nil, errors.New("not clocked in yet")
@@ -283,13 +308,16 @@ func (s *staffAttendanceService) ClockOut(ctx context.Context, req models.StaffC
 	return s.repo.Upsert(ctx, rec)
 }
 
-func (s *staffAttendanceService) Mark(ctx context.Context, req models.StaffAttendanceMarkRequest, actor string) (*models.StaffAttendanceRecord, error) {
+func (s *staffAttendanceService) Mark(ctx context.Context, req models.StaffAttendanceMarkRequest, actor string, allowed []string) (*models.StaffAttendanceRecord, error) {
 	if strings.TrimSpace(string(req.Status)) == "" {
 		return nil, errors.New("status is required")
 	}
 	rec, err := s.baseRecord(ctx, req.StaffID, req.Date)
 	if err != nil {
 		return nil, err
+	}
+	if !branchAllowed(allowed, rec.BranchSlug) {
+		return nil, errOutsideScope
 	}
 	rec.Status = req.Status
 	if req.Notes != "" {
@@ -523,7 +551,7 @@ func (s *staffAttendanceService) recompute(ctx context.Context, rec *models.Staf
 	}
 }
 
-func (s *staffAttendanceService) Correct(ctx context.Context, id string, req models.AttendanceCorrectionRequest, actorID, actorName string) (*models.StaffAttendanceRecord, error) {
+func (s *staffAttendanceService) Correct(ctx context.Context, id string, req models.AttendanceCorrectionRequest, actorID, actorName string, allowed []string) (*models.StaffAttendanceRecord, error) {
 	rec, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		// No persisted record for this id — manual backfill for an "expected"
@@ -537,6 +565,9 @@ func (s *staffAttendanceService) Correct(ctx context.Context, id string, req mod
 			return nil, berr
 		}
 		rec = &base
+	}
+	if !branchAllowed(allowed, rec.BranchSlug) {
+		return nil, errOutsideScope
 	}
 	corr := func(field, from, to string) {
 		rec.Corrections = append(rec.Corrections, models.AttendanceCorrection{

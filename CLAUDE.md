@@ -286,8 +286,27 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   clock-in computes late_minutes vs `shift.start` (falls back to the 09:00 threshold when unrostered),
   clock-out computes overtime_minutes / early_departure_minutes vs `shift.end`, and stores `shift_id` on
   the record — so those figures are now real.
+  **Phase C DELIVERED** — **Attendance hub** at `/admin/staff-attendance`: date + branch picker, 8-tile KPI
+  strip (`GET /admin/staff-attendance/summary` → currently-in / clocked-out / absent / on-leave / late /
+  overtime / missing-clock-outs / attendance% + avg arrival, with a per-branch breakdown for the all-branch
+  view), searchable/status-filterable register (position + room resolved from the staff record, worked
+  hours, late, overtime), and **audited manual corrections** (`PATCH …/{id}/correct`: append-only
+  `corrections[]` per changed field + recomputed minutes; **create-on-correct** materialises a record when a
+  day has none, so managers can backfill an "expected" staff member the kiosk never captured).
+  **Stabilisation pass:** the **rota** is now **grouped by classroom** — rostered staff sit under their
+  assigned room, roomless management/office staff are hidden behind a **Show all staff** toggle, and an **Add
+  cover** action rosters an extra person for one day (any staff member, or a free-text **external** visitor
+  — `Shift.External`/`ShiftRequest{External,StaffName,BranchSlug}`, no staff record, never matches
+  attendance). **Branch data isolation is enforced server-side**: `policy.EffectiveBranch` (list/summary
+  endpoints pin a branch-scoped caller to one of their branches — never the org-wide "all" view) +
+  `policy.AllowedOrNil`/`branchAllowed` guards on every mutation (staff, staff-attendance clock/mark/correct,
+  shifts, kiosk devices, staff PIN) so a branch/deputy/regional manager can neither see nor act on another
+  branch's data. Org-wide roles (super_admin/admin/director, `isOrgWideRole`) keep the all-branches view; the
+  UI hides "All branches" + pins the selector for scoped users. Rota + attendance + devices now source their
+  branch dropdown from the scoped `GET /admin/branches`, not the public list.
 
-Planned next: Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
+Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (CSV/Excel/PDF) +
+notifications. Then Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 
 ## Procurement Management module — roadmap (Phases 1–4 DELIVERED)
 Goal: turn the procurement pieces into one connected **Procurement Management** module so the journey

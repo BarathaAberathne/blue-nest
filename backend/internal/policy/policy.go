@@ -66,6 +66,63 @@ func FilterBranches(role models.Role, branchSlugs []string, branches []models.Br
 	return out
 }
 
+// EffectiveBranch resolves which branch a list/summary query runs against so a
+// branch-scoped caller can never read another branch's data. It returns the
+// branch to query and whether the request is permitted:
+//   - org-wide roles: an explicit branch is honoured; no branch ⇒ "" (all).
+//   - scoped roles: an explicit branch must be one they hold (else denied); no
+//     branch ⇒ pinned to their first branch (they view one branch at a time, so
+//     the "all branches" view never leaks). A scoped caller with no branches at
+//     all is denied.
+func EffectiveBranch(role models.Role, branchSlugs []string, requested string) (branch string, ok bool) {
+	all, slugs := AllowedBranches(role, branchSlugs)
+	if requested != "" {
+		if all {
+			return requested, true
+		}
+		for _, s := range slugs {
+			if s == requested {
+				return requested, true
+			}
+		}
+		return "", false
+	}
+	if all {
+		return "", true
+	}
+	if len(slugs) > 0 {
+		return slugs[0], true
+	}
+	return "", false
+}
+
+// AllowedOrNil returns the caller's branch set for filtering mutations, or nil
+// when the caller is org-wide (nil = no restriction). A scoped caller with no
+// branches returns an empty (non-nil) slice, which matches nothing.
+func AllowedOrNil(role models.Role, branchSlugs []string) []string {
+	all, slugs := AllowedBranches(role, branchSlugs)
+	if all {
+		return nil
+	}
+	if slugs == nil {
+		return []string{}
+	}
+	return slugs
+}
+
+// InAllowed reports whether branch is within an allowed set (nil = unrestricted).
+func InAllowed(allowed []string, branch string) bool {
+	if allowed == nil {
+		return true
+	}
+	for _, s := range allowed {
+		if s == branch {
+			return true
+		}
+	}
+	return false
+}
+
 // CanBranchLifecycle reports whether the caller may create/delete/archive/merge
 // branches, assign managers, or connect Google/finance settings (super_admin).
 func CanBranchLifecycle(role models.Role) bool {
