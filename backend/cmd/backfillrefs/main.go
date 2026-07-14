@@ -54,6 +54,10 @@ func main() {
 		{"order_requests", models.CounterOrderRequest, models.RefPrefixOrderRequest},
 		{"purchase_carts", models.CounterPurchaseCart, models.RefPrefixPurchaseCart},
 		{"orders", models.CounterOrder, models.RefPrefixOrder},
+		// Children + staff imported via cmd/seedfamly are inserted directly (no
+		// service ref-minting), so backfill their CHD-/STF- references here too.
+		{"children", models.CounterChild, models.RefPrefixChild},
+		{"staff", models.CounterStaff, models.RefPrefixStaff},
 	}
 
 	total := 0
