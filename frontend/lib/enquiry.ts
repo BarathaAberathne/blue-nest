@@ -53,6 +53,24 @@ export function fmtBranch(value: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// Friendly label for where an enquiry came from (website form or a manual channel).
+const SOURCE_LABELS: Record<string, string> = {
+  website: "Website form",
+  contact_form: "Website form",
+  manual: "Logged manually",
+  phone: "Phone call",
+  walk_in: "Walk-in",
+  email: "Email",
+  referral: "Referral",
+  social: "Social media",
+  event: "Event / open day",
+  other: "Other",
+};
+export function sourceLabel(value?: string | null): string {
+  if (!value) return "—";
+  return SOURCE_LABELS[value] ?? fmtBranch(value);
+}
+
 export function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);

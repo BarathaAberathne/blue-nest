@@ -429,6 +429,22 @@ export interface EnquiryAssignee {
   role: UserRole;
 }
 
+// Payload for manually logging an off-website enquiry (phone, walk-in, referral…).
+export interface EnquiryCreateInput {
+  name: string;
+  email?: string;
+  phone?: string;
+  branch: string;
+  child_age?: string;
+  enquiry_type: string;
+  message?: string;
+  source: string;
+  priority?: EnquiryPriority;
+  assigned_to?: string;
+  assigned_to_name?: string;
+  note?: string;
+}
+
 // Stats payload for the admissions KPI dashboard.
 export interface EnquiryStatPoint {
   label: string;
