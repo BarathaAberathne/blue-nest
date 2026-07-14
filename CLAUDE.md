@@ -37,8 +37,11 @@ Role hierarchy (`backend/internal/models/user.go` `Role`; `frontend/types` `User
   allow and bounces it off any other `/admin/*` page.
 - **`director`** (Managing Director) — executive oversight role with broad read/manage access (same reach
   as a general manager, minus account management). After login it lands on the **MD Command Centre**
-  (`/admin/command-center`), which is also the first sidebar item for anyone with `dashboard.view`. Assign
-  it on `/admin/users`, or seed one via `DEFAULT_DIRECTOR_EMAIL/PASSWORD` (`make seed-users`).
+  (`/admin/command-center`). **Command Centre access is restricted to `director` + `super_admin` only** —
+  the sidebar item is role-gated in `AdminLayout` (`NavItem.roles`) and the page (which renders its own
+  shell outside `AdminLayout`) is guarded by `command-center/AccessGuard.tsx`, which bounces any other role
+  to `/admin/dashboard`. Assign the director role on `/admin/users`, or seed one via
+  `DEFAULT_DIRECTOR_EMAIL/PASSWORD` (`make seed-users`).
 Guards: `AdminOnly` = super_admin|admin|branch_manager; `ManagementOnly` = those + finance|admissions|
 procurement|director (the outer gate on the admin route group); `SuperAdminOnly` = super_admin. **Granular
 permissions** (`models/permission.go`): a `Permission` set + a `role→[]Permission` map + `HasPermission`;

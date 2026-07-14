@@ -32,21 +32,23 @@ import { useAuthGuard } from "@/lib/useAuthGuard";
 import { clearAuthSession } from "@/lib/auth";
 import { usePermissions, clearPermissionsCache } from "@/lib/usePermissions";
 import NotificationBell from "@/components/admin/NotificationBell";
-import type { Permission } from "@/types";
+import type { Permission, UserRole } from "@/types";
 
 // Sidebar is grouped into labelled sections so related tools sit together. The
 // PROCUREMENT group makes the purchasing flow self-evident as one connected
 // process: Overview → Supply Requests → Purchase Orders → Suppliers → Catalogue
 // → Analytics. Each item declares the permission needed to see it, so specialist
 // roles (finance / admissions / procurement) get a tailored sidebar.
-type NavItem = { label: string; href: string; icon: typeof LayoutDashboard; exact?: boolean; permission: Permission };
+// `roles` (optional) restricts an item to specific roles regardless of permission —
+// used for the Command Centre, which is director + super_admin only.
+type NavItem = { label: string; href: string; icon: typeof LayoutDashboard; exact?: boolean; permission: Permission; roles?: UserRole[] };
 type NavSection = { heading: string | null; items: NavItem[] };
 
 const NAV_SECTIONS: NavSection[] = [
   {
     heading: null,
     items: [
-      { label: "Command Centre", href: "/admin/command-center", icon: Radar, permission: "dashboard.view" },
+      { label: "Command Centre", href: "/admin/command-center", icon: Radar, permission: "dashboard.view", roles: ["super_admin", "director"] },
       { label: "Main Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
       { label: "Inquiries", href: "/admin/inquiries", icon: Inbox, permission: "enquiries.manage" },
     ],
@@ -128,6 +130,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // general managers see everything (Users is super-admin only); specialists wait
   // for the real permission set. A section with no visible items is dropped.
   const canSee = (item: NavItem): boolean => {
+    // Role-restricted items (Command Centre) show only for their listed roles.
+    if (item.roles && !(user && item.roles.includes(user.role as UserRole))) return false;
     if (permsReady) return has(item.permission);
     if (user?.role === "super_admin") return true;
     if (user?.role === "admin" || user?.role === "branch_manager" || user?.role === "director") return item.permission !== "users.manage";
