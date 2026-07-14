@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import CommandCenterClient from "./CommandCenterClient";
+import AccessGuard from "./AccessGuard";
 
 // MD "Blue Nest Command Centre" — a self-contained executive HUD. It renders its
 // own full-screen dark shell (it deliberately does NOT use AdminLayout) and shows
@@ -11,5 +12,9 @@ export const metadata: Metadata = {
 };
 
 export default function CommandCenterPage() {
-  return <CommandCenterClient />;
+  return (
+    <AccessGuard>
+      <CommandCenterClient />
+    </AccessGuard>
+  );
 }
