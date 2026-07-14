@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/blue-nest-montessori/api/internal/config"
 	"github.com/blue-nest-montessori/api/internal/handler"
@@ -41,6 +42,8 @@ type Services struct {
 	Attendance        service.AttendanceService
 	Staff             service.StaffService
 	StaffAttendance   service.StaffAttendanceService
+	Kiosk             service.KioskService
+	Shifts            service.ShiftService
 	DailyRecords      service.DailyRecordService
 	BranchOverview    service.BranchOverviewService
 	GBP               service.GBPService
@@ -107,6 +110,20 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		// ── Contact / Enquiries (public) ──────────────────────────────────
 		contactH := handler.NewContactHandler(svc.Enquiries)
 		r.Post("/contact", contactH.Submit)
+
+		// ── Kiosk (entrance tablet) ───────────────────────────────────────
+		// Isolated from the CMS: device-token auth (X-Kiosk-Token), rate-limited,
+		// exposes only staff search + clock in/out within the device's branch.
+		r.Group(func(r chi.Router) {
+			kioskH := handler.NewKioskHandler(svc.Kiosk)
+			r.Use(middleware.RateLimit(90, time.Minute))
+			r.Use(middleware.KioskAuth(svc.Kiosk.Authenticate))
+			r.Post("/kiosk/session", kioskH.Session)
+			r.Get("/kiosk/staff", kioskH.Search)
+			r.Get("/kiosk/overview", kioskH.Overview)
+			r.Post("/kiosk/clock-in", kioskH.ClockIn)
+			r.Post("/kiosk/clock-out", kioskH.ClockOut)
+		})
 
 		// ── Authenticated routes ───────────────────────────────────────────
 		r.Group(func(r chi.Router) {
@@ -323,9 +340,26 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				adminStaffAttH := adminHandler.NewAdminStaffAttendanceHandler(svc.StaffAttendance, svc.Audit)
 				r.Get("/admin/staff-attendance", adminStaffAttH.Register)
 				r.Get("/admin/staff-attendance/today", adminStaffAttH.Today)
+				r.Get("/admin/staff-attendance/summary", adminStaffAttH.Summary)
 				r.Post("/admin/staff-attendance/clock-in", adminStaffAttH.ClockIn)
 				r.Post("/admin/staff-attendance/clock-out", adminStaffAttH.ClockOut)
 				r.Patch("/admin/staff-attendance/mark", adminStaffAttH.Mark)
+				r.Patch("/admin/staff-attendance/{id}/correct", adminStaffAttH.Correct)
+
+				// Rota / shift scheduling.
+				adminShiftH := adminHandler.NewAdminShiftHandler(svc.Shifts, svc.Audit)
+				r.Get("/admin/shifts", adminShiftH.List)
+				r.Post("/admin/shifts", adminShiftH.Create)
+				r.Put("/admin/shifts/{id}", adminShiftH.Update)
+				r.Delete("/admin/shifts/{id}", adminShiftH.Delete)
+
+				// Kiosk device management + staff PIN provisioning.
+				adminKioskH := adminHandler.NewAdminKioskHandler(svc.Kiosk, svc.Audit)
+				r.Get("/admin/kiosk-devices", adminKioskH.ListDevices)
+				r.Post("/admin/kiosk-devices", adminKioskH.CreateDevice)
+				r.Patch("/admin/kiosk-devices/{id}", adminKioskH.SetActive)
+				r.Delete("/admin/kiosk-devices/{id}", adminKioskH.DeleteDevice)
+				r.Put("/admin/staff/{id}/pin", adminKioskH.SetStaffPIN)
 			})
 
 			// Organisation — Branch Management System (Branch as the central hub).

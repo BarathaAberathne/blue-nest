@@ -19,6 +19,24 @@ export default function StaffDetailClient({ id }: { id: string }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<StaffInput | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinBusy, setPinBusy] = useState(false);
+  const [pinMsg, setPinMsg] = useState<string | null>(null);
+
+  const savePIN = async (clear = false) => {
+    const token = getAccessToken();
+    if (!token) return;
+    const value = clear ? "" : pin.trim();
+    if (!clear && !/^\d{4,8}$/.test(value)) { setPinMsg("PIN must be 4–8 digits"); return; }
+    setPinBusy(true); setPinMsg(null);
+    try {
+      await api.adminSetStaffPIN(token, id, value);
+      setPin("");
+      setMember((m) => (m ? { ...m, has_pin: !clear } : m));
+      setPinMsg(clear ? "PIN cleared" : "PIN set");
+    } catch (e) { setPinMsg(e instanceof Error ? e.message : "Failed"); }
+    finally { setPinBusy(false); }
+  };
 
   const load = async () => {
     const token = getAccessToken();
@@ -135,6 +153,18 @@ export default function StaffDetailClient({ id }: { id: string }) {
                 <dd className="mt-1 text-slate-800">{member.first_aid_expiry ? `Expires ${fmtDate(member.first_aid_expiry)}` : "Not recorded"}</dd>
               </div>
             </dl>
+          </div>
+
+          <div className="card p-5">
+            <h2 className="mb-1 text-sm font-bold uppercase tracking-widest text-slate-400">Kiosk clock-in PIN</h2>
+            <p className="mb-4 text-xs text-slate-500">The 4–8 digit PIN this person enters on the entrance tablet to clock in/out. {member.has_pin ? <span className="font-medium text-green-600">✓ PIN is set.</span> : <span className="font-medium text-amber-600">No PIN set — they can&apos;t clock in yet.</span>}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <input value={pin} onChange={(e) => { setPin(e.target.value.replace(/\D/g, "").slice(0, 8)); setPinMsg(null); }}
+                inputMode="numeric" placeholder="e.g. 4821" className="w-32 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono tracking-widest" />
+              <button type="button" onClick={() => savePIN(false)} disabled={pinBusy || !pin} className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">{member.has_pin ? "Change PIN" : "Set PIN"}</button>
+              {member.has_pin && <button type="button" onClick={() => savePIN(true)} disabled={pinBusy} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Clear</button>}
+              {pinMsg && <span className="text-xs font-medium text-slate-500">{pinMsg}</span>}
+            </div>
           </div>
         </div>
       ) : form && (

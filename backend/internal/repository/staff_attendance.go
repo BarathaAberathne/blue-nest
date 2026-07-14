@@ -2,10 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -15,6 +17,7 @@ type StaffAttendanceRepository interface {
 	Upsert(ctx context.Context, rec models.StaffAttendanceRecord) (*models.StaffAttendanceRecord, error)
 	FindByDate(ctx context.Context, date, branch string) ([]models.StaffAttendanceRecord, error)
 	FindByStaffDate(ctx context.Context, staffID, date string) (*models.StaffAttendanceRecord, error)
+	FindByID(ctx context.Context, id string) (*models.StaffAttendanceRecord, error)
 	// LatestDate returns the most recent date (YYYY-MM-DD) with any record, or
 	// "" when empty. Optionally scoped to a branch.
 	LatestDate(ctx context.Context, branch string) (string, error)
@@ -31,21 +34,34 @@ func NewStaffAttendanceRepository(db *mongo.Database) StaffAttendanceRepository 
 func (r *staffAttendanceRepository) Upsert(ctx context.Context, rec models.StaffAttendanceRecord) (*models.StaffAttendanceRecord, error) {
 	now := time.Now()
 	rec.UpdatedAt = now
+	// Persist the full record so all attendance fields (capture context, breaks,
+	// computed minutes) survive. clock_in/out are set explicitly — including nil,
+	// so Mark(absent) and re-clock-in correctly clear stale times.
 	set := bson.M{
-		"staff_id":     rec.StaffID,
-		"staff_name":   rec.StaffName,
-		"branch_slug":  rec.BranchSlug,
-		"date":         rec.Date,
-		"status":       rec.Status,
-		"late_arrival": rec.LateArrival,
-		"notes":        rec.Notes,
-		"updated_at":   now,
-	}
-	if rec.ClockIn != nil {
-		set["clock_in"] = rec.ClockIn
-	}
-	if rec.ClockOut != nil {
-		set["clock_out"] = rec.ClockOut
+		"staff_id":                rec.StaffID,
+		"staff_name":              rec.StaffName,
+		"branch_slug":             rec.BranchSlug,
+		"date":                    rec.Date,
+		"status":                  rec.Status,
+		"clock_in":                rec.ClockIn,
+		"clock_out":               rec.ClockOut,
+		"late_arrival":            rec.LateArrival,
+		"notes":                   rec.Notes,
+		"source":                  rec.Source,
+		"device_id":               rec.DeviceID,
+		"ip":                      rec.IP,
+		"location":                rec.Location,
+		"created_by":              rec.CreatedBy,
+		"breaks":                  rec.Breaks,
+		"shift_id":                rec.ShiftID,
+		"missing_clockout":        rec.MissingClockOut,
+		"worked_minutes":          rec.WorkedMinutes,
+		"break_minutes":           rec.BreakMinutes,
+		"overtime_minutes":        rec.OvertimeMinutes,
+		"late_minutes":            rec.LateMinutes,
+		"early_departure_minutes": rec.EarlyDepartureMinutes,
+		"corrections":             rec.Corrections,
+		"updated_at":              now,
 	}
 	update := bson.M{"$set": set, "$setOnInsert": bson.M{"created_at": now}}
 	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
@@ -90,6 +106,21 @@ func (r *staffAttendanceRepository) LatestDate(ctx context.Context, branch strin
 func (r *staffAttendanceRepository) FindByStaffDate(ctx context.Context, staffID, date string) (*models.StaffAttendanceRecord, error) {
 	var rec models.StaffAttendanceRecord
 	if err := r.col.FindOne(ctx, bson.M{"staff_id": staffID, "date": date}).Decode(&rec); err != nil {
+		return nil, err
+	}
+	return &rec, nil
+}
+
+func (r *staffAttendanceRepository) FindByID(ctx context.Context, id string) (*models.StaffAttendanceRecord, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	var rec models.StaffAttendanceRecord
+	if err := r.col.FindOne(ctx, bson.M{"_id": oid}).Decode(&rec); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("attendance record not found")
+		}
 		return nil, err
 	}
 	return &rec, nil
