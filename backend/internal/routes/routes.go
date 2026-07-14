@@ -211,6 +211,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Use(middleware.RequirePermission(models.PermEnquiriesManage))
 				adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Auth, svc.Audit)
 				r.Get("/admin/enquiries", adminEnquiryH.List)
+				r.Post("/admin/enquiries", adminEnquiryH.Create)
 				r.Get("/admin/enquiries/page", adminEnquiryH.ListPaged)
 				r.Get("/admin/enquiries/stats", adminEnquiryH.Stats)
 				r.Get("/admin/enquiries/tasks", adminEnquiryH.Tasks)

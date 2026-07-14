@@ -28,6 +28,7 @@ type EnquiryService interface {
 	// mutations so each still writes an attributed activity entry.
 	BulkUpdate(ctx context.Context, req models.EnquiryBulkRequest, actor models.EnquiryActor) (*models.EnquiryBulkResult, error)
 	GetByID(ctx context.Context, id string) (*models.Enquiry, error)
+	CreateManual(ctx context.Context, req models.AdminEnquiryCreateRequest, actor models.EnquiryActor) (*models.Enquiry, error)
 	ChangeStatus(ctx context.Context, id, status string, actor models.EnquiryActor) error
 	AddNote(ctx context.Context, id, note string, actor models.EnquiryActor) (*models.EnquiryNote, error)
 	UpdateFollowUp(ctx context.Context, id string, req models.EnquiryFollowUpRequest, actor models.EnquiryActor) error
@@ -286,6 +287,71 @@ func normalize(e *models.Enquiry) {
 	if e.ActivityLog == nil {
 		e.ActivityLog = []models.EnquiryActivity{}
 	}
+}
+
+// CreateManual logs an enquiry received off-website. No consent gate, no
+// auto-emails — the admin can reply later from the detail view. Records an
+// opening "created" activity attributed to the actor.
+func (s *enquiryService) CreateManual(ctx context.Context, req models.AdminEnquiryCreateRequest, actor models.EnquiryActor) (*models.Enquiry, error) {
+	req.Name = strings.TrimSpace(req.Name)
+	req.Email = strings.TrimSpace(req.Email)
+	req.Phone = strings.TrimSpace(req.Phone)
+	req.Branch = strings.TrimSpace(req.Branch)
+	req.EnquiryType = strings.TrimSpace(req.EnquiryType)
+	if req.Name == "" {
+		return nil, errors.New("name is required")
+	}
+	if req.Email == "" && req.Phone == "" {
+		return nil, errors.New("an email or phone number is required")
+	}
+	if req.Branch == "" {
+		return nil, errors.New("branch is required")
+	}
+	if req.EnquiryType == "" {
+		return nil, errors.New("enquiry type is required")
+	}
+	priority := strings.TrimSpace(req.Priority)
+	if priority == "" {
+		priority = models.EnquiryPriorityMedium
+	} else if !models.IsValidPriority(priority) {
+		return nil, errors.New("invalid priority")
+	}
+	source := strings.TrimSpace(req.Source)
+	if source == "" {
+		source = "manual"
+	}
+
+	enquiry := &models.Enquiry{
+		Name:           req.Name,
+		Email:          req.Email,
+		Phone:          req.Phone,
+		Branch:         req.Branch,
+		ChildAge:       strings.TrimSpace(req.ChildAge),
+		EnquiryType:    req.EnquiryType,
+		Message:        strings.TrimSpace(req.Message),
+		Source:         source,
+		Status:         models.EnquiryStatusNew,
+		Priority:       priority,
+		AssignedTo:     strings.TrimSpace(req.AssignedTo),
+		AssignedToName: strings.TrimSpace(req.AssignedToName),
+		Notes:          []models.EnquiryNote{},
+		ActivityLog:    []models.EnquiryActivity{newActivity(models.EnquiryActivityCreated, actor, "Enquiry logged manually ("+source+")")},
+	}
+	if note := strings.TrimSpace(req.Note); note != "" {
+		enquiry.Notes = append(enquiry.Notes, models.EnquiryNote{
+			ID:         primitive.NewObjectID().Hex(),
+			Note:       note,
+			AuthorID:   actor.ID,
+			AuthorName: actor.Name,
+			CreatedAt:  time.Now(),
+		})
+		enquiry.ActivityLog = append(enquiry.ActivityLog, newActivity(models.EnquiryActivityNoteAdded, actor, "Added an internal note"))
+	}
+
+	if err := s.repo.Create(ctx, enquiry); err != nil {
+		return nil, fmt.Errorf("create enquiry: %w", err)
+	}
+	return enquiry, nil
 }
 
 func (s *enquiryService) ChangeStatus(ctx context.Context, id, status string, actor models.EnquiryActor) error {
