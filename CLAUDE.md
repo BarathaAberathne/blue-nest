@@ -35,8 +35,12 @@ Role hierarchy (`backend/internal/models/user.go` `Role`; `frontend/types` `User
   `admissions` (dashboard + enquiries CRM), `procurement` (dashboard + supply requests/POs/catalogue +
   suppliers + spend). Each enters the admin shell but `AdminLayout` shows only the sections its permissions
   allow and bounces it off any other `/admin/*` page.
+- **`director`** (Managing Director) — executive oversight role with broad read/manage access (same reach
+  as a general manager, minus account management). After login it lands on the **MD Command Centre**
+  (`/admin/command-center`), which is also the first sidebar item for anyone with `dashboard.view`. Assign
+  it on `/admin/users`, or seed one via `DEFAULT_DIRECTOR_EMAIL/PASSWORD` (`make seed-users`).
 Guards: `AdminOnly` = super_admin|admin|branch_manager; `ManagementOnly` = those + finance|admissions|
-procurement (the outer gate on the admin route group); `SuperAdminOnly` = super_admin. **Granular
+procurement|director (the outer gate on the admin route group); `SuperAdminOnly` = super_admin. **Granular
 permissions** (`models/permission.go`): a `Permission` set + a `role→[]Permission` map + `HasPermission`;
 gate a route with `middleware.RequirePermission(models.PermX)` and a UI section by checking
 `lib/usePermissions.ts` `has(perm)` (sourced from `GET /auth/me` → `{role, permissions}`). Add a role to a
@@ -189,6 +193,67 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
     shared org-wide): on `/admin/my-requests` staff **Save as template**, **Use** a template, or
     **Reorder** a past request. Routes `GET/POST/DELETE /order-templates` (staff+management). The admin
     **New order** wizard on `/admin/order-requests` generates the cart + auto-hands it to the extension.
+
+- **MD Command Centre** (`app/admin/command-center/`, frontend-only): a self-contained **full-screen
+  executive command centre** for the Managing Director — a dark-navy + champagne-gold + electric-blue
+  "mission control" dashboard that renders its **own edge-to-edge shell** (deliberately NOT wrapped in
+  `AdminLayout`) at `/admin/command-center`. The layout is **fluid and fills 100vw × 100vh** (fixed
+  left nav rail + wide scrollable centre + fixed right insight rail — `.cc-body` + `.cc-col-scroll`), no
+  centred narrow container. All figures are **static mock data** (`data.ts`) — none of it (children,
+  attendance, finance, sentiment, compliance, staffing, activity) is backend-wired yet. No new npm deps:
+  every chart (financial donut, admission funnel, attendance bars, sentiment spark, radar dials, ring
+  gauges, source donut, branch building line-art, centrepiece rings) is hand-rolled SVG in `widgets.tsx`,
+  the HUD line-icons (Blue Nest "Icon Pack v1.0" — neon `#36A9FF` electric blue with `#FFC857` gold
+  accents, lucide-compatible API) live in `icons.tsx`, and all motion (logo glow-pulse, rotating rings,
+  radar sweep, sonar pings, flowing connector dashes, AI waveform, live clock) is CSS keyframes. The real
+  Blue Nest logo PNG (`/logo/bluenest-logo.png`) glows via `drop-shadow` in the topbar, centrepiece and
+  system-health radar. All styling is scoped under `.cc-root` in `command-center.css` (palette as `--cc-*`
+  vars: bg `#071321`, panel `#0E223D`, primary `#36A9FF`, accent `#D6B36A`, success `#35D07F`, warning
+  `#FFC857`, error `#FF5C73`) so nothing leaks into the light admin theme; `body:has(.cc-root),
+  body:has(.cc-os)` darkens the page. **Stage-1 executive-OS rebuild** (`CommandCenterClient.tsx` renders the
+  `.cc-os` shell; supporting parts in `os/`): a four-region desktop-app layout — **Header** (logo · school
+  name · MISSION CONTROL chip · global ⌘K search · clock · notifications/messages · profile) · **collapsible
+  navigation Dock** (72px collapsed → 240px on hover / pin, framer-motion, macOS-style; Dashboard/Branches/
+  Children/Staff/Admissions/Finance/Attendance/Communication/Reports/Settings) · **AI Workspace** (centre,
+  the primary surface): an **executive KPI bar** (Children/Occupancy/Attendance/Revenue/Outstanding/
+  Safeguarding/Satisfaction/Staff) over three columns — left **Intelligence Rail** (exec summary · health
+  score · branch status · risks · deadlines), centre **Core** — **AI tabs** (Mission-Control/Operations/
+  Finance/Admissions/People/Ofsted/Analytics) that swap the workspace view (`os/AITabs.tsx`: each tab is a
+  dedicated dashboard — Operations = today's ops + branch table; Finance = revenue mix/P&L/budget-vs-actual
+  + per-branch; Admissions = live funnel + sources; People = staff status + gauges; Ofsted = compliance +
+  SEF + actions; Analytics = forecast/trends/gauges). Mission-Control shows the **radar-as-organisation-
+  health** rendered with **React Flow** (`@xyflow/react`) as a branch network — central Blue Nest radar node
+  + 5 branch nodes with animated data edges + hover-expand live stats (bottom-row popovers open upward so
+  they aren't clipped). A ChatGPT-style **conversational AI** (contextual to the active tab; turns "add
+  task …" prompts into tasks) sits below every tab. Right **AI Rail** (unified notifications · approvals · safeguarding · tasks · activity, each with
+  priority/branch/time/quick-action) · **Executive Financial Sidebar** (Revenue/CashFlow/Outstanding/Funding
+  /Budget/Forecast donut + trend · Calendar · System Health) · full-width **Operational Workspace** strip
+  — a **modular workspace** (`os/OpsWorkspace.tsx`, Stage 2): panels (**Tasks** · Attendance · Admissions ·
+  Parent Sentiment · Revenue · Occupancy · Calendar · Enquiry Sources · Finance) are **drag-reordered**
+  (framer-motion `Reorder`), **resized** (S/M/L column span), shown/hidden/added, the strip height is drag-
+  resizable, and the whole layout **saves to localStorage** (`cc-ops-layout-v2`) — Edit-mode toolbar with
+  Add/Reset/Save/Done. No new deps (framer-motion only). A **Tasks** widget (`os/TasksPanel.tsx`) lets the
+  MD create tasks **manually or via AI** (the ✨ button pulls from `AI_COMMAND.recommendations`; the AI chat
+  turns "add task …"/"remind me to …" into tasks). Tasks live in a shared store (`os/tasks.ts`, localStorage
+  `cc-tasks-v1`, reactive `useTasks()`), so the widget, the AI conversation and the **placeholder Kanban
+  board** at `/admin/command-center/board` (`os/BoardClient.tsx` — 3 columns To Do/In Progress/Done, clearly
+  labelled "PREVIEW · FULL BOARD COMING SOON") all stay in sync. A real backend-backed Kanban (assignees,
+  due dates, drag-drop, per-branch swimlanes) is the planned follow-up.
+  A global **command palette** (`cmdk`, ⌘K / click search) is the AI-navigation layer — "Open Harrow", "Show
+  today's absences", etc. route into the CMS. Motion uses the already-installed **framer-motion**; new deps
+  are only **`cmdk`** + **`@xyflow/react`** (Tailwind stays v3). Data: `os/osdata.ts` (dock/KPI-bar/rails/
+  tabs/prompts/palette) + `data.ts` (`AI_COMMAND`, `BRANCH_METRICS`, finance, calendar). The old
+  widget-grid composition (bottom AI Assistant, Live Activity, Parent Comms, occupancy heatmap, enquiry-
+  sources, performance gauges, staff/children/compliance, static branch overview) was **removed/absorbed**.
+  Widgets/nav/palette are wired into the CMS via `router.push` (dock hrefs + `PALETTE_COMMANDS` in `osdata.ts`;
+  modules without a page fall back to the closest one). The
+  `director` role (above) is its intended audience. **The enquiries/admissions pipeline is live-wired**:
+  `live.ts` (`useEnquiryPipeline`) fetches `GET /admin/enquiries/stats` with the signed-in token and feeds
+  the real funnel + conversion, the Enquiries KPI, and the Booked-Visits/Applications/Enquiry-Response
+  tiles (Admission Pipeline shows a **● Live** tag). It **falls back to the static mock** when there's no
+  token or the request fails (CORS/permissions), so the page still renders for an anonymous demo. All
+  other figures (children, attendance, finance, sentiment, compliance, staffing, activity) remain mock —
+  the enquiries pipeline is the first module connected to real backend data.
 
 Planned next: Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 

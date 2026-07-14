@@ -19,6 +19,9 @@ type Config struct {
 	SMTP        SMTPConfig
 	Sourcing    SourcingConfig
 	FrontendURL string
+	// GBPIngestSecret gates the GBP digest webhook (X-GBP-Secret header). The
+	// Claude GBP-monitoring automation posts with this shared secret.
+	GBPIngestSecret string
 }
 
 // SourcingConfig drives the order-creation tool: per-supplier default order
@@ -131,7 +134,8 @@ func Load() *Config {
 		CORS: CORSConfig{
 			AllowedOrigins: frontendOrigins,
 		},
-		FrontendURL: frontendOrigins[0],
+		FrontendURL:     frontendOrigins[0],
+		GBPIngestSecret: getEnv("GBP_INGEST_SECRET", ""),
 		SMTP: SMTPConfig{
 			Host:         getEnv("SMTP_HOST", ""),
 			Port:         func() int { p, _ := strconv.Atoi(getEnv("SMTP_PORT", "587")); return p }(),

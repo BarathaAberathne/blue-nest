@@ -22,8 +22,15 @@ export default function AdminLoginClient() {
     try {
       const auth = await api.adminLogin({ email, password }) as AuthResponse;
       setAuthSession(auth.access_token, auth.user);
-      // Staff land in their restricted portal; management gets the dashboard.
-      router.push(auth.user.role === "staff" ? "/admin/my-requests" : "/admin/dashboard");
+      // Staff land in their restricted portal; the director lands on the MD
+      // Command Centre; other management gets the standard dashboard.
+      const landing =
+        auth.user.role === "staff"
+          ? "/admin/my-requests"
+          : auth.user.role === "director"
+            ? "/admin/command-center"
+            : "/admin/dashboard";
+      router.push(landing);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in");
     } finally {

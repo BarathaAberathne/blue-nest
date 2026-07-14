@@ -3,7 +3,7 @@
         docker-up docker-down docker-build docker-logs docker-restart docker-stop \
         dev-backend dev-frontend run-backend run-frontend \
         mongo-shell setup \
-        seed seed-products seed-branches seed-catalogue seed-users seed-all \
+        seed seed-products seed-branches seed-catalogue seed-users seed-children seed-staff seed-daily seed-gbp seed-all \
         wait-api \
         staging-up staging-verify staging-logs staging-down staging-clean \
         optimize-images optimize-images-dry
@@ -84,7 +84,7 @@ _guard-not-prod:
 
 # Attach the guard as a prerequisite to the dev-only targets (prereqs accumulate;
 # the recipes are defined below).
-docker-up docker-restart docker-build seed-products seed-branches seed-catalogue seed-all: _guard-not-prod
+docker-up docker-restart docker-build seed-products seed-branches seed-catalogue seed-children seed-staff seed-daily seed-gbp seed-all: _guard-not-prod
 
 docker-up:
 	docker compose up -d
@@ -164,7 +164,23 @@ seed-users:
 	  cd backend && go run ./cmd/seedusers; \
 	fi
 
-seed-all: seed-products seed-branches seed-catalogue seed-users
+seed-children:
+	@echo "→ Seeding nursery rooms, children & today's attendance..."
+	cd backend && go run ./cmd/seedchildren
+
+seed-staff:
+	@echo "→ Seeding nursery staff & today's staff attendance..."
+	cd backend && go run ./cmd/seedstaff
+
+seed-daily:
+	@echo "→ Seeding practitioner daily records (observations, safeguarding, meals)..."
+	cd backend && go run ./cmd/seeddailylogs
+
+seed-gbp:
+	@echo "→ Seeding Google Business Profile digests & reviews..."
+	cd backend && go run ./cmd/seedgbp
+
+seed-all: seed-products seed-branches seed-catalogue seed-users seed-children seed-staff seed-daily seed-gbp
 	@echo "✓ All seeds complete"
 
 # One-off migration: assign human-readable refs (SR-/PO-/ORD-) to records created

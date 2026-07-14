@@ -6,6 +6,7 @@ import (
 	"github.com/blue-nest-montessori/api/internal/config"
 	"github.com/blue-nest-montessori/api/internal/handler"
 	adminHandler "github.com/blue-nest-montessori/api/internal/handler/admin"
+	"github.com/blue-nest-montessori/api/internal/handler/integrations"
 	"github.com/blue-nest-montessori/api/internal/handler/webhooks"
 	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -17,23 +18,33 @@ import (
 )
 
 type Services struct {
-	Auth             service.AuthService
-	Products         service.ProductService
-	Cart             service.CartService
-	Checkout         service.CheckoutService
-	Orders           service.OrderService
-	Blog             service.BlogService
-	Branches         service.BranchService
-	Enquiries        service.EnquiryService
-	Comments         service.CommentService
-	Audit            service.AuditService
-	OrderRequests    service.OrderRequestService
-	Catalogue        service.CatalogueService
-	PurchaseCarts    service.PurchaseCartService
-	OrderTemplates   service.OrderTemplateService
-	Suppliers        service.SupplierService
-	Procurement      service.ProcurementAnalyticsService
-	DashboardLayouts service.DashboardLayoutService
+	Auth              service.AuthService
+	Products          service.ProductService
+	Cart              service.CartService
+	Checkout          service.CheckoutService
+	Orders            service.OrderService
+	Blog              service.BlogService
+	Branches          service.BranchService
+	Enquiries         service.EnquiryService
+	Comments          service.CommentService
+	Audit             service.AuditService
+	OrderRequests     service.OrderRequestService
+	Catalogue         service.CatalogueService
+	PurchaseCarts     service.PurchaseCartService
+	OrderTemplates    service.OrderTemplateService
+	Suppliers         service.SupplierService
+	Procurement       service.ProcurementAnalyticsService
+	DashboardLayouts  service.DashboardLayoutService
+	DashboardProfiles service.DashboardProfileService
+	Rooms             service.RoomService
+	Children          service.ChildService
+	Attendance        service.AttendanceService
+	Staff             service.StaffService
+	StaffAttendance   service.StaffAttendanceService
+	DailyRecords      service.DailyRecordService
+	BranchOverview    service.BranchOverviewService
+	GBP               service.GBPService
+	Roles             service.RoleService
 }
 
 type Repos struct {
@@ -57,6 +68,10 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 	// ── Stripe webhook (raw body required before JSON middleware) ───────────
 	stripeWH := webhooks.NewStripeWebhookHandler(stripeWebhookSecret, repos.Orders, repos.Products, repos.Branches, repos.Mailer, repos.OrderAdminTo, repos.OrderBATo)
 	r.Post("/api/v1/webhooks/stripe", stripeWH.Handle)
+
+	// ── GBP digest ingest (shared-secret webhook, no user JWT) ──────────────
+	gbpWH := integrations.NewGBPHandler(svc.GBP, cfg.GBPIngestSecret)
+	r.Post("/api/v1/integrations/gbp/digest", gbpWH.IngestDigest)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// ── Auth ──────────────────────────────────────────────────────────
@@ -101,9 +116,13 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/auth/me", authH.Me)
 
 			// Per-user customizable dashboard layout (any authenticated user).
-			dashH := handler.NewDashboardLayoutHandler(svc.DashboardLayouts)
-			r.Get("/me/dashboard", dashH.Get)
-			r.Put("/me/dashboard", dashH.Save)
+			// A user can keep several named layouts and switch the active one.
+			dashH := handler.NewDashboardLayoutHandler(svc.DashboardLayouts, svc.DashboardProfiles)
+			r.Get("/me/dashboard", dashH.Get)   // active layout
+			r.Put("/me/dashboard", dashH.Save)  // save named layout (defaults to active)
+			r.Get("/me/dashboards", dashH.List) // all named layouts
+			r.Post("/me/dashboards/activate", dashH.Activate)
+			r.Delete("/me/dashboards/{name}", dashH.Delete)
 
 			// Cart
 			cartH := handler.NewCartHandler(svc.Cart)
@@ -260,6 +279,86 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Get("/admin/procurement/analytics", adminProcurementH.Analytics)
 			})
 
+			// Nursery — children & rooms (foundation records).
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermChildrenManage))
+				adminRoomH := adminHandler.NewAdminRoomHandler(svc.Rooms, svc.Audit)
+				r.Get("/admin/rooms", adminRoomH.List)
+				r.Get("/admin/rooms/{id}", adminRoomH.Get)
+				r.Post("/admin/rooms", adminRoomH.Create)
+				r.Put("/admin/rooms/{id}", adminRoomH.Update)
+				r.Delete("/admin/rooms/{id}", adminRoomH.Delete)
+
+				adminChildH := adminHandler.NewAdminChildHandler(svc.Children, svc.Audit)
+				r.Get("/admin/children", adminChildH.List)
+				r.Get("/admin/children/stats", adminChildH.Stats)
+				r.Get("/admin/children/{id}", adminChildH.Get)
+				r.Post("/admin/children", adminChildH.Create)
+				r.Put("/admin/children/{id}", adminChildH.Update)
+				r.Delete("/admin/children/{id}", adminChildH.Delete)
+			})
+
+			// Nursery — daily attendance register.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermAttendanceManage))
+				adminAttendanceH := adminHandler.NewAdminAttendanceHandler(svc.Attendance, svc.Audit)
+				r.Get("/admin/attendance", adminAttendanceH.Register)
+				r.Get("/admin/attendance/today", adminAttendanceH.Today)
+				r.Post("/admin/attendance/check-in", adminAttendanceH.CheckIn)
+				r.Post("/admin/attendance/check-out", adminAttendanceH.CheckOut)
+				r.Patch("/admin/attendance/mark", adminAttendanceH.Mark)
+			})
+
+			// People / HR — staff records & staff attendance.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermStaffManage))
+				adminStaffH := adminHandler.NewAdminStaffHandler(svc.Staff, svc.Audit)
+				r.Get("/admin/staff", adminStaffH.List)
+				r.Get("/admin/staff/{id}", adminStaffH.Get)
+				r.Post("/admin/staff", adminStaffH.Create)
+				r.Put("/admin/staff/{id}", adminStaffH.Update)
+				r.Delete("/admin/staff/{id}", adminStaffH.Delete)
+
+				adminStaffAttH := adminHandler.NewAdminStaffAttendanceHandler(svc.StaffAttendance, svc.Audit)
+				r.Get("/admin/staff-attendance", adminStaffAttH.Register)
+				r.Get("/admin/staff-attendance/today", adminStaffAttH.Today)
+				r.Post("/admin/staff-attendance/clock-in", adminStaffAttH.ClockIn)
+				r.Post("/admin/staff-attendance/clock-out", adminStaffAttH.ClockOut)
+				r.Patch("/admin/staff-attendance/mark", adminStaffAttH.Mark)
+			})
+
+			// Organisation — Branch Management System (Branch as the central hub).
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermBranchesManage))
+				adminBranchH := adminHandler.NewAdminBranchHandler(svc.Branches, svc.BranchOverview, svc.GBP, svc.Audit)
+				r.Get("/admin/branches", adminBranchH.List)
+				r.Get("/admin/branches/overview", adminBranchH.Overview)
+				r.Get("/admin/branches/{slug}", adminBranchH.Get)
+				r.Get("/admin/branches/{slug}/dashboard", adminBranchH.Dashboard)
+				r.Get("/admin/branches/{slug}/reviews", adminBranchH.Reviews)
+				r.Put("/admin/branches/{slug}", adminBranchH.Update) // scope-checked in handler
+				// Lifecycle — super admin only.
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequirePermission(models.PermBranchAdmin))
+					r.Post("/admin/branches", adminBranchH.Create)
+					r.Patch("/admin/branches/{slug}/managers", adminBranchH.SetManagers)
+					r.Post("/admin/branches/{slug}/archive", adminBranchH.Archive)
+				})
+			})
+
+			// Nursery — daily records (observations, incidents, safeguarding, medication, meals).
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermDailyLogsManage))
+				adminDailyH := adminHandler.NewAdminDailyRecordHandler(svc.DailyRecords, svc.Audit)
+				r.Get("/admin/daily-records", adminDailyH.List)
+				r.Get("/admin/daily-records/stats", adminDailyH.Stats)
+				r.Get("/admin/daily-records/{id}", adminDailyH.Get)
+				r.Post("/admin/daily-records", adminDailyH.Create)
+				r.Put("/admin/daily-records/{id}", adminDailyH.Update)
+				r.Patch("/admin/daily-records/{id}/status", adminDailyH.SetStatus)
+				r.Delete("/admin/daily-records/{id}", adminDailyH.Delete)
+			})
+
 			// Account management — super admin only.
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.SuperAdminOnly)
@@ -269,6 +368,19 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Put("/admin/users/{id}", adminUserH.Update)
 				r.Post("/admin/users/{id}/reset-password", adminUserH.ResetPassword)
 				r.Delete("/admin/users/{id}", adminUserH.Delete)
+
+				// Roles & permissions builder — super admin only.
+				adminRoleH := adminHandler.NewAdminRoleHandler(svc.Roles, svc.Audit)
+				r.Get("/admin/roles", adminRoleH.List)
+				r.Post("/admin/roles", adminRoleH.Create)
+				r.Put("/admin/roles/{name}", adminRoleH.UpdatePermissions)
+				r.Delete("/admin/roles/{name}", adminRoleH.Delete)
+
+				// Org dashboard profiles / role defaults — super admin only.
+				adminDashProfileH := adminHandler.NewAdminDashboardProfileHandler(svc.DashboardProfiles, svc.Audit)
+				r.Get("/admin/dashboard-profiles", adminDashProfileH.List)
+				r.Post("/admin/dashboard-profiles", adminDashProfileH.Save)
+				r.Delete("/admin/dashboard-profiles/{slug}", adminDashProfileH.Delete)
 			})
 		})
 	})

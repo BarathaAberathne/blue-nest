@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowRight, BookOpen, ClipboardList, Eye, EyeOff, GripVertical, Inbox, Maximize2,
-  Minimize2, Package, PoundSterling, RotateCcw, Settings2, ShoppingCart, Truck,
+  ArrowRight, BookOpen, Check, ChevronDown, ClipboardList, Eye, EyeOff, GripVertical, Inbox,
+  LayoutGrid, Maximize2, Minimize2, Package, Plus, PoundSterling, RotateCcw, Settings2,
+  ShoppingCart, Trash2, Truck,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken, getAuthUser } from "@/lib/auth";
@@ -13,8 +14,9 @@ import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { ORDER_STATUS_META } from "@/lib/admin-status";
 import { displayRef } from "@/lib/ref";
+import { DASHBOARD_WIDGET_KEYS, DASHBOARD_WIDGET_TITLES } from "@/lib/dashboard-widgets";
 import type { AccentName } from "@/lib/admin-theme";
-import type { BlogPost, DashboardWidget, Enquiry, Order, OrderRequest, Permission, ProcurementAnalytics, Product, UserRole } from "@/types";
+import type { BlogPost, DashboardLayout, DashboardWidget, Enquiry, Order, OrderRequest, Permission, ProcurementAnalytics, Product, UserRole } from "@/types";
 
 const fmtBranch = (b: string) => (b ? b.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "");
 
@@ -23,13 +25,9 @@ function fmtDate(iso: string) { return new Date(iso).toLocaleDateString("en-GB",
 const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0);
 
 // The customizable widgets, in default order. Saved layouts re-order / hide / size them.
-const WIDGET_TITLES: Record<string, string> = {
-  kpis: "Key metrics",
-  lowstock: "Low-stock alerts",
-  "recent-orders": "Recent orders",
-  "quick-actions": "Quick actions",
-};
-const DEFAULT_ORDER = ["kpis", "lowstock", "recent-orders", "quick-actions"];
+const WIDGET_TITLES = DASHBOARD_WIDGET_TITLES;
+const DEFAULT_ORDER = DASHBOARD_WIDGET_KEYS;
+const DEFAULT_LAYOUT_NAME = "My Dashboard"; // must match models.DefaultLayoutName
 
 export default function DashboardClient() {
   const { has, ready: permsReady } = usePermissions();
@@ -47,6 +45,13 @@ export default function DashboardClient() {
   const [editing, setEditing] = useState(false);
   const [dragKey, setDragKey] = useState<string | null>(null);
 
+  // Named layouts (B3.3): a user keeps several saved arrangements and switches
+  // the active one (e.g. "Morning Briefing", "Finance End-of-Month").
+  const [layouts, setLayouts] = useState<DashboardLayout[]>([]);
+  const [activeName, setActiveName] = useState<string>(DEFAULT_LAYOUT_NAME);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [newName, setNewName] = useState("");
+
   // Fetch only the data sources the caller is permitted to read (so specialist
   // roles get their scoped KPIs instead of a wall of 403s). Waits for the
   // permission set to resolve so we request exactly the right subset.
@@ -60,7 +65,17 @@ export default function DashboardClient() {
       jobs.push(p.then((v) => set(v)).catch(() => { /* best-effort per source */ }));
     };
 
-    run(api.getDashboardLayout(token), (v) => setLayout((v?.widgets as DashboardWidget[]) ?? []));
+    jobs.push(
+      api.listDashboardLayouts(token).then((v) => {
+        const list = v?.layouts ?? [];
+        setLayouts(list);
+        const active = list.find((l) => l.active) ?? list[0];
+        if (active) {
+          setLayout((active.widgets as DashboardWidget[]) ?? []);
+          setActiveName(active.name ?? DEFAULT_LAYOUT_NAME);
+        }
+      }).catch(() => { /* best-effort — falls back to defaults */ }),
+    );
     if (has("store.manage")) {
       run(api.adminGetOrders(token), (v) => setOrders((v as Order[]) ?? []));
       run(api.adminGetProducts(token), (v) => setProducts((v as Product[]) ?? []));
@@ -85,8 +100,52 @@ export default function DashboardClient() {
 
   const persist = (next: DashboardWidget[]) => {
     setLayout(next);
+    // Reflect the change in the active layout locally so the switcher stays in sync.
+    setLayouts((ls) => {
+      const exists = ls.some((l) => l.name === activeName);
+      if (exists) return ls.map((l) => (l.name === activeName ? { ...l, widgets: next } : l));
+      return [{ name: activeName, active: true, widgets: next }, ...ls];
+    });
     const token = getAccessToken();
-    if (token) void api.saveDashboardLayout(token, next).catch(() => { /* best-effort */ });
+    if (token) void api.saveDashboardLayout(token, next, activeName).catch(() => { /* best-effort */ });
+  };
+
+  // Switch to a different saved layout (activates it server-side + applies its widgets).
+  const switchTo = (name: string) => {
+    setSwitcherOpen(false);
+    if (name === activeName) return;
+    const target = layouts.find((l) => l.name === name);
+    setActiveName(name);
+    if (target) setLayout((target.widgets as DashboardWidget[]) ?? []);
+    setLayouts((ls) => ls.map((l) => ({ ...l, active: l.name === name })));
+    const token = getAccessToken();
+    if (token) void api.activateDashboardLayout(token, name).catch(() => { /* best-effort */ });
+  };
+
+  // Save the current arrangement under a new name and switch to it.
+  const saveAsNew = async () => {
+    const name = newName.trim();
+    if (!name) return;
+    const token = getAccessToken();
+    if (!token) return;
+    setNewName("");
+    setActiveName(name);
+    setSwitcherOpen(false);
+    await api.saveDashboardLayout(token, widgets, name).catch(() => { /* best-effort */ });
+    const v = await api.listDashboardLayouts(token).catch(() => null);
+    if (v) setLayouts(v.layouts ?? []);
+  };
+
+  const deleteLayout = async (name: string) => {
+    const token = getAccessToken();
+    if (!token || !window.confirm(`Delete the “${name}” layout?`)) return;
+    await api.deleteDashboardLayout(token, name).catch(() => { /* best-effort */ });
+    const v = await api.listDashboardLayouts(token).catch(() => null);
+    const list = v?.layouts ?? [];
+    setLayouts(list);
+    const active = list.find((l) => l.active) ?? list[0];
+    if (active) { setLayout((active.widgets as DashboardWidget[]) ?? []); setActiveName(active.name ?? DEFAULT_LAYOUT_NAME); }
+    else { setLayout([]); setActiveName(DEFAULT_LAYOUT_NAME); }
   };
 
   const toggleHidden = (key: string) => persist(widgets.map((w) => (w.key === key ? { ...w, hidden: !w.hidden } : w)));
@@ -249,6 +308,55 @@ export default function DashboardClient() {
           <p className="text-sm text-slate-500">Showing data for your branch{branchSlugs.length > 1 ? "es" : ""}: <span className="font-medium text-slate-700">{branchSlugs.map(fmtBranch).join(", ")}</span></p>
         ) : <span />}
         <div className="flex items-center gap-2">
+          {/* Named-layout switcher */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setSwitcherOpen((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <LayoutGrid className="h-3.5 w-3.5 text-slate-400" />
+              <span className="max-w-[10rem] truncate">{activeName}</span>
+              <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition ${switcherOpen ? "rotate-180" : ""}`} />
+            </button>
+            {switcherOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setSwitcherOpen(false)} />
+                <div className="absolute right-0 z-20 mt-1 w-64 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+                  <p className="px-2.5 py-1.5 text-[0.65rem] font-bold uppercase tracking-wider text-slate-400">My layouts</p>
+                  {(layouts.length ? layouts : [{ name: activeName, active: true, widgets: [] }]).map((l) => {
+                    const name = l.name ?? DEFAULT_LAYOUT_NAME;
+                    const isActive = name === activeName;
+                    return (
+                      <div key={name} className={`group flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm ${isActive ? "bg-teal-50 text-teal-700" : "text-slate-700 hover:bg-slate-50"}`}>
+                        <button type="button" onClick={() => switchTo(name)} className="flex flex-1 items-center gap-2 text-left">
+                          <Check className={`h-3.5 w-3.5 ${isActive ? "text-teal-600" : "text-transparent"}`} />
+                          <span className="truncate">{name}</span>
+                        </button>
+                        {layouts.length > 1 && (
+                          <button type="button" onClick={() => deleteLayout(name)} title="Delete layout" className="rounded p-1 text-slate-300 opacity-0 hover:bg-slate-100 hover:text-red-500 group-hover:opacity-100">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <div className="mt-1 flex items-center gap-1 border-t border-slate-100 px-1 pt-2">
+                    <input
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") void saveAsNew(); }}
+                      placeholder="Save current as…"
+                      className="min-w-0 flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
+                    />
+                    <button type="button" onClick={() => void saveAsNew()} disabled={!newName.trim()} title="Save as new layout" className="rounded-lg bg-teal-600 p-1.5 text-white hover:bg-teal-700 disabled:opacity-40">
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           {editing && (
             <button type="button" onClick={resetLayout} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">
               <RotateCcw className="h-3.5 w-3.5" /> Reset layout
