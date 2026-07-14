@@ -74,3 +74,8 @@ frontend/main
 
 # ── Claude working files ──────────────────────────────────────────────────────
 .claude/
+
+# Real Famly exports — contain children/staff PII, never commit
+famly-templates/
+*famly-templates*.zip
+backend/seedfamly
