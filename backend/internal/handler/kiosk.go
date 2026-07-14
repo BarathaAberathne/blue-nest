@@ -45,6 +45,17 @@ func (h *KioskHandler) Search(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, results)
 }
 
+// Overview returns recent check-ins + today's summary for the device's branch.
+func (h *KioskHandler) Overview(w http.ResponseWriter, r *http.Request) {
+	sess := middleware.KioskSession(r)
+	ov, err := h.svc.Overview(r.Context(), sess.BranchSlug)
+	if err != nil {
+		response.InternalError(w, "overview failed")
+		return
+	}
+	response.OK(w, ov)
+}
+
 func (h *KioskHandler) ClockIn(w http.ResponseWriter, r *http.Request) {
 	h.clock(w, r, true)
 }

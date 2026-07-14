@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskSession, KioskStaffResult, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
+import type { AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -187,6 +187,8 @@ export const api = {
     apiFetch<KioskSession>("/api/v1/kiosk/session", { method: "POST", headers: { "X-Kiosk-Token": deviceToken } }),
   kioskSearch: (deviceToken: string, q: string) =>
     apiFetch<KioskStaffResult[]>(`/api/v1/kiosk/staff?q=${encodeURIComponent(q)}`, { headers: { "X-Kiosk-Token": deviceToken } }),
+  kioskOverview: (deviceToken: string) =>
+    apiFetch<KioskOverview>("/api/v1/kiosk/overview", { headers: { "X-Kiosk-Token": deviceToken } }),
   kioskClockIn: (deviceToken: string, staffId: string, pin: string) =>
     apiFetch<StaffAttendanceRecord>("/api/v1/kiosk/clock-in", { method: "POST", headers: { "X-Kiosk-Token": deviceToken }, body: JSON.stringify({ staff_id: staffId, pin }) }),
   kioskClockOut: (deviceToken: string, staffId: string, pin: string) =>

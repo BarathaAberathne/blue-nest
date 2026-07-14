@@ -39,6 +39,30 @@ type KioskSession struct {
 	BranchName string `json:"branch_name"`
 }
 
+// KioskRecentCheckIn is one row in the "Recently Checked In" strip.
+type KioskRecentCheckIn struct {
+	Name       string `json:"name"`
+	JobTitle   string `json:"job_title,omitempty"`
+	RoomName   string `json:"room_name,omitempty"`
+	Time       string `json:"time"` // HH:MM of the clock-in
+	Late       bool   `json:"late"`
+	ClockedOut bool   `json:"clocked_out"`
+}
+
+// KioskSummary is the "Today's Summary" tile counts for the device's branch.
+type KioskSummary struct {
+	CheckedIn    int `json:"checked_in"`
+	NotCheckedIn int `json:"not_checked_in"`
+	Late         int `json:"late"`
+	CheckedOut   int `json:"checked_out"`
+}
+
+// KioskOverview powers the ambient parts of the kiosk home screen.
+type KioskOverview struct {
+	Recent  []KioskRecentCheckIn `json:"recent"`
+	Summary KioskSummary         `json:"summary"`
+}
+
 // KioskStaffResult is a search hit on the kiosk (no PII beyond what the tablet
 // needs to show a tappable card).
 type KioskStaffResult struct {

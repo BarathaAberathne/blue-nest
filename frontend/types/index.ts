@@ -1133,6 +1133,25 @@ export interface KioskDevice {
   created_at: string;
 }
 
+export interface KioskRecentCheckIn {
+  name: string;
+  job_title?: string;
+  room_name?: string;
+  time: string;
+  late: boolean;
+  clocked_out: boolean;
+}
+export interface KioskSummary {
+  checked_in: number;
+  not_checked_in: number;
+  late: number;
+  checked_out: number;
+}
+export interface KioskOverview {
+  recent: KioskRecentCheckIn[];
+  summary: KioskSummary;
+}
+
 // ── Daily records: observations, incidents, safeguarding, medication, meals (Phase 3) ──
 export type DailyRecordType = "observation" | "incident" | "safeguarding" | "medication" | "meal";
 export type DailyRecordStatus = "open" | "resolved" | "administered" | "logged";

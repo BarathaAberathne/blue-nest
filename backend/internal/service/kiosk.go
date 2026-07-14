@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"sort"
 	"strings"
 
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -28,6 +29,7 @@ type KioskService interface {
 	// Kiosk (device side).
 	Authenticate(ctx context.Context, token string) (*models.KioskSession, error)
 	SearchStaff(ctx context.Context, branch, q string) ([]models.KioskStaffResult, error)
+	Overview(ctx context.Context, branch string) (*models.KioskOverview, error)
 	ClockIn(ctx context.Context, branch, staffID, pin string, cc ClockContext) (*models.StaffAttendanceRecord, error)
 	ClockOut(ctx context.Context, branch, staffID, pin string, cc ClockContext) (*models.StaffAttendanceRecord, error)
 }
@@ -183,6 +185,66 @@ func (s *kioskService) SearchStaff(ctx context.Context, branch, q string) ([]mod
 		out = append(out, res)
 	}
 	return out, nil
+}
+
+// Overview powers the kiosk home screen's ambient panels: recent check-ins +
+// today's summary for the device's branch.
+func (s *kioskService) Overview(ctx context.Context, branch string) (*models.KioskOverview, error) {
+	people, err := s.staff.FindAll(ctx, repository.StaffFilter{Branch: branch, Status: string(models.StaffActive)})
+	if err != nil {
+		return nil, err
+	}
+	total := len(people)
+	byID := map[string]models.Staff{}
+	for _, p := range people {
+		byID[p.ID.Hex()] = p
+	}
+	roomName := map[string]string{}
+	if rooms, err := s.rooms.FindAll(ctx, branch); err == nil {
+		for _, rm := range rooms {
+			roomName[rm.ID.Hex()] = rm.Name
+		}
+	}
+	recs, _ := s.attRepo.FindByDate(ctx, today(), branch)
+
+	var sum models.KioskSummary
+	clockedInAny := 0
+	withClockIn := make([]models.StaffAttendanceRecord, 0, len(recs))
+	for _, r := range recs {
+		if r.ClockIn == nil {
+			continue
+		}
+		clockedInAny++
+		withClockIn = append(withClockIn, r)
+		if r.ClockOut != nil {
+			sum.CheckedOut++
+		} else {
+			sum.CheckedIn++
+		}
+		if r.LateArrival {
+			sum.Late++
+		}
+	}
+	if sum.NotCheckedIn = total - clockedInAny; sum.NotCheckedIn < 0 {
+		sum.NotCheckedIn = 0
+	}
+	sort.Slice(withClockIn, func(i, j int) bool { return withClockIn[i].ClockIn.After(*withClockIn[j].ClockIn) })
+	recent := make([]models.KioskRecentCheckIn, 0, 8)
+	for _, r := range withClockIn {
+		if len(recent) >= 8 {
+			break
+		}
+		p := byID[r.StaffID]
+		recent = append(recent, models.KioskRecentCheckIn{
+			Name:       r.StaffName,
+			JobTitle:   p.JobTitle,
+			RoomName:   roomName[p.RoomID],
+			Time:       r.ClockIn.Format("15:04"),
+			Late:       r.LateArrival,
+			ClockedOut: r.ClockOut != nil,
+		})
+	}
+	return &models.KioskOverview{Recent: recent, Summary: sum}, nil
 }
 
 // verify checks the staff is active, in the device's branch, and the PIN matches.

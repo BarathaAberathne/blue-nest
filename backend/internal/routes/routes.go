@@ -119,6 +119,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Use(middleware.KioskAuth(svc.Kiosk.Authenticate))
 			r.Post("/kiosk/session", kioskH.Session)
 			r.Get("/kiosk/staff", kioskH.Search)
+			r.Get("/kiosk/overview", kioskH.Overview)
 			r.Post("/kiosk/clock-in", kioskH.ClockIn)
 			r.Post("/kiosk/clock-out", kioskH.ClockOut)
 		})
