@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
+import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -581,6 +581,14 @@ export const api = {
     apiFetch<StaffAttendanceRecord>("/api/v1/admin/staff-attendance/clock-out", { method: "POST", body: JSON.stringify(body), token }),
   adminMarkStaffAttendance: (token: string, body: { staff_id: string; date?: string; status: string; notes?: string }) =>
     apiFetch<StaffAttendanceRecord>("/api/v1/admin/staff-attendance/mark", { method: "PATCH", body: JSON.stringify(body), token }),
+  adminGetAttendanceSummary: (token: string, params?: { date?: string; branch?: string }) => {
+    const qs = new URLSearchParams();
+    if (params) for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
+    const s = qs.toString();
+    return apiFetch<AttendanceDaySummary>(`/api/v1/admin/staff-attendance/summary${s ? `?${s}` : ""}`, { token });
+  },
+  adminCorrectAttendance: (token: string, id: string, body: AttendanceCorrectionInput) =>
+    apiFetch<StaffAttendanceRecord>(`/api/v1/admin/staff-attendance/${id}/correct`, { method: "PATCH", body: JSON.stringify(body), token }),
 
   // Nursery — daily records (observations, incidents, safeguarding, medication, meals)
   adminGetDailyRecords: (token: string, params?: { type?: string; child?: string; branch?: string; status?: string; date?: string; since?: string; q?: string; limit?: number }) => {

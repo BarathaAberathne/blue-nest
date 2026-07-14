@@ -1083,7 +1083,19 @@ export interface StaffStats {
   branches: BranchStaffStat[];
 }
 
-export type StaffAttendanceStatus = "expected" | "present" | "absent" | "leave" | "sick" | "training";
+export type StaffAttendanceStatus =
+  | "expected" | "present" | "absent" | "leave" | "sick"
+  | "training" | "meeting" | "remote";
+
+export interface AttendanceCorrection {
+  at: string;
+  actor_id: string;
+  actor_name: string;
+  field: string;
+  from: string;
+  to: string;
+  reason?: string;
+}
 
 export interface StaffAttendanceRecord {
   id: string;
@@ -1101,7 +1113,47 @@ export interface StaffAttendanceRecord {
   worked_minutes?: number;
   break_minutes?: number;
   late_minutes?: number;
+  overtime_minutes?: number;
+  early_departure_minutes?: number;
   missing_clockout?: boolean;
+  corrections?: AttendanceCorrection[];
+  job_title?: string;
+  room_name?: string;
+}
+
+// ── Attendance dashboard (KPI strip + branch comparison) ─────────────────────
+export interface StaffBranchAttendanceStat {
+  branch: string;
+  total: number;
+  currently_in: number;
+  attended: number;
+  late: number;
+  attendance_rate: number;
+}
+
+export interface AttendanceDaySummary {
+  date: string;
+  total: number;
+  currently_in: number;
+  clocked_out: number;
+  absent: number;
+  on_leave: number;
+  late: number;
+  overtime_minutes: number;
+  missing_clockout: number;
+  attendance_rate: number;
+  avg_arrival: string;
+  branches?: StaffBranchAttendanceStat[];
+}
+
+export interface AttendanceCorrectionInput {
+  staff_id?: string; // enables create-on-correct for staff with no record yet
+  date?: string;
+  status?: string;
+  clock_in?: string;
+  clock_out?: string;
+  notes?: string;
+  reason: string;
 }
 
 // ── Kiosk (entrance tablet) ──────────────────────────────────────────────────

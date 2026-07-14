@@ -340,9 +340,11 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				adminStaffAttH := adminHandler.NewAdminStaffAttendanceHandler(svc.StaffAttendance, svc.Audit)
 				r.Get("/admin/staff-attendance", adminStaffAttH.Register)
 				r.Get("/admin/staff-attendance/today", adminStaffAttH.Today)
+				r.Get("/admin/staff-attendance/summary", adminStaffAttH.Summary)
 				r.Post("/admin/staff-attendance/clock-in", adminStaffAttH.ClockIn)
 				r.Post("/admin/staff-attendance/clock-out", adminStaffAttH.ClockOut)
 				r.Patch("/admin/staff-attendance/mark", adminStaffAttH.Mark)
+				r.Patch("/admin/staff-attendance/{id}/correct", adminStaffAttH.Correct)
 
 				// Rota / shift scheduling.
 				adminShiftH := adminHandler.NewAdminShiftHandler(svc.Shifts, svc.Audit)

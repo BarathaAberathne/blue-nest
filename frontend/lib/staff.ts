@@ -32,6 +32,8 @@ export const staffAttendanceAccent: Record<StaffAttendanceStatus, AccentName> = 
   leave: "sky",
   sick: "amber",
   training: "violet",
+  meeting: "blue",
+  remote: "indigo",
 };
 
 // dbsExpiry classifies a DBS expiry date: expired (red), soon <=90d (amber),

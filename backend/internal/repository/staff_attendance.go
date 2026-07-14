@@ -2,10 +2,12 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -15,6 +17,7 @@ type StaffAttendanceRepository interface {
 	Upsert(ctx context.Context, rec models.StaffAttendanceRecord) (*models.StaffAttendanceRecord, error)
 	FindByDate(ctx context.Context, date, branch string) ([]models.StaffAttendanceRecord, error)
 	FindByStaffDate(ctx context.Context, staffID, date string) (*models.StaffAttendanceRecord, error)
+	FindByID(ctx context.Context, id string) (*models.StaffAttendanceRecord, error)
 	// LatestDate returns the most recent date (YYYY-MM-DD) with any record, or
 	// "" when empty. Optionally scoped to a branch.
 	LatestDate(ctx context.Context, branch string) (string, error)
@@ -103,6 +106,21 @@ func (r *staffAttendanceRepository) LatestDate(ctx context.Context, branch strin
 func (r *staffAttendanceRepository) FindByStaffDate(ctx context.Context, staffID, date string) (*models.StaffAttendanceRecord, error) {
 	var rec models.StaffAttendanceRecord
 	if err := r.col.FindOne(ctx, bson.M{"staff_id": staffID, "date": date}).Decode(&rec); err != nil {
+		return nil, err
+	}
+	return &rec, nil
+}
+
+func (r *staffAttendanceRepository) FindByID(ctx context.Context, id string) (*models.StaffAttendanceRecord, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	var rec models.StaffAttendanceRecord
+	if err := r.col.FindOne(ctx, bson.M{"_id": oid}).Decode(&rec); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, errors.New("attendance record not found")
+		}
 		return nil, err
 	}
 	return &rec, nil

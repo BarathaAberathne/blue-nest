@@ -98,7 +98,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 
 	// Services
 	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays)
-	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo)
+	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo)
 	svc := routes.Services{
 		Auth:              authSvc,
 		Products:          service.NewProductService(productRepo),

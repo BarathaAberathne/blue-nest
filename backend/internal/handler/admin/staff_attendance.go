@@ -3,10 +3,12 @@ package admin
 import (
 	"net/http"
 
+	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/blue-nest-montessori/api/pkg/validator"
+	"github.com/go-chi/chi/v5"
 )
 
 type AdminStaffAttendanceHandler struct {
@@ -26,6 +28,36 @@ func (h *AdminStaffAttendanceHandler) Register(w http.ResponseWriter, r *http.Re
 		return
 	}
 	response.OK(w, rows)
+}
+
+// Summary returns the attendance-dashboard KPI payload for a date + branch
+// (company-wide + per-branch breakdown when branch is omitted).
+func (h *AdminStaffAttendanceHandler) Summary(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	sum, err := h.svc.DaySummary(r.Context(), q.Get("date"), q.Get("branch"))
+	if err != nil {
+		response.InternalError(w, "failed to compute attendance summary")
+		return
+	}
+	response.OK(w, sum)
+}
+
+// Correct applies a manager's manual edit to a record (audited).
+func (h *AdminStaffAttendanceHandler) Correct(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var req models.AttendanceCorrectionRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	actorID, _ := r.Context().Value(middleware.UserIDKey).(string)
+	rec, err := h.svc.Correct(r.Context(), id, req, actorID, attendanceActor(r))
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "correct", "staff_attendance", rec.StaffID, "Corrected attendance for "+rec.StaffName, map[string]interface{}{"reason": req.Reason})
+	response.OK(w, rec)
 }
 
 func (h *AdminStaffAttendanceHandler) Today(w http.ResponseWriter, r *http.Request) {

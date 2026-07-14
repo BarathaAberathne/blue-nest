@@ -36,16 +36,40 @@ type StaffAttendanceService interface {
 	ClockOut(ctx context.Context, req models.StaffClockOutRequest, cc ClockContext) (*models.StaffAttendanceRecord, error)
 	Mark(ctx context.Context, req models.StaffAttendanceMarkRequest, actor string) (*models.StaffAttendanceRecord, error)
 	TodayStats(ctx context.Context, date, branch string) (*models.StaffStats, error)
+	// DaySummary is the attendance-dashboard KPI payload for a date + branch
+	// (company-wide with a per-branch breakdown when branch is empty).
+	DaySummary(ctx context.Context, date, branch string) (*models.AttendanceDaySummary, error)
+	// Correct applies a manager's manual edit, appending an audit correction and
+	// recomputing the derived minutes.
+	Correct(ctx context.Context, id string, req models.AttendanceCorrectionRequest, actorID, actorName string) (*models.StaffAttendanceRecord, error)
 }
 
 type staffAttendanceService struct {
 	repo   repository.StaffAttendanceRepository
 	staff  repository.StaffRepository
 	shifts repository.ShiftRepository // optional; enables shift-based late/overtime
+	rooms  repository.RoomRepository  // optional; resolves room names for the register
 }
 
-func NewStaffAttendanceService(repo repository.StaffAttendanceRepository, staff repository.StaffRepository, shifts repository.ShiftRepository) StaffAttendanceService {
-	return &staffAttendanceService{repo: repo, staff: staff, shifts: shifts}
+func NewStaffAttendanceService(repo repository.StaffAttendanceRepository, staff repository.StaffRepository, shifts repository.ShiftRepository, rooms repository.RoomRepository) StaffAttendanceService {
+	return &staffAttendanceService{repo: repo, staff: staff, shifts: shifts, rooms: rooms}
+}
+
+// roomNames builds an id→name map for a branch (or all branches when empty),
+// best-effort — an unavailable rooms repo just yields empty names.
+func (s *staffAttendanceService) roomNames(ctx context.Context, branch string) map[string]string {
+	out := map[string]string{}
+	if s.rooms == nil {
+		return out
+	}
+	rooms, err := s.rooms.FindAll(ctx, branch)
+	if err != nil {
+		return out
+	}
+	for _, rm := range rooms {
+		out[rm.ID.Hex()] = rm.Name
+	}
+	return out
 }
 
 func (s *staffAttendanceService) activeStaff(ctx context.Context, branch string) ([]models.Staff, error) {
@@ -68,20 +92,23 @@ func (s *staffAttendanceService) Register(ctx context.Context, date, branch stri
 	for _, r := range records {
 		byStaff[r.StaffID] = r
 	}
+	roomName := s.roomNames(ctx, branch)
 	out := make([]models.StaffAttendanceRecord, 0, len(people))
 	for _, p := range people {
 		id := p.ID.Hex()
-		if rec, ok := byStaff[id]; ok {
-			out = append(out, rec)
-			continue
+		rec, ok := byStaff[id]
+		if !ok {
+			rec = models.StaffAttendanceRecord{
+				StaffID:    id,
+				StaffName:  strings.TrimSpace(p.FirstName + " " + p.LastName),
+				BranchSlug: p.BranchSlug,
+				Date:       date,
+				Status:     models.StaffAttExpected,
+			}
 		}
-		out = append(out, models.StaffAttendanceRecord{
-			StaffID:    id,
-			StaffName:  strings.TrimSpace(p.FirstName + " " + p.LastName),
-			BranchSlug: p.BranchSlug,
-			Date:       date,
-			Status:     models.StaffAttExpected,
-		})
+		rec.JobTitle = p.JobTitle
+		rec.RoomName = roomName[p.RoomID]
+		out = append(out, rec)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].StaffName < out[j].StaffName })
 	return out, nil
@@ -360,4 +387,216 @@ func (s *staffAttendanceService) TodayStats(ctx context.Context, date, branch st
 		stats.Branches = append(stats.Branches, models.BranchStaffStat{Branch: b, Total: totalByBranch[b], Present: presentByBranch[b]})
 	}
 	return stats, nil
+}
+
+// ── attendance dashboard + manual corrections (Phase C) ─────────────────────
+
+func minutesOfDayLocal(t *time.Time) int {
+	lt := t.In(time.Local)
+	return lt.Hour()*60 + lt.Minute()
+}
+
+// summarize reduces one branch's register rows to the KPI summary.
+func summarize(date string, rows []models.StaffAttendanceRecord) models.AttendanceDaySummary {
+	isPast := date < today()
+	s := models.AttendanceDaySummary{Date: date, Total: len(rows)}
+	arrivals := make([]int, 0, len(rows))
+	for _, r := range rows {
+		hasIn, hasOut := r.ClockIn != nil, r.ClockOut != nil
+		if hasIn && !hasOut {
+			if isPast {
+				s.MissingClockOut++
+			} else {
+				s.CurrentlyIn++
+			}
+		}
+		if hasOut {
+			s.ClockedOut++
+		}
+		switch r.Status {
+		case models.StaffAttLeave, models.StaffAttSick, models.StaffAttTraining, models.StaffAttMeeting, models.StaffAttRemote:
+			s.OnLeave++
+		}
+		if r.LateArrival {
+			s.Late++
+		}
+		s.OvertimeMinutes += r.OvertimeMinutes
+		if hasIn {
+			arrivals = append(arrivals, minutesOfDayLocal(r.ClockIn))
+		}
+	}
+	attended := s.CurrentlyIn + s.ClockedOut + s.MissingClockOut
+	if s.Absent = s.Total - attended - s.OnLeave; s.Absent < 0 {
+		s.Absent = 0
+	}
+	s.AttendanceRate = percent(attended, s.Total)
+	if len(arrivals) > 0 {
+		total := 0
+		for _, m := range arrivals {
+			total += m
+		}
+		avg := total / len(arrivals)
+		s.AvgArrival = fmtHM(avg)
+	}
+	return s
+}
+
+func fmtHM(mins int) string {
+	h, m := mins/60, mins%60
+	return strconv.Itoa(h/10) + strconv.Itoa(h%10) + ":" + strconv.Itoa(m/10) + strconv.Itoa(m%10)
+}
+
+func (s *staffAttendanceService) DaySummary(ctx context.Context, date, branch string) (*models.AttendanceDaySummary, error) {
+	if date == "" {
+		date = today()
+	}
+	rows, err := s.Register(ctx, date, branch)
+	if err != nil {
+		return nil, err
+	}
+	sum := summarize(date, rows)
+	// Company-wide view → per-branch breakdown.
+	if branch == "" {
+		byBranch := map[string][]models.StaffAttendanceRecord{}
+		order := []string{}
+		for _, r := range rows {
+			if _, ok := byBranch[r.BranchSlug]; !ok {
+				order = append(order, r.BranchSlug)
+			}
+			byBranch[r.BranchSlug] = append(byBranch[r.BranchSlug], r)
+		}
+		for _, b := range order {
+			bs := summarize(date, byBranch[b])
+			sum.Branches = append(sum.Branches, models.StaffBranchAttendanceStat{
+				Branch: b, Total: bs.Total, CurrentlyIn: bs.CurrentlyIn,
+				Attended: bs.CurrentlyIn + bs.ClockedOut + bs.MissingClockOut, Late: bs.Late, Rate: bs.AttendanceRate,
+			})
+		}
+	}
+	return &sum, nil
+}
+
+func parseClockOnDate(date, hhmm string) (*time.Time, error) {
+	t, err := time.ParseInLocation("2006-01-02 15:04", date+" "+hhmm, time.Local)
+	if err != nil {
+		return nil, errors.New("time must be HH:MM")
+	}
+	return &t, nil
+}
+
+// recompute re-derives late/overtime/early/worked/missing from the current
+// clock times + the rostered shift. Used after a manual correction.
+func (s *staffAttendanceService) recompute(ctx context.Context, rec *models.StaffAttendanceRecord) {
+	rec.LateArrival, rec.LateMinutes = false, 0
+	rec.OvertimeMinutes, rec.EarlyDepartureMinutes, rec.WorkedMinutes, rec.BreakMinutes = 0, 0, 0, 0
+	rec.MissingClockOut = false
+	sh := s.shiftFor(ctx, rec.StaffID, rec.Date)
+	if sh != nil {
+		rec.ShiftID = sh.ID.Hex()
+	}
+	if rec.ClockIn != nil {
+		if sh != nil {
+			if d, ok := minsFromShiftTime(*rec.ClockIn, sh.StartTime); ok && d > 0 {
+				rec.LateArrival, rec.LateMinutes = true, d
+			}
+		} else {
+			rec.LateArrival = isLate(*rec.ClockIn)
+			rec.LateMinutes = lateMinutes(*rec.ClockIn)
+		}
+	}
+	if rec.ClockIn != nil && rec.ClockOut != nil {
+		rec.BreakMinutes = breakMinutes(rec.Breaks)
+		if worked := int(rec.ClockOut.Sub(*rec.ClockIn).Minutes()) - rec.BreakMinutes; worked > 0 {
+			rec.WorkedMinutes = worked
+		}
+		if sh != nil {
+			if d, ok := minsFromShiftTime(*rec.ClockOut, sh.EndTime); ok {
+				if d > 0 {
+					rec.OvertimeMinutes = d
+				} else if d < 0 {
+					rec.EarlyDepartureMinutes = -d
+				}
+			}
+		}
+	} else if rec.ClockIn != nil && rec.Date < today() {
+		rec.MissingClockOut = true
+	}
+}
+
+func (s *staffAttendanceService) Correct(ctx context.Context, id string, req models.AttendanceCorrectionRequest, actorID, actorName string) (*models.StaffAttendanceRecord, error) {
+	rec, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		// No persisted record for this id — manual backfill for an "expected"
+		// staff member the kiosk never captured. Materialise a baseline from
+		// staff_id + date so the correction can create the day's record.
+		if strings.TrimSpace(req.StaffID) == "" {
+			return nil, err
+		}
+		base, berr := s.baseRecord(ctx, req.StaffID, req.Date)
+		if berr != nil {
+			return nil, berr
+		}
+		rec = &base
+	}
+	corr := func(field, from, to string) {
+		rec.Corrections = append(rec.Corrections, models.AttendanceCorrection{
+			At: time.Now(), ActorID: actorID, ActorName: actorName, Field: field, From: from, To: to, Reason: req.Reason,
+		})
+	}
+	if req.Status != nil && *req.Status != string(rec.Status) {
+		corr("status", string(rec.Status), *req.Status)
+		rec.Status = models.StaffAttendanceStatus(*req.Status)
+	}
+	if req.ClockIn != nil {
+		v := strings.TrimSpace(*req.ClockIn)
+		old := ""
+		if rec.ClockIn != nil {
+			old = rec.ClockIn.In(time.Local).Format("15:04")
+		}
+		if v == "" {
+			rec.ClockIn = nil
+		} else {
+			t, err := parseClockOnDate(rec.Date, v)
+			if err != nil {
+				return nil, err
+			}
+			rec.ClockIn = t
+		}
+		corr("clock_in", old, v)
+	}
+	if req.ClockOut != nil {
+		v := strings.TrimSpace(*req.ClockOut)
+		old := ""
+		if rec.ClockOut != nil {
+			old = rec.ClockOut.In(time.Local).Format("15:04")
+		}
+		if v == "" {
+			rec.ClockOut = nil
+		} else {
+			t, err := parseClockOnDate(rec.Date, v)
+			if err != nil {
+				return nil, err
+			}
+			rec.ClockOut = t
+		}
+		corr("clock_out", old, v)
+	}
+	if req.Notes != nil && *req.Notes != rec.Notes {
+		corr("notes", rec.Notes, *req.Notes)
+		rec.Notes = *req.Notes
+	}
+	// A freshly-created baseline (manual backfill) has no status — derive one so
+	// it doesn't persist blank: clocked-in ⇒ present, otherwise expected.
+	if rec.Status == "" {
+		if rec.ClockIn != nil {
+			rec.Status = models.StaffAttPresent
+		} else {
+			rec.Status = models.StaffAttExpected
+		}
+	}
+	if rec.Source == "" {
+		rec.Source = models.AttSourceManual
+	}
+	s.recompute(ctx, rec)
+	return s.repo.Upsert(ctx, *rec)
 }

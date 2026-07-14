@@ -87,6 +87,11 @@ type StaffAttendanceRecord struct {
 	Corrections []AttendanceCorrection `bson:"corrections,omitempty" json:"corrections,omitempty"`
 	CreatedAt   time.Time              `bson:"created_at"            json:"created_at"`
 	UpdatedAt   time.Time              `bson:"updated_at"            json:"updated_at"`
+
+	// Transient display fields — resolved from the staff record for the register
+	// table, never persisted on the attendance document.
+	JobTitle string `bson:"-" json:"job_title,omitempty"`
+	RoomName string `bson:"-" json:"room_name,omitempty"`
 }
 
 type StaffClockInRequest struct {
@@ -106,6 +111,47 @@ type StaffClockOutRequest struct {
 type KioskClockRequest struct {
 	StaffID string `json:"staff_id" validate:"required"`
 	PIN     string `json:"pin"      validate:"required"`
+}
+
+// StaffBranchAttendanceStat is one branch's line in the company-wide comparison.
+type StaffBranchAttendanceStat struct {
+	Branch      string `json:"branch"`
+	Total       int    `json:"total"`
+	CurrentlyIn int    `json:"currently_in"`
+	Attended    int    `json:"attended"`
+	Late        int    `json:"late"`
+	Rate        int    `json:"attendance_rate"`
+}
+
+// AttendanceDaySummary powers the attendance dashboard KPI strip for a date +
+// branch. When branch is empty it is company-wide and Branches[] is populated.
+type AttendanceDaySummary struct {
+	Date            string                      `json:"date"`
+	Total           int                         `json:"total"`
+	CurrentlyIn     int                         `json:"currently_in"`
+	ClockedOut      int                         `json:"clocked_out"`
+	Absent          int                         `json:"absent"`
+	OnLeave         int                         `json:"on_leave"`
+	Late            int                         `json:"late"`
+	OvertimeMinutes int                         `json:"overtime_minutes"`
+	MissingClockOut int                         `json:"missing_clockout"`
+	AttendanceRate  int                         `json:"attendance_rate"`
+	AvgArrival      string                      `json:"avg_arrival"` // HH:MM
+	Branches        []StaffBranchAttendanceStat `json:"branches,omitempty"`
+}
+
+// AttendanceCorrectionRequest is a manager's manual edit to a record. Each
+// non-nil field that changes appends an append-only correction entry. StaffID +
+// Date let the correction create a record on the fly when the day has none yet
+// (an "expected" staff member the kiosk never captured) — manual backfill.
+type AttendanceCorrectionRequest struct {
+	StaffID  string  `json:"staff_id"`  // required only when creating (id is nil)
+	Date     string  `json:"date"`      // YYYY-MM-DD, for the create path
+	Status   *string `json:"status"`    // one of the attendance statuses
+	ClockIn  *string `json:"clock_in"`  // "HH:MM" on the record's date, "" clears
+	ClockOut *string `json:"clock_out"` // "HH:MM", "" clears
+	Notes    *string `json:"notes"`
+	Reason   string  `json:"reason"`
 }
 
 type StaffAttendanceMarkRequest struct {
