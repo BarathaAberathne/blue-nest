@@ -70,6 +70,7 @@ const (
 	EnquiryActivityFollowUp     = "follow_up_updated"
 	EnquiryActivityAssigned     = "assigned"
 	EnquiryActivityRegistered   = "registered"
+	EnquiryActivityCreated      = "created" // logged manually by an admin
 )
 
 // Follow-up priorities.
@@ -209,6 +210,26 @@ type EnquiryRequest struct {
 	Consent     bool         `json:"consent"`
 	FeeQuote    *FeeQuote    `json:"fee_quote,omitempty"`
 	Application *Application `json:"application,omitempty"`
+}
+
+// AdminEnquiryCreateRequest logs an enquiry that arrived off-website (phone,
+// walk-in, email, referral, event…). Unlike the public form it carries no
+// consent gate and sends no auto-emails; the admin can set the source channel,
+// priority, an owner and an opening note. Requires a name, a branch, a type and
+// at least one contact method (email or phone).
+type AdminEnquiryCreateRequest struct {
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	Phone       string `json:"phone"`
+	Branch      string `json:"branch"`
+	ChildAge    string `json:"child_age"`
+	EnquiryType string `json:"enquiry_type"`
+	Message     string `json:"message"`
+	Source      string `json:"source"`      // channel: phone | walk_in | email | referral | social | event | other
+	Priority       string `json:"priority"`         // optional; defaults to medium
+	AssignedTo     string `json:"assigned_to"`      // optional user id to own it
+	AssignedToName string `json:"assigned_to_name"` // display name for the owner
+	Note           string `json:"note"`             // optional opening internal note
 }
 
 // ── Admin request DTOs ───────────────────────────────────────────────────────

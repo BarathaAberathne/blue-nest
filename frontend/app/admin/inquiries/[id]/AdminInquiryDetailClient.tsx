@@ -24,6 +24,7 @@ import {
   PRIORITY_META,
   RECOMMENDED_NEXT,
   fmtBranch,
+  sourceLabel,
   fmtDate,
   fmtDateShort,
   isFollowUpOverdue,
@@ -255,7 +256,7 @@ export default function AdminInquiryDetailClient({ id }: { id: string }) {
               <Row label="Branch" value={fmtBranch(e.branch)} />
               <Row label="Enquiry type" value={e.enquiry_type} />
               <Row label="Received" value={fmtDate(e.created_at)} />
-              <Row label="Source" value={e.source} />
+              <Row label="Source" value={sourceLabel(e.source)} />
             </dl>
             <div className="mt-4">
               <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Message</p>

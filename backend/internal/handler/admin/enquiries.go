@@ -196,6 +196,23 @@ func (h *AdminEnquiryHandler) Assignees(w http.ResponseWriter, r *http.Request) 
 	response.OK(w, out)
 }
 
+// Create logs an enquiry received off-website (phone, walk-in, referral…).
+func (h *AdminEnquiryHandler) Create(w http.ResponseWriter, r *http.Request) {
+	var req models.AdminEnquiryCreateRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	enquiry, err := h.svc.CreateManual(r.Context(), req, actor(r))
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "create", "enquiry", enquiry.ID.Hex(),
+		"Logged enquiry from "+enquiry.Name, map[string]interface{}{"source": enquiry.Source})
+	response.Created(w, enquiry)
+}
+
 func (h *AdminEnquiryHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 

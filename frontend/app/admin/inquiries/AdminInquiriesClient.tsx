@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Columns3, Download, LayoutDashboard, ListChecks, Search, SlidersHorizontal, Table2 } from "lucide-react";
+import { Columns3, Download, LayoutDashboard, ListChecks, Plus, Search, SlidersHorizontal, Table2 } from "lucide-react";
 import { api, type EnquiryListParams } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import Modal from "@/components/ui/Modal";
@@ -29,6 +29,18 @@ type Toast = { kind: "success" | "error"; msg: string };
 const BRANCH_OPTIONS = ["harrow", "pinner", "borehamwood", "pinner-green", "northwood"];
 const TYPE_OPTIONS = ["Arrange a visit", "Fees and availability", "Application form", "General enquiry"];
 const PRIORITIES: EnquiryPriority[] = ["low", "medium", "high"];
+
+// Channels a manually-logged enquiry can arrive through (off-website).
+const SOURCE_OPTIONS: { value: string; label: string }[] = [
+  { value: "phone", label: "Phone call" },
+  { value: "walk_in", label: "Walk-in" },
+  { value: "email", label: "Email" },
+  { value: "referral", label: "Referral" },
+  { value: "social", label: "Social media" },
+  { value: "event", label: "Event / open day" },
+  { value: "other", label: "Other" },
+];
+const EMPTY_CREATE = { name: "", email: "", phone: "", branch: "", child_age: "", enquiry_type: "", source: "phone", priority: "medium", assigned_to: "", message: "", note: "" };
 
 function dateInputToISO(v: string): string | null {
   if (!v) return null;
@@ -101,10 +113,51 @@ export default function AdminInquiriesClient() {
   const [bulkValue, setBulkValue] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Manually log an off-website enquiry.
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({ ...EMPTY_CREATE });
+  const [creating, setCreating] = useState(false);
+
   const showToast = useCallback((t: Toast) => {
     setToast(t);
     setTimeout(() => setToast(null), 3000);
   }, []);
+
+  const submitCreate = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    const f = createForm;
+    if (!f.name.trim()) return showToast({ kind: "error", msg: "Name is required" });
+    if (!f.email.trim() && !f.phone.trim()) return showToast({ kind: "error", msg: "Add an email or phone number" });
+    if (!f.branch) return showToast({ kind: "error", msg: "Choose a branch" });
+    if (!f.enquiry_type) return showToast({ kind: "error", msg: "Choose an enquiry type" });
+    setCreating(true);
+    try {
+      const owner = assignees.find((a) => a.id === f.assigned_to);
+      const created = await api.adminCreateEnquiry(token, {
+        name: f.name.trim(),
+        email: f.email.trim() || undefined,
+        phone: f.phone.trim() || undefined,
+        branch: f.branch,
+        child_age: f.child_age.trim() || undefined,
+        enquiry_type: f.enquiry_type,
+        message: f.message.trim() || undefined,
+        source: f.source,
+        priority: f.priority as EnquiryPriority,
+        assigned_to: f.assigned_to || undefined,
+        assigned_to_name: owner?.name,
+        note: f.note.trim() || undefined,
+      });
+      setCreateOpen(false);
+      setCreateForm({ ...EMPTY_CREATE });
+      showToast({ kind: "success", msg: "Enquiry logged" });
+      router.push(`/admin/inquiries/${created.id}`);
+    } catch (e) {
+      showToast({ kind: "error", msg: e instanceof Error ? e.message : "Failed to log enquiry" });
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const sortParam = (k: SortKey): string =>
     k === "enquiry_type" ? "type" : k === "assigned_to" ? "assigned_to" : k;
@@ -313,6 +366,10 @@ export default function AdminInquiriesClient() {
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
             <Download className="h-4 w-4" /> Export CSV
           </button>
+          <button type="button" onClick={() => { setCreateForm({ ...EMPTY_CREATE }); setCreateOpen(true); }}
+            className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700">
+            <Plus className="h-4 w-4" /> New inquiry
+          </button>
         </div>
       </div>
 
@@ -429,6 +486,86 @@ export default function AdminInquiriesClient() {
           ))}
         </div>
       )}
+
+      {/* Manual create modal */}
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Log a new enquiry" size="lg"
+        footer={<>
+          <button type="button" onClick={() => setCreateOpen(false)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+          <button type="button" onClick={submitCreate} disabled={creating} className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">{creating ? "Logging…" : "Log enquiry"}</button>
+        </>}>
+        {(() => {
+          const set = (patch: Partial<typeof EMPTY_CREATE>) => setCreateForm((p) => ({ ...p, ...patch }));
+          const inputCls = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500";
+          const labelCls = "mb-1 block text-xs font-medium text-slate-600";
+          return (
+            <div className="space-y-4">
+              <p className="text-xs text-slate-500">For enquiries received off the website — by phone, walk-in, referral or email. No confirmation email is sent to the parent.</p>
+              <div>
+                <label className={labelCls}>Parent / carer name <span className="text-red-500">*</span></label>
+                <input className={inputCls} value={createForm.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Sarah Khan" autoFocus />
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className={labelCls}>Email</label>
+                  <input type="email" className={inputCls} value={createForm.email} onChange={(e) => set({ email: e.target.value })} placeholder="parent@example.com" />
+                </div>
+                <div>
+                  <label className={labelCls}>Phone</label>
+                  <input className={inputCls} value={createForm.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="07…" />
+                </div>
+              </div>
+              <p className="-mt-2 text-xs text-slate-400">Add at least one contact method.</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className={labelCls}>Branch <span className="text-red-500">*</span></label>
+                  <select className={inputCls} value={createForm.branch} onChange={(e) => set({ branch: e.target.value })}>
+                    <option value="">Select branch…</option>
+                    {BRANCH_OPTIONS.map((b) => <option key={b} value={b}>{fmtBranch(b)}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Enquiry type <span className="text-red-500">*</span></label>
+                  <select className={inputCls} value={createForm.enquiry_type} onChange={(e) => set({ enquiry_type: e.target.value })}>
+                    <option value="">Select type…</option>
+                    {TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Received via <span className="text-red-500">*</span></label>
+                  <select className={inputCls} value={createForm.source} onChange={(e) => set({ source: e.target.value })}>
+                    {SOURCE_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Priority</label>
+                  <select className={inputCls} value={createForm.priority} onChange={(e) => set({ priority: e.target.value })}>
+                    {PRIORITIES.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Child age</label>
+                  <input className={inputCls} value={createForm.child_age} onChange={(e) => set({ child_age: e.target.value })} placeholder="e.g. 2 years" />
+                </div>
+                <div>
+                  <label className={labelCls}>Assign to</label>
+                  <select className={inputCls} value={createForm.assigned_to} onChange={(e) => set({ assigned_to: e.target.value })}>
+                    <option value="">Unassigned</option>
+                    {assignees.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Enquiry details</label>
+                <textarea className={inputCls} rows={3} value={createForm.message} onChange={(e) => set({ message: e.target.value })} placeholder="What did they ask about?" />
+              </div>
+              <div>
+                <label className={labelCls}>Internal note <span className="font-normal text-slate-400">(optional, staff-only)</span></label>
+                <textarea className={inputCls} rows={2} value={createForm.note} onChange={(e) => set({ note: e.target.value })} placeholder="Anything the team should know" />
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
 
       {/* Note modal */}
       <Modal open={!!noteTarget} onClose={() => setNoteTarget(null)} title={noteTarget ? `Add a note · ${noteTarget.name}` : "Add a note"}>
