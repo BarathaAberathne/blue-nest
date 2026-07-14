@@ -168,12 +168,23 @@ seed-children:
 	@echo "→ Seeding nursery rooms, children & today's attendance..."
 	cd backend && go run ./cmd/seedchildren
 
-# Import REAL Famly exports (rooms/staff/children). Idempotent upserts keyed on
-# Famly UUIDs — never drops, so it is prod-safe (unlike the demo seeds above).
-# Point FAMLY_DIR at the export folder. Use DRY_RUN=1 to preview first.
+# Import REAL Famly exports (rooms/staff/children). Idempotent — never drops, so
+# it is prod-safe. On the droplet Mongo is only reachable inside the container,
+# so when the backend container is running we copy the export folder in and run
+# the compiled binary there (then remove the PII copy); locally we host-run.
+# FAMLY_SRC = host export folder (default famly-templates). DRY_RUN=1 previews.
+FAMLY_SRC ?= famly-templates
 seed-famly:
 	@echo "→ Importing real Famly rooms/staff/children (idempotent)..."
-	cd backend && FAMLY_DIR=$${FAMLY_DIR:-../famly-templates} go run ./cmd/seedfamly
+	@if docker compose ps backend --status running --quiet 2>/dev/null | grep -q .; then \
+	  echo "  backend container running → copying $(FAMLY_SRC) in + running there"; \
+	  docker compose cp "$(FAMLY_SRC)" backend:/tmp/famly-import; \
+	  docker compose exec -T -e FAMLY_DIR=/tmp/famly-import -e DRY_RUN=$${DRY_RUN:-} backend ./seedfamly; \
+	  docker compose exec -T backend rm -rf /tmp/famly-import; \
+	else \
+	  echo "  no backend container → local Go toolchain"; \
+	  cd backend && FAMLY_DIR=$${FAMLY_DIR:-../$(FAMLY_SRC)} go run ./cmd/seedfamly; \
+	fi
 
 seed-staff:
 	@echo "→ Seeding nursery staff & today's staff attendance..."
