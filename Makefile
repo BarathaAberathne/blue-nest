@@ -3,7 +3,7 @@
         docker-up docker-down docker-build docker-logs docker-restart docker-stop \
         dev-backend dev-frontend run-backend run-frontend \
         mongo-shell setup \
-        seed seed-products seed-branches seed-catalogue seed-users seed-children seed-staff seed-daily seed-gbp seed-all \
+        seed seed-products seed-branches seed-catalogue seed-users seed-children seed-staff seed-daily seed-gbp seed-famly seed-all \
         wait-api \
         staging-up staging-verify staging-logs staging-down staging-clean \
         optimize-images optimize-images-dry
@@ -167,6 +167,13 @@ seed-users:
 seed-children:
 	@echo "→ Seeding nursery rooms, children & today's attendance..."
 	cd backend && go run ./cmd/seedchildren
+
+# Import REAL Famly exports (rooms/staff/children). Idempotent upserts keyed on
+# Famly UUIDs — never drops, so it is prod-safe (unlike the demo seeds above).
+# Point FAMLY_DIR at the export folder. Use DRY_RUN=1 to preview first.
+seed-famly:
+	@echo "→ Importing real Famly rooms/staff/children (idempotent)..."
+	cd backend && FAMLY_DIR=$${FAMLY_DIR:-../famly-templates} go run ./cmd/seedfamly
 
 seed-staff:
 	@echo "→ Seeding nursery staff & today's staff attendance..."
