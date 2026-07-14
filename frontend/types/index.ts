@@ -1035,6 +1035,7 @@ export interface Staff {
   dbs_expiry?: string;
   first_aid_expiry?: string;
   user_id?: string; // linked login account (empty = HR-only, no login)
+  has_pin?: boolean; // whether a kiosk clock-in PIN is set
   created_at?: string;
   updated_at?: string;
 }
@@ -1082,7 +1083,19 @@ export interface StaffStats {
   branches: BranchStaffStat[];
 }
 
-export type StaffAttendanceStatus = "expected" | "present" | "absent" | "leave" | "sick" | "training";
+export type StaffAttendanceStatus =
+  | "expected" | "present" | "absent" | "leave" | "sick"
+  | "training" | "meeting" | "remote";
+
+export interface AttendanceCorrection {
+  at: string;
+  actor_id: string;
+  actor_name: string;
+  field: string;
+  from: string;
+  to: string;
+  reason?: string;
+}
 
 export interface StaffAttendanceRecord {
   id: string;
@@ -1094,6 +1107,122 @@ export interface StaffAttendanceRecord {
   clock_in?: string;
   clock_out?: string;
   late_arrival: boolean;
+  notes?: string;
+  source?: string;
+  device_id?: string;
+  worked_minutes?: number;
+  break_minutes?: number;
+  late_minutes?: number;
+  overtime_minutes?: number;
+  early_departure_minutes?: number;
+  missing_clockout?: boolean;
+  corrections?: AttendanceCorrection[];
+  job_title?: string;
+  room_name?: string;
+}
+
+// ── Attendance dashboard (KPI strip + branch comparison) ─────────────────────
+export interface StaffBranchAttendanceStat {
+  branch: string;
+  total: number;
+  currently_in: number;
+  attended: number;
+  late: number;
+  attendance_rate: number;
+}
+
+export interface AttendanceDaySummary {
+  date: string;
+  total: number;
+  currently_in: number;
+  clocked_out: number;
+  absent: number;
+  on_leave: number;
+  late: number;
+  overtime_minutes: number;
+  missing_clockout: number;
+  attendance_rate: number;
+  avg_arrival: string;
+  branches?: StaffBranchAttendanceStat[];
+}
+
+export interface AttendanceCorrectionInput {
+  staff_id?: string; // enables create-on-correct for staff with no record yet
+  date?: string;
+  status?: string;
+  clock_in?: string;
+  clock_out?: string;
+  notes?: string;
+  reason: string;
+}
+
+// ── Kiosk (entrance tablet) ──────────────────────────────────────────────────
+export interface KioskSession {
+  device_id: string;
+  device_name: string;
+  branch_slug: string;
+  branch_name: string;
+}
+
+export interface KioskStaffResult {
+  id: string;
+  name: string;
+  job_title?: string;
+  room_name?: string;
+  has_pin: boolean;
+  clocked_in: boolean;
+  clocked_out: boolean;
+  status?: string;
+}
+
+export interface KioskDevice {
+  id: string;
+  name: string;
+  branch_slug: string;
+  token_hint: string;
+  active: boolean;
+  last_seen_at?: string;
+  created_at: string;
+}
+
+export interface KioskRecentCheckIn {
+  name: string;
+  job_title?: string;
+  room_name?: string;
+  time: string;
+  late: boolean;
+  clocked_out: boolean;
+}
+export interface KioskSummary {
+  checked_in: number;
+  not_checked_in: number;
+  late: number;
+  checked_out: number;
+}
+export interface KioskOverview {
+  recent: KioskRecentCheckIn[];
+  summary: KioskSummary;
+}
+
+// ── Rota / shifts ────────────────────────────────────────────────────────────
+export interface Shift {
+  id: string;
+  staff_id: string;
+  staff_name: string;
+  branch_slug: string;
+  room_id?: string;
+  room_name?: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  notes?: string;
+}
+export interface ShiftInput {
+  staff_id: string;
+  room_id?: string;
+  date: string;
+  start_time: string;
+  end_time: string;
   notes?: string;
 }
 

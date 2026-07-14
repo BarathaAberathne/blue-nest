@@ -41,6 +41,10 @@ func Forbidden(w http.ResponseWriter, msg string) {
 	JSON(w, http.StatusForbidden, Envelope{Error: msg})
 }
 
+func TooManyRequests(w http.ResponseWriter, msg string) {
+	JSON(w, http.StatusTooManyRequests, Envelope{Error: msg})
+}
+
 func NotFound(w http.ResponseWriter, msg string) {
 	JSON(w, http.StatusNotFound, Envelope{Error: msg})
 }
