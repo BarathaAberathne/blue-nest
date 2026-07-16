@@ -102,13 +102,21 @@ export default function RotaClient() {
       if (rows.length) out.push({ id: rm.id, label: rm.name, icon: "room", rows });
     }
     const roomless = staffRows.filter((r) => !r.roomId);
-    if (showAll && roomless.length) out.push({ id: "__office__", label: "Unassigned / office", icon: "office", rows: roomless.sort((a, b) => a.name.localeCompare(b.name)) });
+    const hasClassroom = out.length > 0;
+    // Show roomless staff when the user opts in, OR when nobody is room-assigned
+    // yet — otherwise the rota looks empty even though there are staff to roster.
+    if ((showAll || !hasClassroom) && roomless.length) {
+      out.push({ id: "__office__", label: hasClassroom ? "Unassigned / office" : "Staff — no room assigned yet", icon: "office", rows: roomless.sort((a, b) => a.name.localeCompare(b.name)) });
+    }
     const coverNoRoom = coverRows.filter((r) => r.roomId === COVER_KEY);
     if (coverNoRoom.length) out.push({ id: COVER_KEY, label: "Cover & visitors", icon: "cover", rows: coverNoRoom });
     return out;
   }, [staff, rooms, coverRows, showAll]);
 
-  const hiddenCount = useMemo(() => staff.filter((m) => !m.room_id).length, [staff]);
+  // Staff hidden by the classroom-only filter: only truly hidden when some staff
+  // ARE room-assigned (otherwise the roomless are shown, not hidden).
+  const hasClassroomStaff = useMemo(() => staff.some((m) => m.room_id), [staff]);
+  const hiddenCount = useMemo(() => (hasClassroomStaff ? staff.filter((m) => !m.room_id).length : 0), [staff, hasClassroomStaff]);
 
   const openCell = (row: Row, date: string) => {
     const sh = cellShift(row, date);
@@ -191,7 +199,7 @@ export default function RotaClient() {
       {error && <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 
       <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-400">Grouped by classroom. {hiddenCount > 0 && !showAll ? `${hiddenCount} management / office staff hidden.` : ""}</p>
+        <p className="text-xs text-slate-400">Grouped by classroom. {!hasClassroomStaff ? "No staff are assigned to a room yet — assign rooms on each staff profile." : hiddenCount > 0 && !showAll ? `${hiddenCount} management / office staff hidden.` : ""}</p>
         <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
           <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-teal-600" />
           Show all staff
