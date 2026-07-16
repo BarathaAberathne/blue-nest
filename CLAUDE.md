@@ -253,13 +253,20 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   sources, performance gauges, staff/children/compliance, static branch overview) was **removed/absorbed**.
   Widgets/nav/palette are wired into the CMS via `router.push` (dock hrefs + `PALETTE_COMMANDS` in `osdata.ts`;
   modules without a page fall back to the closest one). The
-  `director` role (above) is its intended audience. **The enquiries/admissions pipeline is live-wired**:
-  `live.ts` (`useEnquiryPipeline`) fetches `GET /admin/enquiries/stats` with the signed-in token and feeds
-  the real funnel + conversion, the Enquiries KPI, and the Booked-Visits/Applications/Enquiry-Response
-  tiles (Admission Pipeline shows a **● Live** tag). It **falls back to the static mock** when there's no
-  token or the request fails (CORS/permissions), so the page still renders for an anonymous demo. All
-  other figures (children, attendance, finance, sentiment, compliance, staffing, activity) remain mock —
-  the enquiries pipeline is the first module connected to real backend data.
+  `director` role (above) is its intended audience. **Multiple modules are live-wired** through `live.ts`
+  hooks (each fetches with the signed-in token and **falls back to the static mock** when there's no token or
+  the request fails, so the page still renders for an anonymous demo): `useEnquiryPipeline`
+  (`/admin/enquiries/stats` → funnel/conversion + Admission-Pipeline tiles, shown with a **● Live** tag),
+  `useChildrenStats` (`/admin/children/stats` → children total + occupancy), `useAttendanceToday`
+  (`/admin/attendance/today` → child attendance % + late pickups), `useStaffStats`
+  (`/admin/staff-attendance/today` → staff present/leave/sick/late/agency + per-branch), and `useDailyStats`
+  (safeguarding/meals/medication/incidents). `useBranchMetrics` overlays these onto the per-branch table
+  (occupancy, attendance today, staff headcount), and `staffPresentByBranch` feeds the real per-branch
+  staff-present + staff:child ratio. The KPI bar, Operations/People/Ofsted/Analytics tabs and the branch
+  radar read these live values; the Analytics performance gauges use live occupancy + attendance where a
+  backend exists. **Still mock (no backend source yet):** finance/revenue, parent sentiment, workforce
+  happiness/retention, and the AI-rail/risks staffing items. Keep staff/attendance KPI definitions
+  consistent with the backend single source of truth (`models.IsWorking`/`IsAway`).
 
 - **Staff Attendance / Kiosk** (HR module, being built in phases — **Phase A DELIVERED**): the
   authoritative source of staff working hours for payroll. Extends the existing `StaffAttendanceRecord`

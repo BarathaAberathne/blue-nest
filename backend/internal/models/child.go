@@ -14,6 +14,13 @@ const (
 	ChildLeft     ChildStatus = "left"
 )
 
+// Funding types — the child's free-hours entitlement.
+const (
+	FundingNone = "none"
+	Funding15h  = "15h"
+	Funding30h  = "30h"
+)
+
 // Guardian is a parent/carer contact on a child record.
 type Guardian struct {
 	Name     string `bson:"name"     json:"name"`
@@ -43,7 +50,7 @@ type Child struct {
 	Status       ChildStatus        `bson:"status"               json:"status"`
 	StartDate    string             `bson:"start_date,omitempty" json:"start_date,omitempty"`
 	Guardians    []Guardian         `bson:"guardians,omitempty"  json:"guardians,omitempty"`
-	FundingType  string             `bson:"funding_type"         json:"funding_type"` // none | 15h | 30h
+	FundingType  string             `bson:"funding_type"         json:"funding_type"` // FundingNone | Funding15h | Funding30h
 	Sessions     []ChildSession     `bson:"sessions,omitempty"   json:"sessions,omitempty"`
 	Allergies    string             `bson:"allergies,omitempty"    json:"allergies,omitempty"`
 	DietaryReqs  string             `bson:"dietary_reqs,omitempty" json:"dietary_reqs,omitempty"`

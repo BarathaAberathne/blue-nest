@@ -187,12 +187,26 @@ func (s *attendanceService) TodayStats(ctx context.Context, date, branch string)
 	}
 	stats.Expected = len(kids)
 
+	// Only count attendance for currently-active children (numerator ⊆ denominator)
+	// and de-dupe per child, so stray/orphaned records can never push the rate
+	// past 100%. Records for children not in the active roster are ignored.
+	activeIDs := make(map[string]bool, len(kids))
+	for _, c := range kids {
+		activeIDs[c.ID.Hex()] = true
+	}
 	presentByBranch := map[string]int{}
+	counted := map[string]bool{} // child ids already counted present
 	for _, r := range records {
+		if !activeIDs[r.ChildID] {
+			continue
+		}
 		switch r.Status {
 		case models.AttPresent:
-			stats.Present++
-			presentByBranch[r.BranchSlug]++
+			if !counted[r.ChildID] {
+				counted[r.ChildID] = true
+				stats.Present++
+				presentByBranch[r.BranchSlug]++
+			}
 			if r.CheckIn != nil && r.CheckOut == nil {
 				stats.CheckedIn++
 			}
@@ -203,13 +217,13 @@ func (s *attendanceService) TodayStats(ctx context.Context, date, branch string)
 			stats.LatePickups++
 		}
 	}
-	stats.AttendanceRate = percent(stats.Present, stats.Expected)
+	stats.AttendanceRate = clamp100(percent(stats.Present, stats.Expected))
 
 	sort.Strings(branchOrder)
 	for _, b := range branchOrder {
 		exp := expectedByBranch[b]
 		pres := presentByBranch[b]
-		stats.Branches = append(stats.Branches, models.BranchAttendanceStat{Branch: b, Present: pres, Expected: exp, AttendanceRate: percent(pres, exp)})
+		stats.Branches = append(stats.Branches, models.BranchAttendanceStat{Branch: b, Present: pres, Expected: exp, AttendanceRate: clamp100(percent(pres, exp))})
 	}
 	return stats, nil
 }

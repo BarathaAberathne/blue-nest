@@ -129,7 +129,7 @@ func (s *childService) Create(ctx context.Context, req models.ChildRequest) (*mo
 	if strings.TrimSpace(req.BranchSlug) == "" {
 		return nil, errors.New("branch is required")
 	}
-	c := &models.Child{Status: models.ChildActive, FundingType: "none"}
+	c := &models.Child{Status: models.ChildActive, FundingType: models.FundingNone}
 	applyChild(c, req)
 	ref, err := s.mintRef(ctx)
 	if err != nil {
@@ -160,7 +160,7 @@ func (s *childService) EnsureFromEnquiry(ctx context.Context, enquiryID, firstNa
 		return existing, nil // already linked — idempotent
 	}
 	req := models.ChildRequest{FirstName: firstName, LastName: lastName, DOB: dob, Gender: gender, BranchSlug: branch, Status: models.ChildActive}
-	c := &models.Child{Status: models.ChildActive, FundingType: "none", EnquiryID: enquiryID}
+	c := &models.Child{Status: models.ChildActive, FundingType: models.FundingNone, EnquiryID: enquiryID}
 	applyChild(c, req)
 	ref, err := s.mintRef(ctx)
 	if err != nil {
@@ -174,6 +174,18 @@ func (s *childService) EnsureFromEnquiry(ctx context.Context, enquiryID, firstNa
 }
 
 // ageYears returns whole years from a YYYY-MM-DD dob (0 if unparseable).
+// Age-group buckets for the children stats breakdown. The top bucket is
+// unbounded (every child from 3 up), so it is labelled "3+ years" rather than a
+// misleading closed "3–5 years" range.
+const (
+	ageBucket2 = 2
+	ageBucket3 = 3
+
+	ageGroupUnder2 = "Under 2"
+	ageGroup2to3   = "2–3 years"
+	ageGroup3plus  = "3+ years"
+)
+
 func ageYears(dob string) int {
 	t, err := time.Parse("2006-01-02", dob)
 	if err != nil {
@@ -209,7 +221,7 @@ func (s *childService) Stats(ctx context.Context) (*models.ChildStats, error) {
 
 	stats := &models.ChildStats{Capacity: totalCap}
 	childrenByBranch := map[string]int{}
-	ageGroups := map[string]int{"Under 2": 0, "2–3 years": 0, "3–5 years": 0}
+	ageGroups := map[string]int{ageGroupUnder2: 0, ageGroup2to3: 0, ageGroup3plus: 0}
 	for _, c := range children {
 		stats.Total++
 		switch c.Status {
@@ -217,12 +229,12 @@ func (s *childService) Stats(ctx context.Context) (*models.ChildStats, error) {
 			stats.Active++
 			childrenByBranch[c.BranchSlug]++
 			switch a := ageYears(c.DOB); {
-			case a < 2:
-				ageGroups["Under 2"]++
-			case a < 3:
-				ageGroups["2–3 years"]++
+			case a < ageBucket2:
+				ageGroups[ageGroupUnder2]++
+			case a < ageBucket3:
+				ageGroups[ageGroup2to3]++
 			default:
-				ageGroups["3–5 years"]++
+				ageGroups[ageGroup3plus]++ // unbounded top bucket (labelled "3+ years")
 			}
 		case models.ChildWaitlist:
 			stats.Waitlist++
@@ -257,7 +269,7 @@ func (s *childService) Stats(ctx context.Context) (*models.ChildStats, error) {
 		stats.Branches = append(stats.Branches, models.BranchChildStat{Branch: b, Children: ch, Capacity: cap, OccupancyRate: rate})
 		stats.ByBranch = append(stats.ByBranch, models.ChildStatPoint{Label: b, Value: ch})
 	}
-	for _, g := range []string{"Under 2", "2–3 years", "3–5 years"} {
+	for _, g := range []string{ageGroupUnder2, ageGroup2to3, ageGroup3plus} {
 		stats.ByAgeGroup = append(stats.ByAgeGroup, models.ChildStatPoint{Label: g, Value: ageGroups[g]})
 	}
 	return stats, nil
