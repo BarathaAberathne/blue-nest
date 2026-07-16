@@ -49,8 +49,20 @@ type Child struct {
 	DietaryReqs  string             `bson:"dietary_reqs,omitempty" json:"dietary_reqs,omitempty"`
 	MedicalNotes string             `bson:"medical_notes,omitempty" json:"medical_notes,omitempty"`
 	EnquiryID    string             `bson:"enquiry_id,omitempty"   json:"enquiry_id,omitempty"` // originating admissions enquiry
-	CreatedAt    time.Time          `bson:"created_at"           json:"created_at"`
-	UpdatedAt    time.Time          `bson:"updated_at"           json:"updated_at"`
+	// KeyPersonID links the child to their key person (a staff record id). The
+	// key person builds a secure attachment and tracks the child's development.
+	KeyPersonID string    `bson:"key_person_id,omitempty" json:"key_person_id,omitempty"`
+	CreatedAt   time.Time `bson:"created_at"           json:"created_at"`
+	UpdatedAt   time.Time `bson:"updated_at"           json:"updated_at"`
+
+	// KeyPersonName is resolved from the staff record for display; never stored.
+	KeyPersonName string `bson:"-" json:"key_person_name,omitempty"`
+}
+
+// ChildKeyPersonRequest assigns (or clears, with an empty staff_id) a child's
+// key person.
+type ChildKeyPersonRequest struct {
+	StaffID string `json:"staff_id"`
 }
 
 type ChildRequest struct {

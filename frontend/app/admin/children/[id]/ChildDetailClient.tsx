@@ -108,6 +108,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
               <Item label="Room" value={child.room_id ? roomName.get(child.room_id) ?? "—" : "—"} />
               <Item label="Funding" value={fundingLabel(child.funding_type)} />
               <Item label="Start date" value={fmtDate(child.start_date)} />
+              <Item label="Key person" value={child.key_person_name || "—"} />
             </dl>
 
             <h2 className="mb-3 mt-6 text-sm font-bold uppercase tracking-widest text-slate-400">Care notes</h2>

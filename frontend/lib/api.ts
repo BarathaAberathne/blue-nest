@@ -525,6 +525,12 @@ export const api = {
     apiFetch<Child>(`/api/v1/admin/children/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
   adminDeleteChild: (token: string, id: string) =>
     apiFetch(`/api/v1/admin/children/${id}`, { method: "DELETE", token }),
+  // Key person: assign (empty staffId clears) a child's key person, and list the
+  // children a staff member is key person for.
+  adminSetChildKeyPerson: (token: string, childId: string, staffId: string) =>
+    apiFetch<Child>(`/api/v1/admin/children/${childId}/key-person`, { method: "PATCH", body: JSON.stringify({ staff_id: staffId }), token }),
+  adminGetStaffKeyChildren: (token: string, staffId: string) =>
+    apiFetch<Child[]>(`/api/v1/admin/staff/${staffId}/key-children`, { token }),
 
   // Nursery — attendance register
   adminGetRegister: (token: string, params?: { date?: string; branch?: string }) => {

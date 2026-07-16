@@ -118,7 +118,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		DashboardLayouts:  service.NewDashboardLayoutService(dashboardLayoutRepo),
 		DashboardProfiles: service.NewDashboardProfileService(dashboardProfileRepo),
 		Rooms:             service.NewRoomService(roomRepo),
-		Children:          service.NewChildService(childRepo, roomRepo, counterRepo),
+		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo),
 		Attendance:        service.NewAttendanceService(attendanceRepo, childRepo),
 		Staff:             service.NewStaffService(staffRepo, counterRepo, authSvc),
 		StaffAttendance:   staffAttSvc,

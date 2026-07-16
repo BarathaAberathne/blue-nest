@@ -21,23 +21,74 @@ type ChildService interface {
 	Stats(ctx context.Context) (*models.ChildStats, error)
 	// EnsureFromEnquiry idempotently creates a child from a registered enquiry.
 	EnsureFromEnquiry(ctx context.Context, enquiryID, firstName, lastName, dob, gender, branch string) (*models.Child, error)
+	// SetKeyPerson assigns (or clears, with empty staffID) the child's key
+	// person. The key person must be an active staff member at the child's branch.
+	SetKeyPerson(ctx context.Context, childID, staffID string) (*models.Child, error)
+	// KeyChildren lists the children a staff member is key person for.
+	KeyChildren(ctx context.Context, staffID string) ([]models.Child, error)
 }
 
 type childService struct {
 	repo     repository.ChildRepository
 	rooms    repository.RoomRepository
 	counters repository.CounterRepository
+	staff    repository.StaffRepository
 }
 
-func NewChildService(repo repository.ChildRepository, rooms repository.RoomRepository, counters repository.CounterRepository) ChildService {
-	return &childService{repo: repo, rooms: rooms, counters: counters}
+func NewChildService(repo repository.ChildRepository, rooms repository.RoomRepository, counters repository.CounterRepository, staff repository.StaffRepository) ChildService {
+	return &childService{repo: repo, rooms: rooms, counters: counters, staff: staff}
 }
 
 func (s *childService) List(ctx context.Context, f repository.ChildFilter) ([]models.Child, error) {
 	return s.repo.FindAll(ctx, f)
 }
 func (s *childService) GetByID(ctx context.Context, id string) (*models.Child, error) {
-	return s.repo.FindByID(ctx, id)
+	c, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	s.resolveKeyPerson(ctx, c)
+	return c, nil
+}
+
+// resolveKeyPerson fills the transient KeyPersonName from the staff record.
+func (s *childService) resolveKeyPerson(ctx context.Context, c *models.Child) {
+	if c == nil || c.KeyPersonID == "" || s.staff == nil {
+		return
+	}
+	if st, err := s.staff.FindByID(ctx, c.KeyPersonID); err == nil && st != nil {
+		c.KeyPersonName = strings.TrimSpace(st.FirstName + " " + st.LastName)
+	}
+}
+
+func (s *childService) SetKeyPerson(ctx context.Context, childID, staffID string) (*models.Child, error) {
+	child, err := s.repo.FindByID(ctx, childID)
+	if err != nil {
+		return nil, errors.New("child not found")
+	}
+	staffID = strings.TrimSpace(staffID)
+	if staffID != "" {
+		st, err := s.staff.FindByID(ctx, staffID)
+		if err != nil || st == nil {
+			return nil, errors.New("staff member not found")
+		}
+		if st.BranchSlug != child.BranchSlug {
+			return nil, errors.New("the key person must be a staff member at the child's branch")
+		}
+	}
+	updated, err := s.repo.SetKeyPerson(ctx, childID, staffID)
+	if err != nil {
+		return nil, err
+	}
+	s.resolveKeyPerson(ctx, updated)
+	return updated, nil
+}
+
+func (s *childService) KeyChildren(ctx context.Context, staffID string) ([]models.Child, error) {
+	if strings.TrimSpace(staffID) == "" {
+		return []models.Child{}, nil
+	}
+	return s.repo.FindAll(ctx, repository.ChildFilter{KeyPerson: staffID})
 }
 
 func applyChild(c *models.Child, req models.ChildRequest) {

@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, Award, BadgeCheck, Cake, CalendarClock, CalendarDays, Check, ChevronLeft, ChevronRight,
-  Clock, DoorOpen, KeyRound, Mail, MapPin, Pencil, Phone, Plus, Save, ShieldCheck, Smile, StickyNote,
-  Tags as TagsIcon, User, Users, X,
+  ArrowLeft, Award, Baby, BadgeCheck, Cake, CalendarClock, CalendarDays, Check, ChevronLeft, ChevronRight,
+  Clock, DoorOpen, KeyRound, Mail, MapPin, Pencil, Phone, Plus, Save, Search, ShieldCheck, Smile, StickyNote,
+  Tags as TagsIcon, Trash2, User, Users, X,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
@@ -13,7 +13,7 @@ import { branchShortName } from "@/lib/branch";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { fmtDate } from "@/lib/child";
 import { dbsExpiry, staffStatusAccent, staffStatusLabel, staffTypeAccent, staffTypeLabel } from "@/lib/staff";
-import type { Branch, Shift, Staff, StaffInput } from "@/types";
+import type { Branch, Child, Shift, Staff, StaffInput } from "@/types";
 
 // ── date helpers ─────────────────────────────────────────────────────────────
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -25,6 +25,17 @@ const shiftMinutes = (s: string, e: string) => {
   return Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
 };
 const fmtHM = (mins: number) => `${Math.floor(mins / 60)}h${mins % 60 ? ` ${mins % 60}m` : ""}`;
+// childAge renders a friendly age from a YYYY-MM-DD DOB.
+const childAge = (dob?: string) => {
+  if (!dob) return null;
+  const d = new Date(dob); if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  let months = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+  if (now.getDate() < d.getDate()) months--;
+  if (months < 0) return null;
+  const y = Math.floor(months / 12), m = months % 12;
+  return y >= 1 ? `${y}y${m ? ` ${m}m` : ""}` : `${m}m`;
+};
 
 type MainTab = "profile" | "contacts" | "calendar";
 type SubTab = "basic" | "quals" | "keys" | "contract" | "tags";
@@ -334,9 +345,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
                   </div>
                 )}
 
-                {sub === "keys" && (
-                  <EmptyState icon={Smile} title="Assign children to staff" body="Key persons build secure attachments. Assigning key children to staff is coming soon — for now, manage key persons on each child's profile." />
-                )}
+                {sub === "keys" && <KeyChildrenPanel staffId={id} branch={member.branch_slug} />}
 
                 {sub === "contract" && (
                   <div>
@@ -511,6 +520,118 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label className="mb-1 block text-xs uppercase tracking-wider text-slate-400">{label}</label>
       {children}
+    </div>
+  );
+}
+
+// ── Key children — assign/unassign the children this staff member is key person for ──
+function KeyChildrenPanel({ staffId, branch }: { staffId: string; branch: string }) {
+  const [list, setList] = useState<Child[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [roster, setRoster] = useState<Child[] | null>(null);
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    setLoading(true);
+    try { setList((await api.adminGetStaffKeyChildren(token, staffId)) ?? []); }
+    catch { setErr("Failed to load key children."); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { void load(); }, [staffId]);
+
+  const openAdd = async () => {
+    setAdding(true); setErr(null);
+    if (roster === null) {
+      const token = getAccessToken();
+      if (!token) return;
+      try { setRoster((await api.adminGetChildren(token, { branch, status: "active" })) ?? []); }
+      catch { setRoster([]); }
+    }
+  };
+  const assign = async (child: Child) => {
+    const token = getAccessToken();
+    if (!token) return;
+    setBusy(child.id); setErr(null);
+    try { await api.adminSetChildKeyPerson(token, child.id, staffId); await load(); setAdding(false); setQ(""); }
+    catch (e) { setErr(e instanceof Error ? e.message : "Failed to assign"); }
+    finally { setBusy(null); }
+  };
+  const remove = async (child: Child) => {
+    const token = getAccessToken();
+    if (!token) return;
+    setBusy(child.id); setErr(null);
+    try { await api.adminSetChildKeyPerson(token, child.id, ""); await load(); }
+    catch (e) { setErr(e instanceof Error ? e.message : "Failed to remove"); }
+    finally { setBusy(null); }
+  };
+
+  const assignedIds = new Set(list.map((c) => c.id));
+  const options = (roster ?? []).filter((c) => !assignedIds.has(c.id) &&
+    `${c.first_name} ${c.last_name}`.toLowerCase().includes(q.trim().toLowerCase()));
+
+  return (
+    <div>
+      <div className="mb-5 flex items-center justify-between">
+        <h3 className="font-heading text-base font-bold text-slate-900">Key children {list.length > 0 && <span className="text-slate-400">({list.length})</span>}</h3>
+        {!adding && <button onClick={openAdd} className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-teal-700"><Plus className="h-3.5 w-3.5" /> Add key child</button>}
+      </div>
+
+      {err && <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-500">{err}</p>}
+
+      {adding && (
+        <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Assign a child at this branch</span>
+            <button onClick={() => { setAdding(false); setQ(""); }} className="rounded p-1 text-slate-400 hover:bg-white" aria-label="Close"><X className="h-4 w-4" /></button>
+          </div>
+          <div className="relative mb-2">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search children…" className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm" />
+          </div>
+          <div className="max-h-56 divide-y divide-slate-100 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+            {roster === null ? <p className="p-3 text-sm text-slate-400">Loading…</p>
+              : options.length === 0 ? <p className="p-3 text-sm text-slate-400">No unassigned children match.</p>
+              : options.map((c) => {
+                const age = childAge(c.dob);
+                return (
+                  <button key={c.id} onClick={() => assign(c)} disabled={busy === c.id} className="flex w-full items-center justify-between px-3 py-2.5 text-left hover:bg-slate-50 disabled:opacity-50">
+                    <span className="text-sm font-medium text-slate-800">{c.first_name} {c.last_name}</span>
+                    <span className="flex items-center gap-2 text-xs text-slate-400">{age && <span>{age}</span>}<span className="font-mono">{c.ref ?? ""}</span><Plus className="h-4 w-4 text-teal-600" /></span>
+                  </button>
+                );
+              })}
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-sm text-slate-400">Loading…</p>
+      ) : list.length === 0 && !adding ? (
+        <EmptyState icon={Smile} title="No key children yet" body="Key persons build secure attachments. Assign the children this staff member is responsible for to track their development." />
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {list.map((c) => {
+            const age = childAge(c.dob);
+            return (
+              <div key={c.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="grid h-10 w-10 flex-none place-items-center rounded-full bg-teal-50 text-teal-600"><Baby className="h-5 w-5" /></span>
+                  <div className="min-w-0">
+                    <Link href={`/admin/children/${c.id}`} className="block truncate text-sm font-semibold text-slate-800 hover:text-teal-700">{c.first_name} {c.last_name}</Link>
+                    <div className="text-xs text-slate-400">{age ? `${age} · ` : ""}<span className="font-mono">{c.ref ?? c.id.slice(-6)}</span></div>
+                  </div>
+                </div>
+                <button onClick={() => remove(c)} disabled={busy === c.id} className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50" aria-label={`Remove ${c.first_name} as key child`}><Trash2 className="h-4 w-4" /></button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

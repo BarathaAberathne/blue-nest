@@ -931,6 +931,8 @@ export interface Child {
   dietary_reqs?: string;
   medical_notes?: string;
   enquiry_id?: string;
+  key_person_id?: string;
+  key_person_name?: string;
   created_at?: string;
   updated_at?: string;
 }

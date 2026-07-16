@@ -313,6 +313,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Get("/admin/children/{id}", adminChildH.Get)
 				r.Post("/admin/children", adminChildH.Create)
 				r.Put("/admin/children/{id}", adminChildH.Update)
+				r.Patch("/admin/children/{id}/key-person", adminChildH.SetKeyPerson)
 				r.Delete("/admin/children/{id}", adminChildH.Delete)
 			})
 
@@ -336,6 +337,11 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Post("/admin/staff", adminStaffH.Create)
 				r.Put("/admin/staff/{id}", adminStaffH.Update)
 				r.Delete("/admin/staff/{id}", adminStaffH.Delete)
+
+				// Key children a staff member is the key person for (child data,
+				// but gated under staff.manage as it's viewed from the staff profile).
+				adminStaffKeyChildrenH := adminHandler.NewAdminChildHandler(svc.Children, svc.Audit)
+				r.Get("/admin/staff/{id}/key-children", adminStaffKeyChildrenH.KeyChildren)
 
 				adminStaffAttH := adminHandler.NewAdminStaffAttendanceHandler(svc.StaffAttendance, svc.Audit)
 				r.Get("/admin/staff-attendance", adminStaffAttH.Register)
