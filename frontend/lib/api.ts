@@ -26,7 +26,25 @@ function enquiryQuery(params?: EnquiryListParams): string {
   return s ? `?${s}` : "";
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+// Resolve the API origin. An explicit absolute NEXT_PUBLIC_API_URL always wins
+// (prod serves the API from a separate host). In dev/Docker it's
+// http://localhost:8080 — correct for the machine running the stack, but wrong
+// for any OTHER device: a kiosk tablet on the LAN would call its own localhost.
+// So when the page is served from a non-localhost host and the API was
+// configured for localhost, fall back to the SAME ORIGIN and let Next's
+// /api/v1/* rewrite proxy to the backend. No per-device LAN IP to bake in, and
+// it survives a normal rebuild.
+const CONFIGURED_API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+function apiBase(): string {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const onLocalhost = host === "localhost" || host === "127.0.0.1";
+    if (!onLocalhost && /\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(CONFIGURED_API)) {
+      return ""; // same-origin → /api/v1/* is proxied to the backend by next.config
+    }
+  }
+  return CONFIGURED_API;
+}
 
 interface FetchOptions extends RequestInit {
   token?: string;
@@ -47,7 +65,7 @@ async function tryRefreshToken(): Promise<string | null> {
     const refreshToken = getRefreshToken();
     if (!refreshToken) return null;
     try {
-      const res = await fetch(`${BASE_URL}/api/v1/auth/refresh`, {
+      const res = await fetch(`${apiBase()}/api/v1/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refresh_token: refreshToken }),
@@ -80,8 +98,8 @@ async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T>
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  let res = await fetch(`${BASE_URL}${path}`, { ...init, headers }).catch((err: unknown) => {
-    console.error(`[api] Network error — ${init.method ?? "GET"} ${BASE_URL}${path}:`, err);
+  let res = await fetch(`${apiBase()}${path}`, { ...init, headers }).catch((err: unknown) => {
+    console.error(`[api] Network error — ${init.method ?? "GET"} ${apiBase()}${path}:`, err);
     throw err;
   });
 
@@ -90,7 +108,7 @@ async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T>
     const newToken = await tryRefreshToken();
     if (newToken) {
       headers["Authorization"] = `Bearer ${newToken}`;
-      res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+      res = await fetch(`${apiBase()}${path}`, { ...init, headers });
     } else {
       clearAuthSession();
     }
