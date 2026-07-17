@@ -118,6 +118,23 @@ const STAFF_SECTIONS: NavSection[] = [
 
 const allItems = (sections: NavSection[]) => sections.flatMap((s) => s.items);
 
+// matchesNav reports whether a nav item is active for the current path. Prefix
+// matches respect path-segment boundaries so a href like "/admin/staff" matches
+// "/admin/staff" and "/admin/staff/123" but NOT "/admin/staff-attendance" (a
+// different section). `exact` items must match the whole path.
+const matchesNav = (pathname: string, item: NavItem): boolean =>
+  item.exact
+    ? pathname === item.href
+    : pathname === item.href || pathname.startsWith(item.href + "/");
+
+// activeNavItem is the single nav item highlighted for a path: the longest href
+// that matches (so a nested route resolves to its deepest section). One source
+// of truth for the sidebar highlight, the page title and the permission gate.
+const activeNavItem = (sections: NavSection[], pathname: string): NavItem | undefined =>
+  allItems(sections)
+    .filter((n) => matchesNav(pathname, n))
+    .sort((a, b) => b.href.length - a.href.length)[0];
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -146,12 +163,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     ? NAV_SECTIONS.map((s) => ({ ...s, items: s.items.filter(canSee) })).filter((s) => s.items.length > 0)
     : STAFF_SECTIONS;
 
+  // Exactly one item is highlighted — the active item resolved from the visible
+  // sections. Highlighting by href (not a naive per-item startsWith) is what
+  // stops "/admin/staff" lighting up on "/admin/staff-attendance".
+  const activeHref = activeNavItem(navSections, pathname)?.href;
+
   // First page the user is actually allowed to open (their landing page).
   const firstAllowedHref = navSections.flatMap((s) => s.items)[0]?.href ?? "/admin/dashboard";
-  // The permission required to view the current path (longest matching nav item).
-  const currentItem = allItems(NAV_SECTIONS)
-    .filter((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href)))
-    .sort((a, b) => b.href.length - a.href.length)[0];
+  // The active nav item for the current path (drives the highlight, the page
+  // title and the permission gate — one boundary-aware, longest-match resolver).
+  const currentItem = activeNavItem(NAV_SECTIONS, pathname);
 
   useEffect(() => {
     if (!ready) return;
@@ -176,10 +197,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!ready || !isAuthenticated || !allowed) return null;
 
-  const currentPage =
-    [...allItems(NAV_SECTIONS), ...allItems(STAFF_SECTIONS)]
-      .filter((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href)))
-      .sort((a, b) => b.href.length - a.href.length)[0]?.label ?? "Admin";
+  const currentPage = activeNavItem([...NAV_SECTIONS, ...STAFF_SECTIONS], pathname)?.label ?? "Admin";
 
   const initials = user
     ? `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`.toUpperCase() ||
@@ -220,7 +238,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               )}
               {section.items.map((item) => {
                 const Icon = item.icon;
-                const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+                const active = item.href === activeHref;
                 return (
                   <Link
                     key={item.href}
