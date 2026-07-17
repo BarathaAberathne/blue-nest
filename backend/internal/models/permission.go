@@ -17,9 +17,9 @@ const (
 	PermSuppliersManage   Permission = "suppliers.manage"   // supplier directory CRUD
 	PermFinanceView       Permission = "finance.view"       // spend, procurement analytics
 	PermAuditView         Permission = "audit.view"         // activity / audit log
-	PermBranchesManage    Permission = "branches.manage" // view + edit in-scope branches
-	PermBranchAdmin       Permission = "branch.admin"    // branch lifecycle: create/delete/archive/merge/assign/GBP (super admin)
-	PermUsersManage       Permission = "users.manage"    // account management (super admin)
+	PermBranchesManage    Permission = "branches.manage"    // view + edit in-scope branches
+	PermBranchAdmin       Permission = "branch.admin"       // branch lifecycle: create/delete/archive/merge/assign/GBP (super admin)
+	PermUsersManage       Permission = "users.manage"       // account management (super admin)
 	// Nursery operations (Phase 1)
 	PermChildrenManage   Permission = "children.manage"   // child records + rooms
 	PermAttendanceManage Permission = "attendance.manage" // daily attendance register
@@ -41,7 +41,8 @@ var AllPermissions = []Permission{
 // management permissions (staff use the separate Staff Portal). users.manage is
 // reserved for super_admin (mirrors SuperAdminOnly on /admin/users).
 var rolePermissions = map[Role][]Permission{
-	RoleSuperAdmin: AllPermissions,
+	RolePlatformSuperAdmin: AllPermissions, // SaaS operator — all perms, cross-tenant
+	RoleSuperAdmin:         AllPermissions,
 	RoleAdmin: {
 		PermDashboardView, PermStoreManage, PermBlogManage, PermEnquiriesManage,
 		PermProcurementView, PermProcurementManage, PermSuppliersManage,

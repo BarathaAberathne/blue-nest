@@ -10,12 +10,12 @@ import (
 type OrderRequestStatus string
 
 const (
-	OrderRequestPending      OrderRequestStatus = "pending"         // submitted by staff, awaiting management
-	OrderRequestApproved     OrderRequestStatus = "approved"        // management approved, ready to convert
-	OrderRequestConvertedPO  OrderRequestStatus = "converted_to_po" // rolled into a purchase order
-	OrderRequestOrdered      OrderRequestStatus = "ordered"         // management has placed the real order
-	OrderRequestReceived     OrderRequestStatus = "received"        // goods arrived at the branch
-	OrderRequestCancelled    OrderRequestStatus = "cancelled"       // rejected / withdrawn
+	OrderRequestPending     OrderRequestStatus = "pending"         // submitted by staff, awaiting management
+	OrderRequestApproved    OrderRequestStatus = "approved"        // management approved, ready to convert
+	OrderRequestConvertedPO OrderRequestStatus = "converted_to_po" // rolled into a purchase order
+	OrderRequestOrdered     OrderRequestStatus = "ordered"         // management has placed the real order
+	OrderRequestReceived    OrderRequestStatus = "received"        // goods arrived at the branch
+	OrderRequestCancelled   OrderRequestStatus = "cancelled"       // rejected / withdrawn
 )
 
 // OrderRequestStatuses lists the valid statuses in workflow order. Drives
@@ -70,6 +70,7 @@ type OrderRequestItem struct {
 // supplier orders. This is the foundation for the future inventory module.
 type OrderRequest struct {
 	ID               primitive.ObjectID `bson:"_id,omitempty"      json:"id"`
+	OrgID            string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Ref              string             `bson:"ref,omitempty"      json:"ref,omitempty"` // human ref e.g. SR-2026-000045
 	UserID           primitive.ObjectID `bson:"user_id"            json:"user_id"`
 	RequestedByName  string             `bson:"requested_by_name"  json:"requested_by_name"`

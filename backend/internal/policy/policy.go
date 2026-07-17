@@ -8,7 +8,16 @@ package policy
 
 import "github.com/blue-nest-montessori/api/internal/models"
 
-// orgWideRoles see every branch regardless of branch_slugs.
+// IsPlatformOperator reports whether the role is the cross-tenant SaaS operator.
+// It is the ONLY role that may act outside its own organisation (e.g. manage the
+// list of organisations, or run platform-wide analytics). Every other role —
+// including super_admin/admin/director — is confined to its own tenant, enforced
+// centrally by the repository tenant wrapper.
+func IsPlatformOperator(role models.Role) bool {
+	return role == models.RolePlatformSuperAdmin
+}
+
+// orgWideRoles see every branch regardless of branch_slugs (WITHIN their org).
 func orgWide(role models.Role) bool {
 	switch role {
 	case models.RoleSuperAdmin, models.RoleAdmin, models.RoleDirector:

@@ -29,15 +29,21 @@ operator) is the ONLY cross-org role; every tenant role — including today's or
 premium option, not the default. This keeps cross-org platform analytics + AI simple at scale.
 
 ### Platform roadmap (phased; execute in order — tenancy precedes everything)
-- **Phase T0 — Tenancy foundation (must precede new features).** `models/organisation.go` (`Organisation`:
-  slug, name, `branding{logo,colours,domain}`, plan/tier, status, settings). Add `OrgID` (additive,
-  omitempty) to every operational model + `users`. `middleware` resolves org from JWT/host → context
-  (`OrgIDKey`); the repository layer stamps + filters `org_id` centrally. `policy` becomes two-dimensional
-  (org scope wraps the existing branch scope; `platform_super_admin` = cross-org). Auth: login resolves the
-  user's org; JWT carries `org_id`/`org_slug`; onboarding creates an org. `cmd/migrate-tenancy` (idempotent)
-  creates the first Organisation ("Blue Nest") and back-stamps `org_id` onto all existing rows. **Verify:**
-  two orgs, complete isolation (org A cannot see org B's branches/staff/children/anything), Blue Nest data
-  intact under org 1.
+- **Phase T0 — Tenancy foundation — DELIVERED.** `models/organisation.go` (`Organisation`: slug, name,
+  branding, plan, status, domains, settings) + repo/service/handler and platform-only routes
+  (`/admin/organisations`, gated by `middleware.PlatformOnly`). `OrgID` (additive, omitempty) on every
+  tenant-scoped model. **Central enforcement:** `repository.TenantCollection` wraps each collection and, from
+  the org in request context, auto-filters every read/update/delete and stamps `org_id` on every insert —
+  the repos changed only their collection type, not their query bodies (`counters`/`organisations` stay
+  global; `users.FindByEmail` runs cross-org so login can resolve identity across tenants). `middleware.Auth`
+  pins the request to the caller's org from the JWT `org_id` claim (`repository.WithOrg`); `platform_super_admin`
+  runs cross-org (`WithCrossOrg`); `middleware.DefaultTenant(defaultOrgID)` pins public/unauthenticated
+  requests to the default org (resolved at startup from `DEFAULT_ORG_SLUG`, default `blue-nest`). `policy`
+  gains `IsPlatformOperator`; new role `RolePlatformSuperAdmin` = the only cross-tenant role. Migration
+  `cmd/migratetenancy` (idempotent) creates the first Organisation and back-stamps `org_id` onto all existing
+  rows (ran locally: 1 org + 1,682 docs). **Verified:** two-org isolation — each org's admin sees only its
+  own branches/staff/children, cross-tenant fetch-by-id is 404 both ways, writes stamp the correct tenant,
+  the public store serves the default tenant, and the existing Blue Nest app is intact.
 - **Phase T1 — Org-scoped configuration & customisation.** Per-org custom roles + permission sets (extend
   the DB-backed `roleCache`), branding, feature flags / plan tiers, branch templates, room & age-group
   config, term dates, funding rules, email templates. Org onboarding/provisioning + settings surface.
@@ -54,11 +60,13 @@ premium option, not the default. This keeps cross-org platform analytics + AI si
   marketing/SEO automation; AI compliance + safeguarding monitoring; AI document generation, knowledge base,
   automation workflows. Prioritised per product need; all reuse A0's tool contract.
 
-**Current status:** single-tenant (no `Organisation` entity yet — "Organisation" is only a permission
-category label). Branch is the de-facto top-level scope (18 models key on `branch_slug`; `Branch.GroupID`
-is a reserved placeholder). A working Anthropic chat endpoint exists (`/api/chat`, per-page system prompts)
-but is frontend-only, stateless and has no tool access to CMS data. **Phase T0 is the next foundational
-work; features built before it that omit `org_id` become rework.**
+**Current status:** **multi-tenant (T0 delivered).** `Organisation` is the top-level tenant; every
+tenant-scoped collection carries `org_id` and isolation is enforced centrally by the repository tenant
+wrapper. Blue Nest is org 1. **Every new feature must carry `org_id`** — the tenant wrapper handles it
+automatically as long as the model has the field and the repo uses `NewTenantCollection`. The AI chat
+endpoint (`/api/chat`, per-page prompts) is still frontend-only, stateless and without tool access to CMS
+data. **Next: Phase T1** (org-scoped config/branding/custom roles + onboarding), then **A0** (tenant-scoped
+AI service layer with the module tool contract).
 
 ## Stack & layout
 - **Backend:** Go (chi router, MongoDB driver) in `backend/`.

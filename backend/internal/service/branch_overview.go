@@ -140,12 +140,12 @@ func clamp100(v int) int {
 // easy to re-tune per org; move to a settings model if it ever needs to differ
 // per branch.
 const (
-	neutralRatingPct    = 80 // review score assumed when a branch has no reviews yet
-	maxStarRating       = 5  // Google/GBP star scale, for rating → percent
-	complianceBase      = 100
-	safeguardingPenalty = 15 // points off compliance per open safeguarding concern
-	incidentPenalty     = 8  // points off compliance per incident logged today
-	admissionsBase      = 60
+	neutralRatingPct     = 80 // review score assumed when a branch has no reviews yet
+	maxStarRating        = 5  // Google/GBP star scale, for rating → percent
+	complianceBase       = 100
+	safeguardingPenalty  = 15 // points off compliance per open safeguarding concern
+	incidentPenalty      = 8  // points off compliance per incident logged today
+	admissionsBase       = 60
 	admissionsPerEnquiry = 8 // points added per new enquiry
 
 	weightOccupancy      = 20

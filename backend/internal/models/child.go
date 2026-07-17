@@ -40,6 +40,7 @@ type ChildSession struct {
 // nursery" record — occupancy, attendance and rooms all reference it.
 type Child struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty"        json:"id"`
+	OrgID        string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Ref          string             `bson:"ref,omitempty"        json:"ref,omitempty"` // CHD-YYYY-NNNNNN
 	FirstName    string             `bson:"first_name"           json:"first_name"`
 	LastName     string             `bson:"last_name"            json:"last_name"`

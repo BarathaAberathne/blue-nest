@@ -22,11 +22,11 @@ type ShiftRepository interface {
 }
 
 type shiftRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewShiftRepository(db *mongo.Database) ShiftRepository {
-	return &shiftRepository{col: db.Collection("shifts")}
+	return &shiftRepository{col: NewTenantCollection(db, "shifts")}
 }
 
 func (r *shiftRepository) Create(ctx context.Context, s *models.Shift) error {

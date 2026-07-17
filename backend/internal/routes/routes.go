@@ -19,6 +19,8 @@ import (
 )
 
 type Services struct {
+	Organisations     service.OrganisationService
+	DefaultOrgID      string // tenant for unauthenticated/public requests
 	Auth              service.AuthService
 	Products          service.ProductService
 	Cart              service.CartService
@@ -77,6 +79,11 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 	r.Post("/api/v1/integrations/gbp/digest", gbpWH.IngestDigest)
 
 	r.Route("/api/v1", func(r chi.Router) {
+		// Multi-tenancy: pin every request to a tenant. Public/unauthenticated
+		// routes get the default org; the Auth middleware on management/customer
+		// groups overrides this with the caller's own org from their JWT.
+		r.Use(middleware.DefaultTenant(svc.DefaultOrgID))
+
 		// ── Auth ──────────────────────────────────────────────────────────
 		authH := handler.NewAuthHandler(svc.Auth, cfg)
 		r.Post("/auth/register", authH.Register)
@@ -401,6 +408,16 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Put("/admin/daily-records/{id}", adminDailyH.Update)
 				r.Patch("/admin/daily-records/{id}/status", adminDailyH.SetStatus)
 				r.Delete("/admin/daily-records/{id}", adminDailyH.Delete)
+			})
+
+			// Organisations (tenants) — platform operator only (cross-tenant).
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.PlatformOnly)
+				orgH := adminHandler.NewAdminOrganisationHandler(svc.Organisations, svc.Audit)
+				r.Get("/admin/organisations", orgH.List)
+				r.Get("/admin/organisations/{id}", orgH.Get)
+				r.Post("/admin/organisations", orgH.Create)
+				r.Put("/admin/organisations/{id}", orgH.Update)
 			})
 
 			// Account management — super admin only.

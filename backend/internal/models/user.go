@@ -14,6 +14,10 @@ const (
 	RoleBranchManager Role = "branch_manager"
 	RoleAdmin         Role = "admin"
 	RoleSuperAdmin    Role = "super_admin"
+	// RolePlatformSuperAdmin is the SaaS OPERATOR — the only cross-tenant role.
+	// It manages organisations and can act across every tenant. Every other role
+	// (including super_admin/admin/director) is pinned to its own organisation.
+	RolePlatformSuperAdmin Role = "platform_super_admin"
 	// Specialist management roles (Phase 4). Each lands in the admin shell but
 	// sees only the sections its permissions allow (see models/permission.go).
 	RoleFinance     Role = "finance"     // analytics, spend, audit
@@ -56,6 +60,7 @@ var ManagementRoles = []Role{
 
 type User struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty"           json:"id"`
+	OrgID         string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Email         string             `bson:"email"                   json:"email"`
 	PasswordHash  string             `bson:"password_hash"           json:"-"`
 	FirstName     string             `bson:"first_name"              json:"first_name"`

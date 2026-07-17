@@ -33,11 +33,11 @@ type DailyRecordRepository interface {
 }
 
 type dailyRecordRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewDailyRecordRepository(db *mongo.Database) DailyRecordRepository {
-	return &dailyRecordRepository{col: db.Collection("daily_records")}
+	return &dailyRecordRepository{col: NewTenantCollection(db, "daily_records")}
 }
 
 func (r *dailyRecordRepository) query(f DailyRecordFilter) bson.M {

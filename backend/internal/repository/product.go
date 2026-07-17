@@ -29,14 +29,14 @@ type ProductRepository interface {
 }
 
 type productRepository struct {
-	products   *mongo.Collection
-	categories *mongo.Collection
+	products   *TenantCollection
+	categories *TenantCollection
 }
 
 func NewProductRepository(db *mongo.Database) ProductRepository {
 	return &productRepository{
-		products:   db.Collection("products"),
-		categories: db.Collection("categories"),
+		products:   NewTenantCollection(db, "products"),
+		categories: NewTenantCollection(db, "categories"),
 	}
 }
 
@@ -141,17 +141,17 @@ func (r *productRepository) Update(ctx context.Context, id string, p models.Prod
 
 	update := bson.M{
 		"$set": bson.M{
-			"external_id":  p.ExternalID,
-			"sku":          p.SKU,
-			"slug":         p.Slug,
-			"name":         p.Name,
-			"description":  p.Description,
-			"price":        p.Price,
-			"currency":     p.Currency,
-			"category":     p.Category,
-			"category_id":  p.CategoryID,
-			"image_url":    p.ImageURL,
-			"image_urls":   p.ImageURLs,
+			"external_id":   p.ExternalID,
+			"sku":           p.SKU,
+			"slug":          p.Slug,
+			"name":          p.Name,
+			"description":   p.Description,
+			"price":         p.Price,
+			"currency":      p.Currency,
+			"category":      p.Category,
+			"category_id":   p.CategoryID,
+			"image_url":     p.ImageURL,
+			"image_urls":    p.ImageURLs,
 			"stock_qty":     p.StockQty,
 			"reorder_point": p.ReorderPoint,
 			"is_active":     p.IsActive,

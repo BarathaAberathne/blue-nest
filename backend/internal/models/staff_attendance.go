@@ -82,6 +82,7 @@ type AttendanceCorrection struct {
 // legacy records load unchanged.
 type StaffAttendanceRecord struct {
 	ID          primitive.ObjectID    `bson:"_id,omitempty"        json:"id"`
+	OrgID       string                `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	StaffID     string                `bson:"staff_id"             json:"staff_id"`
 	StaffName   string                `bson:"staff_name"           json:"staff_name"`
 	BranchSlug  string                `bson:"branch_slug"          json:"branch_slug"`
@@ -174,17 +175,17 @@ type AttendanceDaySummary struct {
 // figures are derived from real captured records — days with no record count
 // toward neither worked nor absent.
 type StaffAbsenceSummary struct {
-	StaffID      string `json:"staff_id"`
-	From         string `json:"from"` // YYYY-MM-DD inclusive
-	To           string `json:"to"`   // YYYY-MM-DD inclusive
-	WorkedDays   int    `json:"worked_days"`
-	WorkedHours  int    `json:"worked_hours"` // whole hours worked in the period
-	LateDays     int    `json:"late_days"`
-	SickDays     int    `json:"sick_days"`
-	LeaveDays    int    `json:"leave_days"`     // annual leave / holiday
-	TrainingDays int    `json:"training_days"`  // training / meeting / remote
-	AbsentDays   int    `json:"absent_days"`    // explicit unexplained absence
-	AttendanceRate int  `json:"attendance_rate"` // worked ÷ (worked + away + absent), %
+	StaffID        string `json:"staff_id"`
+	From           string `json:"from"` // YYYY-MM-DD inclusive
+	To             string `json:"to"`   // YYYY-MM-DD inclusive
+	WorkedDays     int    `json:"worked_days"`
+	WorkedHours    int    `json:"worked_hours"` // whole hours worked in the period
+	LateDays       int    `json:"late_days"`
+	SickDays       int    `json:"sick_days"`
+	LeaveDays      int    `json:"leave_days"`      // annual leave / holiday
+	TrainingDays   int    `json:"training_days"`   // training / meeting / remote
+	AbsentDays     int    `json:"absent_days"`     // explicit unexplained absence
+	AttendanceRate int    `json:"attendance_rate"` // worked ÷ (worked + away + absent), %
 }
 
 // AttendanceCorrectionRequest is a manager's manual edit to a record. Each

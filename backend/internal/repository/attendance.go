@@ -22,11 +22,11 @@ type AttendanceRepository interface {
 }
 
 type attendanceRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewAttendanceRepository(db *mongo.Database) AttendanceRepository {
-	return &attendanceRepository{col: db.Collection("attendance")}
+	return &attendanceRepository{col: NewTenantCollection(db, "attendance")}
 }
 
 func (r *attendanceRepository) Upsert(ctx context.Context, rec models.AttendanceRecord) (*models.AttendanceRecord, error) {

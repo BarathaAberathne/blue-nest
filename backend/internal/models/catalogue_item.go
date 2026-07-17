@@ -26,8 +26,9 @@ type CatalogueOffer struct {
 // known items resolve instantly, and the sourcing engine upserts new offers as
 // it discovers them. Foundation for the future inventory module.
 type CatalogueItem struct {
-	ID   primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Name string             `bson:"name"          json:"name"`
+	ID    primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	OrgID string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
+	Name  string             `bson:"name"          json:"name"`
 	// BaseName + Option let the UI group variants (Colour/Size/Type) of the same
 	// product into a product → variant picker. Each variant is its own doc (with
 	// its own Gompels code) so the sourcing engine's per-supplier Offers logic is

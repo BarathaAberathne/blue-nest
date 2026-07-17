@@ -10,6 +10,7 @@ import (
 // occupancy and available-places figures across the dashboard.
 type Room struct {
 	ID         primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	OrgID      string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	BranchSlug string             `bson:"branch_slug"   json:"branch_slug"`
 	Name       string             `bson:"name"          json:"name"`
 	AgeRange   string             `bson:"age_range"     json:"age_range"`

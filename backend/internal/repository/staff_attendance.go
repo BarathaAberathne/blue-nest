@@ -26,11 +26,11 @@ type StaffAttendanceRepository interface {
 }
 
 type staffAttendanceRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewStaffAttendanceRepository(db *mongo.Database) StaffAttendanceRepository {
-	return &staffAttendanceRepository{col: db.Collection("staff_attendance")}
+	return &staffAttendanceRepository{col: NewTenantCollection(db, "staff_attendance")}
 }
 
 func (r *staffAttendanceRepository) Upsert(ctx context.Context, rec models.StaffAttendanceRecord) (*models.StaffAttendanceRecord, error) {

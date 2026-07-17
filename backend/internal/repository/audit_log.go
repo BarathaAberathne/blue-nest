@@ -17,11 +17,11 @@ type AuditLogRepository interface {
 }
 
 type auditLogRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewAuditLogRepository(db *mongo.Database) AuditLogRepository {
-	return &auditLogRepository{col: db.Collection("audit_logs")}
+	return &auditLogRepository{col: NewTenantCollection(db, "audit_logs")}
 }
 
 func (r *auditLogRepository) Create(ctx context.Context, log *models.AuditLog) error {

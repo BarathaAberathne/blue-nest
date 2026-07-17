@@ -62,6 +62,7 @@ func (a ShippingAddress) HasContent() bool {
 
 type Order struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"    json:"id"`
+	OrgID       string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Ref         string             `bson:"ref,omitempty"    json:"ref,omitempty"` // human ref e.g. ORD-2026-000042
 	UserID      primitive.ObjectID `bson:"user_id"          json:"user_id"`
 	Items       []OrderItem        `bson:"items"            json:"items"`

@@ -31,11 +31,11 @@ type ChildRepository interface {
 }
 
 type childRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewChildRepository(db *mongo.Database) ChildRepository {
-	return &childRepository{col: db.Collection("children")}
+	return &childRepository{col: NewTenantCollection(db, "children")}
 }
 
 func (r *childRepository) Create(ctx context.Context, c *models.Child) error {

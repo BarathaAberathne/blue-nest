@@ -28,11 +28,11 @@ type StaffRepository interface {
 }
 
 type staffRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewStaffRepository(db *mongo.Database) StaffRepository {
-	return &staffRepository{col: db.Collection("staff")}
+	return &staffRepository{col: NewTenantCollection(db, "staff")}
 }
 
 func (r *staffRepository) Create(ctx context.Context, s *models.Staff) error {

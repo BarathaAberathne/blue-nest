@@ -13,22 +13,23 @@ import (
 // A staff member can have more than one shift on a day (split shifts).
 type Shift struct {
 	ID         primitive.ObjectID `bson:"_id,omitempty"    json:"id"`
+	OrgID      string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	StaffID    string             `bson:"staff_id,omitempty" json:"staff_id,omitempty"`
 	StaffName  string             `bson:"staff_name"       json:"staff_name"`
 	BranchSlug string             `bson:"branch_slug"      json:"branch_slug"`
 	// External marks an off-roster person (EYFS consultant, council visitor,
 	// agency cover) who has no staff record — StaffID is empty, StaffName is the
 	// typed name. Their shifts appear on the rota but never match attendance.
-	External   bool      `bson:"external,omitempty"  json:"external,omitempty"`
-	RoomID     string    `bson:"room_id,omitempty"   json:"room_id,omitempty"`
-	RoomName   string    `bson:"room_name,omitempty" json:"room_name,omitempty"`
-	Date       string    `bson:"date"             json:"date"`       // YYYY-MM-DD
-	StartTime  string    `bson:"start_time"       json:"start_time"` // HH:MM
-	EndTime    string    `bson:"end_time"         json:"end_time"`   // HH:MM
-	Notes      string    `bson:"notes,omitempty"  json:"notes,omitempty"`
-	CreatedBy  string    `bson:"created_by,omitempty" json:"created_by,omitempty"`
-	CreatedAt  time.Time `bson:"created_at"       json:"created_at"`
-	UpdatedAt  time.Time `bson:"updated_at"       json:"updated_at"`
+	External  bool      `bson:"external,omitempty"  json:"external,omitempty"`
+	RoomID    string    `bson:"room_id,omitempty"   json:"room_id,omitempty"`
+	RoomName  string    `bson:"room_name,omitempty" json:"room_name,omitempty"`
+	Date      string    `bson:"date"             json:"date"`       // YYYY-MM-DD
+	StartTime string    `bson:"start_time"       json:"start_time"` // HH:MM
+	EndTime   string    `bson:"end_time"         json:"end_time"`   // HH:MM
+	Notes     string    `bson:"notes,omitempty"  json:"notes,omitempty"`
+	CreatedBy string    `bson:"created_by,omitempty" json:"created_by,omitempty"`
+	CreatedAt time.Time `bson:"created_at"       json:"created_at"`
+	UpdatedAt time.Time `bson:"updated_at"       json:"updated_at"`
 }
 
 // ShiftRequest creates or updates a shift. Either StaffID (a roster member) or

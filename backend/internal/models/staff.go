@@ -29,6 +29,7 @@ const (
 // employment/HR data so future modules attach cleanly).
 type Staff struct {
 	ID             primitive.ObjectID `bson:"_id,omitempty"          json:"id"`
+	OrgID          string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Ref            string             `bson:"ref,omitempty"          json:"ref,omitempty"` // STF-YYYY-NNNNNN
 	FirstName      string             `bson:"first_name"             json:"first_name"`
 	LastName       string             `bson:"last_name"              json:"last_name"`

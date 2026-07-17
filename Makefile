@@ -213,6 +213,18 @@ backfill-refs:
 	  cd backend && go run ./cmd/backfillrefs; \
 	fi
 
+# Phase T0 tenancy migration: create the default Organisation + back-stamp org_id
+# onto every existing tenant-scoped document. Idempotent — safe to re-run.
+migrate-tenancy:
+	@echo "→ Multi-tenancy migration (create default org + back-stamp org_id)..."
+	@if docker compose ps backend --status running --quiet 2>/dev/null | grep -q .; then \
+	  echo "  using running backend container"; \
+	  docker compose exec backend ./migratetenancy; \
+	else \
+	  echo "  no backend container running → falling back to local Go toolchain"; \
+	  cd backend && go run ./cmd/migratetenancy; \
+	fi
+
 # ── Frontend image optimisation ──────────────────────────────────────────────
 # One-shot pass that resizes any /public image wider than 1920px down to 1920,
 # re-encodes JPEGs/PNGs with sane quality, and produces .webp siblings for

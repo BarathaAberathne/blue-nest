@@ -27,11 +27,11 @@ type BranchRepository interface {
 }
 
 type branchRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewBranchRepository(db *mongo.Database) BranchRepository {
-	return &branchRepository{col: db.Collection("branches")}
+	return &branchRepository{col: NewTenantCollection(db, "branches")}
 }
 
 func (r *branchRepository) FindAll(ctx context.Context) ([]models.Branch, error) {
