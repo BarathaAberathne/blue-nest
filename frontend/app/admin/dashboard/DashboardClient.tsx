@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowRight, BookOpen, Check, ChevronDown, ClipboardList, Eye, EyeOff, GripVertical, Inbox,
-  LayoutGrid, Maximize2, Minimize2, Package, Plus, PoundSterling, RotateCcw, Settings2,
-  ShoppingCart, Trash2, Truck,
+  ArrowRight, Baby, BookOpen, CalendarCheck, Check, ChevronDown, ClipboardList, Eye, EyeOff, Gauge,
+  GripVertical, Inbox, LayoutGrid, Maximize2, Minimize2, Package, Plus, PoundSterling, RotateCcw,
+  Settings2, ShieldAlert, ShoppingCart, Trash2, Truck, Users,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken, getAuthUser } from "@/lib/auth";
@@ -16,7 +16,7 @@ import { ORDER_STATUS_META } from "@/lib/admin-status";
 import { displayRef } from "@/lib/ref";
 import { DASHBOARD_WIDGET_KEYS, DASHBOARD_WIDGET_TITLES } from "@/lib/dashboard-widgets";
 import type { AccentName } from "@/lib/admin-theme";
-import type { BlogPost, DashboardLayout, DashboardWidget, Enquiry, Order, OrderRequest, Permission, ProcurementAnalytics, Product, UserRole } from "@/types";
+import type { AttendanceStats, BlogPost, ChildStats, DailyStats, DashboardLayout, DashboardWidget, Enquiry, Order, OrderRequest, Permission, ProcurementAnalytics, Product, StaffStats, UserRole } from "@/types";
 
 const fmtBranch = (b: string) => (b ? b.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "");
 
@@ -37,6 +37,12 @@ export default function DashboardClient() {
   const [inquiries, setInquiries] = useState<Enquiry[]>([]);
   const [orderRequests, setOrderRequests] = useState<OrderRequest[]>([]);
   const [analytics, setAnalytics] = useState<ProcurementAnalytics | null>(null);
+  // Nursery operations — the core of the business (reuses the same stats
+  // endpoints as the Command Centre; each gated by the caller's permission).
+  const [childStats, setChildStats] = useState<ChildStats | null>(null);
+  const [staffStats, setStaffStats] = useState<StaffStats | null>(null);
+  const [attStats, setAttStats] = useState<AttendanceStats | null>(null);
+  const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,6 +82,18 @@ export default function DashboardClient() {
         }
       }).catch(() => { /* best-effort — falls back to defaults */ }),
     );
+    // Branch managers see their own branch — pass it to the branch-filterable
+    // stats endpoints (the org-wide roles pass nothing and get the whole org).
+    const u = getAuthUser();
+    const bm = u?.role === "branch_manager" && (u?.branch_slugs?.length ?? 0) > 0;
+    const branchParam = bm ? { branch: u!.branch_slugs![0] } : undefined;
+
+    // Nursery operations (the primary business).
+    if (has("children.manage")) run(api.adminGetChildStats(token), (v) => setChildStats((v as ChildStats) ?? null));
+    if (has("attendance.manage")) run(api.adminGetAttendanceToday(token, branchParam), (v) => setAttStats((v as AttendanceStats) ?? null));
+    if (has("staff.manage")) run(api.adminGetStaffStats(token, branchParam), (v) => setStaffStats((v as StaffStats) ?? null));
+    if (has("daily_logs.manage")) run(api.adminGetDailyStats(token), (v) => setDailyStats((v as DailyStats) ?? null));
+
     if (has("store.manage")) {
       run(api.adminGetOrders(token), (v) => setOrders((v as Order[]) ?? []));
       run(api.adminGetProducts(token), (v) => setProducts((v as Product[]) ?? []));
@@ -176,6 +194,13 @@ export default function DashboardClient() {
   const scopedInquiries = branchManager ? inquiries.filter((e) => inBranch(e.branch)) : inquiries;
   const scopedRequests = branchManager ? orderRequests.filter((r) => inBranch(r.branch_slug)) : orderRequests;
 
+  // Children/occupancy: branch managers derive from the per-branch breakdown
+  // (childStats itself is org-wide); org-wide roles use the whole-org totals.
+  const childBranches = branchManager ? (childStats?.branches ?? []).filter((b) => inBranch(b.branch)) : null;
+  const childrenActive = childBranches ? childBranches.reduce((s, b) => s + b.children, 0) : (childStats?.active ?? 0);
+  const childCapacity = childBranches ? childBranches.reduce((s, b) => s + b.capacity, 0) : (childStats?.capacity ?? 0);
+  const occupancy = childBranches ? pct(childrenActive, childCapacity) : (childStats?.occupancy_rate ?? 0);
+
   const newInquiries = scopedInquiries.filter((e) => e.status === "new");
   const pendingRequests = scopedRequests.filter((r) => r.status === "pending");
   const paidOrders = orders.filter((o) => o.status === "paid" || o.status === "delivered" || o.status === "shipped");
@@ -196,6 +221,12 @@ export default function DashboardClient() {
   // Each KPI declares the permission that gates BOTH its data source and its
   // visibility, so specialist roles only see the cards they can populate.
   const kpis: { label: string; value: string; sub?: string; icon: React.ElementType; accent: AccentName; href: string; progress?: number; permission: Permission }[] = [
+    // Nursery operations first — the core of the business.
+    { label: "Children", value: String(childrenActive), sub: `${childStats?.waitlist ?? 0} on waitlist`, icon: Baby, accent: "teal", href: "/admin/children", permission: "children.manage" },
+    { label: "Occupancy", value: `${occupancy}%`, sub: `${childrenActive} of ${childCapacity} places`, icon: Gauge, accent: "blue", href: "/admin/children", progress: occupancy, permission: "children.manage" },
+    { label: "Today's Attendance", value: `${attStats?.attendance_rate ?? 0}%`, sub: `${attStats?.present ?? 0}/${attStats?.expected ?? 0} children in`, icon: CalendarCheck, accent: "green", href: "/admin/attendance", progress: attStats?.attendance_rate, permission: "attendance.manage" },
+    { label: "Staff Present", value: String(staffStats?.present ?? 0), sub: `of ${staffStats?.total ?? 0}${(staffStats?.on_leave ?? 0) > 0 ? ` · ${staffStats?.on_leave} on leave` : ""}`, icon: Users, accent: "indigo", href: "/admin/staff-attendance", progress: pct(staffStats?.present ?? 0, staffStats?.total ?? 0), permission: "staff.manage" },
+    { label: "Safeguarding", value: String(dailyStats?.safeguarding_open ?? 0), sub: (dailyStats?.safeguarding_open ?? 0) === 0 ? "no open concerns" : "open concerns", icon: ShieldAlert, accent: (dailyStats?.safeguarding_open ?? 0) > 0 ? "rose" : "slate", href: "/admin/daily-log", permission: "daily_logs.manage" },
     { label: "New Inquiries", value: String(newInquiries.length), sub: `${scopedInquiries.length} total received`, icon: Inbox, accent: "blue", href: "/admin/inquiries", permission: "enquiries.manage" },
     { label: "Pending Requests", value: String(pendingRequestsValue), sub: requestsSub, icon: ClipboardList, accent: "rose", href: "/admin/order-requests", permission: "procurement.view" },
     { label: "Procurement Spend", value: fmt(analytics?.total_spend ?? 0), sub: `${analytics?.total_orders ?? 0} purchase orders`, icon: PoundSterling, accent: "teal", href: "/admin/procurement/analytics", permission: "finance.view" },
