@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
+import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -579,6 +579,8 @@ export const api = {
   },
   adminGetStaffMember: (token: string, id: string) =>
     apiFetch<Staff>(`/api/v1/admin/staff/${id}`, { token }),
+  adminGetStaffAttendanceSummary: (token: string, id: string, params: { from: string; to: string }) =>
+    apiFetch<StaffAbsenceSummary>(`/api/v1/admin/staff/${id}/attendance-summary?from=${params.from}&to=${params.to}`, { token }),
   adminCreateStaff: (token: string, body: StaffInput) =>
     apiFetch<Staff>("/api/v1/admin/staff", { method: "POST", body: JSON.stringify(body), token }),
   adminUpdateStaff: (token: string, id: string, body: StaffInput) =>

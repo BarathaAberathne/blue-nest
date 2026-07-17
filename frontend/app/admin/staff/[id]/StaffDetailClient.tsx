@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, Award, Baby, BadgeCheck, Cake, CalendarClock, CalendarDays, Check, ChevronLeft, ChevronRight,
-  Clock, DoorOpen, KeyRound, Mail, MapPin, Pencil, Phone, Plus, Save, Search, ShieldCheck, Smile, StickyNote,
-  Tags as TagsIcon, Trash2, User, Users, X,
+  ArrowLeft, Award, Baby, BadgeCheck, Cake, CalendarClock, CalendarDays, CalendarX, Check, CheckCircle2,
+  ChevronDown, ChevronLeft, ChevronRight, Clock, DoorOpen, GraduationCap, KeyRound, Mail, MapPin, Palmtree,
+  Pencil, Phone, Plus, Save, Search, ShieldCheck, Smile, StickyNote, Tags as TagsIcon, Thermometer, Trash2,
+  User, Users, X,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
@@ -13,7 +14,7 @@ import { branchShortName } from "@/lib/branch";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { fmtDate } from "@/lib/child";
 import { dbsExpiry, staffStatusAccent, staffStatusLabel, staffTypeAccent, staffTypeLabel } from "@/lib/staff";
-import type { Branch, Child, Shift, Staff, StaffInput } from "@/types";
+import type { Branch, Child, Shift, Staff, StaffAbsenceSummary, StaffInput } from "@/types";
 
 // ── date helpers ─────────────────────────────────────────────────────────────
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -56,6 +57,8 @@ export default function StaffDetailClient({ id }: { id: string }) {
   const [member, setMember] = useState<Staff | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [absence, setAbsence] = useState<StaffAbsenceSummary | null>(null);
+  const [absExpanded, setAbsExpanded] = useState(false);
   const [week, setWeek] = useState(() => mondayOf(new Date()));
   const [tab, setTab] = useState<MainTab>("profile");
   const [sub, setSub] = useState<SubTab>("basic");
@@ -91,6 +94,22 @@ export default function StaffDetailClient({ id }: { id: string }) {
       .catch(() => { if (active) setShifts([]); });
     return () => { active = false; };
   }, [member?.branch_slug, week, id]);
+
+  // Attendance/absence summary for the current calendar year — powers the
+  // Absence card + attendance donut on the profile dashboard.
+  const absenceRange = useMemo(() => {
+    const y = new Date().getFullYear();
+    return { from: `${y}-01-01`, to: `${y}-12-31`, label: `1 Jan ${y} – 31 Dec ${y}` };
+  }, []);
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token) return;
+    let active = true;
+    api.adminGetStaffAttendanceSummary(token, id, { from: absenceRange.from, to: absenceRange.to })
+      .then((s) => { if (active) setAbsence(s); })
+      .catch(() => { if (active) setAbsence(null); });
+    return () => { active = false; };
+  }, [id, absenceRange]);
 
   const branchName = useMemo(() => new Map(branches.map((b) => [b.slug, branchShortName(b)])), [branches]);
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => { const d = new Date(week); d.setDate(d.getDate() + i); return d; }), [week]);
@@ -245,36 +264,55 @@ export default function StaffDetailClient({ id }: { id: string }) {
               )}
             </section>
 
-            {/* Compliance */}
-            <section className="card p-5" aria-labelledby="comp-h">
-              <h2 id="comp-h" className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-400">Compliance</h2>
-              <div className="space-y-4 text-sm">
-                <div>
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-slate-400"><ShieldCheck className="h-4 w-4" /> DBS check</div>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-slate-800">
-                    <span>{member.dbs_number || "Not recorded"}</span>
-                    {dbs && <StageBadge label={dbs.label} accent={dbs.accent} withDot={false} />}
-                  </div>
-                  <p className="text-xs text-slate-400">{member.dbs_expiry ? `Expires ${fmtDate(member.dbs_expiry)}` : "No expiry recorded"}</p>
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-slate-400"><Award className="h-4 w-4" /> Paediatric first aid</div>
-                  <div className="mt-1 text-slate-800">{member.first_aid_expiry ? `Expires ${fmtDate(member.first_aid_expiry)}` : "Not recorded"}</div>
-                </div>
+            {/* Attendance & absence — real per-staff aggregation over the year */}
+            <section className="card p-5" aria-labelledby="abs-h">
+              <div className="mb-1 flex items-center justify-between">
+                <h2 id="abs-h" className="text-sm font-bold uppercase tracking-widest text-slate-400">Attendance</h2>
+                <span className="text-xs text-slate-400">{absenceRange.label}</span>
+              </div>
+              <p className="mb-3 text-xs text-slate-400">Captured working days over the year — kiosk &amp; corrections.</p>
+              <div className="space-y-1">
+                <KpiRow icon={CheckCircle2} tone="green" label="Worked"
+                  value={absence ? `${absence.worked_days} days${absence.worked_hours ? ` (${absence.worked_hours}h)` : ""}` : "—"}
+                  expandable rows={absence ? [["Late arrivals", `${absence.late_days} days`], ["Hours worked", `${absence.worked_hours}h`]] : []}
+                  expanded={absExpanded} onToggle={() => setAbsExpanded((v) => !v)} />
+                <KpiRow icon={Thermometer} tone="red" label="Sick" value={absence ? `${absence.sick_days} days` : "—"} />
+                <KpiRow icon={Palmtree} tone="sky" label="Leave / holiday" value={absence ? `${absence.leave_days} days` : "—"} />
+                <KpiRow icon={GraduationCap} tone="violet" label="Training" value={absence ? `${absence.training_days} days` : "—"} />
+                <KpiRow icon={CalendarX} tone="slate" label="Absent" value={absence ? `${absence.absent_days} days` : "—"} />
               </div>
             </section>
 
-            {/* At a glance */}
-            <section className="card p-5" aria-labelledby="glance-h">
-              <h2 id="glance-h" className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-400">At a glance</h2>
-              <dl className="grid grid-cols-2 gap-4 text-sm">
-                <Stat icon={Clock} label="Contract" value={member.contract_hours ? `${member.contract_hours}h / wk` : "—"} />
-                <Stat icon={BadgeCheck} label="Type" value={staffTypeLabel[member.staff_type]} />
-                <Stat icon={CalendarClock} label="Started" value={member.start_date ? fmtDate(member.start_date) : "—"} />
-                <Stat icon={KeyRound} label="Kiosk PIN" value={member.has_pin ? "Set" : "Not set"} accent={member.has_pin ? "green" : "amber"} />
-              </dl>
+            {/* Attendance donut — worked vs away, real values */}
+            <section className="card flex flex-col items-center p-5" aria-labelledby="donut-h">
+              <div className="mb-1 flex w-full items-center justify-between">
+                <h2 id="donut-h" className="text-sm font-bold uppercase tracking-widest text-slate-400">Attendance rate</h2>
+              </div>
+              <p className="mb-2 w-full text-xs text-slate-400">{absenceRange.label}</p>
+              <AttendanceDonut summary={absence} />
             </section>
           </div>
+
+          {/* Compliance strip — DBS + first aid (kept, condensed) */}
+          <section className="card grid grid-cols-1 gap-4 p-5 sm:grid-cols-3" aria-labelledby="comp-h">
+            <h2 id="comp-h" className="sr-only">Compliance</h2>
+            <div>
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400"><ShieldCheck className="h-4 w-4" /> DBS check</div>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-800">
+                <span>{member.dbs_number || "Not recorded"}</span>
+                {dbs && <StageBadge label={dbs.label} accent={dbs.accent} withDot={false} />}
+              </div>
+              <p className="text-xs text-slate-400">{member.dbs_expiry ? `Expires ${fmtDate(member.dbs_expiry)}` : "No expiry recorded"}</p>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400"><Award className="h-4 w-4" /> Paediatric first aid</div>
+              <div className="mt-1 text-sm text-slate-800">{member.first_aid_expiry ? `Expires ${fmtDate(member.first_aid_expiry)}` : "Not recorded"}</div>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400"><KeyRound className="h-4 w-4" /> Kiosk PIN</div>
+              <div className={`mt-1 text-sm font-medium ${member.has_pin ? "text-green-600" : "text-amber-600"}`}>{member.has_pin ? "Set" : "Not set"}</div>
+            </div>
+          </section>
 
           {/* About panel */}
           <section className="card overflow-hidden" aria-labelledby="about-h">
@@ -429,12 +467,72 @@ export default function StaffDetailClient({ id }: { id: string }) {
 }
 
 // ── small components ─────────────────────────────────────────────────────────
-function Stat({ icon: Icon, label, value, accent }: { icon: typeof User; label: string; value: string; accent?: "green" | "amber" }) {
-  const tone = accent === "green" ? "text-green-600" : accent === "amber" ? "text-amber-600" : "text-slate-800";
+// ── KpiRow — a colour-separated stat row: icon chip · label · bold value,
+// optionally expandable into sub-rows (matches the reference design). ─────────
+const KPI_TONE: Record<string, string> = {
+  green: "bg-green-50 text-green-600",
+  red: "bg-red-50 text-red-500",
+  sky: "bg-sky-50 text-sky-600",
+  violet: "bg-violet-50 text-violet-600",
+  slate: "bg-slate-100 text-slate-500",
+};
+function KpiRow({ icon: Icon, tone, label, value, expandable, rows, expanded, onToggle }: {
+  icon: typeof User; tone: keyof typeof KPI_TONE | string; label: string; value: string;
+  expandable?: boolean; rows?: [string, string][]; expanded?: boolean; onToggle?: () => void;
+}) {
+  const chip = KPI_TONE[tone] ?? KPI_TONE.slate;
+  const body = (
+    <div className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition ${expanded ? "bg-slate-50" : "hover:bg-slate-50"}`}>
+      <span className={`grid h-9 w-9 flex-none place-items-center rounded-lg ${chip}`}><Icon className="h-4 w-4" /></span>
+      <span className="flex-1 text-sm font-medium text-slate-700">{label}</span>
+      <span className="text-sm font-bold tabular-nums text-slate-900">{value}</span>
+      {expandable && <ChevronDown className={`h-4 w-4 text-slate-400 transition ${expanded ? "rotate-180" : ""}`} />}
+    </div>
+  );
   return (
     <div>
-      <dt className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-slate-400"><Icon className="h-3.5 w-3.5" /> {label}</dt>
-      <dd className={`mt-1 text-sm font-semibold ${tone}`}>{value}</dd>
+      {expandable ? (
+        <button type="button" onClick={onToggle} aria-expanded={expanded} className="w-full text-left">{body}</button>
+      ) : body}
+      {expandable && expanded && (rows?.length ?? 0) > 0 && (
+        <ul className="mb-1 space-y-1.5 py-1 pl-[3.75rem] pr-3">
+          {rows!.map(([k, v]) => (
+            <li key={k} className="flex items-center justify-between text-xs text-slate-500"><span>{k}</span><span className="font-semibold text-slate-700">{v}</span></li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ── AttendanceDonut — a real ring chart: worked days vs away, with the
+// attendance rate at the centre. ─────────────────────────────────────────────
+function AttendanceDonut({ summary }: { summary: StaffAbsenceSummary | null }) {
+  const worked = summary?.worked_days ?? 0;
+  const away = summary ? summary.sick_days + summary.leave_days + summary.training_days + summary.absent_days : 0;
+  const total = worked + away;
+  const rate = summary?.attendance_rate ?? 0;
+  const workedLen = total > 0 ? Math.round((worked / total) * 314) : 0; // pathLength=314
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative h-[172px] w-[172px]">
+        <svg viewBox="0 0 120 120" width="172" height="172" style={{ transform: "rotate(-90deg)" }}
+          role="img" aria-label={`Attendance ${rate}% — ${worked} worked days of ${total} recorded`}>
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#e7ecf3" strokeWidth="16" pathLength={314} />
+          {total > 0 && <circle cx="60" cy="60" r="50" fill="none" stroke="#0f9d8c" strokeWidth="16" strokeLinecap="round" strokeDasharray={`${workedLen} 314`} pathLength={314} />}
+        </svg>
+        <div className="absolute inset-0 grid place-content-center text-center" aria-hidden="true">
+          <span className="text-2xl font-extrabold tracking-tight text-slate-900">{total > 0 ? `${rate}%` : "—"}</span>
+          <span className="mt-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400">Attendance</span>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap justify-center gap-4 text-xs text-slate-500">
+        <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm" style={{ background: "#0f9d8c" }} /> Worked · {worked}</span>
+        <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-slate-200" /> Away · {away}</span>
+      </div>
+      <div className="mt-4 flex w-full items-center justify-center gap-2 border-t border-dashed border-slate-200 pt-3 text-sm text-slate-500">
+        Hours worked: <b className="text-slate-800">{summary?.worked_hours ?? 0}h</b>
+      </div>
     </div>
   );
 }

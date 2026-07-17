@@ -61,6 +61,9 @@ type StaffAttendanceService interface {
 	// Correct applies a manager's manual edit, appending an audit correction and
 	// recomputing the derived minutes.
 	Correct(ctx context.Context, id string, req models.AttendanceCorrectionRequest, actorID, actorName string, allowed []string) (*models.StaffAttendanceRecord, error)
+	// PeriodSummary aggregates one staff member's attendance over a date range for
+	// the staff-profile dashboard (worked/sick/leave/absent days + attendance rate).
+	PeriodSummary(ctx context.Context, staffID, from, to string) (*models.StaffAbsenceSummary, error)
 }
 
 type staffAttendanceService struct {
@@ -329,6 +332,41 @@ func (s *staffAttendanceService) Mark(ctx context.Context, req models.StaffAtten
 		rec.LateArrival = false
 	}
 	return s.repo.Upsert(ctx, rec)
+}
+
+func (s *staffAttendanceService) PeriodSummary(ctx context.Context, staffID, from, to string) (*models.StaffAbsenceSummary, error) {
+	if from == "" || to == "" {
+		return nil, errors.New("from and to dates are required")
+	}
+	recs, err := s.repo.FindByStaffRange(ctx, staffID, from, to)
+	if err != nil {
+		return nil, err
+	}
+	sum := &models.StaffAbsenceSummary{StaffID: staffID, From: from, To: to}
+	workedMinutes := 0
+	for _, r := range recs {
+		switch {
+		case r.IsWorking():
+			sum.WorkedDays++
+			workedMinutes += r.WorkedMinutes
+			if r.LateArrival {
+				sum.LateDays++
+			}
+		case r.Status == models.StaffAttSick:
+			sum.SickDays++
+		case r.Status == models.StaffAttLeave:
+			sum.LeaveDays++
+		case models.IsAway(r.Status): // training / meeting / remote (sick + leave handled above)
+			sum.TrainingDays++
+		case r.Status == models.StaffAttAbsent:
+			sum.AbsentDays++
+		}
+	}
+	sum.WorkedHours = workedMinutes / 60
+	// Attendance rate = worked ÷ every accounted day (worked + away + absent).
+	accounted := sum.WorkedDays + sum.SickDays + sum.LeaveDays + sum.TrainingDays + sum.AbsentDays
+	sum.AttendanceRate = percent(sum.WorkedDays, accounted)
+	return sum, nil
 }
 
 // daysUntil returns whole days from now to a YYYY-MM-DD date (negative if past).

@@ -1148,6 +1148,20 @@ export interface AttendanceDaySummary {
   branches?: StaffBranchAttendanceStat[];
 }
 
+export interface StaffAbsenceSummary {
+  staff_id: string;
+  from: string;
+  to: string;
+  worked_days: number;
+  worked_hours: number;
+  late_days: number;
+  sick_days: number;
+  leave_days: number;
+  training_days: number;
+  absent_days: number;
+  attendance_rate: number;
+}
+
 export interface AttendanceCorrectionInput {
   staff_id?: string; // enables create-on-correct for staff with no record yet
   date?: string;

@@ -334,6 +334,9 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				adminStaffH := adminHandler.NewAdminStaffHandler(svc.Staff, svc.Audit)
 				r.Get("/admin/staff", adminStaffH.List)
 				r.Get("/admin/staff/{id}", adminStaffH.Get)
+				r.Get("/admin/staff/{id}/attendance-summary", func(w http.ResponseWriter, r *http.Request) {
+					adminStaffH.AttendanceSummary(w, r, svc.StaffAttendance)
+				})
 				r.Post("/admin/staff", adminStaffH.Create)
 				r.Put("/admin/staff/{id}", adminStaffH.Update)
 				r.Delete("/admin/staff/{id}", adminStaffH.Delete)

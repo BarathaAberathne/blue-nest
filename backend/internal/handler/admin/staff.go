@@ -107,6 +107,29 @@ func (h *AdminStaffHandler) Update(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, updated)
 }
 
+// AttendanceSummary aggregates a staff member's attendance over a date range
+// (?from=&to=, default last 12 months) for the staff-profile Absence card.
+func (h *AdminStaffHandler) AttendanceSummary(w http.ResponseWriter, r *http.Request, attendance service.StaffAttendanceService) {
+	id := chi.URLParam(r, "id")
+	staff, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "staff not found")
+		return
+	}
+	if !inScope(r, staff.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	q := r.URL.Query()
+	from, to := q.Get("from"), q.Get("to")
+	sum, err := attendance.PeriodSummary(r.Context(), id, from, to)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	response.OK(w, sum)
+}
+
 func (h *AdminStaffHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	existing, err := h.svc.GetByID(r.Context(), id)
