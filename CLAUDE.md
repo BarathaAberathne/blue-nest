@@ -1,8 +1,64 @@
 # Blue Nest Montessori — Project Guide (for AI agents & new devs)
 
-Monorepo for the Blue Nest Montessori website + admin/operations system. Being grown toward a
-full **nursery management system** (HR, rotas, inventory) — keep auth/accounts separate from
-future employment/HR data so new modules attach cleanly.
+Monorepo for the Blue Nest Montessori website + admin/operations system. The **North Star** is bigger than
+one nursery: this is being built into a **scalable, enterprise-grade, AI-native multi-tenant Nursery
+Management SaaS** — one codebase that runs many nursery **organisations**, each with unlimited branches,
+with AI embedded throughout. Blue Nest is simply the first tenant. Keep auth/accounts separate from
+employment/HR data so new modules attach cleanly.
+
+## Platform vision & architecture (the standing design rules)
+Before writing any code, ask: **"Would this still be right with hundreds of branches across multiple
+organisations and AI embedded throughout?"** If no, redesign first. Concretely, every module MUST:
+- **Be tenant-aware.** The hierarchy is **Organisation → Branch → Room**. Every operational entity carries
+  `org_id` (and, where relevant, `branch_slug`) from day one. **No new feature ships without `org_id`.**
+- **Follow the standard slice** (model → repository → service → handler → routes under `RequirePermission`
+  → `response` envelope), business logic out of the UI, consistent APIs.
+- **Be role-based + per-org extensible** in permissions (`models/permission.go` is already role→permission;
+  custom roles become per-org).
+- **Be configurable, not hardcoded** — branches, rooms, age groups, funding rules, term dates, branding all
+  come from org/branch config, never literals.
+- **Be AI-ready** — expose its reads as tools the AI service layer can call (see Phase A0), so any future AI
+  feature can interact with the module without bespoke plumbing.
+
+**Tenancy model (decided): shared database, row-level `org_id` discriminator.** One Mongo database; every
+collection gains `org_id`; isolation is enforced **centrally** in the repository + policy layer (never
+per-query discipline) — the request's org is resolved once (JWT `org_id` claim + subdomain/custom-domain)
+into context, and every `Find/Create/Update` stamps + filters it. A `platform_super_admin` (the SaaS
+operator) is the ONLY cross-org role; every tenant role — including today's org-wide `super_admin`/`admin`/
+`director` — is pinned to its own organisation. A DB-per-tenant "enterprise isolation" tier is a later
+premium option, not the default. This keeps cross-org platform analytics + AI simple at scale.
+
+### Platform roadmap (phased; execute in order — tenancy precedes everything)
+- **Phase T0 — Tenancy foundation (must precede new features).** `models/organisation.go` (`Organisation`:
+  slug, name, `branding{logo,colours,domain}`, plan/tier, status, settings). Add `OrgID` (additive,
+  omitempty) to every operational model + `users`. `middleware` resolves org from JWT/host → context
+  (`OrgIDKey`); the repository layer stamps + filters `org_id` centrally. `policy` becomes two-dimensional
+  (org scope wraps the existing branch scope; `platform_super_admin` = cross-org). Auth: login resolves the
+  user's org; JWT carries `org_id`/`org_slug`; onboarding creates an org. `cmd/migrate-tenancy` (idempotent)
+  creates the first Organisation ("Blue Nest") and back-stamps `org_id` onto all existing rows. **Verify:**
+  two orgs, complete isolation (org A cannot see org B's branches/staff/children/anything), Blue Nest data
+  intact under org 1.
+- **Phase T1 — Org-scoped configuration & customisation.** Per-org custom roles + permission sets (extend
+  the DB-backed `roleCache`), branding, feature flags / plan tiers, branch templates, room & age-group
+  config, term dates, funding rules, email templates. Org onboarding/provisioning + settings surface.
+  "Branches configurable, not hardcoded" fully realised.
+- **Phase A0 — AI service layer (backend, tenant-scoped).** A first-class `internal/service/ai` (not a
+  frontend afterthought) wrapping the LLM. Every AI call is org-scoped and can ONLY see its tenant's data.
+  **Tool-use contract:** the AI calls the CMS's own service methods (children/staff/attendance/enquiries/
+  finance) as tools, gated by the caller's permissions + org/branch scope — the concrete meaning of "every
+  module designed so AI can interact with it". Move `/api/chat` behind this service; make it context-aware
+  (role + org + current module), data-aware (via tools) and stateful (per-user conversation persistence).
+- **Phase A1+ — AI capabilities (each a module on the A0 contract, none re-implementing data access):**
+  role-based AI assistants; AI dashboards + business insights (occupancy forecasting, staffing recs,
+  financial analysis); AI-generated EYFS observations + learning journeys; AI enquiry management; AI
+  marketing/SEO automation; AI compliance + safeguarding monitoring; AI document generation, knowledge base,
+  automation workflows. Prioritised per product need; all reuse A0's tool contract.
+
+**Current status:** single-tenant (no `Organisation` entity yet — "Organisation" is only a permission
+category label). Branch is the de-facto top-level scope (18 models key on `branch_slug`; `Branch.GroupID`
+is a reserved placeholder). A working Anthropic chat endpoint exists (`/api/chat`, per-page system prompts)
+but is frontend-only, stateless and has no tool access to CMS data. **Phase T0 is the next foundational
+work; features built before it that omit `org_id` become rework.**
 
 ## Stack & layout
 - **Backend:** Go (chi router, MongoDB driver) in `backend/`.
