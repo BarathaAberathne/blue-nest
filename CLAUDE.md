@@ -44,10 +44,20 @@ premium option, not the default. This keeps cross-org platform analytics + AI si
   rows (ran locally: 1 org + 1,682 docs). **Verified:** two-org isolation — each org's admin sees only its
   own branches/staff/children, cross-tenant fetch-by-id is 404 both ways, writes stamp the correct tenant,
   the public store serves the default tenant, and the existing Blue Nest app is intact.
-- **Phase T1 — Org-scoped configuration & customisation.** Per-org custom roles + permission sets (extend
-  the DB-backed `roleCache`), branding, feature flags / plan tiers, branch templates, room & age-group
-  config, term dates, funding rules, email templates. Org onboarding/provisioning + settings surface.
-  "Branches configurable, not hardcoded" fully realised.
+- **Phase T1 — Org-scoped configuration & customisation — IN PROGRESS.** Delivered: **org self-service**
+  (`GET/PUT /admin/organisation` for the caller's OWN org — name/branding/settings only; slug/plan/status/
+  domains stay platform-controlled) with a settings surface at `/admin/organisation` (super-admin nav item:
+  profile, branding + colour pickers, feature-flag toggles, live preview); **feature flags** on the org
+  (`OrgSettings.Features` + `Organisation.HasFeature(name)` — the gate every future module/plan-tier uses);
+  **tenant onboarding** — the platform `POST /admin/organisations` optionally provisions the new tenant's
+  first super-admin in one call (`admin_email`/`admin_password`), created in the new org's context so it's
+  usable + isolated immediately (verified: the provisioned admin logs in and sees 0 of another tenant's
+  data). `RolePlatformSuperAdmin` added to `ManagementRoles` so the operator can sign into the admin shell.
+  **Still to do in T1:** per-org custom roles + permission sets (the DB-backed `roleCache` is still global —
+  the `roles` collection already carries `org_id`, so this becomes org-scoped role resolution), branch
+  templates, room/age-group config, term dates, funding rules, email templates, and wiring org branding into
+  the live admin theme. **Note:** the `org_id` JWT claim means sessions issued before T0 lack it — users must
+  re-login after deploy (or let tokens expire) to get org-scoped access + the org page.
 - **Phase A0 — AI service layer (backend, tenant-scoped).** A first-class `internal/service/ai` (not a
   frontend afterthought) wrapping the LLM. Every AI call is org-scoped and can ONLY see its tenant's data.
   **Tool-use contract:** the AI calls the CMS's own service methods (children/staff/attendance/enquiries/

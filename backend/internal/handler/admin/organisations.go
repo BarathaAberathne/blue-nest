@@ -3,6 +3,7 @@ package admin
 import (
 	"net/http"
 
+	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
@@ -67,5 +68,50 @@ func (h *AdminOrganisationHandler) Update(w http.ResponseWriter, r *http.Request
 		return
 	}
 	h.audit.Record(r, "update", "organisation", id, "Updated organisation "+org.Name, nil)
+	response.OK(w, org)
+}
+
+// ── Org self-service: an org's own super-admin manages THEIR organisation ────
+
+func callerOrg(r *http.Request) string {
+	id, _ := r.Context().Value(middleware.UserOrgKey).(string)
+	return id
+}
+
+// GetCurrent returns the caller's own organisation (name, branding, settings,
+// plan). Used to render tenant branding + the org-settings page.
+func (h *AdminOrganisationHandler) GetCurrent(w http.ResponseWriter, r *http.Request) {
+	orgID := callerOrg(r)
+	if orgID == "" {
+		response.NotFound(w, "no organisation on this session")
+		return
+	}
+	org, err := h.svc.GetByID(r.Context(), orgID)
+	if err != nil {
+		response.NotFound(w, "organisation not found")
+		return
+	}
+	response.OK(w, org)
+}
+
+// UpdateCurrent lets the caller edit their own organisation's name/branding/
+// settings (slug/plan/status/domains stay platform-controlled).
+func (h *AdminOrganisationHandler) UpdateCurrent(w http.ResponseWriter, r *http.Request) {
+	orgID := callerOrg(r)
+	if orgID == "" {
+		response.Forbidden(w, "no organisation on this session")
+		return
+	}
+	var req models.OrgProfileRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	org, err := h.svc.UpdateProfile(r.Context(), orgID, req)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "update", "organisation", orgID, "Updated organisation profile "+org.Name, nil)
 	response.OK(w, org)
 }

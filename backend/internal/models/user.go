@@ -50,6 +50,7 @@ const (
 // ManagementRoles are every non-customer back-office role (they reach the admin
 // shell; what they can do inside is governed by permissions).
 var ManagementRoles = []Role{
+	RolePlatformSuperAdmin, // SaaS operator — signs into the admin shell to manage tenants
 	RoleSuperAdmin, RoleAdmin, RoleBranchManager,
 	RoleFinance, RoleAdmissions, RoleProcurement, RoleStaff,
 	RoleDirector, RoleRegionalManager, RoleDeputyManager,

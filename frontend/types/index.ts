@@ -48,6 +48,35 @@ export interface BranchManagers {
   key_persons?: string[];
 }
 
+// ── Organisation (tenant) ────────────────────────────────────────────────────
+export interface OrgBranding {
+  logo_url?: string;
+  primary_color?: string;
+  accent_color?: string;
+}
+export interface OrgSettings {
+  timezone?: string;
+  currency?: string;
+  features?: string[];
+}
+export interface Organisation {
+  id: string;
+  slug: string;
+  name: string;
+  status: string;
+  plan?: string;
+  branding: OrgBranding;
+  domains?: string[];
+  settings: OrgSettings;
+  created_at?: string;
+  updated_at?: string;
+}
+export interface OrgProfileInput {
+  name: string;
+  branding: OrgBranding;
+  settings: OrgSettings;
+}
+
 export interface Branch {
   id: string;
   ref?: string; // BR-YYYY-NNNNNN

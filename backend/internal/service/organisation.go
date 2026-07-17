@@ -10,23 +10,29 @@ import (
 	"github.com/blue-nest-montessori/api/internal/repository"
 )
 
-// OrganisationService manages tenants (platform-operator scope).
+// OrganisationService manages tenants (platform-operator scope) and each org's
+// self-service profile.
 type OrganisationService interface {
 	List(ctx context.Context) ([]models.Organisation, error)
 	GetByID(ctx context.Context, id string) (*models.Organisation, error)
 	GetBySlug(ctx context.Context, slug string) (*models.Organisation, error)
 	// ResolveByHost maps a request host to its tenant (custom domain / subdomain).
 	ResolveByHost(ctx context.Context, host string) (*models.Organisation, error)
+	// Create provisions a tenant; when AdminEmail/Password are set it also creates
+	// the org's first super-admin so the tenant is immediately usable.
 	Create(ctx context.Context, req models.OrganisationRequest) (*models.Organisation, error)
 	Update(ctx context.Context, id string, req models.OrganisationRequest) (*models.Organisation, error)
+	// UpdateProfile lets an org's own super-admin edit name/branding/settings only.
+	UpdateProfile(ctx context.Context, id string, req models.OrgProfileRequest) (*models.Organisation, error)
 }
 
 type organisationService struct {
 	repo repository.OrganisationRepository
+	auth AuthService // for onboarding the first admin of a new tenant
 }
 
-func NewOrganisationService(repo repository.OrganisationRepository) OrganisationService {
-	return &organisationService{repo: repo}
+func NewOrganisationService(repo repository.OrganisationRepository, auth AuthService) OrganisationService {
+	return &organisationService{repo: repo, auth: auth}
 }
 
 var orgSlugRe = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
@@ -83,7 +89,43 @@ func (s *organisationService) Create(ctx context.Context, req models.Organisatio
 	if err := s.repo.Create(ctx, o); err != nil {
 		return nil, err
 	}
+	// Onboarding: provision the tenant's first super-admin so it's usable
+	// immediately. Runs in the NEW org's context so the user is stamped with it.
+	if strings.TrimSpace(req.AdminEmail) != "" && s.auth != nil {
+		orgCtx := repository.WithOrg(ctx, o.ID.Hex())
+		_, err := s.auth.CreateAdminUser(orgCtx, models.AdminCreateUserRequest{
+			Email:     strings.TrimSpace(req.AdminEmail),
+			Password:  req.AdminPassword,
+			FirstName: firstOr(req.AdminFirstName, "Org"),
+			LastName:  firstOr(req.AdminLastName, "Admin"),
+			Role:      models.RoleSuperAdmin,
+		})
+		if err != nil {
+			return nil, errors.New("organisation created but admin provisioning failed: " + err.Error())
+		}
+	}
 	return o, nil
+}
+
+func firstOr(v, def string) string {
+	if strings.TrimSpace(v) == "" {
+		return def
+	}
+	return v
+}
+
+func (s *organisationService) UpdateProfile(ctx context.Context, id string, req models.OrgProfileRequest) (*models.Organisation, error) {
+	cur, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(req.Name) == "" {
+		return nil, errors.New("name is required")
+	}
+	cur.Name = strings.TrimSpace(req.Name)
+	cur.Branding = req.Branding
+	cur.Settings = req.Settings
+	return s.repo.Update(ctx, id, *cur)
 }
 
 func (s *organisationService) Update(ctx context.Context, id string, req models.OrganisationRequest) (*models.Organisation, error) {

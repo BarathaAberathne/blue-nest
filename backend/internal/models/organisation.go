@@ -41,19 +41,47 @@ type OrgBranding struct {
 	AccentColor  string `bson:"accent_color,omitempty"  json:"accent_color,omitempty"`
 }
 
-// OrgSettings holds per-org configuration (extended in Phase T1: term dates,
-// funding rules, feature flags, custom roles…).
+// OrgSettings holds per-org configuration (extended over T1: term dates, funding
+// rules, email templates…). Features are the org's enabled capability flags.
 type OrgSettings struct {
-	Timezone string `bson:"timezone,omitempty" json:"timezone,omitempty"`
-	Currency string `bson:"currency,omitempty" json:"currency,omitempty"`
+	Timezone string   `bson:"timezone,omitempty" json:"timezone,omitempty"`
+	Currency string   `bson:"currency,omitempty" json:"currency,omitempty"`
+	Features []string `bson:"features,omitempty" json:"features,omitempty"` // enabled feature flags
 }
 
-// OrganisationRequest creates/updates an organisation (platform-admin only).
+// HasFeature reports whether a feature flag is enabled for this org — the hook
+// every future module uses to gate tenant-specific / plan-tier capabilities.
+func (o Organisation) HasFeature(name string) bool {
+	for _, f := range o.Settings.Features {
+		if f == name {
+			return true
+		}
+	}
+	return false
+}
+
+// OrganisationRequest creates/updates an organisation (platform operator). When
+// AdminEmail + AdminPassword are supplied on create, the first super-admin of the
+// new tenant is provisioned in one step so the org is immediately usable.
 type OrganisationRequest struct {
 	Slug     string      `json:"slug" validate:"required"`
 	Name     string      `json:"name" validate:"required"`
 	Plan     string      `json:"plan"`
 	Branding OrgBranding `json:"branding"`
 	Domains  []string    `json:"domains"`
+	Settings OrgSettings `json:"settings"`
+	// Optional first-admin provisioning (onboarding).
+	AdminEmail     string `json:"admin_email"`
+	AdminPassword  string `json:"admin_password"`
+	AdminFirstName string `json:"admin_first_name"`
+	AdminLastName  string `json:"admin_last_name"`
+}
+
+// OrgProfileRequest is an org's OWN super-admin editing their organisation —
+// name, branding and settings only. Slug, plan, status and domains are
+// platform-controlled and cannot be changed here.
+type OrgProfileRequest struct {
+	Name     string      `json:"name" validate:"required"`
+	Branding OrgBranding `json:"branding"`
 	Settings OrgSettings `json:"settings"`
 }

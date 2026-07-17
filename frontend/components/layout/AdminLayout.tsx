@@ -9,6 +9,7 @@ import {
   BarChart3,
   BookOpen,
   Building2,
+  SlidersHorizontal,
   CalendarCheck,
   ClipboardList,
   DoorOpen,
@@ -59,6 +60,7 @@ const NAV_SECTIONS: NavSection[] = [
     heading: "Organisation",
     items: [
       { label: "Branches", href: "/admin/branches", icon: Building2, permission: "branches.manage" },
+      { label: "Settings", href: "/admin/organisation", icon: SlidersHorizontal, permission: "dashboard.view", roles: ["super_admin"] },
     ],
   },
   {

@@ -195,6 +195,12 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Use(middleware.Auth(jwtSecret))
 			r.Use(middleware.ManagementOnly)
 
+			// Organisation (own tenant): any back-office role can read their org's
+			// profile/branding; only the org's super-admin can edit it.
+			orgSelfH := adminHandler.NewAdminOrganisationHandler(svc.Organisations, svc.Audit)
+			r.Get("/admin/organisation", orgSelfH.GetCurrent)
+			r.With(middleware.SuperAdminOnly).Put("/admin/organisation", orgSelfH.UpdateCurrent)
+
 			// Store — products, categories, orders.
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermStoreManage))
