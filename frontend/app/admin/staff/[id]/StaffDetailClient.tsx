@@ -40,6 +40,18 @@ const childAge = (dob?: string) => {
 type MainTab = "profile" | "contacts" | "calendar";
 type SubTab = "basic" | "quals" | "keys" | "contract" | "tags";
 
+// memberToInput maps a saved Staff record to the editable StaffInput the update
+// endpoint expects (login fields default to "no change"). Single mapping reused
+// by the edit form and the inline field-patch saves.
+const memberToInput = (m: Staff): StaffInput => ({
+  first_name: m.first_name, last_name: m.last_name, email: m.email ?? "", phone: m.phone ?? "",
+  branch_slug: m.branch_slug, room_id: m.room_id ?? "", job_title: m.job_title ?? "",
+  staff_type: m.staff_type, status: m.status, start_date: m.start_date ?? "",
+  contract_hours: m.contract_hours ?? 0, qualifications: m.qualifications ?? [],
+  dbs_number: m.dbs_number ?? "", dbs_expiry: m.dbs_expiry ?? "", first_aid_expiry: m.first_aid_expiry ?? "",
+  enable_login: false, login_role: "staff", login_password: "",
+});
+
 export default function StaffDetailClient({ id }: { id: string }) {
   const [member, setMember] = useState<Staff | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -112,14 +124,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
   const startEdit = (goSub?: SubTab) => {
     if (!member) return;
     if (goSub) setSub(goSub);
-    setForm({
-      first_name: member.first_name, last_name: member.last_name, email: member.email ?? "", phone: member.phone ?? "",
-      branch_slug: member.branch_slug, room_id: member.room_id ?? "", job_title: member.job_title ?? "",
-      staff_type: member.staff_type, status: member.status, start_date: member.start_date ?? "",
-      contract_hours: member.contract_hours ?? 0, qualifications: member.qualifications ?? [],
-      dbs_number: member.dbs_number ?? "", dbs_expiry: member.dbs_expiry ?? "", first_aid_expiry: member.first_aid_expiry ?? "",
-      enable_login: false, login_role: "staff", login_password: "",
-    });
+    setForm(memberToInput(member));
     setEditing(true);
   };
   const save = async () => {
@@ -132,6 +137,15 @@ export default function StaffDetailClient({ id }: { id: string }) {
       setEditing(false);
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to save"); }
     finally { setSaving(false); }
+  };
+  // Persist a field patch without opening the full edit form (used by the
+  // Qualifications add/remove panel). Sends the whole record — the update
+  // endpoint takes a full StaffInput — with the patch applied.
+  const patchStaff = async (patch: Partial<StaffInput>) => {
+    const token = getAccessToken();
+    if (!token || !member) return;
+    const updated = await api.adminUpdateStaff(token, id, { ...memberToInput(member), ...patch });
+    setMember(updated as Staff);
   };
   const setField = (patch: Partial<StaffInput>) => setForm((f) => (f ? { ...f, ...patch } : f));
 
@@ -331,19 +345,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
                   </div>
                 )}
 
-                {sub === "quals" && (
-                  <div>
-                    <div className="mb-5 flex items-center justify-between">
-                      <h3 className="font-heading text-base font-bold text-slate-900">Qualifications &amp; certificates</h3>
-                      <button onClick={() => startEdit("quals")} className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-teal-700"><Plus className="h-3.5 w-3.5" /> Add qualification</button>
-                    </div>
-                    {quals.length === 0 ? (
-                      <EmptyState icon={Award} title="Keep qualifications up to date" body="Record certificates and training so you always know who's qualified. Compliance dates (DBS, first aid) show on the Profile dashboard." />
-                    ) : (
-                      <div className="flex flex-wrap gap-2">{quals.map((q, i) => <StageBadge key={i} label={q} accent="teal" withDot={false} />)}</div>
-                    )}
-                  </div>
-                )}
+                {sub === "quals" && <QualificationsPanel quals={quals} onSave={(next) => patchStaff({ qualifications: next })} />}
 
                 {sub === "keys" && <KeyChildrenPanel staffId={id} branch={member.branch_slug} />}
 
@@ -455,6 +457,68 @@ function EmptyState({ icon: Icon, title, body }: { icon: typeof User; title: str
       <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-teal-50 text-teal-600"><Icon className="h-7 w-7" /></div>
       <h4 className="font-heading text-lg font-bold text-slate-900">{title}</h4>
       <p className="mt-2 text-sm leading-relaxed text-slate-500">{body}</p>
+    </div>
+  );
+}
+
+// ── Qualifications — add/remove a staff member's qualifications inline ────────
+function QualificationsPanel({ quals, onSave }: { quals: string[]; onSave: (next: string[]) => Promise<void> }) {
+  const [adding, setAdding] = useState(false);
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const commit = async (next: string[]) => {
+    setBusy(true); setErr(null);
+    try { await onSave(next); }
+    catch (e) { setErr(e instanceof Error ? e.message : "Failed to save"); }
+    finally { setBusy(false); }
+  };
+  const add = async () => {
+    const v = value.trim();
+    if (!v) return;
+    if (quals.some((q) => q.toLowerCase() === v.toLowerCase())) { setErr("That qualification is already listed."); return; }
+    await commit([...quals, v]);
+    setValue(""); setAdding(false);
+  };
+  const remove = (q: string) => commit(quals.filter((x) => x !== q));
+
+  return (
+    <div>
+      <div className="mb-5 flex items-center justify-between">
+        <h3 className="font-heading text-base font-bold text-slate-900">Qualifications &amp; certificates {quals.length > 0 && <span className="text-slate-400">({quals.length})</span>}</h3>
+        {!adding && <button onClick={() => { setAdding(true); setErr(null); }} className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-teal-700"><Plus className="h-3.5 w-3.5" /> Add qualification</button>}
+      </div>
+
+      {err && <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-500">{err}</p>}
+
+      {adding && (
+        <div className="mb-5 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <input
+            autoFocus
+            value={value}
+            onChange={(e) => { setValue(e.target.value); setErr(null); }}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void add(); } if (e.key === "Escape") { setAdding(false); setValue(""); } }}
+            placeholder="e.g. Level 3 Diploma in Early Years, Paediatric First Aid"
+            className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+          />
+          <button onClick={add} disabled={busy || !value.trim()} className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">{busy ? "Saving…" : "Add"}</button>
+          <button onClick={() => { setAdding(false); setValue(""); setErr(null); }} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white">Cancel</button>
+        </div>
+      )}
+
+      {quals.length === 0 && !adding ? (
+        <EmptyState icon={Award} title="Keep qualifications up to date" body="Record certificates and training so you always know who's qualified. Compliance dates (DBS, first aid) show on the Profile dashboard." />
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {quals.map((q) => (
+            <span key={q} className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-3 py-1.5 text-sm font-medium text-teal-700">
+              <Award className="h-3.5 w-3.5" /> {q}
+              <button onClick={() => remove(q)} disabled={busy} className="ml-0.5 grid h-4 w-4 place-items-center rounded-full text-teal-500 hover:bg-teal-100 hover:text-teal-800 disabled:opacity-50" aria-label={`Remove ${q}`}><X className="h-3 w-3" /></button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
