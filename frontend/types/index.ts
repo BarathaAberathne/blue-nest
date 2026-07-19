@@ -681,11 +681,19 @@ export type Permission =
   | "staff.manage"
   | "daily_logs.manage";
 
+export interface MeOrg {
+  id: string;
+  slug: string;
+  name: string;
+  branding: OrgBranding;
+  features: string[];
+}
 export interface Me {
   id: string;
   email: string;
   role: UserRole;
   permissions: Permission[];
+  org?: MeOrg;
 }
 
 // ── Customizable dashboard layout ────────────────────────────────────────────

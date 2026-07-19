@@ -44,14 +44,14 @@ import type { Permission, UserRole } from "@/types";
 // roles (finance / admissions / procurement) get a tailored sidebar.
 // `roles` (optional) restricts an item to specific roles regardless of permission —
 // used for the Command Centre, which is director + super_admin only.
-type NavItem = { label: string; href: string; icon: typeof LayoutDashboard; exact?: boolean; permission: Permission; roles?: UserRole[] };
+type NavItem = { label: string; href: string; icon: typeof LayoutDashboard; exact?: boolean; permission: Permission; roles?: UserRole[]; feature?: string };
 type NavSection = { heading: string | null; items: NavItem[] };
 
 const NAV_SECTIONS: NavSection[] = [
   {
     heading: null,
     items: [
-      { label: "Command Centre", href: "/admin/command-center", icon: Radar, permission: "dashboard.view", roles: ["super_admin", "director"] },
+      { label: "Command Centre", href: "/admin/command-center", icon: Radar, permission: "dashboard.view", roles: ["super_admin", "director"], feature: "command_centre" },
       { label: "Main Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
       { label: "Inquiries", href: "/admin/inquiries", icon: Inbox, permission: "enquiries.manage" },
     ],
@@ -84,20 +84,20 @@ const NAV_SECTIONS: NavSection[] = [
   {
     heading: "Store",
     items: [
-      { label: "Orders",     href: "/admin/orders",     icon: ShoppingCart, permission: "store.manage" },
-      { label: "Products",   href: "/admin/products",   icon: Package, permission: "store.manage" },
-      { label: "Categories", href: "/admin/categories", icon: Tag, permission: "store.manage" },
+      { label: "Orders",     href: "/admin/orders",     icon: ShoppingCart, permission: "store.manage", feature: "online_store" },
+      { label: "Products",   href: "/admin/products",   icon: Package, permission: "store.manage", feature: "online_store" },
+      { label: "Categories", href: "/admin/categories", icon: Tag, permission: "store.manage", feature: "online_store" },
     ],
   },
   {
     heading: "Procurement",
     items: [
-      { label: "Overview",        href: "/admin/procurement",            icon: LayoutGrid, exact: true, permission: "procurement.view" },
-      { label: "Supply Requests", href: "/admin/order-requests",         icon: ClipboardList, permission: "procurement.view" },
-      { label: "Purchase Orders", href: "/admin/purchase-carts",         icon: ShoppingBag, permission: "procurement.view" },
-      { label: "Suppliers",       href: "/admin/procurement/suppliers",  icon: Truck, permission: "suppliers.manage" },
-      { label: "Catalogue",       href: "/admin/catalogue",              icon: Library, permission: "procurement.manage" },
-      { label: "Analytics",       href: "/admin/procurement/analytics",  icon: BarChart3, permission: "finance.view" },
+      { label: "Overview",        href: "/admin/procurement",            icon: LayoutGrid, exact: true, permission: "procurement.view", feature: "procurement" },
+      { label: "Supply Requests", href: "/admin/order-requests",         icon: ClipboardList, permission: "procurement.view", feature: "procurement" },
+      { label: "Purchase Orders", href: "/admin/purchase-carts",         icon: ShoppingBag, permission: "procurement.view", feature: "procurement" },
+      { label: "Suppliers",       href: "/admin/procurement/suppliers",  icon: Truck, permission: "suppliers.manage", feature: "procurement" },
+      { label: "Catalogue",       href: "/admin/catalogue",              icon: Library, permission: "procurement.manage", feature: "procurement" },
+      { label: "Analytics",       href: "/admin/procurement/analytics",  icon: BarChart3, permission: "finance.view", feature: "procurement" },
     ],
   },
   {
@@ -141,7 +141,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const { ready, isAuthenticated, user, ensureAuthenticated } = useAuthGuard("/admin/login");
-  const { has, ready: permsReady } = usePermissions();
+  const { has, ready: permsReady, org, hasFeature } = usePermissions();
   const isStaff = user?.role === "staff";
   // Every non-customer, non-staff role reaches the management shell; the
   // per-section permission checks below then scope what each one actually sees.
@@ -155,11 +155,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const canSee = (item: NavItem): boolean => {
     // Role-restricted items (Command Centre) show only for their listed roles.
     if (item.roles && !(user && item.roles.includes(user.role as UserRole))) return false;
+    // Feature-gated items are hidden when the org's plan doesn't enable them.
+    if (item.feature && !hasFeature(item.feature)) return false;
     if (permsReady) return has(item.permission);
     if (user?.role === "super_admin") return true;
     if (user?.role === "admin" || user?.role === "branch_manager" || user?.role === "director") return item.permission !== "users.manage";
     return item.permission === "dashboard.view";
   };
+
+  // Per-tenant branding (falls back to the Blue Nest teal until /auth/me loads).
+  const brandColor = org?.branding?.primary_color || "#0d9488";
+  const orgName = org?.name || "Blue Nest";
+  const brandInitials = orgName.split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "BN";
 
   const navSections: NavSection[] = isManagement
     ? NAV_SECTIONS.map((s) => ({ ...s, items: s.items.filter(canSee) })).filter((s) => s.items.length > 0)
@@ -216,14 +223,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="admin-shell min-h-screen flex bg-slate-50 font-body">
       {/* ── Sidebar ─────────────────────────────────────────── */}
       <aside className="w-60 shrink-0 bg-slate-900 flex flex-col">
-        {/* Brand */}
+        {/* Brand — per-tenant name, logo and accent colour */}
         <div className="px-5 py-5 border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600 text-white text-xs font-bold shrink-0">
-              BN
-            </span>
+            {org?.branding?.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={org.branding.logo_url} alt="" className="h-8 w-8 shrink-0 rounded-lg object-contain" />
+            ) : (
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg text-white text-xs font-bold shrink-0" style={{ backgroundColor: brandColor }}>
+                {brandInitials}
+              </span>
+            )}
             <div className="min-w-0">
-              <p className="font-bold text-white text-sm leading-none truncate">Blue Nest</p>
+              <p className="font-bold text-white text-sm leading-none truncate">{orgName}</p>
               <p className="text-[0.65rem] text-slate-500 mt-0.5">{isStaff ? "Staff Portal" : "Admin Panel"}</p>
             </div>
           </div>
@@ -245,10 +257,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <Link
                     key={item.href}
                     href={item.href}
+                    style={active ? { backgroundColor: brandColor } : undefined}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                      active
-                        ? "bg-teal-600 text-white"
-                        : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                      active ? "text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"
                     }`}
                   >
                     <Icon className="h-4 w-4 shrink-0" />

@@ -85,7 +85,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		r.Use(middleware.DefaultTenant(svc.DefaultOrgID))
 
 		// ── Auth ──────────────────────────────────────────────────────────
-		authH := handler.NewAuthHandler(svc.Auth, cfg)
+		authH := handler.NewAuthHandler(svc.Auth, svc.Organisations, cfg)
 		r.Post("/auth/register", authH.Register)
 		r.Post("/auth/login", authH.Login)
 		r.Post("/admin/auth/login", authH.AdminLogin)
