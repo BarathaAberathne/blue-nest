@@ -8,6 +8,7 @@ import (
 
 type Comment struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	OrgID     string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	PostSlug  string             `bson:"post_slug"     json:"post_slug"`
 	Name      string             `bson:"name"          json:"name"`
 	Body      string             `bson:"body"          json:"body"`

@@ -29,7 +29,7 @@ type DashboardLayoutRepository interface {
 }
 
 type dashboardLayoutRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewDashboardLayoutRepository(db *mongo.Database) DashboardLayoutRepository {
@@ -39,7 +39,7 @@ func NewDashboardLayoutRepository(db *mongo.Database) DashboardLayoutRepository 
 		Keys:    bson.D{{Key: "user_id", Value: 1}, {Key: "name", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	})
-	return &dashboardLayoutRepository{col: col}
+	return &dashboardLayoutRepository{col: NewTenantCollectionFrom(col)}
 }
 
 func (r *dashboardLayoutRepository) FindByUserID(ctx context.Context, userID string) ([]models.DashboardLayout, error) {

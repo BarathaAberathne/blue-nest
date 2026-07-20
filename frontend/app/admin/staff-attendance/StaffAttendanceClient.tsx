@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock, LogOut, Pencil, Search, Timer, UserCheck, UserMinus, UserX } from "lucide-react";
 import { api } from "@/lib/api";
-import { getAccessToken } from "@/lib/auth";
+import { getAccessToken, getAuthUser, isOrgWideRole } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
@@ -44,8 +44,17 @@ export default function StaffAttendanceClient() {
   const [busy, setBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState<StaffAttendanceRecord | null>(null);
 
+  // Org-wide roles may view "All branches"; scoped roles only see their own
+  // branches and are pinned to one at a time (matches the backend scope).
+  const orgWide = isOrgWideRole(getAuthUser()?.role);
   const loadBranches = async () => {
-    try { setBranches((await api.getBranches()) as Branch[]); } catch { /* non-fatal */ }
+    const token = getAccessToken();
+    if (!token) return;
+    try {
+      const list = ((await api.adminGetBranches(token)) ?? []).filter((b) => !b.archived_at) as Branch[];
+      setBranches(list);
+      if (!orgWide) setBranch((cur) => cur || list[0]?.slug || "");
+    } catch { /* non-fatal */ }
   };
   const load = async () => {
     const token = getAccessToken();
@@ -102,7 +111,7 @@ export default function StaffAttendanceClient() {
         <div className="flex items-center gap-2">
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
           <select value={branch} onChange={(e) => setBranch(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
-            <option value="">All branches</option>
+            {orgWide && <option value="">All branches</option>}
             {branches.map((b) => <option key={b.slug} value={b.slug}>{branchShortName(b)}</option>)}
           </select>
         </div>

@@ -8,6 +8,7 @@ import (
 
 type BlogPost struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty"   json:"id"`
+	OrgID         string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Slug          string             `bson:"slug"            json:"slug"`
 	Title         string             `bson:"title"           json:"title"`
 	Excerpt       string             `bson:"excerpt"         json:"excerpt"`

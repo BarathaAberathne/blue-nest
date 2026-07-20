@@ -22,9 +22,12 @@ type KioskService interface {
 	// Device management (admin side).
 	CreateDevice(ctx context.Context, req models.KioskDeviceRequest, actorID string) (*models.KioskDevice, string, error)
 	ListDevices(ctx context.Context, branch string) ([]models.KioskDevice, error)
-	SetDeviceActive(ctx context.Context, id string, active bool) error
-	DeleteDevice(ctx context.Context, id string) error
-	SetStaffPIN(ctx context.Context, staffID, pin string) error
+	// The mutating device/PIN methods take the caller's allowed-branch set (nil =
+	// org-wide) so a branch-scoped manager can't touch another branch's kiosk or
+	// staff PIN.
+	SetDeviceActive(ctx context.Context, id string, active bool, allowed []string) error
+	DeleteDevice(ctx context.Context, id string, allowed []string) error
+	SetStaffPIN(ctx context.Context, staffID, pin string, allowed []string) error
 
 	// Kiosk (device side).
 	Authenticate(ctx context.Context, token string) (*models.KioskSession, error)
@@ -87,15 +90,48 @@ func (s *kioskService) ListDevices(ctx context.Context, branch string) ([]models
 	return s.devices.FindAll(ctx, branch)
 }
 
-func (s *kioskService) SetDeviceActive(ctx context.Context, id string, active bool) error {
+func (s *kioskService) SetDeviceActive(ctx context.Context, id string, active bool, allowed []string) error {
+	d, err := s.devices.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !kioskBranchAllowed(allowed, d.BranchSlug) {
+		return errors.New("outside your branch scope")
+	}
 	return s.devices.SetActive(ctx, id, active)
 }
 
-func (s *kioskService) DeleteDevice(ctx context.Context, id string) error {
+func (s *kioskService) DeleteDevice(ctx context.Context, id string, allowed []string) error {
+	d, err := s.devices.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !kioskBranchAllowed(allowed, d.BranchSlug) {
+		return errors.New("outside your branch scope")
+	}
 	return s.devices.Delete(ctx, id)
 }
 
-func (s *kioskService) SetStaffPIN(ctx context.Context, staffID, pin string) error {
+func kioskBranchAllowed(allowed []string, branch string) bool {
+	if allowed == nil {
+		return true
+	}
+	for _, s := range allowed {
+		if s == branch {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *kioskService) SetStaffPIN(ctx context.Context, staffID, pin string, allowed []string) error {
+	st, err := s.staff.FindByID(ctx, staffID)
+	if err != nil {
+		return errors.New("staff not found")
+	}
+	if !kioskBranchAllowed(allowed, st.BranchSlug) {
+		return errors.New("outside your branch scope")
+	}
 	pin = strings.TrimSpace(pin)
 	if pin == "" {
 		return s.staff.SetPINHash(ctx, staffID, "") // clear

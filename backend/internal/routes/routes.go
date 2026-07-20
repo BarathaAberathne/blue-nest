@@ -19,6 +19,8 @@ import (
 )
 
 type Services struct {
+	Organisations     service.OrganisationService
+	DefaultOrgID      string // tenant for unauthenticated/public requests
 	Auth              service.AuthService
 	Products          service.ProductService
 	Cart              service.CartService
@@ -77,8 +79,13 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 	r.Post("/api/v1/integrations/gbp/digest", gbpWH.IngestDigest)
 
 	r.Route("/api/v1", func(r chi.Router) {
+		// Multi-tenancy: pin every request to a tenant. Public/unauthenticated
+		// routes get the default org; the Auth middleware on management/customer
+		// groups overrides this with the caller's own org from their JWT.
+		r.Use(middleware.DefaultTenant(svc.DefaultOrgID))
+
 		// ── Auth ──────────────────────────────────────────────────────────
-		authH := handler.NewAuthHandler(svc.Auth, cfg)
+		authH := handler.NewAuthHandler(svc.Auth, svc.Organisations, cfg)
 		r.Post("/auth/register", authH.Register)
 		r.Post("/auth/login", authH.Login)
 		r.Post("/admin/auth/login", authH.AdminLogin)
@@ -187,6 +194,12 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtSecret))
 			r.Use(middleware.ManagementOnly)
+
+			// Organisation (own tenant): any back-office role can read their org's
+			// profile/branding; only the org's super-admin can edit it.
+			orgSelfH := adminHandler.NewAdminOrganisationHandler(svc.Organisations, svc.Audit)
+			r.Get("/admin/organisation", orgSelfH.GetCurrent)
+			r.With(middleware.SuperAdminOnly).Put("/admin/organisation", orgSelfH.UpdateCurrent)
 
 			// Store — products, categories, orders.
 			r.Group(func(r chi.Router) {
@@ -313,6 +326,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Get("/admin/children/{id}", adminChildH.Get)
 				r.Post("/admin/children", adminChildH.Create)
 				r.Put("/admin/children/{id}", adminChildH.Update)
+				r.Patch("/admin/children/{id}/key-person", adminChildH.SetKeyPerson)
 				r.Delete("/admin/children/{id}", adminChildH.Delete)
 			})
 
@@ -333,9 +347,17 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				adminStaffH := adminHandler.NewAdminStaffHandler(svc.Staff, svc.Audit)
 				r.Get("/admin/staff", adminStaffH.List)
 				r.Get("/admin/staff/{id}", adminStaffH.Get)
+				r.Get("/admin/staff/{id}/attendance-summary", func(w http.ResponseWriter, r *http.Request) {
+					adminStaffH.AttendanceSummary(w, r, svc.StaffAttendance)
+				})
 				r.Post("/admin/staff", adminStaffH.Create)
 				r.Put("/admin/staff/{id}", adminStaffH.Update)
 				r.Delete("/admin/staff/{id}", adminStaffH.Delete)
+
+				// Key children a staff member is the key person for (child data,
+				// but gated under staff.manage as it's viewed from the staff profile).
+				adminStaffKeyChildrenH := adminHandler.NewAdminChildHandler(svc.Children, svc.Audit)
+				r.Get("/admin/staff/{id}/key-children", adminStaffKeyChildrenH.KeyChildren)
 
 				adminStaffAttH := adminHandler.NewAdminStaffAttendanceHandler(svc.StaffAttendance, svc.Audit)
 				r.Get("/admin/staff-attendance", adminStaffAttH.Register)
@@ -392,6 +414,16 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Put("/admin/daily-records/{id}", adminDailyH.Update)
 				r.Patch("/admin/daily-records/{id}/status", adminDailyH.SetStatus)
 				r.Delete("/admin/daily-records/{id}", adminDailyH.Delete)
+			})
+
+			// Organisations (tenants) — platform operator only (cross-tenant).
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.PlatformOnly)
+				orgH := adminHandler.NewAdminOrganisationHandler(svc.Organisations, svc.Audit)
+				r.Get("/admin/organisations", orgH.List)
+				r.Get("/admin/organisations/{id}", orgH.Get)
+				r.Post("/admin/organisations", orgH.Create)
+				r.Put("/admin/organisations/{id}", orgH.Update)
 			})
 
 			// Account management — super admin only.

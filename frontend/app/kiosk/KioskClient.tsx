@@ -153,8 +153,7 @@ export default function KioskClient() {
     <div className="k-header">
       <div className="k-brand">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo/bluenest-logo.png" alt="Blue Nest" />
-        <div><div className="bn">Blue Nest</div><div className="sub">MONTESSORI</div></div>
+        <img src="/logo/bluenest-logo.png" alt="Blue Nest Montessori" />
       </div>
       <div className="k-headclock">
         {now ? (

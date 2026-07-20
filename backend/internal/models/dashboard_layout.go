@@ -22,6 +22,7 @@ type DashboardWidget struct {
 // (Phase 4 → B3.3 named layouts).
 type DashboardLayout struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	OrgID     string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	UserID    primitive.ObjectID `bson:"user_id"       json:"user_id"`
 	Name      string             `bson:"name"          json:"name"`
 	Active    bool               `bson:"active"        json:"active"`

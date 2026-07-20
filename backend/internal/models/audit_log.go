@@ -12,6 +12,7 @@ import (
 // management platform. Records are never updated or deleted.
 type AuditLog struct {
 	ID         primitive.ObjectID     `bson:"_id,omitempty" json:"id"`
+	OrgID      string                 `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	ActorID    string                 `bson:"actor_id"      json:"actor_id"`
 	ActorEmail string                 `bson:"actor_email"   json:"actor_email"`
 	ActorRole  string                 `bson:"actor_role"    json:"actor_role"`

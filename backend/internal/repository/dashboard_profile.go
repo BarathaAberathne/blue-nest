@@ -24,7 +24,7 @@ type DashboardProfileRepository interface {
 }
 
 type dashboardProfileRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewDashboardProfileRepository(db *mongo.Database) DashboardProfileRepository {
@@ -33,7 +33,7 @@ func NewDashboardProfileRepository(db *mongo.Database) DashboardProfileRepositor
 		Keys:    bson.D{{Key: "slug", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	})
-	return &dashboardProfileRepository{col: col}
+	return &dashboardProfileRepository{col: NewTenantCollectionFrom(col)}
 }
 
 func (r *dashboardProfileRepository) FindAll(ctx context.Context) ([]models.DashboardProfile, error) {

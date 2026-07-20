@@ -67,6 +67,7 @@ type BranchManagers struct {
 
 type Branch struct {
 	ID               primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	OrgID            string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Ref              string             `bson:"ref,omitempty" json:"ref,omitempty"` // BR-YYYY-NNNNNN
 	Slug             string             `bson:"slug"          json:"slug"`
 	Name             string             `bson:"name"          json:"name"`

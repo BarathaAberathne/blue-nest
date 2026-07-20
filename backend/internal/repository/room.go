@@ -20,11 +20,11 @@ type RoomRepository interface {
 }
 
 type roomRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewRoomRepository(db *mongo.Database) RoomRepository {
-	return &roomRepository{col: db.Collection("rooms")}
+	return &roomRepository{col: NewTenantCollection(db, "rooms")}
 }
 
 func (r *roomRepository) Create(ctx context.Context, room *models.Room) error {

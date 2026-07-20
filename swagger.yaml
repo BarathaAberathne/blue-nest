@@ -50,6 +50,26 @@ tags:
     description: Administrative operations (admin only)
   - name: Webhooks
     description: External webhook handlers
+  - name: Organisations
+    description: Multi-tenant organisation (nursery group) management
+  - name: Children
+    description: Enrolled / waitlisted children (occupancy source of truth)
+  - name: Rooms
+    description: Classrooms within a branch (capacity + staff ratio)
+  - name: Staff
+    description: HR staff records (practitioners / managers)
+  - name: Staff Attendance
+    description: Staff clock in/out register, summaries and corrections (payroll source)
+  - name: Child Attendance
+    description: Children's daily attendance register (check in/out, mark, KPI stats)
+  - name: Rota
+    description: Shift scheduling (staff → room / date / time)
+  - name: Kiosk
+    description: Entrance-tablet kiosk (device-token auth) + admin device management
+  - name: Daily Records
+    description: Practitioner daily logs — observations, incidents, safeguarding, medication, meals
+  - name: Enquiries
+    description: Admissions CRM (enquiry pipeline, tasks, registration)
 
 paths:
   # ─────────────────────────────────────────────────────────────────────────────
@@ -211,7 +231,10 @@ paths:
     get:
       tags: [Auth]
       summary: Current identity + capabilities
-      description: Returns the caller's id, email, role and resolved granular permission set (drives admin UI navigation/page gating).
+      description: >-
+        Returns the caller's id, email, role and resolved granular permission set (drives admin UI
+        navigation/page gating), plus the caller's `org` (id, slug, name, branding, features) for
+        multi-tenant branding + feature-flag gating.
       operationId: getMe
       security: [{ BearerAuth: [] }]
       responses:
@@ -224,12 +247,23 @@ paths:
                 properties:
                   id: { type: string }
                   email: { type: string, format: email }
-                  role: { type: string, enum: [super_admin, admin, branch_manager, finance, admissions, procurement, staff, customer] }
+                  role: { type: string, enum: [super_admin, admin, branch_manager, director, finance, admissions, procurement, staff, customer] }
                   permissions:
                     type: array
                     items:
                       type: string
-                      enum: [dashboard.view, store.manage, blog.manage, enquiries.manage, procurement.view, procurement.manage, suppliers.manage, finance.view, audit.view, branches.manage, users.manage]
+                      enum: [dashboard.view, store.manage, blog.manage, enquiries.manage, procurement.view, procurement.manage, suppliers.manage, finance.view, audit.view, branches.manage, children.manage, staff.manage, daily_logs.manage, users.manage]
+                  org:
+                    type: object
+                    description: The caller's organisation (tenant) — branding + enabled feature flags.
+                    properties:
+                      id: { type: string }
+                      slug: { type: string }
+                      name: { type: string }
+                      branding: { $ref: '#/components/schemas/OrgBranding' }
+                      features:
+                        type: array
+                        items: { type: string }
         '401': { description: Unauthorized }
 
   /me/dashboard:
@@ -1612,12 +1646,1562 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ProcurementAnalytics' } } } }
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Organisations (multi-tenant)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/organisations:
+    get:
+      tags: [Organisations]
+      summary: List all organisations (platform operator only)
+      operationId: listOrganisations
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Organisation' } } } } }
+        '403': { description: Platform operator only }
+    post:
+      tags: [Organisations]
+      summary: Create an organisation (+ optionally provision its first super-admin)
+      operationId: createOrganisation
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug, name]
+              properties:
+                slug: { type: string }
+                name: { type: string }
+                plan: { type: string }
+                branding: { $ref: '#/components/schemas/OrgBranding' }
+                domains: { type: array, items: { type: string } }
+                settings: { $ref: '#/components/schemas/OrgSettings' }
+                admin_email: { type: string, format: email, description: Optional first-admin provisioning }
+                admin_password: { type: string }
+                admin_first_name: { type: string }
+                admin_last_name: { type: string }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Organisation' } } } }
+        '400': { description: Invalid payload }
+
+  /admin/organisations/{id}:
+    get:
+      tags: [Organisations]
+      summary: Get one organisation (platform)
+      operationId: getOrganisation
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Organisation' } } } }
+        '404': { description: Not found }
+    put:
+      tags: [Organisations]
+      summary: Update an organisation (platform)
+      operationId: updateOrganisation
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                plan: { type: string }
+                status: { type: string, enum: [active, suspended, archived] }
+                branding: { $ref: '#/components/schemas/OrgBranding' }
+                domains: { type: array, items: { type: string } }
+                settings: { $ref: '#/components/schemas/OrgSettings' }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Organisation' } } } }
+        '400': { description: Invalid payload }
+
+  /admin/organisation:
+    get:
+      tags: [Organisations]
+      summary: Get the caller's own organisation
+      operationId: getOwnOrganisation
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Organisation' } } } }
+    put:
+      tags: [Organisations]
+      summary: Update own org profile (name, branding, settings only)
+      description: An org's own super-admin editing their organisation. Slug, plan, status and domains are platform-controlled.
+      operationId: updateOwnOrganisation
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                branding: { $ref: '#/components/schemas/OrgBranding' }
+                settings: { $ref: '#/components/schemas/OrgSettings' }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Organisation' } } } }
+        '400': { description: Invalid payload }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Children (permission children.manage)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/children:
+    get:
+      tags: [Children]
+      summary: List children
+      operationId: listChildren
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: room_id, in: query, required: false, schema: { type: string } }
+        - { name: status, in: query, required: false, schema: { type: string, enum: [active, waitlist, left] } }
+        - { name: q, in: query, required: false, schema: { type: string } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Child' } } } } }
+    post:
+      tags: [Children]
+      summary: Create a child
+      operationId: createChild
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Child' } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Child' } } } }
+        '400': { description: Invalid payload }
+
+  /admin/children/stats:
+    get:
+      tags: [Children]
+      summary: Children / occupancy stats
+      operationId: getChildStats
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: branch, in: query, required: false, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChildStats' } } } }
+
+  /admin/children/{id}:
+    get:
+      tags: [Children]
+      summary: Get a child
+      operationId: getChild
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Child' } } } }
+        '404': { description: Not found }
+    put:
+      tags: [Children]
+      summary: Update a child
+      operationId: updateChild
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Child' } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Child' } } } }
+        '400': { description: Invalid payload }
+    delete:
+      tags: [Children]
+      summary: Delete a child
+      operationId: deleteChild
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '204': { description: Deleted }
+
+  /admin/children/{id}/key-person:
+    patch:
+      tags: [Children]
+      summary: Assign (or clear) a child's key person
+      operationId: setChildKeyPerson
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                staff_id: { type: string, description: Staff record id; empty clears the key person }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Child' } } } }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Rooms (children.manage)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/rooms:
+    get:
+      tags: [Rooms]
+      summary: List rooms
+      operationId: listRooms
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: branch, in: query, required: false, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Room' } } } } }
+    post:
+      tags: [Rooms]
+      summary: Create a room
+      operationId: createRoom
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Room' } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Room' } } } }
+        '400': { description: Invalid payload }
+
+  /admin/rooms/{id}:
+    get:
+      tags: [Rooms]
+      summary: Get a room
+      operationId: getRoom
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Room' } } } }
+        '404': { description: Not found }
+    put:
+      tags: [Rooms]
+      summary: Update a room
+      operationId: updateRoom
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Room' } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Room' } } } }
+    delete:
+      tags: [Rooms]
+      summary: Delete a room
+      operationId: deleteRoom
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '204': { description: Deleted }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Staff (HR) (staff.manage)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/staff:
+    get:
+      tags: [Staff]
+      summary: List staff
+      operationId: listStaff
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: room_id, in: query, required: false, schema: { type: string } }
+        - { name: status, in: query, required: false, schema: { type: string, enum: [active, on_leave, inactive] } }
+        - { name: q, in: query, required: false, schema: { type: string } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Staff' } } } } }
+    post:
+      tags: [Staff]
+      summary: Create a staff record (optionally provisioning a login)
+      operationId: createStaff
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Staff' } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Staff' } } } }
+        '400': { description: Invalid payload }
+
+  /admin/staff/{id}:
+    get:
+      tags: [Staff]
+      summary: Get a staff record
+      operationId: getStaff
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Staff' } } } }
+        '404': { description: Not found }
+    put:
+      tags: [Staff]
+      summary: Update a staff record
+      operationId: updateStaff
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Staff' } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Staff' } } } }
+    delete:
+      tags: [Staff]
+      summary: Delete a staff record
+      operationId: deleteStaff
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '204': { description: Deleted }
+
+  /admin/staff/{id}/attendance-summary:
+    get:
+      tags: [Staff]
+      summary: One staff member's attendance summary over a date range
+      operationId: getStaffAttendanceSummary
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: from, in: query, required: false, schema: { type: string, format: date } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/StaffAbsenceSummary' } } } }
+
+  /admin/staff/{id}/key-children:
+    get:
+      tags: [Staff]
+      summary: Children this staff member is the key person for
+      operationId: getStaffKeyChildren
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Child' } } } } }
+
+  /admin/staff/{id}/pin:
+    put:
+      tags: [Staff]
+      summary: Set a staff member's kiosk clock-in PIN
+      operationId: setStaffPin
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pin]
+              properties:
+                pin: { type: string, description: Numeric PIN; stored bcrypt-hashed }
+      responses:
+        '200': { description: PIN set }
+        '400': { description: Invalid PIN }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Staff Attendance (Phase A–C) (staff.manage)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/staff-attendance:
+    get:
+      tags: [Staff Attendance]
+      summary: Attendance register for a date + branch
+      operationId: listStaffAttendance
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: date, in: query, required: false, schema: { type: string, format: date } }
+        - { name: branch, in: query, required: false, schema: { type: string } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StaffAttendanceRecord' } } } } }
+
+  /admin/staff-attendance/today:
+    get:
+      tags: [Staff Attendance]
+      summary: Today's staff attendance (KPI source for the command centre)
+      operationId: getStaffAttendanceToday
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: branch, in: query, required: false, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AttendanceDaySummary' } } } }
+
+  /admin/staff-attendance/summary:
+    get:
+      tags: [Staff Attendance]
+      summary: Attendance KPI summary for a date + branch (with per-branch breakdown)
+      operationId: getStaffAttendanceSummaryDay
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: date, in: query, required: false, schema: { type: string, format: date } }
+        - { name: branch, in: query, required: false, schema: { type: string } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AttendanceDaySummary' } } } }
+
+  /admin/staff-attendance/clock-in:
+    post:
+      tags: [Staff Attendance]
+      summary: Clock a staff member in (manual/admin path)
+      operationId: adminClockIn
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [staff_id]
+              properties:
+                staff_id: { type: string }
+                date: { type: string, format: date }
+                notes: { type: string }
+      responses:
+        '200': { description: Clocked in, content: { application/json: { schema: { $ref: '#/components/schemas/StaffAttendanceRecord' } } } }
+        '400': { description: Already clocked in / invalid }
+
+  /admin/staff-attendance/clock-out:
+    post:
+      tags: [Staff Attendance]
+      summary: Clock a staff member out (manual/admin path)
+      operationId: adminClockOut
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [staff_id]
+              properties:
+                staff_id: { type: string }
+                date: { type: string, format: date }
+      responses:
+        '200': { description: Clocked out, content: { application/json: { schema: { $ref: '#/components/schemas/StaffAttendanceRecord' } } } }
+        '400': { description: Not clocked in / invalid }
+
+  /admin/staff-attendance/mark:
+    patch:
+      tags: [Staff Attendance]
+      summary: Mark a staff member's attendance status (leave/sick/absent/…)
+      operationId: markStaffAttendance
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [staff_id, status]
+              properties:
+                staff_id: { type: string }
+                date: { type: string, format: date }
+                status: { type: string, enum: [expected, present, absent, leave, sick, training, meeting, remote] }
+                notes: { type: string }
+      responses:
+        '200': { description: Marked, content: { application/json: { schema: { $ref: '#/components/schemas/StaffAttendanceRecord' } } } }
+        '400': { description: Invalid status }
+
+  /admin/staff-attendance/{id}/correct:
+    patch:
+      tags: [Staff Attendance]
+      summary: Apply an audited manual correction to an attendance record
+      description: >-
+        Appends an append-only correction entry per changed field and recomputes minutes. Can
+        create-on-correct — materialise a record when the day has none (backfill an expected staff member).
+      operationId: correctStaffAttendance
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                staff_id: { type: string, description: Required only when creating (id is nil) }
+                date: { type: string, format: date }
+                status: { type: string, enum: [expected, present, absent, leave, sick, training, meeting, remote] }
+                clock_in: { type: string, description: "HH:MM on the record's date; '' clears" }
+                clock_out: { type: string, description: "HH:MM; '' clears" }
+                notes: { type: string }
+                reason: { type: string }
+      responses:
+        '200': { description: Corrected, content: { application/json: { schema: { $ref: '#/components/schemas/StaffAttendanceRecord' } } } }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Rota / Shifts (staff.manage)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/shifts:
+    get:
+      tags: [Rota]
+      summary: List shifts for a branch + week
+      operationId: listShifts
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: week, in: query, required: false, schema: { type: string, format: date, description: Any date within the target week (Monday-anchored) } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Shift' } } } } }
+    post:
+      tags: [Rota]
+      summary: Create a shift (roster member or external cover)
+      operationId: createShift
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date, start_time, end_time]
+              properties:
+                staff_id: { type: string }
+                external: { type: boolean, description: Off-roster person (no staff record) }
+                staff_name: { type: string, description: Required when external }
+                branch_slug: { type: string, description: Required when external }
+                room_id: { type: string }
+                date: { type: string, format: date }
+                start_time: { type: string, description: HH:MM }
+                end_time: { type: string, description: HH:MM }
+                notes: { type: string }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Shift' } } } }
+        '400': { description: Invalid payload }
+
+  /admin/shifts/{id}:
+    put:
+      tags: [Rota]
+      summary: Update a shift
+      operationId: updateShift
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Shift' } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Shift' } } } }
+    delete:
+      tags: [Rota]
+      summary: Delete a shift
+      operationId: deleteShift
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '204': { description: Deleted }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Kiosk devices (admin) (staff.manage)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/kiosk-devices:
+    get:
+      tags: [Kiosk]
+      summary: List kiosk devices
+      operationId: listKioskDevices
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: branch, in: query, required: false, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/KioskDevice' } } } } }
+    post:
+      tags: [Kiosk]
+      summary: Register a kiosk device (plaintext token returned once)
+      operationId: createKioskDevice
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, branch_slug]
+              properties:
+                name: { type: string }
+                branch_slug: { type: string }
+      responses:
+        '201':
+          description: Created — token shown once
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/KioskDevice'
+                  - type: object
+                    properties:
+                      token: { type: string, description: Plaintext device token, returned only on creation }
+        '400': { description: Invalid payload }
+
+  /admin/kiosk-devices/{id}:
+    patch:
+      tags: [Kiosk]
+      summary: Toggle a kiosk device active/inactive
+      operationId: updateKioskDevice
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                active: { type: boolean }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/KioskDevice' } } } }
+    delete:
+      tags: [Kiosk]
+      summary: Delete a kiosk device
+      operationId: deleteKioskDevice
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '204': { description: Deleted }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Kiosk (device-side, X-Kiosk-Token auth)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /kiosk/session:
+    post:
+      tags: [Kiosk]
+      summary: Authenticate the tablet's device token; return the clock-screen session
+      operationId: kioskSession
+      security: [{ KioskAuth: [] }]
+      responses:
+        '200': { description: OK }
+        '401': { description: Invalid device token }
+
+  /kiosk/staff:
+    get:
+      tags: [Kiosk]
+      summary: Search staff at the device's branch (kiosk)
+      operationId: kioskStaffSearch
+      security: [{ KioskAuth: [] }]
+      parameters: [{ name: q, in: query, required: false, schema: { type: string } }]
+      responses:
+        '200': { description: Search hits }
+
+  /kiosk/overview:
+    get:
+      tags: [Kiosk]
+      summary: Ambient kiosk home screen (recent check-ins + today's summary)
+      operationId: kioskOverview
+      security: [{ KioskAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /kiosk/clock-in:
+    post:
+      tags: [Kiosk]
+      summary: Clock a staff member in (kiosk; staff_id + PIN)
+      operationId: kioskClockIn
+      security: [{ KioskAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [staff_id, pin]
+              properties:
+                staff_id: { type: string }
+                pin: { type: string }
+      responses:
+        '200': { description: Clocked in }
+        '400': { description: Wrong PIN / already clocked in }
+
+  /kiosk/clock-out:
+    post:
+      tags: [Kiosk]
+      summary: Clock a staff member out (kiosk; staff_id + PIN)
+      operationId: kioskClockOut
+      security: [{ KioskAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [staff_id, pin]
+              properties:
+                staff_id: { type: string }
+                pin: { type: string }
+      responses:
+        '200': { description: Clocked out }
+        '400': { description: Wrong PIN / not clocked in }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Daily records / safeguarding (daily_logs.manage)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/daily-records:
+    get:
+      tags: [Daily Records]
+      summary: List daily records
+      operationId: listDailyRecords
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: date, in: query, required: false, schema: { type: string, format: date } }
+        - { name: type, in: query, required: false, schema: { type: string, enum: [observation, incident, safeguarding, medication, meal] } }
+        - { name: child_id, in: query, required: false, schema: { type: string } }
+        - { name: status, in: query, required: false, schema: { type: string, enum: [open, resolved, administered, logged] } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/DailyRecord' } } } } }
+    post:
+      tags: [Daily Records]
+      summary: Create a daily record
+      operationId: createDailyRecord
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/DailyRecord' } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/DailyRecord' } } } }
+        '400': { description: Invalid payload }
+
+  /admin/daily-records/stats:
+    get:
+      tags: [Daily Records]
+      summary: Daily-records stats (safeguarding / incidents / medication / meals)
+      operationId: getDailyStats
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: date, in: query, required: false, schema: { type: string, format: date } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/DailyStats' } } } }
+
+  /admin/daily-records/{id}:
+    get:
+      tags: [Daily Records]
+      summary: Get a daily record
+      operationId: getDailyRecord
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/DailyRecord' } } } }
+        '404': { description: Not found }
+    put:
+      tags: [Daily Records]
+      summary: Update a daily record
+      operationId: updateDailyRecord
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/DailyRecord' } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/DailyRecord' } } } }
+    delete:
+      tags: [Daily Records]
+      summary: Delete a daily record
+      operationId: deleteDailyRecord
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '204': { description: Deleted }
+
+  /admin/daily-records/{id}/status:
+    patch:
+      tags: [Daily Records]
+      summary: Update a daily record's status (resolve/administer)
+      operationId: updateDailyRecordStatus
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [open, resolved, administered, logged] }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/DailyRecord' } } } }
+        '400': { description: Invalid status }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Enquiries / admissions CRM (enquiries.manage)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/enquiries:
+    get:
+      tags: [Enquiries]
+      summary: List enquiries (filterable)
+      operationId: adminListEnquiries
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: type, in: query, required: false, schema: { type: string } }
+        - { name: status, in: query, required: false, schema: { type: string } }
+        - { name: assigned_to, in: query, required: false, schema: { type: string } }
+        - { name: from, in: query, required: false, schema: { type: string, format: date } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date } }
+        - { name: sort, in: query, required: false, schema: { type: string } }
+        - { name: dir, in: query, required: false, schema: { type: string, enum: [asc, desc] } }
+        - { name: limit, in: query, required: false, schema: { type: integer } }
+        - { name: skip, in: query, required: false, schema: { type: integer } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Enquiry' } } } } }
+    post:
+      tags: [Enquiries]
+      summary: Log an off-website enquiry (phone/walk-in/referral) — no consent gate, no auto-email
+      operationId: adminCreateEnquiry
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                phone: { type: string }
+                branch: { type: string }
+                child_age: { type: string }
+                enquiry_type: { type: string }
+                message: { type: string }
+                source: { type: string, description: "phone | walk_in | email | referral | social | event | other" }
+                priority: { type: string, enum: [low, medium, high] }
+                assigned_to: { type: string }
+                assigned_to_name: { type: string }
+                note: { type: string, description: Optional opening internal note }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Enquiry' } } } }
+        '400': { description: Invalid payload }
+
+  /admin/enquiries/page:
+    get:
+      tags: [Enquiries]
+      summary: Paginated enquiry table (items + total for page-count maths)
+      operationId: adminListEnquiriesPage
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: type, in: query, required: false, schema: { type: string } }
+        - { name: status, in: query, required: false, schema: { type: string } }
+        - { name: assigned_to, in: query, required: false, schema: { type: string } }
+        - { name: from, in: query, required: false, schema: { type: string, format: date } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date } }
+        - { name: sort, in: query, required: false, schema: { type: string } }
+        - { name: dir, in: query, required: false, schema: { type: string, enum: [asc, desc] } }
+        - { name: limit, in: query, required: false, schema: { type: integer } }
+        - { name: skip, in: query, required: false, schema: { type: integer } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Enquiry' } }
+                  total: { type: integer }
+                  limit: { type: integer }
+                  skip: { type: integer }
+
+  /admin/enquiries/stats:
+    get:
+      tags: [Enquiries]
+      summary: Admissions KPI / chart payload (funnel, conversion, branch comparison)
+      operationId: getEnquiryStats
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: branch, in: query, required: false, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+
+  /admin/enquiries/assignees:
+    get:
+      tags: [Enquiries]
+      summary: Non-customer users available for enquiry assignment
+      operationId: getEnquiryAssignees
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/enquiries/tasks:
+    get:
+      tags: [Enquiries]
+      summary: Admissions tasks feed (overdue / due today / uncontacted / visits)
+      operationId: getEnquiryTasks
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/enquiries/bulk:
+    post:
+      tags: [Enquiries]
+      summary: Apply a bulk action (assign / status / priority / note) to many enquiries
+      operationId: bulkUpdateEnquiries
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids, action]
+              properties:
+                ids: { type: array, items: { type: string } }
+                action: { type: string, enum: [assign, status, priority, note] }
+                status: { type: string }
+                assigned_to: { type: string }
+                assigned_to_name: { type: string }
+                priority: { type: string, enum: [low, medium, high] }
+                note: { type: string }
+      responses:
+        '200': { description: Bulk result (updated count + failures) }
+
+  /admin/enquiries/{id}:
+    get:
+      tags: [Enquiries]
+      summary: Get an enquiry
+      operationId: adminGetEnquiry
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Enquiry' } } } }
+        '404': { description: Not found }
+
+  /admin/enquiries/{id}/status:
+    patch:
+      tags: [Enquiries]
+      summary: Change enquiry status (audit-logged)
+      operationId: updateEnquiryStatus
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [new, contacted, awaiting_reply, booked_visit, visit_completed, registered, cancelled, lost, spam] }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Enquiry' } } } }
+        '400': { description: Invalid status }
+
+  /admin/enquiries/{id}/assign:
+    patch:
+      tags: [Enquiries]
+      summary: Assign an enquiry to a user
+      operationId: assignEnquiry
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assigned_to: { type: string }
+                assigned_to_name: { type: string }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Enquiry' } } } }
+
+  /admin/enquiries/{id}/follow-up:
+    patch:
+      tags: [Enquiries]
+      summary: Update follow-up fields (owner / priority / date / next action)
+      operationId: updateEnquiryFollowUp
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assigned_to: { type: string }
+                assigned_to_name: { type: string }
+                priority: { type: string, enum: [low, medium, high] }
+                follow_up_date: { type: string, format: date-time, nullable: true }
+                next_action: { type: string }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Enquiry' } } } }
+
+  /admin/enquiries/{id}/notes:
+    post:
+      tags: [Enquiries]
+      summary: Append an internal note
+      operationId: addEnquiryNote
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note]
+              properties:
+                note: { type: string }
+      responses:
+        '200': { description: Note added, content: { application/json: { schema: { $ref: '#/components/schemas/Enquiry' } } } }
+
+  /admin/enquiries/{id}/register:
+    post:
+      tags: [Enquiries]
+      summary: Record admissions registration outcome (marks registered)
+      operationId: registerEnquiry
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                registration_date: { type: string, format: date-time, nullable: true }
+                expected_start_date: { type: string, format: date-time, nullable: true }
+                child_age_group: { type: string }
+                room_allocation: { type: string }
+                funding_type: { type: string }
+      responses:
+        '200': { description: Registered, content: { application/json: { schema: { $ref: '#/components/schemas/Enquiry' } } } }
+
+  /admin/enquiries/{id}/reply:
+    post:
+      tags: [Enquiries]
+      summary: Send an email reply to the enquirer (logged on the timeline)
+      operationId: replyEnquiry
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                subject: { type: string }
+                message: { type: string }
+      responses:
+        '200': { description: Sent, content: { application/json: { schema: { $ref: '#/components/schemas/Enquiry' } } } }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Branches (management, Branch B1–B4) (branches.manage; lifecycle branch.admin)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/branches:
+    get:
+      tags: [Branches]
+      summary: List branches (management; branch-scoped for scoped roles)
+      operationId: adminListBranches
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Branch' } } } } }
+    post:
+      tags: [Branches]
+      summary: Create a branch (branch.admin)
+      operationId: adminCreateBranch
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Branch' } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Branch' } } } }
+        '400': { description: Invalid payload }
+
+  /admin/branches/overview:
+    get:
+      tags: [Branches]
+      summary: Branch overview roll-up (per-branch KPIs)
+      operationId: adminBranchesOverview
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/branches/{slug}:
+    get:
+      tags: [Branches]
+      summary: Get a branch (management)
+      operationId: adminGetBranch
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Branch' } } } }
+        '404': { description: Not found }
+    put:
+      tags: [Branches]
+      summary: Update a branch
+      operationId: adminUpdateBranch
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Branch' } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Branch' } } } }
+
+  /admin/branches/{slug}/dashboard:
+    get:
+      tags: [Branches]
+      summary: Per-branch dashboard payload
+      operationId: adminBranchDashboard
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+
+  /admin/branches/{slug}/reviews:
+    get:
+      tags: [Branches]
+      summary: Branch reviews
+      operationId: adminBranchReviews
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+
+  /admin/branches/{slug}/archive:
+    post:
+      tags: [Branches]
+      summary: Archive a branch (branch.admin)
+      operationId: adminArchiveBranch
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Archived }
+
+  /admin/branches/{slug}/managers:
+    patch:
+      tags: [Branches]
+      summary: Update the branch's assigned managers
+      operationId: adminUpdateBranchManagers
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                manager_ids: { type: array, items: { type: string } }
+      responses:
+        '200': { description: Updated }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Roles & permissions (users.manage / super admin)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/roles:
+    get:
+      tags: [Admin]
+      summary: List roles (built-in + custom) with their permission sets
+      operationId: listRoles
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Admin]
+      summary: Create a custom role
+      operationId: createRole
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                label: { type: string }
+                permissions: { type: array, items: { type: string } }
+      responses:
+        '201': { description: Created }
+        '400': { description: Invalid payload }
+
+  /admin/roles/{name}:
+    put:
+      tags: [Admin]
+      summary: Update a custom role's permissions
+      operationId: updateRole
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: name, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label: { type: string }
+                permissions: { type: array, items: { type: string } }
+      responses:
+        '200': { description: Updated }
+    delete:
+      tags: [Admin]
+      summary: Delete a custom role
+      operationId: deleteRole
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: name, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Deleted }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Dashboard layouts / profiles
+  # ─────────────────────────────────────────────────────────────────────────────
+  /me/dashboards:
+    get:
+      tags: [Admin]
+      summary: List the caller's saved dashboard layouts (named)
+      operationId: listMyDashboards
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /me/dashboards/activate:
+    post:
+      tags: [Admin]
+      summary: Activate one of the caller's saved dashboard layouts by name
+      operationId: activateMyDashboard
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        '200': { description: Activated }
+
+  /me/dashboards/{name}:
+    delete:
+      tags: [Admin]
+      summary: Delete one of the caller's saved dashboard layouts
+      operationId: deleteMyDashboard
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: name, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Deleted }
+
+  /admin/dashboard-profiles:
+    get:
+      tags: [Admin]
+      summary: List shared dashboard profiles (role/org templates)
+      operationId: listDashboardProfiles
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Admin]
+      summary: Create / save a shared dashboard profile
+      operationId: createDashboardProfile
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug, name]
+              properties:
+                slug: { type: string }
+                name: { type: string }
+                widgets: { type: array, items: { $ref: '#/components/schemas/DashboardWidget' } }
+      responses:
+        '201': { description: Created }
+        '400': { description: Invalid payload }
+
+  /admin/dashboard-profiles/{slug}:
+    delete:
+      tags: [Admin]
+      summary: Delete a shared dashboard profile
+      operationId: deleteDashboardProfile
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Deleted }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Child Attendance (children's daily register) (attendance.manage)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/attendance:
+    get:
+      tags: [Child Attendance]
+      summary: Today's child attendance register for a date + branch
+      operationId: listChildAttendance
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: date, in: query, required: false, schema: { type: string, format: date } }
+        - { name: branch, in: query, required: false, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /admin/attendance/today:
+    get:
+      tags: [Child Attendance]
+      summary: Child attendance KPI stats (present / late pickups)
+      operationId: getChildAttendanceToday
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: date, in: query, required: false, schema: { type: string, format: date } }
+        - { name: branch, in: query, required: false, schema: { type: string } }
+      responses:
+        '200': { description: OK }
+
+  /admin/attendance/check-in:
+    post:
+      tags: [Child Attendance]
+      summary: Check a child in
+      operationId: childCheckIn
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [child_id]
+              properties:
+                child_id: { type: string }
+                date: { type: string, format: date }
+      responses:
+        '200': { description: Checked in }
+        '400': { description: Already checked in / invalid }
+
+  /admin/attendance/check-out:
+    post:
+      tags: [Child Attendance]
+      summary: Check a child out
+      operationId: childCheckOut
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [child_id]
+              properties:
+                child_id: { type: string }
+                date: { type: string, format: date }
+      responses:
+        '200': { description: Checked out }
+        '400': { description: Not checked in / invalid }
+
+  /admin/attendance/mark:
+    patch:
+      tags: [Child Attendance]
+      summary: Mark a child's attendance status
+      operationId: markChildAttendance
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [child_id, status]
+              properties:
+                child_id: { type: string }
+                date: { type: string, format: date }
+                status: { type: string, example: absent }
+                notes: { type: string }
+      responses:
+        '200': { description: Marked }
+        '400': { description: Invalid status }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Admin - Categories (store.manage)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/categories:
+    post:
+      tags: [Products]
+      summary: Create a category
+      operationId: createCategory
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CategoryInput' } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Category' } } } }
+        '400': { description: Invalid payload }
+
+  /admin/categories/{id}:
+    put:
+      tags: [Products]
+      summary: Update a category
+      operationId: updateCategory
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CategoryInput' } } }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Category' } } } }
+    delete:
+      tags: [Products]
+      summary: Delete a category
+      operationId: deleteCategory
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '204': { description: Deleted }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Admin - misc (blog scheduler, product import, uploads)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/blog/publish-scheduled:
+    post:
+      tags: [Blog]
+      summary: Publish any due scheduled blog posts
+      operationId: publishScheduledPosts
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: Due posts published }
+
+  /admin/products/import:
+    post:
+      tags: [Products]
+      summary: Bulk import products
+      operationId: importProducts
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                products:
+                  type: array
+                  items: { $ref: '#/components/schemas/ProductInput' }
+      responses:
+        '200': { description: Import result }
+        '400': { description: Invalid payload }
+
+  /admin/uploads/image:
+    post:
+      tags: [Admin]
+      summary: Upload an image
+      description: Multipart upload (field `file`); returns the stored image URL.
+      operationId: uploadImage
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200':
+          description: Uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url: { type: string }
+        '400': { description: Unsupported type / no file }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Admin auth (management / staff login)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/auth/login:
+    post:
+      tags: [Auth]
+      summary: Management / staff login
+      description: Authenticates management (incl. specialist) roles and staff, returning JWT tokens.
+      operationId: adminLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        '200': { description: Login successful, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResponse' } } } }
+        '401': { description: Invalid credentials }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Public - Contact, product-by-slug, blog comments/likes
+  # ─────────────────────────────────────────────────────────────────────────────
+  /contact:
+    post:
+      tags: [Enquiries]
+      summary: Public contact form — creates an enquiry
+      operationId: submitContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                phone: { type: string }
+                branch: { type: string }
+                enquiry_type: { type: string }
+                child_age: { type: string }
+                message: { type: string }
+                consent: { type: boolean }
+      responses:
+        '201': { description: Enquiry created }
+        '400': { description: Invalid payload }
+
+  /products/slug/{slug}:
+    get:
+      tags: [Products]
+      summary: Get a product by slug
+      operationId: getProductBySlug
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string, example: wooden-toy-set } }]
+      responses:
+        '200': { description: Product details, content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } } }
+        '404': { description: Product not found }
+
+  /blog/posts/{slug}/comments:
+    get:
+      tags: [Blog]
+      summary: List a blog post's comments
+      operationId: listBlogComments
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: List of comments }
+    post:
+      tags: [Blog]
+      summary: Add a comment to a blog post
+      operationId: addBlogComment
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [author, content]
+              properties:
+                author: { type: string }
+                content: { type: string }
+      responses:
+        '201': { description: Comment added }
+        '400': { description: Invalid payload }
+
+  /blog/posts/{slug}/like:
+    post:
+      tags: [Blog]
+      summary: Like a blog post
+      operationId: likeBlogPost
+      parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Liked }
+
 components:
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    KioskAuth:
+      type: apiKey
+      in: header
+      name: X-Kiosk-Token
+      description: Per-device kiosk token (entrance tablet). Scopes access to session/search/clock-in/clock-out within the device's branch only.
 
   schemas:
     # ─────────────────────────────────────────────────────────────────────────
@@ -1770,6 +3354,18 @@ components:
         created_at:
           type: string
           format: date-time
+
+    CategoryInput:
+      type: object
+      required:
+        - name
+      properties:
+        slug:
+          type: string
+          example: toys
+        name:
+          type: string
+          example: Toys
 
     # ─────────────────────────────────────────────────────────────────────────
     # Blog
@@ -2261,3 +3857,426 @@ components:
           type: array
           items: { $ref: '#/components/schemas/DashboardWidget' }
         updated_at: { type: string, format: date-time }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Organisations (multi-tenant)
+    # ─────────────────────────────────────────────────────────────────────────
+    OrgBranding:
+      type: object
+      description: Per-tenant brand so each org renders as itself.
+      properties:
+        logo_url: { type: string }
+        primary_color: { type: string, example: "#36A9FF" }
+        accent_color: { type: string, example: "#D6B36A" }
+
+    OrgSettings:
+      type: object
+      description: Per-org configuration + enabled capability flags.
+      properties:
+        timezone: { type: string, example: Europe/London }
+        currency: { type: string, example: GBP }
+        features:
+          type: array
+          items: { type: string }
+          description: Enabled feature flags
+
+    Organisation:
+      type: object
+      description: The top-level tenant — a nursery group that owns branches, users and all operational data.
+      properties:
+        id: { type: string }
+        slug: { type: string, example: blue-nest }
+        name: { type: string, example: Blue Nest Montessori }
+        status: { type: string, enum: [active, suspended, archived] }
+        plan: { type: string }
+        branding: { $ref: '#/components/schemas/OrgBranding' }
+        domains:
+          type: array
+          items: { type: string }
+        settings: { $ref: '#/components/schemas/OrgSettings' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Children & Rooms
+    # ─────────────────────────────────────────────────────────────────────────
+    Guardian:
+      type: object
+      properties:
+        name: { type: string }
+        relation: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        primary: { type: boolean }
+
+    ChildSession:
+      type: object
+      description: A booked session in the weekly pattern.
+      properties:
+        day: { type: string, example: Mon }
+        type: { type: string, enum: [full, am, pm] }
+
+    Child:
+      type: object
+      description: An enrolled (or waitlisted) child — the occupancy / attendance source record.
+      properties:
+        id: { type: string }
+        org_id: { type: string }
+        ref: { type: string, example: CHD-2026-000045 }
+        first_name: { type: string }
+        last_name: { type: string }
+        dob: { type: string, description: YYYY-MM-DD }
+        gender: { type: string }
+        branch_slug: { type: string }
+        room_id: { type: string }
+        status: { type: string, enum: [active, waitlist, left] }
+        start_date: { type: string, description: YYYY-MM-DD }
+        guardians:
+          type: array
+          items: { $ref: '#/components/schemas/Guardian' }
+        funding_type: { type: string, enum: [none, 15h, 30h] }
+        sessions:
+          type: array
+          items: { $ref: '#/components/schemas/ChildSession' }
+        allergies: { type: string }
+        dietary_reqs: { type: string }
+        medical_notes: { type: string }
+        enquiry_id: { type: string, description: Originating admissions enquiry }
+        key_person_id: { type: string, description: Staff record id of the child's key person }
+        key_person_name: { type: string, description: Resolved for display; never stored }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    ChildStats:
+      type: object
+      description: Children / occupancy figures for the dashboard.
+      properties:
+        total: { type: integer }
+        active: { type: integer }
+        waitlist: { type: integer }
+        capacity: { type: integer }
+        available: { type: integer }
+        occupancy_rate: { type: integer }
+        by_branch:
+          type: array
+          items:
+            type: object
+            properties:
+              label: { type: string }
+              value: { type: integer }
+        by_age_group:
+          type: array
+          items:
+            type: object
+            properties:
+              label: { type: string }
+              value: { type: integer }
+        branches:
+          type: array
+          items:
+            type: object
+            properties:
+              branch: { type: string }
+              children: { type: integer }
+              capacity: { type: integer }
+              occupancy_rate: { type: integer }
+
+    Room:
+      type: object
+      description: A class/room within a branch. Capacity + staff ratio drive occupancy figures.
+      properties:
+        id: { type: string }
+        org_id: { type: string }
+        branch_slug: { type: string }
+        name: { type: string, example: Toddler Room }
+        age_range: { type: string, example: 2-3 years }
+        capacity: { type: integer }
+        staff_ratio: { type: integer, description: "1 staff : N children" }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Staff (HR) & attendance
+    # ─────────────────────────────────────────────────────────────────────────
+    Staff:
+      type: object
+      description: An employed practitioner/manager (HR record; separate from the auth users collection).
+      properties:
+        id: { type: string }
+        org_id: { type: string }
+        ref: { type: string, example: STF-2026-000012 }
+        first_name: { type: string }
+        last_name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        branch_slug: { type: string }
+        room_id: { type: string }
+        job_title: { type: string }
+        staff_type: { type: string, enum: [permanent, agency, bank] }
+        status: { type: string, enum: [active, on_leave, inactive] }
+        start_date: { type: string, description: YYYY-MM-DD }
+        contract_hours: { type: number }
+        qualifications:
+          type: array
+          items: { type: string }
+        dbs_number: { type: string }
+        dbs_expiry: { type: string, description: YYYY-MM-DD }
+        first_aid_expiry: { type: string, description: YYYY-MM-DD }
+        user_id: { type: string, description: Linked login account (empty = HR-only, no login) }
+        has_pin: { type: boolean, description: Whether a kiosk clock-in PIN is set (PIN itself never serialised) }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    StaffAbsenceSummary:
+      type: object
+      description: One staff member's attendance over a date range (staff-profile absence card).
+      properties:
+        staff_id: { type: string }
+        from: { type: string, description: YYYY-MM-DD inclusive }
+        to: { type: string, description: YYYY-MM-DD inclusive }
+        worked_days: { type: integer }
+        worked_hours: { type: integer }
+        late_days: { type: integer }
+        sick_days: { type: integer }
+        leave_days: { type: integer }
+        training_days: { type: integer }
+        absent_days: { type: integer }
+        attendance_rate: { type: integer, description: "worked ÷ (worked + away + absent), %" }
+
+    BreakEntry:
+      type: object
+      properties:
+        start: { type: string, format: date-time, nullable: true }
+        end: { type: string, format: date-time, nullable: true }
+
+    AttendanceCorrection:
+      type: object
+      description: One append-only manager edit to an attendance record.
+      properties:
+        at: { type: string, format: date-time }
+        actor_id: { type: string }
+        actor_name: { type: string }
+        field: { type: string }
+        from: { type: string }
+        to: { type: string }
+        reason: { type: string }
+
+    StaffAttendanceRecord:
+      type: object
+      description: One staff member's attendance for one day (authoritative source of worked hours for payroll).
+      properties:
+        id: { type: string }
+        org_id: { type: string }
+        staff_id: { type: string }
+        staff_name: { type: string }
+        branch_slug: { type: string }
+        date: { type: string, description: YYYY-MM-DD }
+        status: { type: string, enum: [expected, present, absent, leave, sick, training, meeting, remote] }
+        clock_in: { type: string, format: date-time, nullable: true }
+        clock_out: { type: string, format: date-time, nullable: true }
+        late_arrival: { type: boolean }
+        notes: { type: string }
+        source: { type: string, enum: [kiosk, manual, import] }
+        device_id: { type: string }
+        ip: { type: string }
+        location: { type: string }
+        created_by: { type: string }
+        breaks:
+          type: array
+          items: { $ref: '#/components/schemas/BreakEntry' }
+        shift_id: { type: string }
+        missing_clockout: { type: boolean }
+        worked_minutes: { type: integer }
+        break_minutes: { type: integer }
+        overtime_minutes: { type: integer }
+        late_minutes: { type: integer }
+        early_departure_minutes: { type: integer }
+        corrections:
+          type: array
+          items: { $ref: '#/components/schemas/AttendanceCorrection' }
+        job_title: { type: string, description: Resolved for the register table; never persisted }
+        room_name: { type: string, description: Resolved for the register table; never persisted }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    AttendanceDaySummary:
+      type: object
+      description: Attendance dashboard KPI strip for a date + branch (company-wide when branch empty).
+      properties:
+        date: { type: string, description: YYYY-MM-DD }
+        total: { type: integer }
+        attended: { type: integer, description: Working (present) count — the rate numerator }
+        currently_in: { type: integer }
+        clocked_out: { type: integer }
+        absent: { type: integer }
+        on_leave: { type: integer }
+        late: { type: integer }
+        overtime_minutes: { type: integer }
+        missing_clockout: { type: integer }
+        attendance_rate: { type: integer }
+        avg_arrival: { type: string, description: HH:MM }
+        branches:
+          type: array
+          items:
+            type: object
+            properties:
+              branch: { type: string }
+              total: { type: integer }
+              currently_in: { type: integer }
+              attended: { type: integer }
+              late: { type: integer }
+              attendance_rate: { type: integer }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Rota / Kiosk
+    # ─────────────────────────────────────────────────────────────────────────
+    Shift:
+      type: object
+      description: One planned working slot on the rota (staff → room / date / start–end).
+      properties:
+        id: { type: string }
+        org_id: { type: string }
+        staff_id: { type: string }
+        staff_name: { type: string }
+        branch_slug: { type: string }
+        external: { type: boolean, description: Off-roster person with no staff record; never matches attendance }
+        room_id: { type: string }
+        room_name: { type: string }
+        date: { type: string, description: YYYY-MM-DD }
+        start_time: { type: string, description: HH:MM }
+        end_time: { type: string, description: HH:MM }
+        notes: { type: string }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    KioskDevice:
+      type: object
+      description: An entrance tablet registered to a branch, authenticating to the isolated /kiosk API with its own token.
+      properties:
+        id: { type: string }
+        org_id: { type: string }
+        name: { type: string, example: Harrow front entrance }
+        branch_slug: { type: string }
+        token_hint: { type: string, description: Last 4 chars of the token, for the admin list }
+        active: { type: boolean }
+        last_seen_at: { type: string, format: date-time, nullable: true }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Enquiries / admissions CRM
+    # ─────────────────────────────────────────────────────────────────────────
+    EnquiryNote:
+      type: object
+      properties:
+        id: { type: string }
+        note: { type: string }
+        author_id: { type: string }
+        author_name: { type: string }
+        created_at: { type: string, format: date-time }
+
+    EnquiryActivity:
+      type: object
+      description: Append-only audit entry on the enquiry timeline.
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [status_change, note_added, email_reply, follow_up_updated, assigned, registered, created] }
+        message: { type: string }
+        from_status: { type: string }
+        to_status: { type: string }
+        author_id: { type: string }
+        author_name: { type: string }
+        created_at: { type: string, format: date-time }
+
+    EnquiryRegistration:
+      type: object
+      properties:
+        is_registered: { type: boolean }
+        registration_date: { type: string, format: date-time, nullable: true }
+        expected_start_date: { type: string, format: date-time, nullable: true }
+        child_age_group: { type: string }
+        room_allocation: { type: string }
+        funding_type: { type: string }
+
+    Enquiry:
+      type: object
+      description: An admissions enquiry moving through the CRM pipeline.
+      properties:
+        id: { type: string }
+        org_id: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        branch: { type: string }
+        child_age: { type: string }
+        enquiry_type: { type: string }
+        message: { type: string }
+        status: { type: string, enum: [new, contacted, awaiting_reply, booked_visit, visit_completed, registered, cancelled, lost, spam] }
+        source: { type: string }
+        assigned_to: { type: string }
+        assigned_to_name: { type: string }
+        priority: { type: string, enum: [low, medium, high] }
+        follow_up_date: { type: string, format: date-time, nullable: true }
+        next_action: { type: string }
+        notes:
+          type: array
+          items: { $ref: '#/components/schemas/EnquiryNote' }
+        activity_log:
+          type: array
+          items: { $ref: '#/components/schemas/EnquiryActivity' }
+        registration: { $ref: '#/components/schemas/EnquiryRegistration' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Daily records / safeguarding
+    # ─────────────────────────────────────────────────────────────────────────
+    DailyRecord:
+      type: object
+      description: One dated practitioner entry against a child (or branch-wide).
+      properties:
+        id: { type: string }
+        org_id: { type: string }
+        ref: { type: string, example: LOG-2026-000045 }
+        type: { type: string, enum: [observation, incident, safeguarding, medication, meal] }
+        child_id: { type: string }
+        child_name: { type: string }
+        branch_slug: { type: string }
+        room_id: { type: string }
+        date: { type: string, description: YYYY-MM-DD }
+        title: { type: string }
+        detail: { type: string }
+        status: { type: string, enum: [open, resolved, administered, logged] }
+        severity: { type: string, enum: [low, medium, high], description: incident / safeguarding }
+        author: { type: string }
+        eyfs_areas:
+          type: array
+          items: { type: string }
+          description: Observation-specific
+        next_steps: { type: string, description: Observation-specific }
+        medication: { type: string, description: Medication-specific }
+        dose: { type: string, description: Medication-specific }
+        meal_type: { type: string, enum: [breakfast, lunch, snack, tea], description: Meal-specific }
+        eaten: { type: string, enum: [all, most, some, none], description: Meal-specific }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    DailyStats:
+      type: object
+      description: Daily-records roll-up (Operations tiles + safeguarding KPI + Ofsted).
+      properties:
+        date: { type: string, description: YYYY-MM-DD }
+        safeguarding_open: { type: integer }
+        incidents_today: { type: integer }
+        medication_due: { type: integer }
+        meals_served: { type: integer }
+        observations_week: { type: integer }
+        by_type:
+          type: array
+          items:
+            type: object
+            properties:
+              label: { type: string }
+              count: { type: integer }

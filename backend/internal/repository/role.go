@@ -19,11 +19,11 @@ type RoleRepository interface {
 }
 
 type roleRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewRoleRepository(db *mongo.Database) RoleRepository {
-	return &roleRepository{col: db.Collection("roles")}
+	return &roleRepository{col: NewTenantCollection(db, "roles")}
 }
 
 func (r *roleRepository) FindAll(ctx context.Context) ([]models.RoleDefinition, error) {

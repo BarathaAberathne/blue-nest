@@ -460,6 +460,7 @@ func (s *authService) issueToken(user models.User, tokenType string, expiry time
 		"sub":          user.ID.Hex(),
 		"email":        user.Email,
 		"role":         string(user.Role),
+		"org_id":       user.OrgID, // tenant the user belongs to (multi-tenancy)
 		"branch_slugs": user.BranchSlugs,
 		"type":         tokenType,
 		"exp":          time.Now().Add(expiry).Unix(),

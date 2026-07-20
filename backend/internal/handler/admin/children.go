@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
@@ -83,6 +84,56 @@ func (h *AdminChildHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	h.audit.Record(r, "update", "child", id, "Updated child "+updated.FirstName+" "+updated.LastName, nil)
 	response.OK(w, updated)
+}
+
+// SetKeyPerson assigns (or clears) a child's key person.
+func (h *AdminChildHandler) SetKeyPerson(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	child, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "child not found")
+		return
+	}
+	if !inScope(r, child.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	var req models.ChildKeyPersonRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	updated, err := h.svc.SetKeyPerson(r.Context(), id, req.StaffID)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	summary := "Cleared key person for " + updated.FirstName + " " + updated.LastName
+	if updated.KeyPersonID != "" {
+		summary = "Set " + updated.KeyPersonName + " as key person for " + updated.FirstName + " " + updated.LastName
+	}
+	h.audit.Record(r, "key_person", "child", id, summary, nil)
+	response.OK(w, updated)
+}
+
+// KeyChildren lists the children a staff member (URL id) is key person for,
+// filtered to the caller's branch scope.
+func (h *AdminChildHandler) KeyChildren(w http.ResponseWriter, r *http.Request) {
+	staffID := chi.URLParam(r, "id")
+	kids, err := h.svc.KeyChildren(r.Context(), staffID)
+	if err != nil {
+		response.InternalError(w, "failed to load key children")
+		return
+	}
+	role, scope := caller(r)
+	allowed := policy.AllowedOrNil(role, scope)
+	out := make([]models.Child, 0, len(kids))
+	for _, c := range kids {
+		if policy.InAllowed(allowed, c.BranchSlug) {
+			out = append(out, c)
+		}
+	}
+	response.OK(w, out)
 }
 
 func (h *AdminChildHandler) Delete(w http.ResponseWriter, r *http.Request) {

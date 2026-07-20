@@ -6,9 +6,22 @@ import (
 	"strings"
 
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+// DefaultTenant pins requests that don't authenticate (public store, blog,
+// public branch pages) to the default organisation so they keep serving that
+// tenant's data. Authenticated routes' Auth middleware runs later and overrides
+// this with the caller's own org. Host-based tenant resolution lands in T1.
+func DefaultTenant(defaultOrgID string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r.WithContext(repository.WithOrg(r.Context(), defaultOrgID)))
+		})
+	}
+}
 
 type contextKey string
 
@@ -16,6 +29,7 @@ const UserIDKey contextKey = "userID"
 const UserRoleKey contextKey = "userRole"
 const UserEmailKey contextKey = "userEmail"
 const UserBranchesKey contextKey = "userBranches"
+const UserOrgKey contextKey = "userOrg"
 
 func Auth(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -61,11 +75,20 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 					}
 				}
 			}
+			orgID, _ := claims["org_id"].(string)
 
 			ctx := context.WithValue(r.Context(), UserIDKey, userID)
 			ctx = context.WithValue(ctx, UserRoleKey, role)
 			ctx = context.WithValue(ctx, UserEmailKey, email)
 			ctx = context.WithValue(ctx, UserBranchesKey, branches)
+			ctx = context.WithValue(ctx, UserOrgKey, orgID)
+			// Pin the request to the caller's tenant so every repository read/write
+			// is org-scoped. The platform operator runs cross-tenant.
+			if role == string(models.RolePlatformSuperAdmin) {
+				ctx = repository.WithCrossOrg(ctx)
+			} else {
+				ctx = repository.WithOrg(ctx, orgID)
+			}
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -119,6 +142,12 @@ func ManagementOnly(next http.Handler) http.Handler {
 // SuperAdminOnly permits only the top-level super admin (account management).
 func SuperAdminOnly(next http.Handler) http.Handler {
 	return RequireRole("super_admin")(next)
+}
+
+// PlatformOnly permits only the cross-tenant SaaS operator (managing the list of
+// organisations, platform-wide settings).
+func PlatformOnly(next http.Handler) http.Handler {
+	return RequireRole(string(models.RolePlatformSuperAdmin))(next)
 }
 
 // RequirePermission gates a route on a granular permission, resolved from the

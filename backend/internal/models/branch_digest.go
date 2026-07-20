@@ -10,6 +10,7 @@ import (
 // means it's awaiting a response (feeds the pending-reply queue).
 type GBPReview struct {
 	ID         primitive.ObjectID `bson:"_id,omitempty"      json:"id"`
+	OrgID      string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	BranchSlug string             `bson:"branch_slug"        json:"branch_slug"`
 	ReviewID   string             `bson:"review_id"          json:"review_id"` // external GBP id (dedupe key)
 	Author     string             `bson:"author"             json:"author"`
@@ -36,6 +37,7 @@ type GBPInsights struct {
 // posted by the Claude GBP-monitoring automation. Kept as history for trends.
 type BranchDigest struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"    json:"id"`
+	OrgID       string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	BranchSlug  string             `bson:"branch_slug"      json:"branch_slug"`
 	Date        string             `bson:"date"             json:"date"` // YYYY-MM-DD
 	Rating      float64            `bson:"rating"           json:"rating"`

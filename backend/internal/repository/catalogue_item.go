@@ -25,11 +25,11 @@ type CatalogueItemRepository interface {
 }
 
 type catalogueItemRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewCatalogueItemRepository(db *mongo.Database) CatalogueItemRepository {
-	return &catalogueItemRepository{col: db.Collection("catalogue_items")}
+	return &catalogueItemRepository{col: NewTenantCollection(db, "catalogue_items")}
 }
 
 func (r *catalogueItemRepository) FindAll(ctx context.Context) ([]models.CatalogueItem, error) {

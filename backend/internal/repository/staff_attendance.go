@@ -17,6 +17,8 @@ type StaffAttendanceRepository interface {
 	Upsert(ctx context.Context, rec models.StaffAttendanceRecord) (*models.StaffAttendanceRecord, error)
 	FindByDate(ctx context.Context, date, branch string) ([]models.StaffAttendanceRecord, error)
 	FindByStaffDate(ctx context.Context, staffID, date string) (*models.StaffAttendanceRecord, error)
+	// FindByStaffRange returns a staff member's records within [from, to] inclusive.
+	FindByStaffRange(ctx context.Context, staffID, from, to string) ([]models.StaffAttendanceRecord, error)
 	FindByID(ctx context.Context, id string) (*models.StaffAttendanceRecord, error)
 	// LatestDate returns the most recent date (YYYY-MM-DD) with any record, or
 	// "" when empty. Optionally scoped to a branch.
@@ -24,11 +26,11 @@ type StaffAttendanceRepository interface {
 }
 
 type staffAttendanceRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewStaffAttendanceRepository(db *mongo.Database) StaffAttendanceRepository {
-	return &staffAttendanceRepository{col: db.Collection("staff_attendance")}
+	return &staffAttendanceRepository{col: NewTenantCollection(db, "staff_attendance")}
 }
 
 func (r *staffAttendanceRepository) Upsert(ctx context.Context, rec models.StaffAttendanceRecord) (*models.StaffAttendanceRecord, error) {
@@ -101,6 +103,16 @@ func (r *staffAttendanceRepository) LatestDate(ctx context.Context, branch strin
 		return "", err
 	}
 	return rec.Date, nil
+}
+
+func (r *staffAttendanceRepository) FindByStaffRange(ctx context.Context, staffID, from, to string) ([]models.StaffAttendanceRecord, error) {
+	filter := bson.M{"staff_id": staffID, "date": bson.M{"$gte": from, "$lte": to}}
+	cursor, err := r.col.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "date", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.StaffAttendanceRecord, 0)
+	return out, cursor.All(ctx, &out)
 }
 
 func (r *staffAttendanceRepository) FindByStaffDate(ctx context.Context, staffID, date string) (*models.StaffAttendanceRecord, error) {

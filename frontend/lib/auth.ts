@@ -18,6 +18,14 @@ export function isManagementRole(role?: string | null): boolean {
   return !!role && role !== "customer" && role !== "staff";
 }
 
+// Org-wide roles see every branch (no branch scope). Mirrors the backend
+// policy.orgWide set — keep in sync. Scoped roles (regional/branch/deputy
+// managers, specialists) are limited to their assigned branches, so the UI
+// should not offer them an "all branches" view.
+export function isOrgWideRole(role?: string | null): boolean {
+  return role === "super_admin" || role === "admin" || role === "director";
+}
+
 export function getAccessToken(): string {
   if (!isBrowser()) return "";
   return window.localStorage.getItem(ACCESS_TOKEN_KEY) ?? "";

@@ -15,8 +15,15 @@
   --k-red: #ef4444;
   --k-sky: #2563eb;
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 50;
+  /* Fit the *visible* screen on tablets — dvh tracks the viewport as iOS Safari's
+     toolbars show/hide, so the header and footer are always on-screen (100vh is a
+     fallback for browsers without dvh). */
+  height: 100vh;
+  height: 100dvh;
   background: var(--k-bg);
   color: var(--k-ink);
   font-family: var(--font-body, ui-sans-serif, system-ui, sans-serif);
@@ -40,10 +47,8 @@
   background: linear-gradient(100deg, var(--k-blue-dk), var(--k-blue) 55%, var(--k-blue-2));
   box-shadow: 0 6px 24px rgba(30, 64, 175, .18);
 }
-.k-brand { display: flex; align-items: center; gap: 14px; }
-.k-brand img { height: 52px; width: auto; }
-.k-brand .bn { font-size: 26px; font-weight: 800; line-height: 1; letter-spacing: -.01em; }
-.k-brand .sub { font-size: 12px; letter-spacing: .32em; font-weight: 600; color: #cdd9ff; margin-top: 4px; }
+.k-brand { display: flex; align-items: center; }
+.k-brand img { height: 76px; width: auto; }
 .k-headclock { text-align: center; }
 .k-headclock .t { font-size: 46px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
 .k-headclock .t small { font-size: 20px; font-weight: 700; margin-left: 6px; color: #cdd9ff; }
@@ -57,7 +62,7 @@
 .k-net.off { color: #fca5a5; }
 
 /* ── Main ───────────────────────────────────────────────────────────────── */
-.k-main { flex: 1; display: grid; grid-template-columns: 1.9fr 1fr; gap: 26px; padding: 30px 36px; overflow: auto; align-content: start; }
+.k-main { flex: 1; min-height: 0; display: grid; grid-template-columns: 1.9fr 1fr; gap: 26px; padding: 30px 36px; overflow: auto; align-content: start; }
 @media (max-width: 960px) { .k-main { grid-template-columns: 1fr; } }
 
 .k-welcome { text-align: center; margin-bottom: 6px; }

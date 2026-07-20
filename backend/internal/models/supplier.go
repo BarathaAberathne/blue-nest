@@ -13,6 +13,7 @@ import (
 // for supplier-scoped analytics and, later, automated ordering per supplier.
 type Supplier struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty"        json:"id"`
+	OrgID        string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Name         string             `bson:"name"                 json:"name"`
 	Slug         string             `bson:"slug"                 json:"slug"`
 	Category     string             `bson:"category,omitempty"   json:"category,omitempty"`

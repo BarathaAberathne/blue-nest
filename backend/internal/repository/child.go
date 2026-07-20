@@ -12,27 +12,30 @@ import (
 )
 
 type ChildFilter struct {
-	Branch string
-	Room   string
-	Status string
-	Q      string
+	Branch    string
+	Room      string
+	Status    string
+	Q         string
+	KeyPerson string // staff id — children this staff member is key person for
 }
 
 type ChildRepository interface {
 	Create(ctx context.Context, c *models.Child) error
 	FindAll(ctx context.Context, f ChildFilter) ([]models.Child, error)
 	FindByID(ctx context.Context, id string) (*models.Child, error)
+	// SetKeyPerson assigns the child's key person (empty staffID clears it).
+	SetKeyPerson(ctx context.Context, id, staffID string) (*models.Child, error)
 	FindByEnquiryID(ctx context.Context, enquiryID string) (*models.Child, error)
 	Update(ctx context.Context, id string, c models.Child) (*models.Child, error)
 	Delete(ctx context.Context, id string) error
 }
 
 type childRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewChildRepository(db *mongo.Database) ChildRepository {
-	return &childRepository{col: db.Collection("children")}
+	return &childRepository{col: NewTenantCollection(db, "children")}
 }
 
 func (r *childRepository) Create(ctx context.Context, c *models.Child) error {
@@ -54,6 +57,9 @@ func (r *childRepository) FindAll(ctx context.Context, f ChildFilter) ([]models.
 	}
 	if f.Status != "" {
 		filter["status"] = f.Status
+	}
+	if f.KeyPerson != "" {
+		filter["key_person_id"] = f.KeyPerson
 	}
 	if f.Q != "" {
 		filter["$or"] = bson.A{
@@ -113,6 +119,20 @@ func (r *childRepository) Update(ctx context.Context, id string, c models.Child)
 		"medical_notes": c.MedicalNotes,
 		"updated_at":    time.Now(),
 	}}
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	var out models.Child
+	if err := r.col.FindOneAndUpdate(ctx, bson.M{"_id": oid}, update, opts).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (r *childRepository) SetKeyPerson(ctx context.Context, id, staffID string) (*models.Child, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	update := bson.M{"$set": bson.M{"key_person_id": staffID, "updated_at": time.Now()}}
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
 	var out models.Child
 	if err := r.col.FindOneAndUpdate(ctx, bson.M{"_id": oid}, update, opts).Decode(&out); err != nil {

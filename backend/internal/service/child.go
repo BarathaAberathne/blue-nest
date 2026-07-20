@@ -21,23 +21,74 @@ type ChildService interface {
 	Stats(ctx context.Context) (*models.ChildStats, error)
 	// EnsureFromEnquiry idempotently creates a child from a registered enquiry.
 	EnsureFromEnquiry(ctx context.Context, enquiryID, firstName, lastName, dob, gender, branch string) (*models.Child, error)
+	// SetKeyPerson assigns (or clears, with empty staffID) the child's key
+	// person. The key person must be an active staff member at the child's branch.
+	SetKeyPerson(ctx context.Context, childID, staffID string) (*models.Child, error)
+	// KeyChildren lists the children a staff member is key person for.
+	KeyChildren(ctx context.Context, staffID string) ([]models.Child, error)
 }
 
 type childService struct {
 	repo     repository.ChildRepository
 	rooms    repository.RoomRepository
 	counters repository.CounterRepository
+	staff    repository.StaffRepository
 }
 
-func NewChildService(repo repository.ChildRepository, rooms repository.RoomRepository, counters repository.CounterRepository) ChildService {
-	return &childService{repo: repo, rooms: rooms, counters: counters}
+func NewChildService(repo repository.ChildRepository, rooms repository.RoomRepository, counters repository.CounterRepository, staff repository.StaffRepository) ChildService {
+	return &childService{repo: repo, rooms: rooms, counters: counters, staff: staff}
 }
 
 func (s *childService) List(ctx context.Context, f repository.ChildFilter) ([]models.Child, error) {
 	return s.repo.FindAll(ctx, f)
 }
 func (s *childService) GetByID(ctx context.Context, id string) (*models.Child, error) {
-	return s.repo.FindByID(ctx, id)
+	c, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	s.resolveKeyPerson(ctx, c)
+	return c, nil
+}
+
+// resolveKeyPerson fills the transient KeyPersonName from the staff record.
+func (s *childService) resolveKeyPerson(ctx context.Context, c *models.Child) {
+	if c == nil || c.KeyPersonID == "" || s.staff == nil {
+		return
+	}
+	if st, err := s.staff.FindByID(ctx, c.KeyPersonID); err == nil && st != nil {
+		c.KeyPersonName = strings.TrimSpace(st.FirstName + " " + st.LastName)
+	}
+}
+
+func (s *childService) SetKeyPerson(ctx context.Context, childID, staffID string) (*models.Child, error) {
+	child, err := s.repo.FindByID(ctx, childID)
+	if err != nil {
+		return nil, errors.New("child not found")
+	}
+	staffID = strings.TrimSpace(staffID)
+	if staffID != "" {
+		st, err := s.staff.FindByID(ctx, staffID)
+		if err != nil || st == nil {
+			return nil, errors.New("staff member not found")
+		}
+		if st.BranchSlug != child.BranchSlug {
+			return nil, errors.New("the key person must be a staff member at the child's branch")
+		}
+	}
+	updated, err := s.repo.SetKeyPerson(ctx, childID, staffID)
+	if err != nil {
+		return nil, err
+	}
+	s.resolveKeyPerson(ctx, updated)
+	return updated, nil
+}
+
+func (s *childService) KeyChildren(ctx context.Context, staffID string) ([]models.Child, error) {
+	if strings.TrimSpace(staffID) == "" {
+		return []models.Child{}, nil
+	}
+	return s.repo.FindAll(ctx, repository.ChildFilter{KeyPerson: staffID})
 }
 
 func applyChild(c *models.Child, req models.ChildRequest) {
@@ -78,7 +129,7 @@ func (s *childService) Create(ctx context.Context, req models.ChildRequest) (*mo
 	if strings.TrimSpace(req.BranchSlug) == "" {
 		return nil, errors.New("branch is required")
 	}
-	c := &models.Child{Status: models.ChildActive, FundingType: "none"}
+	c := &models.Child{Status: models.ChildActive, FundingType: models.FundingNone}
 	applyChild(c, req)
 	ref, err := s.mintRef(ctx)
 	if err != nil {
@@ -109,7 +160,7 @@ func (s *childService) EnsureFromEnquiry(ctx context.Context, enquiryID, firstNa
 		return existing, nil // already linked — idempotent
 	}
 	req := models.ChildRequest{FirstName: firstName, LastName: lastName, DOB: dob, Gender: gender, BranchSlug: branch, Status: models.ChildActive}
-	c := &models.Child{Status: models.ChildActive, FundingType: "none", EnquiryID: enquiryID}
+	c := &models.Child{Status: models.ChildActive, FundingType: models.FundingNone, EnquiryID: enquiryID}
 	applyChild(c, req)
 	ref, err := s.mintRef(ctx)
 	if err != nil {
@@ -123,6 +174,18 @@ func (s *childService) EnsureFromEnquiry(ctx context.Context, enquiryID, firstNa
 }
 
 // ageYears returns whole years from a YYYY-MM-DD dob (0 if unparseable).
+// Age-group buckets for the children stats breakdown. The top bucket is
+// unbounded (every child from 3 up), so it is labelled "3+ years" rather than a
+// misleading closed "3–5 years" range.
+const (
+	ageBucket2 = 2
+	ageBucket3 = 3
+
+	ageGroupUnder2 = "Under 2"
+	ageGroup2to3   = "2–3 years"
+	ageGroup3plus  = "3+ years"
+)
+
 func ageYears(dob string) int {
 	t, err := time.Parse("2006-01-02", dob)
 	if err != nil {
@@ -158,7 +221,7 @@ func (s *childService) Stats(ctx context.Context) (*models.ChildStats, error) {
 
 	stats := &models.ChildStats{Capacity: totalCap}
 	childrenByBranch := map[string]int{}
-	ageGroups := map[string]int{"Under 2": 0, "2–3 years": 0, "3–5 years": 0}
+	ageGroups := map[string]int{ageGroupUnder2: 0, ageGroup2to3: 0, ageGroup3plus: 0}
 	for _, c := range children {
 		stats.Total++
 		switch c.Status {
@@ -166,12 +229,12 @@ func (s *childService) Stats(ctx context.Context) (*models.ChildStats, error) {
 			stats.Active++
 			childrenByBranch[c.BranchSlug]++
 			switch a := ageYears(c.DOB); {
-			case a < 2:
-				ageGroups["Under 2"]++
-			case a < 3:
-				ageGroups["2–3 years"]++
+			case a < ageBucket2:
+				ageGroups[ageGroupUnder2]++
+			case a < ageBucket3:
+				ageGroups[ageGroup2to3]++
 			default:
-				ageGroups["3–5 years"]++
+				ageGroups[ageGroup3plus]++ // unbounded top bucket (labelled "3+ years")
 			}
 		case models.ChildWaitlist:
 			stats.Waitlist++
@@ -206,7 +269,7 @@ func (s *childService) Stats(ctx context.Context) (*models.ChildStats, error) {
 		stats.Branches = append(stats.Branches, models.BranchChildStat{Branch: b, Children: ch, Capacity: cap, OccupancyRate: rate})
 		stats.ByBranch = append(stats.ByBranch, models.ChildStatPoint{Label: b, Value: ch})
 	}
-	for _, g := range []string{"Under 2", "2–3 years", "3–5 years"} {
+	for _, g := range []string{ageGroupUnder2, ageGroup2to3, ageGroup3plus} {
 		stats.ByAgeGroup = append(stats.ByAgeGroup, models.ChildStatPoint{Label: g, Value: ageGroups[g]})
 	}
 	return stats, nil

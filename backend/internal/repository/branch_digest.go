@@ -22,12 +22,12 @@ type GBPRepository interface {
 }
 
 type gbpRepository struct {
-	digests *mongo.Collection
-	reviews *mongo.Collection
+	digests *TenantCollection
+	reviews *TenantCollection
 }
 
 func NewGBPRepository(db *mongo.Database) GBPRepository {
-	return &gbpRepository{digests: db.Collection("branch_digests"), reviews: db.Collection("branch_reviews")}
+	return &gbpRepository{digests: NewTenantCollection(db, "branch_digests"), reviews: NewTenantCollection(db, "branch_reviews")}
 }
 
 func (r *gbpRepository) UpsertDigest(ctx context.Context, d models.BranchDigest) error {

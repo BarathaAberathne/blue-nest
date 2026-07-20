@@ -12,6 +12,7 @@ import (
 // permission.go; the effective set is cached for HasPermission.
 type RoleDefinition struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"  json:"id"`
+	OrgID       string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Name        Role               `bson:"name"           json:"name"`  // slug (unique)
 	Label       string             `bson:"label"          json:"label"` // human name
 	Permissions []Permission       `bson:"permissions"    json:"permissions"`

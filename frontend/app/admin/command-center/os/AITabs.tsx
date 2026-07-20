@@ -5,7 +5,7 @@ import {
   STAFF_STATUS, COMPLIANCE, PERF_GAUGES, AI_COMMAND, type BranchMetric,
 } from "../data";
 import { DonutChart, LineChart, MiniDonut, RingGauge, Funnel, SentimentLine } from "../widgets";
-import { useEnquiryPipeline, useBranchMetrics, useAttendanceToday, useStaffStats, useDailyStats, staffPresentByBranch } from "../live";
+import { useEnquiryPipeline, useBranchMetrics, useAttendanceToday, useStaffStats, useDailyStats, useChildrenStats, staffPresentByBranch } from "../live";
 import type { AiTab } from "./osdata";
 
 const TONE: Record<string, string> = {
@@ -68,7 +68,11 @@ export default function AITabContent({ tab }: { tab: AiTab }) {
   const attendance = useAttendanceToday();
   const staff = useStaffStats();
   const daily = useDailyStats();
+  const childrenStats = useChildrenStats();
   const staffPresent = staffPresentByBranch(staff);
+  // Live values for the performance gauges that DO have a backend source, so the
+  // gauges don't contradict the live KPI bar on the same page.
+  const liveGauge: Record<string, number> = { Occupancy: childrenStats.occupancyRate, Attendance: attendance.attendanceRate };
   // Live "Staff Today" tiles when the staff module has data; else the mock.
   const staffTiles = staff.live
     ? [
@@ -175,7 +179,13 @@ export default function AITabContent({ tab }: { tab: AiTab }) {
           </div>
         </Card>
         <Card title="STAFF BY BRANCH" span={3}>
-          <BranchTable branches={branches} cols={["Staff", "Present", "Ratio"]} cell={(m) => [`${m.staff}`, `${staffPresent.get(m.slug) ?? Math.max(m.staff - m.alerts, 0)}`, { v: m.alerts > 1 ? "watch" : "ok", c: m.alerts > 1 ? "var(--cc-warning)" : "var(--cc-success)" }]} />
+          <BranchTable branches={branches} cols={["Staff", "Present", "Ratio"]} cell={(m) => {
+            const present = staffPresent.get(m.slug);
+            const childrenIn = Math.round((m.children * m.attendanceToday) / 100);
+            // Real staff:child ratio from present staff + children in today (— when unknown).
+            const ratio = present && present > 0 ? `1:${Math.round(childrenIn / present)}` : "—";
+            return [`${m.staff}`, present != null ? `${present}` : "—", ratio];
+          }} />
         </Card>
       </div>
     );
@@ -232,12 +242,15 @@ export default function AITabContent({ tab }: { tab: AiTab }) {
         </Card>
         <Card title="PERFORMANCE" span={3}>
           <div className="grid grid-cols-6 gap-1" style={{ justifyItems: "center" }}>
-            {PERF_GAUGES.map((g) => (
-              <div key={g.label} className="flex flex-col items-center">
-                <RingGauge value={g.value} size={56} big={`${g.value}%`} color={gaugeColor(g.tone)} />
-                <span className="cc-label" style={{ fontSize: 6.5, color: "var(--cc-muted)" }}>{g.label}</span>
-              </div>
-            ))}
+            {PERF_GAUGES.map((g) => {
+              const value = liveGauge[g.label] ?? g.value; // live where available, else the mock proxy
+              return (
+                <div key={g.label} className="flex flex-col items-center">
+                  <RingGauge value={value} size={56} big={`${value}%`} color={gaugeColor(g.tone)} />
+                  <span className="cc-label" style={{ fontSize: 6.5, color: "var(--cc-muted)" }}>{g.label}</span>
+                </div>
+              );
+            })}
           </div>
         </Card>
       </div>

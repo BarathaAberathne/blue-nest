@@ -48,6 +48,35 @@ export interface BranchManagers {
   key_persons?: string[];
 }
 
+// ── Organisation (tenant) ────────────────────────────────────────────────────
+export interface OrgBranding {
+  logo_url?: string;
+  primary_color?: string;
+  accent_color?: string;
+}
+export interface OrgSettings {
+  timezone?: string;
+  currency?: string;
+  features?: string[];
+}
+export interface Organisation {
+  id: string;
+  slug: string;
+  name: string;
+  status: string;
+  plan?: string;
+  branding: OrgBranding;
+  domains?: string[];
+  settings: OrgSettings;
+  created_at?: string;
+  updated_at?: string;
+}
+export interface OrgProfileInput {
+  name: string;
+  branding: OrgBranding;
+  settings: OrgSettings;
+}
+
 export interface Branch {
   id: string;
   ref?: string; // BR-YYYY-NNNNNN
@@ -652,11 +681,19 @@ export type Permission =
   | "staff.manage"
   | "daily_logs.manage";
 
+export interface MeOrg {
+  id: string;
+  slug: string;
+  name: string;
+  branding: OrgBranding;
+  features: string[];
+}
 export interface Me {
   id: string;
   email: string;
   role: UserRole;
   permissions: Permission[];
+  org?: MeOrg;
 }
 
 // ── Customizable dashboard layout ────────────────────────────────────────────
@@ -931,6 +968,8 @@ export interface Child {
   dietary_reqs?: string;
   medical_notes?: string;
   enquiry_id?: string;
+  key_person_id?: string;
+  key_person_name?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -1146,6 +1185,20 @@ export interface AttendanceDaySummary {
   branches?: StaffBranchAttendanceStat[];
 }
 
+export interface StaffAbsenceSummary {
+  staff_id: string;
+  from: string;
+  to: string;
+  worked_days: number;
+  worked_hours: number;
+  late_days: number;
+  sick_days: number;
+  leave_days: number;
+  training_days: number;
+  absent_days: number;
+  attendance_rate: number;
+}
+
 export interface AttendanceCorrectionInput {
   staff_id?: string; // enables create-on-correct for staff with no record yet
   date?: string;
@@ -1207,9 +1260,10 @@ export interface KioskOverview {
 // ── Rota / shifts ────────────────────────────────────────────────────────────
 export interface Shift {
   id: string;
-  staff_id: string;
+  staff_id?: string;
   staff_name: string;
   branch_slug: string;
+  external?: boolean; // off-roster cover / visitor (no staff record)
   room_id?: string;
   room_name?: string;
   date: string;
@@ -1218,7 +1272,10 @@ export interface Shift {
   notes?: string;
 }
 export interface ShiftInput {
-  staff_id: string;
+  staff_id?: string;
+  external?: boolean;
+  staff_name?: string;  // required when external
+  branch_slug?: string; // required when external
   room_id?: string;
   date: string;
   start_time: string;

@@ -19,6 +19,34 @@ const (
 	StaffAttRemote   StaffAttendanceStatus = "remote"
 )
 
+// DBSExpiryWarnDays is how many days before a DBS check expires it starts being
+// flagged on the staff KPIs / compliance views.
+const DBSExpiryWarnDays = 90
+
+// awayStatuses are the "away but accounted-for" states — staff not on the floor
+// who must NOT be counted absent (annual leave, sickness, training, off-site
+// meeting, remote work).
+var awayStatuses = map[StaffAttendanceStatus]bool{
+	StaffAttLeave:    true,
+	StaffAttSick:     true,
+	StaffAttTraining: true,
+	StaffAttMeeting:  true,
+	StaffAttRemote:   true,
+}
+
+// IsAway reports whether a status is an accounted-for absence (so it is neither
+// "present/attended" nor "absent"). The single source of truth for the away set,
+// shared by every staff/attendance KPI.
+func IsAway(s StaffAttendanceStatus) bool { return awayStatuses[s] }
+
+// IsWorking reports whether this record counts as present/attended for the day:
+// an explicit "present" status OR any clock-in (kiosk or manual). Shared by the
+// staff stats, the attendance-dashboard summary and the branch rollup so all
+// three agree on who counts as present.
+func (r StaffAttendanceRecord) IsWorking() bool {
+	return r.Status == StaffAttPresent || r.ClockIn != nil
+}
+
 // AttendanceSource records how a record was captured — the kiosk is the primary,
 // authoritative path; manual/import cover admin corrections and migrations.
 type AttendanceSource string
@@ -54,6 +82,7 @@ type AttendanceCorrection struct {
 // legacy records load unchanged.
 type StaffAttendanceRecord struct {
 	ID          primitive.ObjectID    `bson:"_id,omitempty"        json:"id"`
+	OrgID       string                `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	StaffID     string                `bson:"staff_id"             json:"staff_id"`
 	StaffName   string                `bson:"staff_name"           json:"staff_name"`
 	BranchSlug  string                `bson:"branch_slug"          json:"branch_slug"`
@@ -128,6 +157,7 @@ type StaffBranchAttendanceStat struct {
 type AttendanceDaySummary struct {
 	Date            string                      `json:"date"`
 	Total           int                         `json:"total"`
+	Attended        int                         `json:"attended"` // working (present) count — the rate numerator
 	CurrentlyIn     int                         `json:"currently_in"`
 	ClockedOut      int                         `json:"clocked_out"`
 	Absent          int                         `json:"absent"`
@@ -138,6 +168,24 @@ type AttendanceDaySummary struct {
 	AttendanceRate  int                         `json:"attendance_rate"`
 	AvgArrival      string                      `json:"avg_arrival"` // HH:MM
 	Branches        []StaffBranchAttendanceStat `json:"branches,omitempty"`
+}
+
+// StaffAbsenceSummary aggregates one staff member's attendance over a date range
+// for the staff-profile dashboard (the "Absence" card + attendance donut). All
+// figures are derived from real captured records — days with no record count
+// toward neither worked nor absent.
+type StaffAbsenceSummary struct {
+	StaffID        string `json:"staff_id"`
+	From           string `json:"from"` // YYYY-MM-DD inclusive
+	To             string `json:"to"`   // YYYY-MM-DD inclusive
+	WorkedDays     int    `json:"worked_days"`
+	WorkedHours    int    `json:"worked_hours"` // whole hours worked in the period
+	LateDays       int    `json:"late_days"`
+	SickDays       int    `json:"sick_days"`
+	LeaveDays      int    `json:"leave_days"`      // annual leave / holiday
+	TrainingDays   int    `json:"training_days"`   // training / meeting / remote
+	AbsentDays     int    `json:"absent_days"`     // explicit unexplained absence
+	AttendanceRate int    `json:"attendance_rate"` // worked ÷ (worked + away + absent), %
 }
 
 // AttendanceCorrectionRequest is a manager's manual edit to a record. Each
