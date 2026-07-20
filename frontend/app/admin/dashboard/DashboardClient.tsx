@@ -227,7 +227,7 @@ export default function DashboardClient() {
     { label: "Today's Attendance", value: `${attStats?.attendance_rate ?? 0}%`, sub: `${attStats?.present ?? 0}/${attStats?.expected ?? 0} children in`, icon: CalendarCheck, accent: "green", href: "/admin/attendance", progress: attStats?.attendance_rate, permission: "attendance.manage" },
     { label: "Staff Present", value: String(staffStats?.present ?? 0), sub: `of ${staffStats?.total ?? 0}${(staffStats?.on_leave ?? 0) > 0 ? ` · ${staffStats?.on_leave} on leave` : ""}`, icon: Users, accent: "indigo", href: "/admin/staff-attendance", progress: pct(staffStats?.present ?? 0, staffStats?.total ?? 0), permission: "staff.manage" },
     { label: "Safeguarding", value: String(dailyStats?.safeguarding_open ?? 0), sub: (dailyStats?.safeguarding_open ?? 0) === 0 ? "no open concerns" : "open concerns", icon: ShieldAlert, accent: (dailyStats?.safeguarding_open ?? 0) > 0 ? "rose" : "slate", href: "/admin/daily-log", permission: "daily_logs.manage" },
-    { label: "New Inquiries", value: String(newInquiries.length), sub: `${scopedInquiries.length} total received`, icon: Inbox, accent: "blue", href: "/admin/inquiries", permission: "enquiries.manage" },
+    { label: "New Enquiries", value: String(newInquiries.length), sub: `${scopedInquiries.length} total received`, icon: Inbox, accent: "blue", href: "/admin/inquiries", permission: "enquiries.manage" },
     { label: "Pending Requests", value: String(pendingRequestsValue), sub: requestsSub, icon: ClipboardList, accent: "rose", href: "/admin/order-requests", permission: "procurement.view" },
     { label: "Procurement Spend", value: fmt(analytics?.total_spend ?? 0), sub: `${analytics?.total_orders ?? 0} purchase orders`, icon: PoundSterling, accent: "teal", href: "/admin/procurement/analytics", permission: "finance.view" },
     { label: "Overdue Orders", value: String(analytics?.overdue_orders ?? 0), sub: "awaiting delivery past due", icon: Truck, accent: "orange", href: "/admin/purchase-carts", permission: "finance.view" },
@@ -311,7 +311,7 @@ export default function DashboardClient() {
           { label: "Manage Categories", href: "/admin/categories", permission: "store.manage" as Permission },
           { label: "Supply Requests", href: "/admin/order-requests", permission: "procurement.view" as Permission },
           { label: "Suppliers", href: "/admin/procurement/suppliers", permission: "suppliers.manage" as Permission },
-          { label: "Review Inquiries", href: "/admin/inquiries", permission: "enquiries.manage" as Permission },
+          { label: "Review Enquiries", href: "/admin/inquiries", permission: "enquiries.manage" as Permission },
           { label: "Write Blog Post", href: "/admin/blog", permission: "blog.manage" as Permission },
           { label: "Manage Users", href: "/admin/users", permission: "users.manage" as Permission },
         ]).filter((a) => has(a.permission)).slice(0, 4);

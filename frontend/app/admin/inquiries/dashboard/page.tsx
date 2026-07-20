@@ -3,7 +3,7 @@ import AdminLayout from "@/components/layout/AdminLayout";
 import InquiryDashboardClient from "./InquiryDashboardClient";
 
 export const metadata: Metadata = {
-  title: "Admin – Inquiry Dashboard",
+  title: "Admin – Enquiry Dashboard",
   robots: { index: false, follow: false },
 };
 
