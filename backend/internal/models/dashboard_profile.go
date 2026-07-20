@@ -13,6 +13,7 @@ import (
 // the per-user DashboardLayout (B3.3b).
 type DashboardProfile struct {
 	ID              primitive.ObjectID `bson:"_id,omitempty"    json:"id"`
+	OrgID           string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Name            string             `bson:"name"             json:"name"`
 	Slug            string             `bson:"slug"             json:"slug"`
 	Description     string             `bson:"description,omitempty" json:"description,omitempty"`

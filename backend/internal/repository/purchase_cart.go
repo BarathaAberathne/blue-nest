@@ -33,11 +33,11 @@ type PurchaseCartRepository interface {
 }
 
 type purchaseCartRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewPurchaseCartRepository(db *mongo.Database) PurchaseCartRepository {
-	return &purchaseCartRepository{col: db.Collection("purchase_carts")}
+	return &purchaseCartRepository{col: NewTenantCollection(db, "purchase_carts")}
 }
 
 func (r *purchaseCartRepository) Create(ctx context.Context, c *models.PurchaseCart) error {

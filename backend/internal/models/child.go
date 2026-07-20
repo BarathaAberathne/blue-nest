@@ -14,6 +14,13 @@ const (
 	ChildLeft     ChildStatus = "left"
 )
 
+// Funding types — the child's free-hours entitlement.
+const (
+	FundingNone = "none"
+	Funding15h  = "15h"
+	Funding30h  = "30h"
+)
+
 // Guardian is a parent/carer contact on a child record.
 type Guardian struct {
 	Name     string `bson:"name"     json:"name"`
@@ -33,6 +40,7 @@ type ChildSession struct {
 // nursery" record — occupancy, attendance and rooms all reference it.
 type Child struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty"        json:"id"`
+	OrgID        string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Ref          string             `bson:"ref,omitempty"        json:"ref,omitempty"` // CHD-YYYY-NNNNNN
 	FirstName    string             `bson:"first_name"           json:"first_name"`
 	LastName     string             `bson:"last_name"            json:"last_name"`
@@ -43,14 +51,26 @@ type Child struct {
 	Status       ChildStatus        `bson:"status"               json:"status"`
 	StartDate    string             `bson:"start_date,omitempty" json:"start_date,omitempty"`
 	Guardians    []Guardian         `bson:"guardians,omitempty"  json:"guardians,omitempty"`
-	FundingType  string             `bson:"funding_type"         json:"funding_type"` // none | 15h | 30h
+	FundingType  string             `bson:"funding_type"         json:"funding_type"` // FundingNone | Funding15h | Funding30h
 	Sessions     []ChildSession     `bson:"sessions,omitempty"   json:"sessions,omitempty"`
 	Allergies    string             `bson:"allergies,omitempty"    json:"allergies,omitempty"`
 	DietaryReqs  string             `bson:"dietary_reqs,omitempty" json:"dietary_reqs,omitempty"`
 	MedicalNotes string             `bson:"medical_notes,omitempty" json:"medical_notes,omitempty"`
 	EnquiryID    string             `bson:"enquiry_id,omitempty"   json:"enquiry_id,omitempty"` // originating admissions enquiry
-	CreatedAt    time.Time          `bson:"created_at"           json:"created_at"`
-	UpdatedAt    time.Time          `bson:"updated_at"           json:"updated_at"`
+	// KeyPersonID links the child to their key person (a staff record id). The
+	// key person builds a secure attachment and tracks the child's development.
+	KeyPersonID string    `bson:"key_person_id,omitempty" json:"key_person_id,omitempty"`
+	CreatedAt   time.Time `bson:"created_at"           json:"created_at"`
+	UpdatedAt   time.Time `bson:"updated_at"           json:"updated_at"`
+
+	// KeyPersonName is resolved from the staff record for display; never stored.
+	KeyPersonName string `bson:"-" json:"key_person_name,omitempty"`
+}
+
+// ChildKeyPersonRequest assigns (or clears, with an empty staff_id) a child's
+// key person.
+type ChildKeyPersonRequest struct {
+	StaffID string `json:"staff_id"`
 }
 
 type ChildRequest struct {

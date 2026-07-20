@@ -18,11 +18,11 @@ type OrderTemplateRepository interface {
 }
 
 type orderTemplateRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewOrderTemplateRepository(db *mongo.Database) OrderTemplateRepository {
-	return &orderTemplateRepository{col: db.Collection("order_templates")}
+	return &orderTemplateRepository{col: NewTenantCollection(db, "order_templates")}
 }
 
 func (r *orderTemplateRepository) Create(ctx context.Context, t *models.OrderTemplate) error {

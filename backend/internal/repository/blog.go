@@ -24,11 +24,11 @@ type BlogRepository interface {
 }
 
 type blogRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewBlogRepository(db *mongo.Database) BlogRepository {
-	return &blogRepository{col: db.Collection("blog_posts")}
+	return &blogRepository{col: NewTenantCollection(db, "blog_posts")}
 }
 
 func (r *blogRepository) FindPublished(ctx context.Context) ([]models.BlogPost, error) {
@@ -106,20 +106,20 @@ func (r *blogRepository) Update(ctx context.Context, id string, post models.Blog
 
 	update := bson.M{
 		"$set": bson.M{
-			"slug":          post.Slug,
-			"title":         post.Title,
-			"excerpt":       post.Excerpt,
-			"body":          post.Body,
-			"author_id":     post.AuthorID,
-			"author_name":   post.AuthorName,
-			"cover_image":   post.CoverImage,
+			"slug":           post.Slug,
+			"title":          post.Title,
+			"excerpt":        post.Excerpt,
+			"body":           post.Body,
+			"author_id":      post.AuthorID,
+			"author_name":    post.AuthorName,
+			"cover_image":    post.CoverImage,
 			"gallery_images": post.GalleryImages,
-			"tags":          post.Tags,
-			"branch_slugs":  post.BranchSlugs,
-			"published":     post.Published,
-			"published_at":  post.PublishedAt,
-			"scheduled_at":  post.ScheduledAt,
-			"updated_at":    time.Now(),
+			"tags":           post.Tags,
+			"branch_slugs":   post.BranchSlugs,
+			"published":      post.Published,
+			"published_at":   post.PublishedAt,
+			"scheduled_at":   post.ScheduledAt,
+			"updated_at":     time.Now(),
 		},
 	}
 

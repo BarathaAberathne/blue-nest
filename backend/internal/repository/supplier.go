@@ -20,11 +20,11 @@ type SupplierRepository interface {
 }
 
 type supplierRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewSupplierRepository(db *mongo.Database) SupplierRepository {
-	return &supplierRepository{col: db.Collection("suppliers")}
+	return &supplierRepository{col: NewTenantCollection(db, "suppliers")}
 }
 
 func (r *supplierRepository) Create(ctx context.Context, s *models.Supplier) error {

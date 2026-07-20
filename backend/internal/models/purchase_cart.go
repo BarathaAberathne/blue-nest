@@ -76,6 +76,7 @@ type PurchaseCartLine struct {
 // item lands in; carts are split per supplier.
 type PurchaseCart struct {
 	ID             primitive.ObjectID `bson:"_id,omitempty"      json:"id"`
+	OrgID          string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Ref            string             `bson:"ref,omitempty"      json:"ref,omitempty"` // human ref e.g. PO-2026-000123
 	Supplier       string             `bson:"supplier"           json:"supplier"`
 	Status         PurchaseCartStatus `bson:"status"             json:"status"`

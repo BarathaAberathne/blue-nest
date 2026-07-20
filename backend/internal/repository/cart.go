@@ -18,11 +18,11 @@ type CartRepository interface {
 }
 
 type cartRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewCartRepository(db *mongo.Database) CartRepository {
-	return &cartRepository{col: db.Collection("carts")}
+	return &cartRepository{col: NewTenantCollection(db, "carts")}
 }
 
 func (r *cartRepository) FindByUserID(ctx context.Context, userID string) (*models.Cart, error) {

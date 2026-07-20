@@ -5,6 +5,7 @@ import (
 
 	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/blue-nest-montessori/api/pkg/validator"
@@ -22,7 +23,13 @@ func NewAdminStaffAttendanceHandler(svc service.StaffAttendanceService, audit se
 
 func (h *AdminStaffAttendanceHandler) Register(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	rows, err := h.svc.Register(r.Context(), q.Get("date"), q.Get("branch"))
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, q.Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	rows, err := h.svc.Register(r.Context(), q.Get("date"), branch)
 	if err != nil {
 		response.InternalError(w, "failed to build staff register")
 		return
@@ -34,7 +41,13 @@ func (h *AdminStaffAttendanceHandler) Register(w http.ResponseWriter, r *http.Re
 // (company-wide + per-branch breakdown when branch is omitted).
 func (h *AdminStaffAttendanceHandler) Summary(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	sum, err := h.svc.DaySummary(r.Context(), q.Get("date"), q.Get("branch"))
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, q.Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	sum, err := h.svc.DaySummary(r.Context(), q.Get("date"), branch)
 	if err != nil {
 		response.InternalError(w, "failed to compute attendance summary")
 		return
@@ -51,7 +64,8 @@ func (h *AdminStaffAttendanceHandler) Correct(w http.ResponseWriter, r *http.Req
 		return
 	}
 	actorID, _ := r.Context().Value(middleware.UserIDKey).(string)
-	rec, err := h.svc.Correct(r.Context(), id, req, actorID, attendanceActor(r))
+	role, scope := caller(r)
+	rec, err := h.svc.Correct(r.Context(), id, req, actorID, attendanceActor(r), policy.AllowedOrNil(role, scope))
 	if err != nil {
 		response.BadRequest(w, err.Error())
 		return
@@ -62,7 +76,13 @@ func (h *AdminStaffAttendanceHandler) Correct(w http.ResponseWriter, r *http.Req
 
 func (h *AdminStaffAttendanceHandler) Today(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	stats, err := h.svc.TodayStats(r.Context(), q.Get("date"), q.Get("branch"))
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, q.Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	stats, err := h.svc.TodayStats(r.Context(), q.Get("date"), branch)
 	if err != nil {
 		response.InternalError(w, "failed to compute staff stats")
 		return
@@ -76,7 +96,8 @@ func (h *AdminStaffAttendanceHandler) ClockIn(w http.ResponseWriter, r *http.Req
 		response.BadRequest(w, err.Error())
 		return
 	}
-	rec, err := h.svc.ClockIn(r.Context(), req, service.ClockContext{Source: models.AttSourceManual, ActorID: attendanceActor(r)})
+	role, scope := caller(r)
+	rec, err := h.svc.ClockIn(r.Context(), req, service.ClockContext{Source: models.AttSourceManual, ActorID: attendanceActor(r), Allowed: policy.AllowedOrNil(role, scope)})
 	if err != nil {
 		response.BadRequest(w, err.Error())
 		return
@@ -91,7 +112,8 @@ func (h *AdminStaffAttendanceHandler) ClockOut(w http.ResponseWriter, r *http.Re
 		response.BadRequest(w, err.Error())
 		return
 	}
-	rec, err := h.svc.ClockOut(r.Context(), req, service.ClockContext{Source: models.AttSourceManual, ActorID: attendanceActor(r)})
+	role, scope := caller(r)
+	rec, err := h.svc.ClockOut(r.Context(), req, service.ClockContext{Source: models.AttSourceManual, ActorID: attendanceActor(r), Allowed: policy.AllowedOrNil(role, scope)})
 	if err != nil {
 		response.BadRequest(w, err.Error())
 		return
@@ -106,7 +128,8 @@ func (h *AdminStaffAttendanceHandler) Mark(w http.ResponseWriter, r *http.Reques
 		response.BadRequest(w, err.Error())
 		return
 	}
-	rec, err := h.svc.Mark(r.Context(), req, attendanceActor(r))
+	role, scope := caller(r)
+	rec, err := h.svc.Mark(r.Context(), req, attendanceActor(r), policy.AllowedOrNil(role, scope))
 	if err != nil {
 		response.BadRequest(w, err.Error())
 		return

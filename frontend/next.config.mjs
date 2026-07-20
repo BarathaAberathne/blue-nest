@@ -37,6 +37,16 @@ const nextConfig = {
         source: "/uploads/:path*",
         destination: `${backendInternal}/uploads/:path*`,
       },
+      // Same-origin proxy for the API so devices that AREN'T the machine running
+      // the stack (a kiosk tablet on the LAN) can reach the backend without a
+      // baked-in LAN IP. The browser calls <this-origin>/api/v1/* and Next
+      // forwards it to the backend over the Docker network. Runs afterFiles, so
+      // it never shadows the local /api/chat route handler. Only /api/v1/* (the
+      // Go API prefix) is proxied.
+      {
+        source: "/api/v1/:path*",
+        destination: `${backendInternal}/api/v1/:path*`,
+      },
     ];
   },
   /**

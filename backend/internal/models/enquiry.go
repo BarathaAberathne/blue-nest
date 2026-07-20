@@ -94,7 +94,7 @@ type FeeQuote struct {
 	Discount       string  `bson:"discount,omitempty"        json:"discount,omitempty"`        // "sibling" | "staff"
 	DiscountAmount float64 `bson:"discount_amount,omitempty" json:"discount_amount,omitempty"` // weekly £ saving
 	Funding        string  `bson:"funding,omitempty"         json:"funding,omitempty"`
-	YearWeeks      int     `bson:"year_weeks,omitempty"      json:"year_weeks,omitempty"`      // 38 = term-time, 52 = full-year
+	YearWeeks      int     `bson:"year_weeks,omitempty"      json:"year_weeks,omitempty"` // 38 = term-time, 52 = full-year
 	GrossWeekly    float64 `bson:"gross_weekly"              json:"gross_weekly"`
 	FundingOffset  float64 `bson:"funding_offset,omitempty"  json:"funding_offset,omitempty"`
 	NetWeekly      float64 `bson:"net_weekly"                json:"net_weekly"`
@@ -171,6 +171,7 @@ type EnquiryRegistration struct {
 
 type Enquiry struct {
 	ID          primitive.ObjectID `bson:"_id"                 json:"id"`
+	OrgID       string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Name        string             `bson:"name"                json:"name"`
 	Email       string             `bson:"email"               json:"email"`
 	Phone       string             `bson:"phone"               json:"phone"`
@@ -218,14 +219,14 @@ type EnquiryRequest struct {
 // priority, an owner and an opening note. Requires a name, a branch, a type and
 // at least one contact method (email or phone).
 type AdminEnquiryCreateRequest struct {
-	Name        string `json:"name"`
-	Email       string `json:"email"`
-	Phone       string `json:"phone"`
-	Branch      string `json:"branch"`
-	ChildAge    string `json:"child_age"`
-	EnquiryType string `json:"enquiry_type"`
-	Message     string `json:"message"`
-	Source      string `json:"source"`      // channel: phone | walk_in | email | referral | social | event | other
+	Name           string `json:"name"`
+	Email          string `json:"email"`
+	Phone          string `json:"phone"`
+	Branch         string `json:"branch"`
+	ChildAge       string `json:"child_age"`
+	EnquiryType    string `json:"enquiry_type"`
+	Message        string `json:"message"`
+	Source         string `json:"source"`           // channel: phone | walk_in | email | referral | social | event | other
 	Priority       string `json:"priority"`         // optional; defaults to medium
 	AssignedTo     string `json:"assigned_to"`      // optional user id to own it
 	AssignedToName string `json:"assigned_to_name"` // display name for the owner

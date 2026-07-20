@@ -67,7 +67,7 @@ func (s *staffService) provisionLogin(ctx context.Context, st *models.Staff, req
 		return nil
 	}
 	// Otherwise create a fresh account.
-	if len(req.LoginPassword) < 8 {
+	if len(req.LoginPassword) < minPasswordLen {
 		return errors.New("a password (min 8 chars) is required to create a new login")
 	}
 	u, err := s.accounts.CreateAdminUser(ctx, models.AdminCreateUserRequest{

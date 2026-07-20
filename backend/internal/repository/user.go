@@ -25,7 +25,7 @@ type UserRepository interface {
 }
 
 type userRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewUserRepository(db *mongo.Database) UserRepository {
@@ -46,7 +46,7 @@ func NewUserRepository(db *mongo.Database) UserRepository {
 		slog.Warn("users: could not create unique index on email — clean up duplicates with db.users.aggregate([...]) and retry", "err", err)
 	}
 
-	return &userRepository{col: col}
+	return &userRepository{col: NewTenantCollectionFrom(col)}
 }
 
 func (r *userRepository) Create(ctx context.Context, user *models.User) error {
@@ -55,6 +55,11 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) error {
 }
 
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
+	// Email is a platform-wide identity: authentication resolves WHICH tenant a
+	// user belongs to, so this lookup runs cross-org. Callers then scope by the
+	// user's own org_id (carried into their JWT). Account-management lookups use
+	// the org-scoped FindByID/FindAll instead.
+	ctx = WithCrossOrg(ctx)
 	var user models.User
 	err := r.col.FindOne(ctx, bson.M{"email": email}).Decode(&user)
 	if err != nil {

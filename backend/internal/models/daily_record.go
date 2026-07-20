@@ -32,6 +32,7 @@ const (
 // DailyRecord is one dated practitioner entry against a child (or branch-wide).
 type DailyRecord struct {
 	ID         primitive.ObjectID `bson:"_id,omitempty"       json:"id"`
+	OrgID      string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Ref        string             `bson:"ref,omitempty"       json:"ref,omitempty"` // LOG-YYYY-NNNNNN
 	Type       DailyRecordType    `bson:"type"                json:"type"`
 	ChildID    string             `bson:"child_id,omitempty"  json:"child_id,omitempty"`

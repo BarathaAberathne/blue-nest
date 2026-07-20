@@ -5,6 +5,7 @@ import (
 
 	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/blue-nest-montessori/api/pkg/validator"
@@ -34,6 +35,10 @@ func (h *AdminKioskHandler) CreateDevice(w http.ResponseWriter, r *http.Request)
 		response.BadRequest(w, err.Error())
 		return
 	}
+	if !inScope(r, req.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
 	device, token, err := h.svc.CreateDevice(r.Context(), req, actorID(r))
 	if err != nil {
 		response.BadRequest(w, err.Error())
@@ -44,7 +49,13 @@ func (h *AdminKioskHandler) CreateDevice(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *AdminKioskHandler) ListDevices(w http.ResponseWriter, r *http.Request) {
-	devices, err := h.svc.ListDevices(r.Context(), r.URL.Query().Get("branch"))
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	devices, err := h.svc.ListDevices(r.Context(), branch)
 	if err != nil {
 		response.InternalError(w, "failed to load devices")
 		return
@@ -64,7 +75,8 @@ func (h *AdminKioskHandler) SetActive(w http.ResponseWriter, r *http.Request) {
 		response.BadRequest(w, err.Error())
 		return
 	}
-	if err := h.svc.SetDeviceActive(r.Context(), id, body.Active); err != nil {
+	role, scope := caller(r)
+	if err := h.svc.SetDeviceActive(r.Context(), id, body.Active, policy.AllowedOrNil(role, scope)); err != nil {
 		response.BadRequest(w, err.Error())
 		return
 	}
@@ -78,7 +90,8 @@ func (h *AdminKioskHandler) SetActive(w http.ResponseWriter, r *http.Request) {
 
 func (h *AdminKioskHandler) DeleteDevice(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	if err := h.svc.DeleteDevice(r.Context(), id); err != nil {
+	role, scope := caller(r)
+	if err := h.svc.DeleteDevice(r.Context(), id, policy.AllowedOrNil(role, scope)); err != nil {
 		response.BadRequest(w, err.Error())
 		return
 	}
@@ -96,7 +109,8 @@ func (h *AdminKioskHandler) SetStaffPIN(w http.ResponseWriter, r *http.Request) 
 		response.BadRequest(w, err.Error())
 		return
 	}
-	if err := h.svc.SetStaffPIN(r.Context(), id, body.PIN); err != nil {
+	role, scope := caller(r)
+	if err := h.svc.SetStaffPIN(r.Context(), id, body.PIN, policy.AllowedOrNil(role, scope)); err != nil {
 		response.BadRequest(w, err.Error())
 		return
 	}

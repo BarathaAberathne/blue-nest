@@ -50,12 +50,12 @@ type OrderRepository interface {
 }
 
 type orderRepository struct {
-	col     *mongo.Collection
+	col     *TenantCollection
 	counter CounterRepository
 }
 
 func NewOrderRepository(db *mongo.Database, counter CounterRepository) OrderRepository {
-	return &orderRepository{col: db.Collection("orders"), counter: counter}
+	return &orderRepository{col: NewTenantCollection(db, "orders"), counter: counter}
 }
 
 func (r *orderRepository) FindAll(ctx context.Context) ([]models.Order, error) {

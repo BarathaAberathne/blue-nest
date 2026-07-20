@@ -21,7 +21,26 @@ type ClockContext struct {
 	IP       string
 	Location string
 	ActorID  string
+	// Allowed restricts which branches the actor may write to (nil = org-wide, no
+	// restriction). Set from the caller's branch scope so a branch manager can't
+	// clock/correct another branch's staff.
+	Allowed []string
 }
+
+// branchAllowed reports whether a branch is within an allowed set (nil = any).
+func branchAllowed(allowed []string, branch string) bool {
+	if allowed == nil {
+		return true
+	}
+	for _, s := range allowed {
+		if s == branch {
+			return true
+		}
+	}
+	return false
+}
+
+var errOutsideScope = errors.New("outside your branch scope")
 
 func (c ClockContext) source() models.AttendanceSource {
 	if c.Source == "" {
@@ -34,14 +53,17 @@ type StaffAttendanceService interface {
 	Register(ctx context.Context, date, branch string) ([]models.StaffAttendanceRecord, error)
 	ClockIn(ctx context.Context, req models.StaffClockInRequest, cc ClockContext) (*models.StaffAttendanceRecord, error)
 	ClockOut(ctx context.Context, req models.StaffClockOutRequest, cc ClockContext) (*models.StaffAttendanceRecord, error)
-	Mark(ctx context.Context, req models.StaffAttendanceMarkRequest, actor string) (*models.StaffAttendanceRecord, error)
+	Mark(ctx context.Context, req models.StaffAttendanceMarkRequest, actor string, allowed []string) (*models.StaffAttendanceRecord, error)
 	TodayStats(ctx context.Context, date, branch string) (*models.StaffStats, error)
 	// DaySummary is the attendance-dashboard KPI payload for a date + branch
 	// (company-wide with a per-branch breakdown when branch is empty).
 	DaySummary(ctx context.Context, date, branch string) (*models.AttendanceDaySummary, error)
 	// Correct applies a manager's manual edit, appending an audit correction and
 	// recomputing the derived minutes.
-	Correct(ctx context.Context, id string, req models.AttendanceCorrectionRequest, actorID, actorName string) (*models.StaffAttendanceRecord, error)
+	Correct(ctx context.Context, id string, req models.AttendanceCorrectionRequest, actorID, actorName string, allowed []string) (*models.StaffAttendanceRecord, error)
+	// PeriodSummary aggregates one staff member's attendance over a date range for
+	// the staff-profile dashboard (worked/sick/leave/absent days + attendance rate).
+	PeriodSummary(ctx context.Context, staffID, from, to string) (*models.StaffAbsenceSummary, error)
 }
 
 type staffAttendanceService struct {
@@ -215,6 +237,9 @@ func (s *staffAttendanceService) ClockIn(ctx context.Context, req models.StaffCl
 	if err != nil {
 		return nil, err
 	}
+	if !branchAllowed(cc.Allowed, rec.BranchSlug) {
+		return nil, errOutsideScope
+	}
 	if rec.ClockIn != nil && rec.ClockOut == nil {
 		return nil, errors.New("already clocked in")
 	}
@@ -247,6 +272,9 @@ func (s *staffAttendanceService) ClockOut(ctx context.Context, req models.StaffC
 	rec, err := s.baseRecord(ctx, req.StaffID, req.Date)
 	if err != nil {
 		return nil, err
+	}
+	if !branchAllowed(cc.Allowed, rec.BranchSlug) {
+		return nil, errOutsideScope
 	}
 	if rec.ClockIn == nil {
 		return nil, errors.New("not clocked in yet")
@@ -283,13 +311,16 @@ func (s *staffAttendanceService) ClockOut(ctx context.Context, req models.StaffC
 	return s.repo.Upsert(ctx, rec)
 }
 
-func (s *staffAttendanceService) Mark(ctx context.Context, req models.StaffAttendanceMarkRequest, actor string) (*models.StaffAttendanceRecord, error) {
+func (s *staffAttendanceService) Mark(ctx context.Context, req models.StaffAttendanceMarkRequest, actor string, allowed []string) (*models.StaffAttendanceRecord, error) {
 	if strings.TrimSpace(string(req.Status)) == "" {
 		return nil, errors.New("status is required")
 	}
 	rec, err := s.baseRecord(ctx, req.StaffID, req.Date)
 	if err != nil {
 		return nil, err
+	}
+	if !branchAllowed(allowed, rec.BranchSlug) {
+		return nil, errOutsideScope
 	}
 	rec.Status = req.Status
 	if req.Notes != "" {
@@ -303,6 +334,41 @@ func (s *staffAttendanceService) Mark(ctx context.Context, req models.StaffAtten
 	return s.repo.Upsert(ctx, rec)
 }
 
+func (s *staffAttendanceService) PeriodSummary(ctx context.Context, staffID, from, to string) (*models.StaffAbsenceSummary, error) {
+	if from == "" || to == "" {
+		return nil, errors.New("from and to dates are required")
+	}
+	recs, err := s.repo.FindByStaffRange(ctx, staffID, from, to)
+	if err != nil {
+		return nil, err
+	}
+	sum := &models.StaffAbsenceSummary{StaffID: staffID, From: from, To: to}
+	workedMinutes := 0
+	for _, r := range recs {
+		switch {
+		case r.IsWorking():
+			sum.WorkedDays++
+			workedMinutes += r.WorkedMinutes
+			if r.LateArrival {
+				sum.LateDays++
+			}
+		case r.Status == models.StaffAttSick:
+			sum.SickDays++
+		case r.Status == models.StaffAttLeave:
+			sum.LeaveDays++
+		case models.IsAway(r.Status): // training / meeting / remote (sick + leave handled above)
+			sum.TrainingDays++
+		case r.Status == models.StaffAttAbsent:
+			sum.AbsentDays++
+		}
+	}
+	sum.WorkedHours = workedMinutes / 60
+	// Attendance rate = worked ÷ every accounted day (worked + away + absent).
+	accounted := sum.WorkedDays + sum.SickDays + sum.LeaveDays + sum.TrainingDays + sum.AbsentDays
+	sum.AttendanceRate = percent(sum.WorkedDays, accounted)
+	return sum, nil
+}
+
 // daysUntil returns whole days from now to a YYYY-MM-DD date (negative if past).
 func daysUntil(date string) (int, bool) {
 	t, err := time.Parse("2006-01-02", date)
@@ -312,11 +378,25 @@ func daysUntil(date string) (int, bool) {
 	return int(time.Until(t).Hours() / 24), true
 }
 
-func (s *staffAttendanceService) TodayStats(ctx context.Context, date, branch string) (*models.StaffStats, error) {
-	pinned := date != ""
-	if date == "" {
-		date = today()
+// resolveDate picks the day to report on. An explicit date is used as-is; an
+// empty date means "today", but if today has no records yet it falls back to the
+// most recent day with data so the dashboards stay meaningful instead of
+// collapsing to zero. Shared by TodayStats + DaySummary so both show the same day.
+func (s *staffAttendanceService) resolveDate(ctx context.Context, date, branch string) string {
+	if date != "" {
+		return date
 	}
+	date = today()
+	if recs, err := s.repo.FindByDate(ctx, date, branch); err == nil && len(recs) == 0 {
+		if latest, lerr := s.repo.LatestDate(ctx, branch); lerr == nil && latest != "" {
+			return latest
+		}
+	}
+	return date
+}
+
+func (s *staffAttendanceService) TodayStats(ctx context.Context, date, branch string) (*models.StaffStats, error) {
+	date = s.resolveDate(ctx, date, branch)
 	people, err := s.activeStaff(ctx, branch)
 	if err != nil {
 		return nil, err
@@ -324,16 +404,6 @@ func (s *staffAttendanceService) TodayStats(ctx context.Context, date, branch st
 	records, err := s.repo.FindByDate(ctx, date, branch)
 	if err != nil {
 		return nil, err
-	}
-	// No rota for today yet → fall back to the most recent day with data so the
-	// dashboard staff figures stay meaningful instead of collapsing to zero.
-	if !pinned && len(records) == 0 {
-		if latest, lerr := s.repo.LatestDate(ctx, branch); lerr == nil && latest != "" && latest != date {
-			date = latest
-			if records, err = s.repo.FindByDate(ctx, date, branch); err != nil {
-				return nil, err
-			}
-		}
 	}
 	recByStaff := map[string]models.StaffAttendanceRecord{}
 	for _, r := range records {
@@ -352,15 +422,17 @@ func (s *staffAttendanceService) TodayStats(ctx context.Context, date, branch st
 			seenBranch[p.BranchSlug] = true
 			branchOrder = append(branchOrder, p.BranchSlug)
 		}
-		if d, ok := daysUntil(p.DBSExpiry); ok && d <= 90 {
+		if d, ok := daysUntil(p.DBSExpiry); ok && d <= models.DBSExpiryWarnDays {
 			stats.DBSExpiring++
 		}
 		rec, ok := recByStaff[p.ID.Hex()]
 		if !ok {
 			continue // not yet marked → counts toward neither present nor absent
 		}
-		switch rec.Status {
-		case models.StaffAttPresent:
+		// Classification is shared with the attendance summary + branch rollup
+		// (models.IsWorking / IsAway) so every KPI agrees on who is "present".
+		switch {
+		case rec.IsWorking():
 			stats.Present++
 			presentByBranch[p.BranchSlug]++
 			if rec.LateArrival {
@@ -369,13 +441,13 @@ func (s *staffAttendanceService) TodayStats(ctx context.Context, date, branch st
 			if p.StaffType == models.StaffAgency {
 				stats.Agency++
 			}
-		case models.StaffAttLeave:
-			stats.OnLeave++
-		case models.StaffAttTraining:
-			stats.Training++
-		case models.StaffAttSick:
+		case rec.Status == models.StaffAttSick:
 			stats.Sick++
-		case models.StaffAttAbsent:
+		case rec.Status == models.StaffAttTraining:
+			stats.Training++
+		case models.IsAway(rec.Status): // leave / meeting / remote (sick+training handled above)
+			stats.OnLeave++
+		case rec.Status == models.StaffAttAbsent:
 			stats.Absent++
 		}
 	}
@@ -413,8 +485,13 @@ func summarize(date string, rows []models.StaffAttendanceRecord) models.Attendan
 		if hasOut {
 			s.ClockedOut++
 		}
-		switch r.Status {
-		case models.StaffAttLeave, models.StaffAttSick, models.StaffAttTraining, models.StaffAttMeeting, models.StaffAttRemote:
+		// Shared classification so the summary agrees with the staff KPIs and the
+		// branch rollup: working = present-status or any clock-in; away = the
+		// accounted-for absence set.
+		if r.IsWorking() {
+			s.Attended++
+		}
+		if models.IsAway(r.Status) {
 			s.OnLeave++
 		}
 		if r.LateArrival {
@@ -425,11 +502,10 @@ func summarize(date string, rows []models.StaffAttendanceRecord) models.Attendan
 			arrivals = append(arrivals, minutesOfDayLocal(r.ClockIn))
 		}
 	}
-	attended := s.CurrentlyIn + s.ClockedOut + s.MissingClockOut
-	if s.Absent = s.Total - attended - s.OnLeave; s.Absent < 0 {
+	if s.Absent = s.Total - s.Attended - s.OnLeave; s.Absent < 0 {
 		s.Absent = 0
 	}
-	s.AttendanceRate = percent(attended, s.Total)
+	s.AttendanceRate = percent(s.Attended, s.Total)
 	if len(arrivals) > 0 {
 		total := 0
 		for _, m := range arrivals {
@@ -447,9 +523,7 @@ func fmtHM(mins int) string {
 }
 
 func (s *staffAttendanceService) DaySummary(ctx context.Context, date, branch string) (*models.AttendanceDaySummary, error) {
-	if date == "" {
-		date = today()
-	}
+	date = s.resolveDate(ctx, date, branch)
 	rows, err := s.Register(ctx, date, branch)
 	if err != nil {
 		return nil, err
@@ -469,7 +543,7 @@ func (s *staffAttendanceService) DaySummary(ctx context.Context, date, branch st
 			bs := summarize(date, byBranch[b])
 			sum.Branches = append(sum.Branches, models.StaffBranchAttendanceStat{
 				Branch: b, Total: bs.Total, CurrentlyIn: bs.CurrentlyIn,
-				Attended: bs.CurrentlyIn + bs.ClockedOut + bs.MissingClockOut, Late: bs.Late, Rate: bs.AttendanceRate,
+				Attended: bs.Attended, Late: bs.Late, Rate: bs.AttendanceRate,
 			})
 		}
 	}
@@ -523,7 +597,7 @@ func (s *staffAttendanceService) recompute(ctx context.Context, rec *models.Staf
 	}
 }
 
-func (s *staffAttendanceService) Correct(ctx context.Context, id string, req models.AttendanceCorrectionRequest, actorID, actorName string) (*models.StaffAttendanceRecord, error) {
+func (s *staffAttendanceService) Correct(ctx context.Context, id string, req models.AttendanceCorrectionRequest, actorID, actorName string, allowed []string) (*models.StaffAttendanceRecord, error) {
 	rec, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		// No persisted record for this id — manual backfill for an "expected"
@@ -537,6 +611,9 @@ func (s *staffAttendanceService) Correct(ctx context.Context, id string, req mod
 			return nil, berr
 		}
 		rec = &base
+	}
+	if !branchAllowed(allowed, rec.BranchSlug) {
+		return nil, errOutsideScope
 	}
 	corr := func(field, from, to string) {
 		rec.Corrections = append(rec.Corrections, models.AttendanceCorrection{

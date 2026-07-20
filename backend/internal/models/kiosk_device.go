@@ -12,6 +12,7 @@ import (
 // have several devices; a device is bound to exactly one branch.
 type KioskDevice struct {
 	ID         primitive.ObjectID `bson:"_id,omitempty"   json:"id"`
+	OrgID      string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Name       string             `bson:"name"            json:"name"` // e.g. "Harrow front entrance"
 	BranchSlug string             `bson:"branch_slug"     json:"branch_slug"`
 	TokenHash  string             `bson:"token_hash"      json:"-"`          // bcrypt of the device token

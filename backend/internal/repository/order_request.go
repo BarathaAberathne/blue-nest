@@ -22,11 +22,11 @@ type OrderRequestRepository interface {
 }
 
 type orderRequestRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewOrderRequestRepository(db *mongo.Database) OrderRequestRepository {
-	return &orderRequestRepository{col: db.Collection("order_requests")}
+	return &orderRequestRepository{col: NewTenantCollection(db, "order_requests")}
 }
 
 func (r *orderRequestRepository) Create(ctx context.Context, req *models.OrderRequest) error {

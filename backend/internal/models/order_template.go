@@ -10,6 +10,7 @@ import (
 // order"), shared org-wide. Staff load a template to pre-fill a new request.
 type OrderTemplate struct {
 	ID            primitive.ObjectID `bson:"_id,omitempty"     json:"id"`
+	OrgID         string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	Name          string             `bson:"name"             json:"name"`
 	BranchSlug    string             `bson:"branch_slug,omitempty" json:"branch_slug,omitempty"`
 	Items         []OrderRequestItem `bson:"items"            json:"items"`

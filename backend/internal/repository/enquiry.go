@@ -33,7 +33,7 @@ type EnquiryRepository interface {
 }
 
 type enquiryRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewEnquiryRepository(db *mongo.Database) EnquiryRepository {
@@ -54,7 +54,7 @@ func NewEnquiryRepository(db *mongo.Database) EnquiryRepository {
 		slog.Warn("enquiries: could not create indexes", "err", err)
 	}
 
-	return &enquiryRepository{col: col}
+	return &enquiryRepository{col: NewTenantCollectionFrom(col)}
 }
 
 func (r *enquiryRepository) Create(ctx context.Context, e *models.Enquiry) error {

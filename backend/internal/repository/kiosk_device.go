@@ -23,11 +23,11 @@ type KioskDeviceRepository interface {
 }
 
 type kioskDeviceRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewKioskDeviceRepository(db *mongo.Database) KioskDeviceRepository {
-	return &kioskDeviceRepository{col: db.Collection("kiosk_devices")}
+	return &kioskDeviceRepository{col: NewTenantCollection(db, "kiosk_devices")}
 }
 
 func (r *kioskDeviceRepository) Create(ctx context.Context, d *models.KioskDevice) error {

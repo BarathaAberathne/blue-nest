@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Staff, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
+import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -26,7 +26,25 @@ function enquiryQuery(params?: EnquiryListParams): string {
   return s ? `?${s}` : "";
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+// Resolve the API origin. An explicit absolute NEXT_PUBLIC_API_URL always wins
+// (prod serves the API from a separate host). In dev/Docker it's
+// http://localhost:8080 — correct for the machine running the stack, but wrong
+// for any OTHER device: a kiosk tablet on the LAN would call its own localhost.
+// So when the page is served from a non-localhost host and the API was
+// configured for localhost, fall back to the SAME ORIGIN and let Next's
+// /api/v1/* rewrite proxy to the backend. No per-device LAN IP to bake in, and
+// it survives a normal rebuild.
+const CONFIGURED_API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+function apiBase(): string {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const onLocalhost = host === "localhost" || host === "127.0.0.1";
+    if (!onLocalhost && /\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(CONFIGURED_API)) {
+      return ""; // same-origin → /api/v1/* is proxied to the backend by next.config
+    }
+  }
+  return CONFIGURED_API;
+}
 
 interface FetchOptions extends RequestInit {
   token?: string;
@@ -47,7 +65,7 @@ async function tryRefreshToken(): Promise<string | null> {
     const refreshToken = getRefreshToken();
     if (!refreshToken) return null;
     try {
-      const res = await fetch(`${BASE_URL}/api/v1/auth/refresh`, {
+      const res = await fetch(`${apiBase()}/api/v1/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refresh_token: refreshToken }),
@@ -80,8 +98,8 @@ async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T>
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  let res = await fetch(`${BASE_URL}${path}`, { ...init, headers }).catch((err: unknown) => {
-    console.error(`[api] Network error — ${init.method ?? "GET"} ${BASE_URL}${path}:`, err);
+  let res = await fetch(`${apiBase()}${path}`, { ...init, headers }).catch((err: unknown) => {
+    console.error(`[api] Network error — ${init.method ?? "GET"} ${apiBase()}${path}:`, err);
     throw err;
   });
 
@@ -90,7 +108,7 @@ async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T>
     const newToken = await tryRefreshToken();
     if (newToken) {
       headers["Authorization"] = `Bearer ${newToken}`;
-      res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
+      res = await fetch(`${apiBase()}${path}`, { ...init, headers });
     } else {
       clearAuthSession();
     }
@@ -525,6 +543,12 @@ export const api = {
     apiFetch<Child>(`/api/v1/admin/children/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
   adminDeleteChild: (token: string, id: string) =>
     apiFetch(`/api/v1/admin/children/${id}`, { method: "DELETE", token }),
+  // Key person: assign (empty staffId clears) a child's key person, and list the
+  // children a staff member is key person for.
+  adminSetChildKeyPerson: (token: string, childId: string, staffId: string) =>
+    apiFetch<Child>(`/api/v1/admin/children/${childId}/key-person`, { method: "PATCH", body: JSON.stringify({ staff_id: staffId }), token }),
+  adminGetStaffKeyChildren: (token: string, staffId: string) =>
+    apiFetch<Child[]>(`/api/v1/admin/staff/${staffId}/key-children`, { token }),
 
   // Nursery — attendance register
   adminGetRegister: (token: string, params?: { date?: string; branch?: string }) => {
@@ -553,8 +577,16 @@ export const api = {
     const s = qs.toString();
     return apiFetch<Staff[]>(`/api/v1/admin/staff${s ? `?${s}` : ""}`, { token });
   },
+  // Organisation (own tenant) — profile + branding self-service.
+  adminGetOrganisation: (token: string) =>
+    apiFetch<Organisation>("/api/v1/admin/organisation", { token }),
+  adminUpdateOrganisation: (token: string, body: OrgProfileInput) =>
+    apiFetch<Organisation>("/api/v1/admin/organisation", { method: "PUT", body: JSON.stringify(body), token }),
+
   adminGetStaffMember: (token: string, id: string) =>
     apiFetch<Staff>(`/api/v1/admin/staff/${id}`, { token }),
+  adminGetStaffAttendanceSummary: (token: string, id: string, params: { from: string; to: string }) =>
+    apiFetch<StaffAbsenceSummary>(`/api/v1/admin/staff/${id}/attendance-summary?from=${params.from}&to=${params.to}`, { token }),
   adminCreateStaff: (token: string, body: StaffInput) =>
     apiFetch<Staff>("/api/v1/admin/staff", { method: "POST", body: JSON.stringify(body), token }),
   adminUpdateStaff: (token: string, id: string, body: StaffInput) =>

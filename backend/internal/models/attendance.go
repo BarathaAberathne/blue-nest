@@ -20,6 +20,7 @@ const (
 // child per date) as staff check children in/out.
 type AttendanceRecord struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty"          json:"id"`
+	OrgID        string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
 	ChildID      string             `bson:"child_id"               json:"child_id"`
 	ChildName    string             `bson:"child_name"             json:"child_name"`
 	BranchSlug   string             `bson:"branch_slug"            json:"branch_slug"`

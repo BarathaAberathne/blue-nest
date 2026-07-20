@@ -12,11 +12,12 @@ import (
 )
 
 type AuthHandler struct {
-	svc service.AuthService
+	svc  service.AuthService
+	orgs service.OrganisationService
 }
 
-func NewAuthHandler(svc service.AuthService, _ *config.Config) *AuthHandler {
-	return &AuthHandler{svc: svc}
+func NewAuthHandler(svc service.AuthService, orgs service.OrganisationService, _ *config.Config) *AuthHandler {
+	return &AuthHandler{svc: svc, orgs: orgs}
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
@@ -78,12 +79,27 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	if perms == nil {
 		perms = []models.Permission{}
 	}
-	response.OK(w, map[string]interface{}{
+	out := map[string]interface{}{
 		"id":          id,
 		"email":       email,
 		"role":        role,
 		"permissions": perms,
-	})
+	}
+	// Include the caller's organisation (branding + feature flags) so the client
+	// can render tenant branding and gate features from the same /auth/me call.
+	if orgID, _ := r.Context().Value(middleware.UserOrgKey).(string); orgID != "" && h.orgs != nil {
+		if org, err := h.orgs.GetByID(r.Context(), orgID); err == nil && org != nil {
+			features := org.Settings.Features
+			if features == nil {
+				features = []string{}
+			}
+			out["org"] = map[string]interface{}{
+				"id": org.ID.Hex(), "slug": org.Slug, "name": org.Name,
+				"branding": org.Branding, "features": features,
+			}
+		}
+	}
+	response.OK(w, out)
 }
 
 func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {

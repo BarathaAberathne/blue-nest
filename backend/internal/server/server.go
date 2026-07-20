@@ -86,6 +86,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	dailyRecordRepo := repository.NewDailyRecordRepository(db)
 	gbpRepo := repository.NewGBPRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
+	orgRepo := repository.NewOrganisationRepository(db)
 	mailer := email.New(email.Config{
 		Host:         cfg.SMTP.Host,
 		Port:         cfg.SMTP.Port,
@@ -99,7 +100,20 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	// Services
 	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays)
 	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo)
+	orgSvc := service.NewOrganisationService(orgRepo, authSvc)
+	// Resolve the default tenant for public/unauthenticated requests. Empty until
+	// the tenancy migration creates it — then public data is scoped to that org.
+	defaultOrgID := ""
+	defaultOrgSlug := os.Getenv("DEFAULT_ORG_SLUG")
+	if defaultOrgSlug == "" {
+		defaultOrgSlug = "blue-nest"
+	}
+	if o, err := orgSvc.GetBySlug(context.Background(), defaultOrgSlug); err == nil && o != nil {
+		defaultOrgID = o.ID.Hex()
+	}
 	svc := routes.Services{
+		Organisations:     orgSvc,
+		DefaultOrgID:      defaultOrgID,
 		Auth:              authSvc,
 		Products:          service.NewProductService(productRepo),
 		Cart:              service.NewCartService(cartRepo, productRepo),
@@ -118,7 +132,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		DashboardLayouts:  service.NewDashboardLayoutService(dashboardLayoutRepo),
 		DashboardProfiles: service.NewDashboardProfileService(dashboardProfileRepo),
 		Rooms:             service.NewRoomService(roomRepo),
-		Children:          service.NewChildService(childRepo, roomRepo, counterRepo),
+		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo),
 		Attendance:        service.NewAttendanceService(attendanceRepo, childRepo),
 		Staff:             service.NewStaffService(staffRepo, counterRepo, authSvc),
 		StaffAttendance:   staffAttSvc,

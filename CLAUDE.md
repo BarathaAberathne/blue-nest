@@ -1,8 +1,82 @@
 # Blue Nest Montessori — Project Guide (for AI agents & new devs)
 
-Monorepo for the Blue Nest Montessori website + admin/operations system. Being grown toward a
-full **nursery management system** (HR, rotas, inventory) — keep auth/accounts separate from
-future employment/HR data so new modules attach cleanly.
+Monorepo for the Blue Nest Montessori website + admin/operations system. The **North Star** is bigger than
+one nursery: this is being built into a **scalable, enterprise-grade, AI-native multi-tenant Nursery
+Management SaaS** — one codebase that runs many nursery **organisations**, each with unlimited branches,
+with AI embedded throughout. Blue Nest is simply the first tenant. Keep auth/accounts separate from
+employment/HR data so new modules attach cleanly.
+
+## Platform vision & architecture (the standing design rules)
+Before writing any code, ask: **"Would this still be right with hundreds of branches across multiple
+organisations and AI embedded throughout?"** If no, redesign first. Concretely, every module MUST:
+- **Be tenant-aware.** The hierarchy is **Organisation → Branch → Room**. Every operational entity carries
+  `org_id` (and, where relevant, `branch_slug`) from day one. **No new feature ships without `org_id`.**
+- **Follow the standard slice** (model → repository → service → handler → routes under `RequirePermission`
+  → `response` envelope), business logic out of the UI, consistent APIs.
+- **Be role-based + per-org extensible** in permissions (`models/permission.go` is already role→permission;
+  custom roles become per-org).
+- **Be configurable, not hardcoded** — branches, rooms, age groups, funding rules, term dates, branding all
+  come from org/branch config, never literals.
+- **Be AI-ready** — expose its reads as tools the AI service layer can call (see Phase A0), so any future AI
+  feature can interact with the module without bespoke plumbing.
+
+**Tenancy model (decided): shared database, row-level `org_id` discriminator.** One Mongo database; every
+collection gains `org_id`; isolation is enforced **centrally** in the repository + policy layer (never
+per-query discipline) — the request's org is resolved once (JWT `org_id` claim + subdomain/custom-domain)
+into context, and every `Find/Create/Update` stamps + filters it. A `platform_super_admin` (the SaaS
+operator) is the ONLY cross-org role; every tenant role — including today's org-wide `super_admin`/`admin`/
+`director` — is pinned to its own organisation. A DB-per-tenant "enterprise isolation" tier is a later
+premium option, not the default. This keeps cross-org platform analytics + AI simple at scale.
+
+### Platform roadmap (phased; execute in order — tenancy precedes everything)
+- **Phase T0 — Tenancy foundation — DELIVERED.** `models/organisation.go` (`Organisation`: slug, name,
+  branding, plan, status, domains, settings) + repo/service/handler and platform-only routes
+  (`/admin/organisations`, gated by `middleware.PlatformOnly`). `OrgID` (additive, omitempty) on every
+  tenant-scoped model. **Central enforcement:** `repository.TenantCollection` wraps each collection and, from
+  the org in request context, auto-filters every read/update/delete and stamps `org_id` on every insert —
+  the repos changed only their collection type, not their query bodies (`counters`/`organisations` stay
+  global; `users.FindByEmail` runs cross-org so login can resolve identity across tenants). `middleware.Auth`
+  pins the request to the caller's org from the JWT `org_id` claim (`repository.WithOrg`); `platform_super_admin`
+  runs cross-org (`WithCrossOrg`); `middleware.DefaultTenant(defaultOrgID)` pins public/unauthenticated
+  requests to the default org (resolved at startup from `DEFAULT_ORG_SLUG`, default `blue-nest`). `policy`
+  gains `IsPlatformOperator`; new role `RolePlatformSuperAdmin` = the only cross-tenant role. Migration
+  `cmd/migratetenancy` (idempotent) creates the first Organisation and back-stamps `org_id` onto all existing
+  rows (ran locally: 1 org + 1,682 docs). **Verified:** two-org isolation — each org's admin sees only its
+  own branches/staff/children, cross-tenant fetch-by-id is 404 both ways, writes stamp the correct tenant,
+  the public store serves the default tenant, and the existing Blue Nest app is intact.
+- **Phase T1 — Org-scoped configuration & customisation — IN PROGRESS.** Delivered: **org self-service**
+  (`GET/PUT /admin/organisation` for the caller's OWN org — name/branding/settings only; slug/plan/status/
+  domains stay platform-controlled) with a settings surface at `/admin/organisation` (super-admin nav item:
+  profile, branding + colour pickers, feature-flag toggles, live preview); **feature flags** on the org
+  (`OrgSettings.Features` + `Organisation.HasFeature(name)` — the gate every future module/plan-tier uses);
+  **tenant onboarding** — the platform `POST /admin/organisations` optionally provisions the new tenant's
+  first super-admin in one call (`admin_email`/`admin_password`), created in the new org's context so it's
+  usable + isolated immediately (verified: the provisioned admin logs in and sees 0 of another tenant's
+  data). `RolePlatformSuperAdmin` added to `ManagementRoles` so the operator can sign into the admin shell.
+  **Still to do in T1:** per-org custom roles + permission sets (the DB-backed `roleCache` is still global —
+  the `roles` collection already carries `org_id`, so this becomes org-scoped role resolution), branch
+  templates, room/age-group config, term dates, funding rules, email templates, and wiring org branding into
+  the live admin theme. **Note:** the `org_id` JWT claim means sessions issued before T0 lack it — users must
+  re-login after deploy (or let tokens expire) to get org-scoped access + the org page.
+- **Phase A0 — AI service layer (backend, tenant-scoped).** A first-class `internal/service/ai` (not a
+  frontend afterthought) wrapping the LLM. Every AI call is org-scoped and can ONLY see its tenant's data.
+  **Tool-use contract:** the AI calls the CMS's own service methods (children/staff/attendance/enquiries/
+  finance) as tools, gated by the caller's permissions + org/branch scope — the concrete meaning of "every
+  module designed so AI can interact with it". Move `/api/chat` behind this service; make it context-aware
+  (role + org + current module), data-aware (via tools) and stateful (per-user conversation persistence).
+- **Phase A1+ — AI capabilities (each a module on the A0 contract, none re-implementing data access):**
+  role-based AI assistants; AI dashboards + business insights (occupancy forecasting, staffing recs,
+  financial analysis); AI-generated EYFS observations + learning journeys; AI enquiry management; AI
+  marketing/SEO automation; AI compliance + safeguarding monitoring; AI document generation, knowledge base,
+  automation workflows. Prioritised per product need; all reuse A0's tool contract.
+
+**Current status:** **multi-tenant (T0 delivered).** `Organisation` is the top-level tenant; every
+tenant-scoped collection carries `org_id` and isolation is enforced centrally by the repository tenant
+wrapper. Blue Nest is org 1. **Every new feature must carry `org_id`** — the tenant wrapper handles it
+automatically as long as the model has the field and the repo uses `NewTenantCollection`. The AI chat
+endpoint (`/api/chat`, per-page prompts) is still frontend-only, stateless and without tool access to CMS
+data. **Next: Phase T1** (org-scoped config/branding/custom roles + onboarding), then **A0** (tenant-scoped
+AI service layer with the module tool contract).
 
 ## Stack & layout
 - **Backend:** Go (chi router, MongoDB driver) in `backend/`.
@@ -253,13 +327,20 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   sources, performance gauges, staff/children/compliance, static branch overview) was **removed/absorbed**.
   Widgets/nav/palette are wired into the CMS via `router.push` (dock hrefs + `PALETTE_COMMANDS` in `osdata.ts`;
   modules without a page fall back to the closest one). The
-  `director` role (above) is its intended audience. **The enquiries/admissions pipeline is live-wired**:
-  `live.ts` (`useEnquiryPipeline`) fetches `GET /admin/enquiries/stats` with the signed-in token and feeds
-  the real funnel + conversion, the Enquiries KPI, and the Booked-Visits/Applications/Enquiry-Response
-  tiles (Admission Pipeline shows a **● Live** tag). It **falls back to the static mock** when there's no
-  token or the request fails (CORS/permissions), so the page still renders for an anonymous demo. All
-  other figures (children, attendance, finance, sentiment, compliance, staffing, activity) remain mock —
-  the enquiries pipeline is the first module connected to real backend data.
+  `director` role (above) is its intended audience. **Multiple modules are live-wired** through `live.ts`
+  hooks (each fetches with the signed-in token and **falls back to the static mock** when there's no token or
+  the request fails, so the page still renders for an anonymous demo): `useEnquiryPipeline`
+  (`/admin/enquiries/stats` → funnel/conversion + Admission-Pipeline tiles, shown with a **● Live** tag),
+  `useChildrenStats` (`/admin/children/stats` → children total + occupancy), `useAttendanceToday`
+  (`/admin/attendance/today` → child attendance % + late pickups), `useStaffStats`
+  (`/admin/staff-attendance/today` → staff present/leave/sick/late/agency + per-branch), and `useDailyStats`
+  (safeguarding/meals/medication/incidents). `useBranchMetrics` overlays these onto the per-branch table
+  (occupancy, attendance today, staff headcount), and `staffPresentByBranch` feeds the real per-branch
+  staff-present + staff:child ratio. The KPI bar, Operations/People/Ofsted/Analytics tabs and the branch
+  radar read these live values; the Analytics performance gauges use live occupancy + attendance where a
+  backend exists. **Still mock (no backend source yet):** finance/revenue, parent sentiment, workforce
+  happiness/retention, and the AI-rail/risks staffing items. Keep staff/attendance KPI definitions
+  consistent with the backend single source of truth (`models.IsWorking`/`IsAway`).
 
 - **Staff Attendance / Kiosk** (HR module, being built in phases — **Phase A DELIVERED**): the
   authoritative source of staff working hours for payroll. Extends the existing `StaffAttendanceRecord`
@@ -286,8 +367,27 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   clock-in computes late_minutes vs `shift.start` (falls back to the 09:00 threshold when unrostered),
   clock-out computes overtime_minutes / early_departure_minutes vs `shift.end`, and stores `shift_id` on
   the record — so those figures are now real.
+  **Phase C DELIVERED** — **Attendance hub** at `/admin/staff-attendance`: date + branch picker, 8-tile KPI
+  strip (`GET /admin/staff-attendance/summary` → currently-in / clocked-out / absent / on-leave / late /
+  overtime / missing-clock-outs / attendance% + avg arrival, with a per-branch breakdown for the all-branch
+  view), searchable/status-filterable register (position + room resolved from the staff record, worked
+  hours, late, overtime), and **audited manual corrections** (`PATCH …/{id}/correct`: append-only
+  `corrections[]` per changed field + recomputed minutes; **create-on-correct** materialises a record when a
+  day has none, so managers can backfill an "expected" staff member the kiosk never captured).
+  **Stabilisation pass:** the **rota** is now **grouped by classroom** — rostered staff sit under their
+  assigned room, roomless management/office staff are hidden behind a **Show all staff** toggle, and an **Add
+  cover** action rosters an extra person for one day (any staff member, or a free-text **external** visitor
+  — `Shift.External`/`ShiftRequest{External,StaffName,BranchSlug}`, no staff record, never matches
+  attendance). **Branch data isolation is enforced server-side**: `policy.EffectiveBranch` (list/summary
+  endpoints pin a branch-scoped caller to one of their branches — never the org-wide "all" view) +
+  `policy.AllowedOrNil`/`branchAllowed` guards on every mutation (staff, staff-attendance clock/mark/correct,
+  shifts, kiosk devices, staff PIN) so a branch/deputy/regional manager can neither see nor act on another
+  branch's data. Org-wide roles (super_admin/admin/director, `isOrgWideRole`) keep the all-branches view; the
+  UI hides "All branches" + pins the selector for scoped users. Rota + attendance + devices now source their
+  branch dropdown from the scoped `GET /admin/branches`, not the public list.
 
-Planned next: Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
+Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (CSV/Excel/PDF) +
+notifications. Then Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 
 ## Procurement Management module — roadmap (Phases 1–4 DELIVERED)
 Goal: turn the procurement pieces into one connected **Procurement Management** module so the journey

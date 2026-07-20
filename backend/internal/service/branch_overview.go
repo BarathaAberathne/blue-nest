@@ -76,25 +76,40 @@ func (s *branchOverviewService) rollup(ctx context.Context, slug string, capacit
 
 	staff, _ := s.staff.FindAll(ctx, repository.StaffFilter{Branch: slug, Status: string(models.StaffActive)})
 	r.staffTotal = len(staff)
+	activeStaff := make(map[string]bool, len(staff))
+	for _, st := range staff {
+		activeStaff[st.ID.Hex()] = true
+	}
 	if sAtt, err := s.staffAtt.FindByDate(ctx, date, slug); err == nil {
 		for _, rec := range sAtt {
-			switch rec.Status {
-			case models.StaffAttPresent:
+			if !activeStaff[rec.StaffID] {
+				continue // ignore records for archived/inactive staff so present ≤ total
+			}
+			// Shared classification with the staff KPIs + attendance summary.
+			if rec.IsWorking() {
 				r.staffPresent++
-			case models.StaffAttLeave, models.StaffAttSick:
+			} else if models.IsAway(rec.Status) {
 				r.staffOnLeave++
 			}
 		}
 	}
 
+	// Count present only for active children (matching the occupancy denominator)
+	// and de-dupe per child, so orphaned/duplicate records can't exceed 100%.
 	if recs, err := s.att.FindByDate(ctx, date, slug); err == nil {
+		activeChild := make(map[string]bool, len(kids))
+		for _, c := range kids {
+			activeChild[c.ID.Hex()] = true
+		}
+		counted := map[string]bool{}
 		for _, rec := range recs {
-			if rec.Status == models.AttPresent {
+			if rec.Status == models.AttPresent && activeChild[rec.ChildID] && !counted[rec.ChildID] {
+				counted[rec.ChildID] = true
 				r.present++
 			}
 		}
 	}
-	r.attendanceRate = percent(r.present, r.activeChildren)
+	r.attendanceRate = clamp100(percent(r.present, r.activeChildren))
 
 	if n, err := s.enquiries.Count(ctx, models.EnquiryFilter{Branch: slug}); err == nil {
 		r.enquiries = int(n)
@@ -120,26 +135,49 @@ func clamp100(v int) int {
 	return v
 }
 
-// performanceDimensions is the weighted Branch Health model (B2). Weights sum to
-// 100. Finance & parent-satisfaction proxy off reviews until those modules land.
+// Branch Health model tunables (B2). The dimension weights sum to 100. Kept as
+// named constants (rather than scattered literals) so the model is auditable and
+// easy to re-tune per org; move to a settings model if it ever needs to differ
+// per branch.
+const (
+	neutralRatingPct     = 80 // review score assumed when a branch has no reviews yet
+	maxStarRating        = 5  // Google/GBP star scale, for rating → percent
+	complianceBase       = 100
+	safeguardingPenalty  = 15 // points off compliance per open safeguarding concern
+	incidentPenalty      = 8  // points off compliance per incident logged today
+	admissionsBase       = 60
+	admissionsPerEnquiry = 8 // points added per new enquiry
+
+	weightOccupancy      = 20
+	weightAttendance     = 20
+	weightReviews        = 15
+	weightStaffStability = 15
+	weightCompliance     = 15
+	weightAdmissions     = 15
+
+	branchActivityLimit = 8 // recent daily-record rows shown on a branch dashboard
+)
+
+// performanceDimensions is the weighted Branch Health model (B2). Finance &
+// parent-satisfaction proxy off reviews until those modules land.
 func performanceDimensions(r branchRollup, rating float64) []models.PerfDimension {
-	ratingPct := 80 // neutral when no reviews yet
+	ratingPct := neutralRatingPct
 	if rating > 0 {
-		ratingPct = int(rating / 5 * 100)
+		ratingPct = int(rating / maxStarRating * 100)
 	}
 	staffStability := 100
 	if r.staffTotal > 0 {
 		staffStability = percent(r.staffPresent, r.staffTotal)
 	}
-	compliance := clamp100(100 - (r.safeguardingOpen*15 + r.incidentsToday*8))
-	admissions := clamp100(60 + r.newEnquiries*8)
+	compliance := clamp100(complianceBase - (r.safeguardingOpen*safeguardingPenalty + r.incidentsToday*incidentPenalty))
+	admissions := clamp100(admissionsBase + r.newEnquiries*admissionsPerEnquiry)
 	return []models.PerfDimension{
-		{Label: "Occupancy", Score: clamp100(r.occupancy), Weight: 20},
-		{Label: "Attendance", Score: clamp100(r.attendanceRate), Weight: 20},
-		{Label: "Reviews", Score: clamp100(ratingPct), Weight: 15},
-		{Label: "Staff stability", Score: clamp100(staffStability), Weight: 15},
-		{Label: "Compliance", Score: compliance, Weight: 15},
-		{Label: "Admissions", Score: admissions, Weight: 15},
+		{Label: "Occupancy", Score: clamp100(r.occupancy), Weight: weightOccupancy},
+		{Label: "Attendance", Score: clamp100(r.attendanceRate), Weight: weightAttendance},
+		{Label: "Reviews", Score: clamp100(ratingPct), Weight: weightReviews},
+		{Label: "Staff stability", Score: clamp100(staffStability), Weight: weightStaffStability},
+		{Label: "Compliance", Score: compliance, Weight: weightCompliance},
+		{Label: "Admissions", Score: admissions, Weight: weightAdmissions},
 	}
 }
 
@@ -202,7 +240,7 @@ func (s *branchOverviewService) Dashboard(ctx context.Context, b *models.Branch)
 	d.PerformanceBreakdown = models.BranchPerformance{Overall: d.Performance, Dimensions: dims}
 	// Live activity: most-recent daily records for this branch.
 	d.Activity = []models.BranchActivityItem{}
-	if recs, err := s.daily.FindAll(ctx, repository.DailyRecordFilter{Branch: b.Slug, Limit: 8}); err == nil {
+	if recs, err := s.daily.FindAll(ctx, repository.DailyRecordFilter{Branch: b.Slug, Limit: branchActivityLimit}); err == nil {
 		for _, rec := range recs {
 			d.Activity = append(d.Activity, models.BranchActivityItem{
 				Time: rec.Date, Text: rec.Title + branchActivitySuffix(rec), Kind: string(rec.Type),

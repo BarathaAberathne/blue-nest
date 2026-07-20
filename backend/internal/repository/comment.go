@@ -17,11 +17,11 @@ type CommentRepository interface {
 }
 
 type commentRepository struct {
-	col *mongo.Collection
+	col *TenantCollection
 }
 
 func NewCommentRepository(db *mongo.Database) CommentRepository {
-	return &commentRepository{col: db.Collection("blog_comments")}
+	return &commentRepository{col: NewTenantCollection(db, "blog_comments")}
 }
 
 func (r *commentRepository) Create(ctx context.Context, c *models.Comment) error {
