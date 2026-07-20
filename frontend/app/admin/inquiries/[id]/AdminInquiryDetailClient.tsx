@@ -149,7 +149,7 @@ export default function AdminInquiryDetailClient({ id }: { id: string }) {
     return <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-slate-100" />)}</div>;
   }
   if (error || !enquiry) {
-    return <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error ?? "Inquiry not found."}</p>;
+    return <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error ?? "Enquiry not found."}</p>;
   }
 
   const e = enquiry;

@@ -53,7 +53,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: "Command Centre", href: "/admin/command-center", icon: Radar, permission: "dashboard.view", roles: ["super_admin", "director"], feature: "command_centre" },
       { label: "Main Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
-      { label: "Inquiries", href: "/admin/inquiries", icon: Inbox, permission: "enquiries.manage" },
+      { label: "Enquiries", href: "/admin/inquiries", icon: Inbox, permission: "enquiries.manage" },
     ],
   },
   {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import AdminLayout from "@/components/layout/AdminLayout";
 import AdminInquiryDetailClient from "./AdminInquiryDetailClient";
 
-export const metadata: Metadata = { title: "Inquiry — Admin", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Enquiry — Admin", robots: { index: false, follow: false } };
 
 interface Props { params: Promise<{ id: string }> }
 
