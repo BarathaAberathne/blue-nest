@@ -33,6 +33,36 @@
   .admin-shell {
     --font-display: var(--font-admin-heading);
     --font-body: var(--font-admin-body);
+
+    /* Admin-only colour tokens — deliberately namespaced (--adm-*) rather than
+       reusing --ink/--muted/--line/etc: those already carry the public site's
+       warm cream/brown palette, and this scope only needs to override the
+       shell (sidebar/topbar) + .card, not silently reshade any public-site
+       component that happens to render inside admin markup. */
+    --adm-bg: #F1F5F9;
+    --adm-card: #FFFFFF;
+    --adm-card-2: #F8FAFC;
+    --adm-ink: #0F172A;
+    --adm-ink-2: #475569;
+    --adm-muted: #94A3B8;
+    --adm-line: #E7ECF3;
+    --adm-line-2: #F1F5F9;
+    --adm-accent: #0F9D8C;
+    --adm-accent-600: #0B8375;
+    --adm-accent-tint: #E8FBF7;
+    --adm-accent-tint-2: #CBF2EA;
+    --adm-shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 6px 18px rgba(15, 23, 42, .05);
+    --adm-shadow-sm: 0 1px 3px rgba(15, 23, 42, .06);
+  }
+
+  /* Admin-scoped card look — softer radius/shadow than the public site's
+     cream-cursive .card, without touching the shared class definition below
+     (still used as-is by the public marketing pages). */
+  .admin-shell .card {
+    border-radius: 1rem;
+    background: var(--adm-card);
+    box-shadow: var(--adm-shadow);
+    border: 1px solid var(--adm-line);
   }
 
   html {
