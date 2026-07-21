@@ -1055,6 +1055,13 @@ export interface AttendanceStats {
 export type StaffStatus = "active" | "on_leave" | "inactive";
 export type StaffType = "permanent" | "agency" | "bank";
 
+export interface EmergencyContact {
+  name: string;
+  relationship?: string;
+  phone?: string;
+  email?: string;
+}
+
 export interface Staff {
   id: string;
   ref?: string; // STF-YYYY-NNNNNN
@@ -1073,6 +1080,7 @@ export interface Staff {
   dbs_number?: string;
   dbs_expiry?: string;
   first_aid_expiry?: string;
+  emergency_contacts?: EmergencyContact[];
   user_id?: string; // linked login account (empty = HR-only, no login)
   has_pin?: boolean; // whether a kiosk clock-in PIN is set
   created_at?: string;
@@ -1095,6 +1103,7 @@ export interface StaffInput {
   dbs_number?: string;
   dbs_expiry?: string;
   first_aid_expiry?: string;
+  emergency_contacts?: EmergencyContact[];
   // Optional system login (People, login optional)
   enable_login?: boolean;
   login_role?: UserRole;

@@ -14,7 +14,7 @@ import { branchShortName } from "@/lib/branch";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { fmtDate } from "@/lib/child";
 import { dbsExpiry, staffStatusAccent, staffStatusLabel, staffTypeAccent, staffTypeLabel } from "@/lib/staff";
-import type { Branch, Child, Shift, Staff, StaffAbsenceSummary, StaffInput } from "@/types";
+import type { Branch, Child, EmergencyContact, Shift, Staff, StaffAbsenceSummary, StaffInput } from "@/types";
 
 // ── date helpers ─────────────────────────────────────────────────────────────
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -50,6 +50,7 @@ const memberToInput = (m: Staff): StaffInput => ({
   staff_type: m.staff_type, status: m.status, start_date: m.start_date ?? "",
   contract_hours: m.contract_hours ?? 0, qualifications: m.qualifications ?? [],
   dbs_number: m.dbs_number ?? "", dbs_expiry: m.dbs_expiry ?? "", first_aid_expiry: m.first_aid_expiry ?? "",
+  emergency_contacts: m.emergency_contacts ?? [],
   enable_login: false, login_role: "staff", login_password: "",
 });
 
@@ -246,7 +247,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
 
       {/* ── Tabs ───────────────────────────────────────────────────── */}
       <div className="mb-6 flex gap-1 border-b border-slate-200" role="tablist" aria-label="Staff profile sections">
-        {([["profile", "Profile"], ["contacts", "Contacts (0)"], ["calendar", "Calendar"]] as [MainTab, string][]).map(([k, label]) => (
+        {([["profile", "Profile"], ["contacts", `Contacts (${(member.emergency_contacts ?? []).length})`], ["calendar", "Calendar"]] as [MainTab, string][]).map(([k, label]) => (
           <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
             className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold transition ${tab === k ? "border-teal-600 text-teal-700" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
             {label}
@@ -482,8 +483,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
       {/* ══════════════════ CONTACTS ══════════════════ */}
       {tab === "contacts" && (
         <div className="card p-6">
-          <EmptyState icon={Users} title="No emergency contacts yet"
-            body="It's always a good idea to have contact info for the people close to this staff member — for emergencies and next-of-kin. This is on the roadmap." />
+          <ContactsPanel contacts={member.emergency_contacts ?? []} onSave={(next) => patchStaff({ emergency_contacts: next })} />
         </div>
       )}
 
@@ -616,6 +616,103 @@ function EmptyState({ icon: Icon, title, body }: { icon: typeof User; title: str
       <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-teal-50 text-teal-600"><Icon className="h-7 w-7" /></div>
       <h4 className="font-heading text-lg font-bold text-slate-900">{title}</h4>
       <p className="mt-2 text-sm leading-relaxed text-slate-500">{body}</p>
+    </div>
+  );
+}
+
+// ── Contacts — emergency / next-of-kin contacts for this staff member ─────────
+const emptyContact: EmergencyContact = { name: "", relationship: "", phone: "", email: "" };
+function ContactsPanel({ contacts, onSave }: { contacts: EmergencyContact[]; onSave: (next: EmergencyContact[]) => Promise<void> }) {
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState<EmergencyContact>(emptyContact);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState<EmergencyContact>(emptyContact);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const commit = async (next: EmergencyContact[]) => {
+    setBusy(true); setErr(null);
+    try { await onSave(next); }
+    catch (e) { setErr(e instanceof Error ? e.message : "Failed to save"); }
+    finally { setBusy(false); }
+  };
+  const add = async () => {
+    if (!draft.name.trim()) { setErr("A name is required."); return; }
+    await commit([...contacts, { ...draft, name: draft.name.trim() }]);
+    setDraft(emptyContact); setAdding(false);
+  };
+  const startEditContact = (i: number) => { setEditingIndex(i); setEditDraft(contacts[i]); setErr(null); };
+  const saveEditContact = async () => {
+    if (!editDraft.name.trim()) { setErr("A name is required."); return; }
+    const next = contacts.map((c, i) => (i === editingIndex ? { ...editDraft, name: editDraft.name.trim() } : c));
+    await commit(next);
+    setEditingIndex(null);
+  };
+  const remove = (i: number) => commit(contacts.filter((_, x) => x !== i));
+
+  return (
+    <div>
+      <div className="mb-5 flex items-center justify-between">
+        <h3 className="font-heading text-base font-bold text-slate-900">Emergency contacts {contacts.length > 0 && <span className="text-slate-400">({contacts.length})</span>}</h3>
+        {!adding && <button onClick={() => { setAdding(true); setDraft(emptyContact); setErr(null); }} className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-teal-700"><Plus className="h-3.5 w-3.5" /> Add contact</button>}
+      </div>
+
+      {err && <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-500">{err}</p>}
+
+      {adding && (
+        <div className="mb-5 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+          <Field label="Name"><input autoFocus value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="inp" /></Field>
+          <Field label="Relationship"><input value={draft.relationship} onChange={(e) => setDraft({ ...draft, relationship: e.target.value })} placeholder="e.g. Partner, Parent" className="inp" /></Field>
+          <Field label="Phone"><input value={draft.phone} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} className="inp" /></Field>
+          <Field label="Email"><input type="email" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} className="inp" /></Field>
+          <div className="flex items-center gap-2 sm:col-span-2">
+            <button onClick={add} disabled={busy || !draft.name.trim()} className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">{busy ? "Saving…" : "Add"}</button>
+            <button onClick={() => { setAdding(false); setErr(null); }} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {contacts.length === 0 && !adding ? (
+        <EmptyState icon={Users} title="No emergency contacts yet" body="It's always a good idea to have contact info for the people close to this staff member — for emergencies, next-of-kin and day-to-day updates." />
+      ) : (
+        <div className="space-y-3">
+          {contacts.map((c, i) => (
+            <div key={i} className="rounded-xl border border-slate-200 p-4">
+              {editingIndex === i ? (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Field label="Name"><input autoFocus value={editDraft.name} onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })} className="inp" /></Field>
+                  <Field label="Relationship"><input value={editDraft.relationship} onChange={(e) => setEditDraft({ ...editDraft, relationship: e.target.value })} className="inp" /></Field>
+                  <Field label="Phone"><input value={editDraft.phone} onChange={(e) => setEditDraft({ ...editDraft, phone: e.target.value })} className="inp" /></Field>
+                  <Field label="Email"><input type="email" value={editDraft.email} onChange={(e) => setEditDraft({ ...editDraft, email: e.target.value })} className="inp" /></Field>
+                  <div className="flex items-center gap-2 sm:col-span-2">
+                    <button onClick={saveEditContact} disabled={busy} className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">{busy ? "Saving…" : "Save"}</button>
+                    <button onClick={() => setEditingIndex(null)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="grid h-10 w-10 flex-none place-items-center rounded-full bg-teal-50 text-teal-600"><User className="h-5 w-5" /></span>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{c.name}{c.relationship ? <span className="ml-2 font-normal text-slate-400">{c.relationship}</span> : null}</p>
+                      <p className="text-xs text-slate-500">
+                        {c.phone ? <a href={`tel:${c.phone}`} className="hover:text-teal-700">{c.phone}</a> : null}
+                        {c.phone && c.email ? " · " : null}
+                        {c.email ? <a href={`mailto:${c.email}`} className="hover:text-teal-700">{c.email}</a> : null}
+                        {!c.phone && !c.email ? "No phone or email on file" : null}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => startEditContact(i)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label={`Edit ${c.name}`}><Pencil className="h-4 w-4" /></button>
+                    <button onClick={() => remove(i)} disabled={busy} className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50" aria-label={`Remove ${c.name}`}><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -108,6 +108,7 @@ func applyStaff(st *models.Staff, req models.StaffRequest) {
 	st.DBSNumber = strings.TrimSpace(req.DBSNumber)
 	st.DBSExpiry = strings.TrimSpace(req.DBSExpiry)
 	st.FirstAidExpiry = strings.TrimSpace(req.FirstAidExpiry)
+	st.EmergencyContacts = req.EmergencyContacts
 }
 
 func (s *staffService) mintRef(ctx context.Context) (string, error) {
