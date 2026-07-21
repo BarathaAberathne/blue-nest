@@ -621,7 +621,7 @@ function EmptyState({ icon: Icon, title, body }: { icon: typeof User; title: str
 }
 
 // ── Contacts — emergency / next-of-kin contacts for this staff member ─────────
-const emptyContact: EmergencyContact = { name: "", relationship: "", phone: "", email: "" };
+const emptyContact: EmergencyContact = { name: "", relation: "", phone: "", email: "" };
 function ContactsPanel({ contacts, onSave }: { contacts: EmergencyContact[]; onSave: (next: EmergencyContact[]) => Promise<void> }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState<EmergencyContact>(emptyContact);
@@ -662,7 +662,7 @@ function ContactsPanel({ contacts, onSave }: { contacts: EmergencyContact[]; onS
       {adding && (
         <div className="mb-5 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
           <Field label="Name"><input autoFocus value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="inp" /></Field>
-          <Field label="Relationship"><input value={draft.relationship} onChange={(e) => setDraft({ ...draft, relationship: e.target.value })} placeholder="e.g. Partner, Parent" className="inp" /></Field>
+          <Field label="Relationship"><input value={draft.relation} onChange={(e) => setDraft({ ...draft, relation: e.target.value })} placeholder="e.g. Partner, Parent" className="inp" /></Field>
           <Field label="Phone"><input value={draft.phone} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} className="inp" /></Field>
           <Field label="Email"><input type="email" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} className="inp" /></Field>
           <div className="flex items-center gap-2 sm:col-span-2">
@@ -681,7 +681,7 @@ function ContactsPanel({ contacts, onSave }: { contacts: EmergencyContact[]; onS
               {editingIndex === i ? (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <Field label="Name"><input autoFocus value={editDraft.name} onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })} className="inp" /></Field>
-                  <Field label="Relationship"><input value={editDraft.relationship} onChange={(e) => setEditDraft({ ...editDraft, relationship: e.target.value })} className="inp" /></Field>
+                  <Field label="Relationship"><input value={editDraft.relation} onChange={(e) => setEditDraft({ ...editDraft, relation: e.target.value })} className="inp" /></Field>
                   <Field label="Phone"><input value={editDraft.phone} onChange={(e) => setEditDraft({ ...editDraft, phone: e.target.value })} className="inp" /></Field>
                   <Field label="Email"><input type="email" value={editDraft.email} onChange={(e) => setEditDraft({ ...editDraft, email: e.target.value })} className="inp" /></Field>
                   <div className="flex items-center gap-2 sm:col-span-2">
@@ -694,7 +694,7 @@ function ContactsPanel({ contacts, onSave }: { contacts: EmergencyContact[]; onS
                   <div className="flex items-center gap-3">
                     <span className="grid h-10 w-10 flex-none place-items-center rounded-full bg-teal-50 text-teal-600"><User className="h-5 w-5" /></span>
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">{c.name}{c.relationship ? <span className="ml-2 font-normal text-slate-400">{c.relationship}</span> : null}</p>
+                      <p className="text-sm font-semibold text-slate-800">{c.name}{c.relation ? <span className="ml-2 font-normal text-slate-400">{c.relation}</span> : null}</p>
                       <p className="text-xs text-slate-500">
                         {c.phone ? <a href={`tel:${c.phone}`} className="hover:text-teal-700">{c.phone}</a> : null}
                         {c.phone && c.email ? " · " : null}

@@ -28,10 +28,10 @@ const (
 // emergencies, or day-to-day updates. Deliberately separate from Child's
 // Guardian (a different relationship, on a different entity).
 type EmergencyContact struct {
-	Name         string `bson:"name"                   json:"name"`
-	Relationship string `bson:"relationship,omitempty" json:"relationship,omitempty"`
-	Phone        string `bson:"phone,omitempty"        json:"phone,omitempty"`
-	Email        string `bson:"email,omitempty"        json:"email,omitempty"`
+	Name     string `bson:"name"               json:"name"`
+	Relation string `bson:"relation,omitempty" json:"relation,omitempty"`
+	Phone    string `bson:"phone,omitempty"    json:"phone,omitempty"`
+	Email    string `bson:"email,omitempty"    json:"email,omitempty"`
 }
 
 // Staff is an employed practitioner/manager. Deliberately separate from the

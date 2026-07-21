@@ -1057,7 +1057,7 @@ export type StaffType = "permanent" | "agency" | "bank";
 
 export interface EmergencyContact {
   name: string;
-  relationship?: string;
+  relation?: string;
   phone?: string;
   email?: string;
 }
