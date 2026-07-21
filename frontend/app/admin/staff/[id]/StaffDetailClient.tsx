@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, Award, Baby, BadgeCheck, CalendarClock, CalendarDays, CalendarX, Check, CheckCircle2,
@@ -70,6 +70,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
   // info / branch-assignment form and vice versa.
   const [identityEditing, setIdentityEditing] = useState(false);
   const [identityForm, setIdentityForm] = useState<StaffInput | null>(null);
+  const identityFormRef = useRef<HTMLDivElement>(null);
   const [basicEditing, setBasicEditing] = useState(false);
   const [basicForm, setBasicForm] = useState<Pick<StaffInput, "first_name" | "last_name" | "job_title" | "email" | "phone"> | null>(null);
   const [contractEditing, setContractEditing] = useState(false);
@@ -160,6 +161,10 @@ export default function StaffDetailClient({ id }: { id: string }) {
   };
 
   const startIdentityEdit = () => { if (!member) return; setIdentityForm(memberToInput(member)); setIdentityEditing(true); };
+  const startIdentityEditAndScroll = () => {
+    startIdentityEdit();
+    setTimeout(() => identityFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
   const saveIdentity = async () => {
     if (!identityForm) return;
     setSaving(true); setError(null);
@@ -242,7 +247,9 @@ export default function StaffDetailClient({ id }: { id: string }) {
       </div>
 
       {identityEditing && identityForm && (
-        <IdentityEditForm form={identityForm} member={member} branches={branches} setField={(p) => setIdentityForm((f) => (f ? { ...f, ...p } : f))} />
+        <div ref={identityFormRef}>
+          <IdentityEditForm form={identityForm} member={member} branches={branches} setField={(p) => setIdentityForm((f) => (f ? { ...f, ...p } : f))} />
+        </div>
       )}
 
       {/* ── Tabs ───────────────────────────────────────────────────── */}
@@ -322,8 +329,16 @@ export default function StaffDetailClient({ id }: { id: string }) {
           </div>
 
           {/* Compliance strip — DBS + first aid (kept, condensed) */}
-          <section className="card grid grid-cols-1 gap-4 p-5 sm:grid-cols-3" aria-labelledby="comp-h">
-            <h2 id="comp-h" className="sr-only">Compliance</h2>
+          <section className="card p-5" aria-labelledby="comp-h">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 id="comp-h" className="text-sm font-bold uppercase tracking-widest text-slate-400">Compliance</h2>
+              {!identityEditing && (
+                <button type="button" onClick={startIdentityEditAndScroll} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400"><ShieldCheck className="h-4 w-4" /> DBS check</div>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-800">
@@ -339,6 +354,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400"><KeyRound className="h-4 w-4" /> Kiosk PIN</div>
               <div className={`mt-1 text-sm font-medium ${member.has_pin ? "text-green-600" : "text-amber-600"}`}>{member.has_pin ? "Set" : "Not set"}</div>
+            </div>
             </div>
           </section>
 
