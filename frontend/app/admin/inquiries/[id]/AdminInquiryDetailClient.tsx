@@ -98,7 +98,10 @@ export default function AdminInquiryDetailClient({ id }: { id: string }) {
   const [noteDraft, setNoteDraft] = useState("");
   const [nextActionDraft, setNextActionDraft] = useState("");
   const [followUpDraft, setFollowUpDraft] = useState("");
-  const [reg, setReg] = useState({ registration_date: "", expected_start_date: "", child_age_group: "", room_allocation: "", funding_type: "" });
+  const [reg, setReg] = useState({
+    registration_date: "", expected_start_date: "", child_age_group: "", room_allocation: "", funding_type: "",
+    child_first_name: "", child_last_name: "", child_dob: "", child_gender: "",
+  });
 
   const showToast = useCallback((t: Toast) => {
     setToast(t);
@@ -110,12 +113,18 @@ export default function AdminInquiryDetailClient({ id }: { id: string }) {
     setNextActionDraft(e.next_action ?? "");
     setFollowUpDraft(toDateInput(e.follow_up_date));
     setAppOpen(e.enquiry_type === "Application form");
+    const appChild = e.application?.child;
+    const [appFirst, ...appRest] = appChild?.name?.trim().split(/\s+/) ?? [];
     setReg({
       registration_date: toDateInput(e.registration?.registration_date) || toDateInput(new Date().toISOString()),
       expected_start_date: toDateInput(e.registration?.expected_start_date),
       child_age_group: e.registration?.child_age_group ?? e.child_age ?? "",
       room_allocation: e.registration?.room_allocation ?? "",
       funding_type: e.registration?.funding_type ?? "",
+      child_first_name: appFirst ?? "",
+      child_last_name: appRest.join(" "),
+      child_dob: appChild?.dob ? toDateInput(appChild.dob) : "",
+      child_gender: appChild?.gender ?? "",
     });
   }, []);
 
@@ -191,13 +200,21 @@ export default function AdminInquiryDetailClient({ id }: { id: string }) {
 
   const submitRegistration = () => {
     if (!reg.expected_start_date) { showToast({ kind: "error", msg: "Expected start date is required to register" }); return; }
+    if (!e.registration?.is_registered && (!reg.child_first_name.trim() || !reg.child_last_name.trim() || !reg.child_dob)) {
+      showToast({ kind: "error", msg: "Child's name and date of birth are required to register — this is what creates their record in Children" });
+      return;
+    }
     run((t) => api.adminRegisterEnquiry(t, e.id, {
       registration_date: dateInputToISO(reg.registration_date),
       expected_start_date: dateInputToISO(reg.expected_start_date),
       child_age_group: reg.child_age_group,
       room_allocation: reg.room_allocation,
       funding_type: reg.funding_type,
-    }), "Marked as registered");
+      child_first_name: reg.child_first_name,
+      child_last_name: reg.child_last_name,
+      child_dob: reg.child_dob,
+      child_gender: reg.child_gender,
+    }), e.registration?.is_registered ? "Registration updated" : "Registered — child added to Children");
   };
 
   const notes = [...(e.notes ?? [])].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
@@ -390,7 +407,18 @@ export default function AdminInquiryDetailClient({ id }: { id: string }) {
             {e.registration?.is_registered && (
               <p className="mb-3 flex items-center gap-1.5 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700"><CheckCircle2 className="h-4 w-4" /> Registered on {fmtDateShort(e.registration.registration_date)}</p>
             )}
+            {!e.registration?.is_registered && (
+              <p className="mb-3 text-xs text-slate-500">The child&apos;s name and date of birth create their record in <strong>Children</strong> when you confirm registration.</p>
+            )}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Child&apos;s first name *</span>
+                <input type="text" value={reg.child_first_name} onChange={(ev) => setReg({ ...reg, child_first_name: ev.target.value })} placeholder="e.g. Kiaan" className={inputCls} /></label>
+              <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Child&apos;s last name *</span>
+                <input type="text" value={reg.child_last_name} onChange={(ev) => setReg({ ...reg, child_last_name: ev.target.value })} placeholder="e.g. Saxena" className={inputCls} /></label>
+              <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Date of birth *</span>
+                <input type="date" value={reg.child_dob} onChange={(ev) => setReg({ ...reg, child_dob: ev.target.value })} className={inputCls} /></label>
+              <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Gender</span>
+                <input type="text" value={reg.child_gender} onChange={(ev) => setReg({ ...reg, child_gender: ev.target.value })} placeholder="Optional" className={inputCls} /></label>
               <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Registration date</span>
                 <input type="date" value={reg.registration_date} onChange={(ev) => setReg({ ...reg, registration_date: ev.target.value })} className={inputCls} /></label>
               <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Expected start date *</span>

@@ -258,6 +258,14 @@ type EnquiryRegisterRequest struct {
 	ChildAgeGroup     string     `json:"child_age_group"`
 	RoomAllocation    string     `json:"room_allocation"`
 	FundingType       string     `json:"funding_type"`
+	// Child identity — required to actually create the Child record alongside
+	// marking the enquiry registered (see AdminEnquiryHandler.Register). Left
+	// empty (e.g. a stale registration saved before this field existed), no
+	// child is created/updated.
+	ChildFirstName string `json:"child_first_name"`
+	ChildLastName  string `json:"child_last_name"`
+	ChildDOB       string `json:"child_dob"` // YYYY-MM-DD
+	ChildGender    string `json:"child_gender"`
 }
 
 // EnquiryActor identifies the authenticated staff member performing an action,

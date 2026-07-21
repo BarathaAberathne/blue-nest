@@ -299,6 +299,13 @@ export const api = {
       child_age_group?: string;
       room_allocation?: string;
       funding_type?: string;
+      // Child identity — required for registration to actually create the
+      // Child record (see AdminEnquiryHandler.Register); omitted, the enquiry
+      // is still marked registered but no child is created.
+      child_first_name?: string;
+      child_last_name?: string;
+      child_dob?: string;
+      child_gender?: string;
     },
   ) =>
     apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/register`, {

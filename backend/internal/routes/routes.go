@@ -239,7 +239,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			// Enquiries / admissions CRM.
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermEnquiriesManage))
-				adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Auth, svc.Audit)
+				adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Auth, svc.Audit, svc.Children)
 				r.Get("/admin/enquiries", adminEnquiryH.List)
 				r.Post("/admin/enquiries", adminEnquiryH.Create)
 				r.Get("/admin/enquiries/page", adminEnquiryH.ListPaged)

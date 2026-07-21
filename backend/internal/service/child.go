@@ -22,8 +22,13 @@ type ChildService interface {
 	// roles); a branch-scoped caller passes their branch so the totals — and the
 	// per-branch breakdown — never include another branch's counts.
 	Stats(ctx context.Context, branch string) (*models.ChildStats, error)
-	// EnsureFromEnquiry idempotently creates a child from a registered enquiry.
-	EnsureFromEnquiry(ctx context.Context, enquiryID, firstName, lastName, dob, gender, branch string) (*models.Child, error)
+	// EnsureFromEnquiry idempotently creates a child from a registered enquiry —
+	// req carries the child's identity/branch (+ optionally funding/guardians/
+	// sessions collected at registration time); enquiryID links the two records
+	// and is the idempotency key (a re-run returns the already-linked child
+	// unchanged, so a duplicate/retried "register" call never creates a
+	// second Child).
+	EnsureFromEnquiry(ctx context.Context, enquiryID string, req models.ChildRequest) (*models.Child, error)
 	// SetKeyPerson assigns (or clears, with empty staffID) the child's key
 	// person. The key person must be an active staff member at the child's branch.
 	SetKeyPerson(ctx context.Context, childID, staffID string) (*models.Child, error)
@@ -158,11 +163,13 @@ func (s *childService) Delete(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *childService) EnsureFromEnquiry(ctx context.Context, enquiryID, firstName, lastName, dob, gender, branch string) (*models.Child, error) {
+func (s *childService) EnsureFromEnquiry(ctx context.Context, enquiryID string, req models.ChildRequest) (*models.Child, error) {
 	if existing, err := s.repo.FindByEnquiryID(ctx, enquiryID); err == nil && existing != nil {
 		return existing, nil // already linked — idempotent
 	}
-	req := models.ChildRequest{FirstName: firstName, LastName: lastName, DOB: dob, Gender: gender, BranchSlug: branch, Status: models.ChildActive}
+	if req.Status == "" {
+		req.Status = models.ChildActive
+	}
 	c := &models.Child{Status: models.ChildActive, FundingType: models.FundingNone, EnquiryID: enquiryID}
 	applyChild(c, req)
 	ref, err := s.mintRef(ctx)

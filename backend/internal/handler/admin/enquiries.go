@@ -17,13 +17,14 @@ import (
 )
 
 type AdminEnquiryHandler struct {
-	svc   service.EnquiryService
-	auth  service.AuthService
-	audit service.AuditService
+	svc      service.EnquiryService
+	auth     service.AuthService
+	audit    service.AuditService
+	children service.ChildService
 }
 
-func NewAdminEnquiryHandler(svc service.EnquiryService, auth service.AuthService, audit service.AuditService) *AdminEnquiryHandler {
-	return &AdminEnquiryHandler{svc: svc, auth: auth, audit: audit}
+func NewAdminEnquiryHandler(svc service.EnquiryService, auth service.AuthService, audit service.AuditService, children service.ChildService) *AdminEnquiryHandler {
+	return &AdminEnquiryHandler{svc: svc, auth: auth, audit: audit, children: children}
 }
 
 // actor pulls the authenticated staff identity off the request for note/activity
@@ -362,6 +363,20 @@ func (h *AdminEnquiryHandler) Assign(w http.ResponseWriter, r *http.Request) {
 	h.respondUpdated(w, r, id)
 }
 
+// mapFundingType interprets the registration panel's free-text funding field
+// (e.g. "15 hours funding") into the Child record's funding enum.
+func mapFundingType(freeText string) string {
+	t := strings.ToLower(freeText)
+	switch {
+	case strings.Contains(t, "30"):
+		return models.Funding30h
+	case strings.Contains(t, "15"):
+		return models.Funding15h
+	default:
+		return models.FundingNone
+	}
+}
+
 func (h *AdminEnquiryHandler) Register(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -370,14 +385,47 @@ func (h *AdminEnquiryHandler) Register(w http.ResponseWriter, r *http.Request) {
 		response.BadRequest(w, "invalid request body")
 		return
 	}
-	if !h.enquiryInScope(w, r, id) {
+	enquiry, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "enquiry not found")
+		return
+	}
+	if !inScope(r, enquiry.Branch) {
+		response.Forbidden(w, "outside your branch scope")
 		return
 	}
 	if err := h.svc.Register(r.Context(), id, body, actor(r)); err != nil {
 		response.BadRequest(w, err.Error())
 		return
 	}
-	h.audit.Record(r, "register", "enquiry", id, "Marked enquiry as registered", nil)
+
+	// Registering an enquiry is meant to bring the child into the system, not
+	// just flip the enquiry's own status — so once the essentials (name + DOB)
+	// are given, actually create (or, on a retry, idempotently reuse) the Child
+	// record, seeded with the parent as the first guardian.
+	summary := "Marked enquiry as registered"
+	if strings.TrimSpace(body.ChildFirstName) != "" && strings.TrimSpace(body.ChildLastName) != "" && strings.TrimSpace(body.ChildDOB) != "" {
+		childReq := models.ChildRequest{
+			FirstName:   body.ChildFirstName,
+			LastName:    body.ChildLastName,
+			DOB:         body.ChildDOB,
+			Gender:      body.ChildGender,
+			BranchSlug:  enquiry.Branch,
+			FundingType: mapFundingType(body.FundingType),
+			Guardians: []models.Guardian{{
+				Name: enquiry.Name, Email: enquiry.Email, Phone: enquiry.Phone, Primary: true,
+			}},
+		}
+		if body.ExpectedStartDate != nil {
+			childReq.StartDate = body.ExpectedStartDate.Format("2006-01-02")
+		}
+		if _, err := h.children.EnsureFromEnquiry(r.Context(), id, childReq); err != nil {
+			response.InternalError(w, "registered the enquiry but failed to create the child record: "+err.Error())
+			return
+		}
+		summary = "Registered enquiry and added " + body.ChildFirstName + " " + body.ChildLastName + " to Children"
+	}
+	h.audit.Record(r, "register", "enquiry", id, summary, nil)
 	h.respondUpdated(w, r, id)
 }
 
