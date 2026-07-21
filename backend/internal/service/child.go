@@ -156,7 +156,16 @@ func (s *childService) Update(ctx context.Context, id string, req models.ChildRe
 		return nil, err
 	}
 	applyChild(existing, req)
-	return s.repo.Update(ctx, id, *existing)
+	updated, err := s.repo.Update(ctx, id, *existing)
+	if err != nil {
+		return nil, err
+	}
+	// KeyPersonName is transient (bson:"-"), resolved via a staff lookup — the
+	// repo's raw Decode leaves it blank, so it must be re-resolved here (same
+	// as GetByID does) or a save would appear to have cleared the key person's
+	// display name even though key_person_id itself is untouched.
+	s.resolveKeyPerson(ctx, updated)
+	return updated, nil
 }
 
 func (s *childService) Delete(ctx context.Context, id string) error {
