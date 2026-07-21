@@ -12,6 +12,7 @@ import {
   Building2,
   SlidersHorizontal,
   CalendarCheck,
+  CalendarRange,
   ChevronsLeft,
   ClipboardList,
   DoorOpen,
@@ -72,6 +73,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Child Attendance", href: "/admin/attendance", icon: CalendarCheck, permission: "attendance.manage" },
       { label: "Daily Log",        href: "/admin/daily-log",  icon: NotebookPen, permission: "daily_logs.manage" },
       { label: "Rooms",            href: "/admin/rooms",      icon: DoorOpen, permission: "children.manage" },
+      { label: "Room Planner",     href: "/admin/room-planner", icon: CalendarRange, permission: "children.manage" },
     ],
   },
   {

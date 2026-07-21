@@ -1015,6 +1015,35 @@ export interface ChildStats {
   branches: BranchChildStat[];
 }
 
+export interface CapacityDay {
+  day: string; // Mon..Fri
+  am_children: number;
+  am_available: number; // negative = overbooked
+  am_staff_required: number;
+  pm_children: number;
+  pm_available: number;
+  pm_staff_required: number;
+}
+
+export interface CapacityWeek {
+  week_start: string; // YYYY-MM-DD, the Monday
+  days: CapacityDay[];
+}
+
+export interface RoomCapacityForecast {
+  room_id: string;
+  room_name: string;
+  branch_slug: string;
+  capacity: number;
+  staff_ratio: number;
+  weeks: CapacityWeek[];
+}
+
+export interface CapacityForecast {
+  weeks: string[];
+  rooms: RoomCapacityForecast[];
+}
+
 export type AttendanceStatus = "expected" | "present" | "absent" | "holiday" | "sick";
 
 export interface AttendanceRecord {

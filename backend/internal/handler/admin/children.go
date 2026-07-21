@@ -2,6 +2,7 @@ package admin
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/policy"
@@ -56,6 +57,22 @@ func (h *AdminChildHandler) Stats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.OK(w, stats)
+}
+
+func (h *AdminChildHandler) CapacityForecast(w http.ResponseWriter, r *http.Request) {
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	weeks, _ := strconv.Atoi(r.URL.Query().Get("weeks"))
+	forecast, err := h.svc.CapacityForecast(r.Context(), branch, weeks)
+	if err != nil {
+		response.InternalError(w, "failed to compute capacity forecast")
+		return
+	}
+	response.OK(w, forecast)
 }
 
 func (h *AdminChildHandler) Get(w http.ResponseWriter, r *http.Request) {

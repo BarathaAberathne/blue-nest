@@ -323,6 +323,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				adminChildH := adminHandler.NewAdminChildHandler(svc.Children, svc.Audit)
 				r.Get("/admin/children", adminChildH.List)
 				r.Get("/admin/children/stats", adminChildH.Stats)
+				r.Get("/admin/children/capacity-forecast", adminChildH.CapacityForecast)
 				r.Get("/admin/children/{id}", adminChildH.Get)
 				r.Post("/admin/children", adminChildH.Create)
 				r.Put("/admin/children/{id}", adminChildH.Update)

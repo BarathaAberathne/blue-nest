@@ -34,6 +34,11 @@ type ChildService interface {
 	SetKeyPerson(ctx context.Context, childID, staffID string) (*models.Child, error)
 	// KeyChildren lists the children a staff member is key person for.
 	KeyChildren(ctx context.Context, staffID string) ([]models.Child, error)
+	// CapacityForecast projects each room's booked children forward across
+	// `weeks` (bounded to [1, maxCapacityForecastWeeks]) from the active
+	// roster's weekly Sessions pattern — the Room planner / Future
+	// availability report. Empty branch = org-wide.
+	CapacityForecast(ctx context.Context, branch string, weeks int) (*models.CapacityForecast, error)
 }
 
 type childService struct {
@@ -292,4 +297,146 @@ func (s *childService) Stats(ctx context.Context, branch string) (*models.ChildS
 		stats.ByAgeGroup = append(stats.ByAgeGroup, models.ChildStatPoint{Label: g, Value: ageGroups[g]})
 	}
 	return stats, nil
+}
+
+const (
+	defaultCapacityForecastWeeks = 12 // ~3 months ahead
+	maxCapacityForecastWeeks     = 26 // ~6 months — a sane ceiling against abuse
+)
+
+var forecastWeekdays = []string{"Mon", "Tue", "Wed", "Thu", "Fri"}
+
+// mondayOf returns the Monday (00:00) of t's week.
+func mondayOf(t time.Time) time.Time {
+	t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+	offset := int(time.Monday - t.Weekday())
+	if offset > 0 {
+		offset -= 7
+	}
+	return t.AddDate(0, 0, offset)
+}
+
+// sessionCovers reports whether a session type occupies the AM slot
+// (~08:00–13:00) and/or PM slot (~13:00–18:00) — mirrors the frontend's
+// SESSION_TYPES (am/pm/school/full); "school" spans the midday split so it
+// counts toward both.
+func sessionCovers(sessionType string) (am, pm bool) {
+	switch sessionType {
+	case "am":
+		return true, false
+	case "pm":
+		return false, true
+	case "school", "full":
+		return true, true
+	default:
+		return false, false
+	}
+}
+
+// sessionTypeFor returns the child's booked session type for a weekday
+// ("" if not attending that day).
+func sessionTypeFor(sessions []models.ChildSession, day string) string {
+	for _, s := range sessions {
+		if s.Day == day {
+			return s.Type
+		}
+	}
+	return ""
+}
+
+// childStarted reports whether c has started (or will have started) by date —
+// an empty/unparseable StartDate is treated as already-started so legacy
+// records without one are never silently dropped from the forecast.
+func childStarted(c models.Child, date time.Time) bool {
+	start := strings.TrimSpace(c.StartDate)
+	if start == "" {
+		return true
+	}
+	t, err := time.Parse("2006-01-02", start)
+	if err != nil {
+		return true
+	}
+	return !date.Before(t)
+}
+
+// requiredStaff is ceil(children / ratio); 0 when there's nothing to staff or
+// no ratio is configured.
+func requiredStaff(children, ratio int) int {
+	if ratio <= 0 || children <= 0 {
+		return 0
+	}
+	return (children + ratio - 1) / ratio
+}
+
+func (s *childService) CapacityForecast(ctx context.Context, branch string, weeks int) (*models.CapacityForecast, error) {
+	if weeks <= 0 {
+		weeks = defaultCapacityForecastWeeks
+	}
+	if weeks > maxCapacityForecastWeeks {
+		weeks = maxCapacityForecastWeeks
+	}
+
+	rooms, err := s.rooms.FindAll(ctx, branch)
+	if err != nil {
+		return nil, err
+	}
+	children, err := s.repo.FindAll(ctx, repository.ChildFilter{Branch: branch, Status: string(models.ChildActive)})
+	if err != nil {
+		return nil, err
+	}
+
+	byRoom := map[string][]models.Child{}
+	for _, c := range children {
+		if c.RoomID != "" {
+			byRoom[c.RoomID] = append(byRoom[c.RoomID], c)
+		}
+	}
+
+	firstMonday := mondayOf(time.Now())
+	weekStarts := make([]string, weeks)
+	for i := 0; i < weeks; i++ {
+		weekStarts[i] = firstMonday.AddDate(0, 0, 7*i).Format("2006-01-02")
+	}
+
+	forecast := &models.CapacityForecast{Weeks: weekStarts}
+	for _, room := range rooms {
+		roomID := room.ID.Hex()
+		rf := models.RoomCapacityForecast{
+			RoomID: roomID, RoomName: room.Name, BranchSlug: room.BranchSlug,
+			Capacity: room.Capacity, StaffRatio: room.StaffRatio,
+		}
+		roomChildren := byRoom[roomID]
+		for i := 0; i < weeks; i++ {
+			weekMonday := firstMonday.AddDate(0, 0, 7*i)
+			week := models.CapacityWeek{WeekStart: weekStarts[i]}
+			for d, label := range forecastWeekdays {
+				date := weekMonday.AddDate(0, 0, d)
+				am, pm := 0, 0
+				for _, c := range roomChildren {
+					if !childStarted(c, date) {
+						continue
+					}
+					sessAM, sessPM := sessionCovers(sessionTypeFor(c.Sessions, label))
+					if sessAM {
+						am++
+					}
+					if sessPM {
+						pm++
+					}
+				}
+				week.Days = append(week.Days, models.CapacityDay{
+					Day:             label,
+					AMChildren:      am,
+					AMAvailable:     room.Capacity - am,
+					AMStaffRequired: requiredStaff(am, room.StaffRatio),
+					PMChildren:      pm,
+					PMAvailable:     room.Capacity - pm,
+					PMStaffRequired: requiredStaff(pm, room.StaffRatio),
+				})
+			}
+			rf.Weeks = append(rf.Weeks, week)
+		}
+		forecast.Rooms = append(forecast.Rooms, rf)
+	}
+	return forecast, nil
 }

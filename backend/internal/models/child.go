@@ -114,3 +114,39 @@ type ChildStats struct {
 	ByAgeGroup    []ChildStatPoint  `json:"by_age_group"`
 	Branches      []BranchChildStat `json:"branches"`
 }
+
+// ── Capacity forecast (Room planner / Future availability) ───────────────────
+// Projects each room's currently-active roster forward across weeks from its
+// weekly Sessions pattern (+ any future StartDate). There are no term dates or
+// planned-leaving dates modelled yet, so this is only as good as "who's active
+// or enrolled to start, and what they're booked for" — not a full booking
+// system. Occupied/available are per session slot (AM/PM); required staff is
+// ceil(occupied / Room.StaffRatio).
+type CapacityDay struct {
+	Day             string `json:"day"` // Mon..Fri
+	AMChildren      int    `json:"am_children"`
+	AMAvailable     int    `json:"am_available"` // capacity - am_children; negative = overbooked
+	AMStaffRequired int    `json:"am_staff_required"`
+	PMChildren      int    `json:"pm_children"`
+	PMAvailable     int    `json:"pm_available"`
+	PMStaffRequired int    `json:"pm_staff_required"`
+}
+
+type CapacityWeek struct {
+	WeekStart string        `json:"week_start"` // YYYY-MM-DD, the Monday
+	Days      []CapacityDay `json:"days"`
+}
+
+type RoomCapacityForecast struct {
+	RoomID     string         `json:"room_id"`
+	RoomName   string         `json:"room_name"`
+	BranchSlug string         `json:"branch_slug"`
+	Capacity   int            `json:"capacity"`
+	StaffRatio int            `json:"staff_ratio"`
+	Weeks      []CapacityWeek `json:"weeks"`
+}
+
+type CapacityForecast struct {
+	Weeks []string               `json:"weeks"` // week-start dates, same order/length as each room's Weeks
+	Rooms []RoomCapacityForecast `json:"rooms"`
+}
