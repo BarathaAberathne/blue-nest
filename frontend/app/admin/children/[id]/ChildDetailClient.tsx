@@ -9,7 +9,16 @@ import { branchShortName } from "@/lib/branch";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { ageLabel, childStatusAccent, fmtDate, fundingLabel } from "@/lib/child";
 import { dailyTypeAccent, dailyTypeLabel } from "@/lib/daily";
-import type { Branch, Child, ChildInput, DailyRecord, Guardian, Room } from "@/types";
+import type { Branch, Child, ChildInput, ChildSession, DailyRecord, Guardian, Room } from "@/types";
+
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+const SESSION_TYPES: { value: string; label: string }[] = [
+  { value: "", label: "Not attending" },
+  { value: "am", label: "AM (8–1pm)" },
+  { value: "pm", label: "PM (1–6pm)" },
+  { value: "school", label: "School (9–4pm)" },
+  { value: "full", label: "Full day (8am–6pm)" },
+];
 
 export default function ChildDetailClient({ id }: { id: string }) {
   const [child, setChild] = useState<Child | null>(null);
@@ -46,6 +55,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
       branch_slug: child.branch_slug, room_id: child.room_id ?? "", status: child.status, start_date: child.start_date ?? "",
       funding_type: child.funding_type, allergies: child.allergies ?? "", dietary_reqs: child.dietary_reqs ?? "",
       medical_notes: child.medical_notes ?? "", guardians: child.guardians ?? [],
+      sessions: child.sessions ?? [],
     });
     setEditing(true);
   };
@@ -73,6 +83,15 @@ export default function ChildDetailClient({ id }: { id: string }) {
     setForm((f) => (f ? { ...f, guardians: (f.guardians ?? []).filter((_, gi) => gi !== i) } : f));
   const setPrimaryGuardian = (i: number) =>
     setForm((f) => (f ? { ...f, guardians: (f.guardians ?? []).map((g, gi) => ({ ...g, primary: gi === i })) } : f));
+
+  const sessionFor = (day: string) => form?.sessions?.find((s) => s.day === day)?.type ?? "";
+  const setSession = (day: string, type: string) =>
+    setForm((f) => {
+      if (!f) return f;
+      const rest = (f.sessions ?? []).filter((s) => s.day !== day);
+      const next: ChildSession[] = type ? [...rest, { day, type }] : rest;
+      return { ...f, sessions: next.sort((a, b) => WEEKDAYS.indexOf(a.day) - WEEKDAYS.indexOf(b.day)) };
+    });
 
   if (loading) return <p className="text-slate-400">Loading…</p>;
   if (!child) return <p className="text-red-500">{error ?? "Child not found."}</p>;
@@ -131,7 +150,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
               <>
                 <h2 className="mb-3 mt-6 text-sm font-bold uppercase tracking-widest text-slate-400">Weekly sessions</h2>
                 <div className="flex flex-wrap gap-2">
-                  {child.sessions.map((s, i) => <StageBadge key={i} label={`${s.day} · ${s.type}`} accent="sky" withDot={false} />)}
+                  {child.sessions.map((s, i) => <StageBadge key={i} label={`${s.day} · ${SESSION_TYPES.find((t) => t.value === s.type)?.label ?? s.type}`} accent="sky" withDot={false} />)}
                 </div>
               </>
             )}
@@ -210,6 +229,20 @@ export default function ChildDetailClient({ id }: { id: string }) {
           <Field label="Allergies"><input value={form.allergies} onChange={(e) => setField({ allergies: e.target.value })} className="inp" /></Field>
           <Field label="Dietary requirements"><input value={form.dietary_reqs} onChange={(e) => setField({ dietary_reqs: e.target.value })} className="inp" /></Field>
           <div className="sm:col-span-2"><Field label="Medical notes"><textarea value={form.medical_notes} onChange={(e) => setField({ medical_notes: e.target.value })} rows={2} className="inp" /></Field></div>
+
+          <div className="sm:col-span-2">
+            <label className="mb-2 block text-xs uppercase tracking-wider text-slate-400">Weekly sessions</label>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
+              {WEEKDAYS.map((day) => (
+                <label key={day} className="text-sm">
+                  <span className="mb-1 block text-xs font-medium text-slate-500">{day}</span>
+                  <select value={sessionFor(day)} onChange={(e) => setSession(day, e.target.value)} className="inp bg-white">
+                    {SESSION_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </label>
+              ))}
+            </div>
+          </div>
 
           <div className="sm:col-span-2">
             <div className="mb-2 flex items-center justify-between">
