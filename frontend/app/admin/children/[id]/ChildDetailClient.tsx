@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Pencil, Save, X } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { ageLabel, childStatusAccent, fmtDate, fundingLabel } from "@/lib/child";
 import { dailyTypeAccent, dailyTypeLabel } from "@/lib/daily";
-import type { Branch, Child, ChildInput, DailyRecord, Room } from "@/types";
+import type { Branch, Child, ChildInput, DailyRecord, Guardian, Room } from "@/types";
 
 export default function ChildDetailClient({ id }: { id: string }) {
   const [child, setChild] = useState<Child | null>(null);
@@ -64,6 +64,15 @@ export default function ChildDetailClient({ id }: { id: string }) {
   };
 
   const setField = (patch: Partial<ChildInput>) => setForm((f) => (f ? { ...f, ...patch } : f));
+
+  const setGuardian = (i: number, patch: Partial<Guardian>) =>
+    setForm((f) => (f ? { ...f, guardians: (f.guardians ?? []).map((g, gi) => (gi === i ? { ...g, ...patch } : g)) } : f));
+  const addGuardian = () =>
+    setForm((f) => (f ? { ...f, guardians: [...(f.guardians ?? []), { name: "", relation: "", email: "", phone: "", primary: (f.guardians ?? []).length === 0 }] } : f));
+  const removeGuardian = (i: number) =>
+    setForm((f) => (f ? { ...f, guardians: (f.guardians ?? []).filter((_, gi) => gi !== i) } : f));
+  const setPrimaryGuardian = (i: number) =>
+    setForm((f) => (f ? { ...f, guardians: (f.guardians ?? []).map((g, gi) => ({ ...g, primary: gi === i })) } : f));
 
   if (loading) return <p className="text-slate-400">Loading…</p>;
   if (!child) return <p className="text-red-500">{error ?? "Child not found."}</p>;
@@ -201,6 +210,37 @@ export default function ChildDetailClient({ id }: { id: string }) {
           <Field label="Allergies"><input value={form.allergies} onChange={(e) => setField({ allergies: e.target.value })} className="inp" /></Field>
           <Field label="Dietary requirements"><input value={form.dietary_reqs} onChange={(e) => setField({ dietary_reqs: e.target.value })} className="inp" /></Field>
           <div className="sm:col-span-2"><Field label="Medical notes"><textarea value={form.medical_notes} onChange={(e) => setField({ medical_notes: e.target.value })} rows={2} className="inp" /></Field></div>
+
+          <div className="sm:col-span-2">
+            <div className="mb-2 flex items-center justify-between">
+              <label className="block text-xs uppercase tracking-wider text-slate-400">Guardians</label>
+              <button type="button" onClick={addGuardian} className="inline-flex items-center gap-1 text-xs font-medium text-teal-600 hover:underline">
+                <Plus className="h-3.5 w-3.5" /> Add guardian
+              </button>
+            </div>
+            {(!form.guardians || form.guardians.length === 0) ? (
+              <p className="text-sm text-slate-400">No guardians recorded.</p>
+            ) : (
+              <div className="space-y-3">
+                {form.guardians.map((g, i) => (
+                  <div key={i} className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 p-3 sm:grid-cols-2">
+                    <input value={g.name} onChange={(e) => setGuardian(i, { name: e.target.value })} placeholder="Name" className="inp" />
+                    <input value={g.relation ?? ""} onChange={(e) => setGuardian(i, { relation: e.target.value })} placeholder="Relation (e.g. Mother, Father)" className="inp" />
+                    <input value={g.email ?? ""} onChange={(e) => setGuardian(i, { email: e.target.value })} placeholder="Email" type="email" className="inp" />
+                    <input value={g.phone ?? ""} onChange={(e) => setGuardian(i, { phone: e.target.value })} placeholder="Phone" className="inp" />
+                    <div className="flex items-center justify-between sm:col-span-2">
+                      <label className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                        <input type="radio" name="primary-guardian" checked={!!g.primary} onChange={() => setPrimaryGuardian(i)} /> Primary contact
+                      </label>
+                      <button type="button" onClick={() => removeGuardian(i)} className="inline-flex items-center gap-1 text-xs font-medium text-red-500 hover:underline">
+                        <Trash2 className="h-3.5 w-3.5" /> Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
