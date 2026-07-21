@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookOpen, CheckCircle2, Download, HeartPulse, Plus, Search, ShieldAlert, TriangleAlert, Utensils, X } from "lucide-react";
 import { api } from "@/lib/api";
-import { getAccessToken } from "@/lib/auth";
+import { getAccessToken, scopedBranches } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import { fmtDate } from "@/lib/child";
 import { dailyStatusAccent, dailyStatusLabel, dailyTypeAccent, dailyTypeLabel, severityAccent, EYFS_AREAS } from "@/lib/daily";
@@ -46,7 +46,7 @@ export default function DailyLogClient() {
     ]);
     if (r.status === "fulfilled") setRecords((r.value as DailyRecord[]) ?? []);
     if (s.status === "fulfilled") setStats(s.value as DailyStats);
-    if (b.status === "fulfilled") setBranches((b.value as Branch[]) ?? []);
+    if (b.status === "fulfilled") setBranches(scopedBranches((b.value as Branch[]) ?? []));
     if (c.status === "fulfilled") setChildren((c.value as Child[]) ?? []);
     setLoading(false);
   };
