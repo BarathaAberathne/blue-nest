@@ -134,11 +134,11 @@ func InAllowed(allowed []string, branch string) bool {
 
 // CanBranchLifecycle reports whether the caller may create/delete/archive/merge
 // branches, assign managers, or connect Google/finance settings (super_admin).
-func CanBranchLifecycle(role models.Role) bool {
-	return models.HasPermission(role, models.PermBranchAdmin)
+func CanBranchLifecycle(orgID string, role models.Role) bool {
+	return models.HasPermission(orgID, role, models.PermBranchAdmin)
 }
 
 // CanManageBranch reports whether the caller may edit an in-scope branch.
-func CanManageBranch(role models.Role, branchSlugs []string, slug string) bool {
-	return models.HasPermission(role, models.PermBranchesManage) && CanScope(role, branchSlugs, slug)
+func CanManageBranch(orgID string, role models.Role, branchSlugs []string, slug string) bool {
+	return models.HasPermission(orgID, role, models.PermBranchesManage) && CanScope(role, branchSlugs, slug)
 }

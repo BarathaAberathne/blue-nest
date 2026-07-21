@@ -75,7 +75,8 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	id, _ := r.Context().Value(middleware.UserIDKey).(string)
 	role, _ := r.Context().Value(middleware.UserRoleKey).(string)
 	email, _ := r.Context().Value(middleware.UserEmailKey).(string)
-	perms := models.PermissionsFor(models.Role(role))
+	orgID, _ := r.Context().Value(middleware.UserOrgKey).(string)
+	perms := models.PermissionsFor(orgID, models.Role(role))
 	if perms == nil {
 		perms = []models.Permission{}
 	}

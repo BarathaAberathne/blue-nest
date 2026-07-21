@@ -18,7 +18,10 @@ type ChildService interface {
 	Create(ctx context.Context, req models.ChildRequest) (*models.Child, error)
 	Update(ctx context.Context, id string, req models.ChildRequest) (*models.Child, error)
 	Delete(ctx context.Context, id string) error
-	Stats(ctx context.Context) (*models.ChildStats, error)
+	// Stats aggregates children/occupancy. Empty branch = org-wide (org-wide
+	// roles); a branch-scoped caller passes their branch so the totals — and the
+	// per-branch breakdown — never include another branch's counts.
+	Stats(ctx context.Context, branch string) (*models.ChildStats, error)
 	// EnsureFromEnquiry idempotently creates a child from a registered enquiry.
 	EnsureFromEnquiry(ctx context.Context, enquiryID, firstName, lastName, dob, gender, branch string) (*models.Child, error)
 	// SetKeyPerson assigns (or clears, with empty staffID) the child's key
@@ -202,12 +205,12 @@ func ageYears(dob string) int {
 	return years
 }
 
-func (s *childService) Stats(ctx context.Context) (*models.ChildStats, error) {
-	children, err := s.repo.FindAll(ctx, repository.ChildFilter{})
+func (s *childService) Stats(ctx context.Context, branch string) (*models.ChildStats, error) {
+	children, err := s.repo.FindAll(ctx, repository.ChildFilter{Branch: branch})
 	if err != nil {
 		return nil, err
 	}
-	rooms, err := s.rooms.FindAll(ctx, "")
+	rooms, err := s.rooms.FindAll(ctx, branch)
 	if err != nil {
 		return nil, err
 	}

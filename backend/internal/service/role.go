@@ -11,8 +11,10 @@ import (
 
 type RoleService interface {
 	// EnsureSeeded inserts any missing built-in roles from the defaults and loads
-	// the effective role→permission cache. Called once at startup.
-	EnsureSeeded(ctx context.Context) error
+	// the effective role→permission cache, once per organisation (the cache is
+	// keyed by org, so every tenant needs its own seed+refresh pass). Called
+	// once at startup with every known organisation id.
+	EnsureSeeded(ctx context.Context, orgIDs []string) error
 	List(ctx context.Context) ([]models.RoleDefinition, error)
 	UpdatePermissions(ctx context.Context, name string, perms []models.Permission) (*models.RoleDefinition, error)
 	CreateCustom(ctx context.Context, name, label string, perms []models.Permission) (*models.RoleDefinition, error)
@@ -27,7 +29,18 @@ func NewRoleService(repo repository.RoleRepository) RoleService {
 	return &roleService{repo: repo}
 }
 
-func (s *roleService) EnsureSeeded(ctx context.Context) error {
+func (s *roleService) EnsureSeeded(ctx context.Context, orgIDs []string) error {
+	for _, orgID := range orgIDs {
+		if err := s.ensureSeededForOrg(repository.WithOrg(ctx, orgID)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ensureSeededForOrg seeds one organisation's missing built-in roles and loads
+// its slice of the role→permission cache. ctx must already be pinned to the org.
+func (s *roleService) ensureSeededForOrg(ctx context.Context) error {
 	existing, err := s.repo.FindAll(ctx)
 	if err != nil {
 		return err
@@ -54,8 +67,14 @@ func (s *roleService) EnsureSeeded(ctx context.Context) error {
 	return s.refresh(ctx)
 }
 
-// refresh loads all role definitions into the models cache.
+// refresh loads the caller's organisation's role definitions into the models
+// cache. A cross-org (or org-less) ctx is a no-op — there is no single org
+// slice it would be safe to cache under.
 func (s *roleService) refresh(ctx context.Context) error {
+	orgID, cross := repository.OrgFromContext(ctx)
+	if cross {
+		return nil
+	}
 	defs, err := s.repo.FindAll(ctx)
 	if err != nil {
 		return err
@@ -68,7 +87,7 @@ func (s *roleService) refresh(ctx context.Context) error {
 			labels[d.Name] = d.Label
 		}
 	}
-	models.SetRolePermissions(m, labels)
+	models.SetRolePermissions(orgID, m, labels)
 	return nil
 }
 

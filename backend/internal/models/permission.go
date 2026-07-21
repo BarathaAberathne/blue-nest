@@ -134,29 +134,65 @@ var PermissionCatalogue = []PermissionInfo{
 var PermissionCategories = []string{"General", "Organisation", "Children", "Staff", "Admissions", "Finance", "Procurement", "Store", "Content", "Audit"}
 
 // ── DB-backed role permissions (B3): the static map above is the DEFAULT/seed.
-// At startup the server loads role definitions from the `roles` collection into
-// roleCache; edits via the Permission Builder refresh it. HasPermission reads
-// the cache and falls back to the defaults, so it stays a pure lookup. ─────────
-var (
-	roleCacheMu sync.RWMutex
-	roleCache   map[Role][]Permission // nil until loaded → fall back to defaults
-	customRoles map[Role]string       // custom role slug → label
-)
-
-// SetRolePermissions swaps the effective role→permission map (called on startup
-// and after any Permission Builder edit). Pass the full effective map.
-func SetRolePermissions(m map[Role][]Permission, labels map[Role]string) {
-	roleCacheMu.Lock()
-	defer roleCacheMu.Unlock()
-	roleCache = m
-	customRoles = labels
+// At startup the server loads each organisation's role definitions from the
+// `roles` collection into roleCache; edits via the Permission Builder refresh
+// it. HasPermission reads the cache and falls back to the defaults, so it
+// stays a pure lookup.
+//
+// The cache is keyed by (org_id, role) — NOT bare role — because roles
+// (including custom-role slugs) are defined per-organisation. A flat
+// map[Role]... would let two orgs' same-named custom roles collide, and would
+// make every org's cache update clobber every other org's entries wholesale.
+// ─────────────────────────────────────────────────────────────────────────────
+type roleCacheKey struct {
+	OrgID string
+	Role  Role
 }
 
-func effectivePerms(role Role) []Permission {
+var (
+	roleCacheMu sync.RWMutex
+	roleCache   map[roleCacheKey][]Permission // nil until loaded → fall back to defaults
+	customRoles map[roleCacheKey]string       // (org, custom role slug) → label
+)
+
+// SetRolePermissions replaces one organisation's slice of the effective
+// role→permission cache (called at startup per-org, and after any Permission
+// Builder edit for the acting org). It never touches other orgs' entries.
+func SetRolePermissions(orgID string, m map[Role][]Permission, labels map[Role]string) {
+	if orgID == "" {
+		return // cross-org/system context has no safe single-org slice to cache
+	}
+	roleCacheMu.Lock()
+	defer roleCacheMu.Unlock()
+	if roleCache == nil {
+		roleCache = map[roleCacheKey][]Permission{}
+	}
+	if customRoles == nil {
+		customRoles = map[roleCacheKey]string{}
+	}
+	for k := range roleCache {
+		if k.OrgID == orgID {
+			delete(roleCache, k)
+		}
+	}
+	for k := range customRoles {
+		if k.OrgID == orgID {
+			delete(customRoles, k)
+		}
+	}
+	for role, perms := range m {
+		roleCache[roleCacheKey{OrgID: orgID, Role: role}] = perms
+	}
+	for role, label := range labels {
+		customRoles[roleCacheKey{OrgID: orgID, Role: role}] = label
+	}
+}
+
+func effectivePerms(orgID string, role Role) []Permission {
 	roleCacheMu.RLock()
 	defer roleCacheMu.RUnlock()
 	if roleCache != nil {
-		if p, ok := roleCache[role]; ok {
+		if p, ok := roleCache[roleCacheKey{OrgID: orgID, Role: role}]; ok {
 			return p
 		}
 	}
@@ -179,26 +215,29 @@ func BuiltInRoles() []Role {
 	return append(append([]Role{}, ManagementRoles...), RoleCustomer)
 }
 
-// IsCustomRole reports whether a role slug is a super-admin-created custom role.
-func IsCustomRole(role Role) bool {
+// IsCustomRole reports whether a role slug is a super-admin-created custom
+// role within the given organisation.
+func IsCustomRole(orgID string, role Role) bool {
 	roleCacheMu.RLock()
 	defer roleCacheMu.RUnlock()
-	_, ok := customRoles[role]
+	_, ok := customRoles[roleCacheKey{OrgID: orgID, Role: role}]
 	return ok
 }
 
-// PermissionsFor returns the permission set granted to a role (nil-safe),
-// reading the DB-backed cache with a fallback to the built-in defaults.
-func PermissionsFor(role Role) []Permission {
-	perms := effectivePerms(role)
+// PermissionsFor returns the permission set granted to a role within an
+// organisation (nil-safe), reading the DB-backed cache with a fallback to the
+// built-in defaults.
+func PermissionsFor(orgID string, role Role) []Permission {
+	perms := effectivePerms(orgID, role)
 	out := make([]Permission, len(perms))
 	copy(out, perms)
 	return out
 }
 
-// HasPermission reports whether a role has been granted a permission.
-func HasPermission(role Role, perm Permission) bool {
-	for _, p := range effectivePerms(role) {
+// HasPermission reports whether a role has been granted a permission within
+// the given organisation.
+func HasPermission(orgID string, role Role, perm Permission) bool {
+	for _, p := range effectivePerms(orgID, role) {
 		if p == perm {
 			return true
 		}

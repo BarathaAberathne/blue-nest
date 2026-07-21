@@ -125,7 +125,7 @@ func (h *AdminBranchHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *AdminBranchHandler) Update(w http.ResponseWriter, r *http.Request) {
 	role, scope := caller(r)
 	slug := chi.URLParam(r, "slug")
-	if !policy.CanManageBranch(role, scope, slug) {
+	if !policy.CanManageBranch(callerOrg(r), role, scope, slug) {
 		response.Forbidden(w, "you cannot edit this branch")
 		return
 	}

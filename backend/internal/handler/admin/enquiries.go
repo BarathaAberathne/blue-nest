@@ -9,6 +9,7 @@ import (
 
 	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/blue-nest-montessori/api/pkg/validator"
@@ -94,7 +95,15 @@ func parseEnquiryFilter(r *http.Request) models.EnquiryFilter {
 // pipeline / follow-up views filter client-side); query params enable
 // server-side filtering and sorting. The paginated table view uses ListPaged.
 func (h *AdminEnquiryHandler) List(w http.ResponseWriter, r *http.Request) {
-	enquiries, err := h.svc.List(r.Context(), parseEnquiryFilter(r))
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	f := parseEnquiryFilter(r)
+	f.Branch = branch
+	enquiries, err := h.svc.List(r.Context(), f)
 	if err != nil {
 		response.InternalError(w, "failed to fetch enquiries")
 		return
@@ -105,7 +114,14 @@ func (h *AdminEnquiryHandler) List(w http.ResponseWriter, r *http.Request) {
 // ListPaged returns one page of enquiries plus the total matching the filter,
 // backing the table view's pagination (default page size 25).
 func (h *AdminEnquiryHandler) ListPaged(w http.ResponseWriter, r *http.Request) {
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
 	f := parseEnquiryFilter(r)
+	f.Branch = branch
 	if f.Limit <= 0 {
 		f.Limit = 25
 	}
@@ -120,7 +136,13 @@ func (h *AdminEnquiryHandler) ListPaged(w http.ResponseWriter, r *http.Request) 
 // Tasks returns grouped admissions work needing attention — the dashboard
 // "Today's tasks" panel and the admin notification bell.
 func (h *AdminEnquiryHandler) Tasks(w http.ResponseWriter, r *http.Request) {
-	tasks, err := h.svc.Tasks(r.Context())
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	tasks, err := h.svc.Tasks(r.Context(), branch)
 	if err != nil {
 		response.InternalError(w, "failed to load admissions tasks")
 		return
@@ -137,11 +159,34 @@ func (h *AdminEnquiryHandler) Bulk(w http.ResponseWriter, r *http.Request) {
 		response.BadRequest(w, "invalid request body")
 		return
 	}
-	res, err := h.svc.BulkUpdate(r.Context(), body, actor(r))
-	if err != nil {
-		response.BadRequest(w, err.Error())
-		return
+	// A bulk action only carries IDs, so each must be resolved to its branch
+	// before we know it's in scope — out-of-scope ids are dropped and reported
+	// as failures rather than silently applied.
+	var failed []models.EnquiryBulkFailure
+	allowedIDs := body.IDs[:0]
+	for _, id := range body.IDs {
+		enquiry, err := h.svc.GetByID(r.Context(), id)
+		if err != nil {
+			failed = append(failed, models.EnquiryBulkFailure{ID: id, Error: "not found"})
+			continue
+		}
+		if !inScope(r, enquiry.Branch) {
+			failed = append(failed, models.EnquiryBulkFailure{ID: id, Error: "outside your branch scope"})
+			continue
+		}
+		allowedIDs = append(allowedIDs, id)
 	}
+	body.IDs = allowedIDs
+	res := &models.EnquiryBulkResult{}
+	if len(body.IDs) > 0 {
+		var err error
+		res, err = h.svc.BulkUpdate(r.Context(), body, actor(r))
+		if err != nil {
+			response.BadRequest(w, err.Error())
+			return
+		}
+	}
+	res.Failed = append(res.Failed, failed...)
 	h.audit.Record(r, "bulk_"+body.Action, "enquiry", "",
 		fmt.Sprintf("Bulk %s on %d enquiries", body.Action, len(body.IDs)),
 		map[string]interface{}{"ids": body.IDs, "count": len(body.IDs)})
@@ -155,12 +200,22 @@ func (h *AdminEnquiryHandler) Get(w http.ResponseWriter, r *http.Request) {
 		response.NotFound(w, "enquiry not found")
 		return
 	}
+	if !inScope(r, enquiry.Branch) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
 	response.OK(w, enquiry)
 }
 
 // Stats returns the admissions KPI / chart payload for the inquiry dashboard.
 func (h *AdminEnquiryHandler) Stats(w http.ResponseWriter, r *http.Request) {
-	stats, err := h.svc.Stats(r.Context())
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	stats, err := h.svc.Stats(r.Context(), branch)
 	if err != nil {
 		response.InternalError(w, "failed to compute stats")
 		return
@@ -203,6 +258,10 @@ func (h *AdminEnquiryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		response.BadRequest(w, err.Error())
 		return
 	}
+	if !inScope(r, req.Branch) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
 	enquiry, err := h.svc.CreateManual(r.Context(), req, actor(r))
 	if err != nil {
 		response.BadRequest(w, err.Error())
@@ -227,6 +286,9 @@ func (h *AdminEnquiryHandler) UpdateStatus(w http.ResponseWriter, r *http.Reques
 		response.BadRequest(w, "invalid status")
 		return
 	}
+	if !h.enquiryInScope(w, r, id) {
+		return
+	}
 
 	if err := h.svc.ChangeStatus(r.Context(), id, body.Status, actor(r)); err != nil {
 		// ChangeStatus errors here are validation (e.g. the registered guard),
@@ -247,6 +309,9 @@ func (h *AdminEnquiryHandler) AddNote(w http.ResponseWriter, r *http.Request) {
 		response.BadRequest(w, "invalid request body")
 		return
 	}
+	if !h.enquiryInScope(w, r, id) {
+		return
+	}
 	if _, err := h.svc.AddNote(r.Context(), id, body.Note, actor(r)); err != nil {
 		response.BadRequest(w, err.Error())
 		return
@@ -263,6 +328,9 @@ func (h *AdminEnquiryHandler) UpdateFollowUp(w http.ResponseWriter, r *http.Requ
 		response.BadRequest(w, "invalid request body")
 		return
 	}
+	if !h.enquiryInScope(w, r, id) {
+		return
+	}
 	if err := h.svc.UpdateFollowUp(r.Context(), id, body, actor(r)); err != nil {
 		response.BadRequest(w, err.Error())
 		return
@@ -277,6 +345,9 @@ func (h *AdminEnquiryHandler) Assign(w http.ResponseWriter, r *http.Request) {
 	var body models.EnquiryAssignRequest
 	if err := validator.DecodeJSON(r, &body); err != nil {
 		response.BadRequest(w, "invalid request body")
+		return
+	}
+	if !h.enquiryInScope(w, r, id) {
 		return
 	}
 	if err := h.svc.Assign(r.Context(), id, body, actor(r)); err != nil {
@@ -299,6 +370,9 @@ func (h *AdminEnquiryHandler) Register(w http.ResponseWriter, r *http.Request) {
 		response.BadRequest(w, "invalid request body")
 		return
 	}
+	if !h.enquiryInScope(w, r, id) {
+		return
+	}
 	if err := h.svc.Register(r.Context(), id, body, actor(r)); err != nil {
 		response.BadRequest(w, err.Error())
 		return
@@ -311,12 +385,31 @@ func (h *AdminEnquiryHandler) Register(w http.ResponseWriter, r *http.Request) {
 // itself is composed in the user's mail client via a mailto link).
 func (h *AdminEnquiryHandler) LogReply(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	if !h.enquiryInScope(w, r, id) {
+		return
+	}
 	if err := h.svc.LogReply(r.Context(), id, actor(r)); err != nil {
 		response.InternalError(w, "failed to log reply")
 		return
 	}
 	h.audit.Record(r, "email_reply", "enquiry", id, "Replied to the enquiry by email", nil)
 	h.respondUpdated(w, r, id)
+}
+
+// enquiryInScope fetches the enquiry and verifies it's within the caller's
+// branch scope, writing the 404/403 response itself. Callers should return
+// immediately when it reports false.
+func (h *AdminEnquiryHandler) enquiryInScope(w http.ResponseWriter, r *http.Request, id string) bool {
+	enquiry, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "enquiry not found")
+		return false
+	}
+	if !inScope(r, enquiry.Branch) {
+		response.Forbidden(w, "outside your branch scope")
+		return false
+	}
+	return true
 }
 
 // respondUpdated re-fetches the enquiry so the client receives fresh, normalized

@@ -1048,6 +1048,7 @@ body:has(.cc-os) {
 
 /* ── Conversation ── */
 .cc-chat { flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; height: 210px; }
+.cc-chat-head { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; }
 .cc-chat-log { flex: 1; overflow-y: auto; padding-right: 4px; }
 .cc-msg { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start; }
 .cc-msg--user { justify-content: flex-end; }

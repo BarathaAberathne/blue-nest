@@ -224,7 +224,7 @@ function AIRail({ go }: { go: (href: string) => void }) {
 type Msg = { role: "ai" | "user"; text: string };
 function Conversation({ tab }: { tab: AiTab }) {
   const [messages, setMessages] = useState<Msg[]>([
-    { role: "ai", text: `${AI_COMMAND.greeting} ${AI_COMMAND.summary} Ask me anything, or pick a prompt below.` },
+    { role: "ai", text: `${AI_COMMAND.greeting} ${AI_COMMAND.summary} This is a preview: it can create tasks ("add task …" / "remind me to …"), but other replies are placeholders, not live analysis.` },
   ]);
   const [input, setInput] = useState("");
   const send = (text: string) => {
@@ -237,13 +237,23 @@ function Conversation({ tab }: { tab: AiTab }) {
       const task = addTask({ title: taskMatch[1], source: "ai" });
       reply = `Added “${task.title}” to your tasks. You can manage it in the Tasks widget or the board.`;
     } else {
-      reply = `Working on “${t}” for ${tab}. I'll pull the latest branch data and prepare it — this is a Stage-1 preview of the conversational layer.`;
+      reply = `I can't answer that yet — the conversational layer is a Stage-1 preview and doesn't read live branch data. Try "add task …" or "remind me to …" to create a real task.`;
     }
     setMessages((m) => [...m, { role: "user", text: t }, { role: "ai", text: reply }]);
     setInput("");
   };
   return (
     <div className="cc-chat">
+      <div className="cc-chat-head">
+        <span className="cc-label" style={{ fontSize: 9, color: "var(--cc-muted-dim)" }}>CONVERSATIONAL LAYER</span>
+        <span
+          className="cc-ws-chip"
+          style={{ borderColor: "rgba(214,179,106,0.45)", color: "var(--cc-accent)", background: "rgba(214,179,106,0.1)" }}
+          title="Rule-based only — matches “add task” phrasing to create tasks; every other reply is a canned placeholder, not a live AI or live branch data."
+        >
+          PREVIEW · NOT A LIVE AI
+        </span>
+      </div>
       <div className="cc-chat-log cc-col-scroll">
         {messages.map((m, i) => (
           <div key={i} className={`cc-msg cc-msg--${m.role}`}>
