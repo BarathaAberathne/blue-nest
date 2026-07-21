@@ -253,16 +253,21 @@ export function useBranchMetrics(): { metrics: BranchMetric[]; live: boolean } {
   const childBy = new Map((children.raw?.branches ?? []).map((b) => [b.branch, b]));
   const attBy = new Map((attendance.raw?.branches ?? []).map((b) => [b.branch, b]));
   const staffBy = new Map((staff.raw?.branches ?? []).map((b) => [b.branch, b]));
+  // Once a source has resolved live, a branch missing from its per-branch
+  // breakdown genuinely has zero records (e.g. a branch with no children or
+  // staff seeded yet) — that's real data and must win over the old mock
+  // number, not fall back to it. Only an unresolved source (offline / signed
+  // out) keeps that branch's figure on the static mock.
   const metrics = BRANCH_METRICS.map((m) => {
     const c = childBy.get(m.slug);
     const a = attBy.get(m.slug);
     const s = staffBy.get(m.slug);
     return {
       ...m,
-      children: c ? c.children : m.children,
-      occupancy: c ? c.occupancy_rate : m.occupancy,
-      attendanceToday: a ? a.attendance_rate : m.attendanceToday,
-      staff: s ? s.total : m.staff,
+      children: children.live ? (c ? c.children : 0) : m.children,
+      occupancy: children.live ? (c ? c.occupancy_rate : 0) : m.occupancy,
+      attendanceToday: attendance.live ? (a ? a.attendance_rate : 0) : m.attendanceToday,
+      staff: staff.live ? (s ? s.total : 0) : m.staff,
     };
   });
   return { metrics, live: children.live || attendance.live || staff.live };
