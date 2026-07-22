@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarCheck, CheckCircle2, Clock, LogOut, UserCheck, UserX } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { attendanceAccent, fmtTime } from "@/lib/child";
@@ -25,20 +26,28 @@ export default function AttendanceClient() {
   const loadBranches = async () => {
     try { setBranches((await api.getBranches()) as Branch[]); } catch { /* non-fatal */ }
   };
-  const load = async () => {
+  // requestIdRef guards against an in-flight response from a superseded
+  // filter (e.g. Harrow → Pinner mid-flight) overwriting newer data.
+  const requestIdRef = useRef(0);
+  const load = async (opts?: { silent?: boolean }) => {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
-    setLoading(true);
+    const myId = ++requestIdRef.current;
+    if (!opts?.silent) setLoading(true);
     const [r, s] = await Promise.allSettled([
       api.adminGetRegister(token, { date, branch }),
       api.adminGetAttendanceToday(token, { date, branch }),
     ]);
+    if (requestIdRef.current !== myId) return; // superseded by a newer request — discard
     if (r.status === "fulfilled") setRows((r.value as AttendanceRecord[]) ?? []);
     if (s.status === "fulfilled") setStats(s.value as AttendanceStats);
-    setLoading(false);
+    if (!opts?.silent) setLoading(false);
   };
   useEffect(() => { void loadBranches(); }, []);
   useEffect(() => { void load(); }, [date, branch]);
+  // Background auto-refresh — same data, no loading flash — so the page
+  // reflects kiosk clock-ins etc. without a manual browser refresh.
+  useAutoRefresh(() => load({ silent: true }), 30_000);
 
   const branchName = useMemo(() => new Map(branches.map((b) => [b.slug, branchShortName(b)])), [branches]);
 
