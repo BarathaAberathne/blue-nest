@@ -3,10 +3,12 @@
 //
 // Run: cd backend && go run ./cmd/seedchildren   (or `make seed-children`)
 //
-// It DROPS and rebuilds the rooms / children / attendance collections (demo
-// data only — no real family records exist yet), matching the approved mock
-// counts per branch (~512 children, ~92% occupancy). Deterministic (fixed RNG
-// seed) so re-runs produce the same roster.
+// It DROPS and rebuilds the rooms / children / attendance collections with
+// demo data matching the approved mock counts per branch (~512 children, ~92%
+// occupancy). Deterministic (fixed RNG seed) so re-runs produce the same
+// roster. NEVER run this against an environment where cmd/seedfamly has
+// imported a real nursery's real rooms/children — it drops that data too, and
+// seedguard.RequireDrop below refuses unless explicitly confirmed.
 package main
 
 import (
@@ -18,6 +20,7 @@ import (
 
 	"github.com/blue-nest-montessori/api/internal/config"
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/platform/seedguard"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -76,6 +79,9 @@ var lastNames = []string{
 var relations = []string{"Mother", "Father", "Guardian"}
 
 func main() {
+	if err := seedguard.RequireDrop("cmd/seedchildren"); err != nil {
+		log.Fatal(err)
+	}
 	for _, path := range []string{".env", "../.env", "../../.env"} {
 		if err := godotenv.Load(path); err == nil {
 			break

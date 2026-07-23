@@ -5,6 +5,7 @@ import (
 
 	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/blue-nest-montessori/api/pkg/validator"
@@ -28,7 +29,13 @@ func attendanceActor(r *http.Request) string {
 // Register lists the day's register (one row per active child).
 func (h *AdminAttendanceHandler) Register(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	rows, err := h.svc.Register(r.Context(), q.Get("date"), q.Get("branch"))
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, q.Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	rows, err := h.svc.Register(r.Context(), q.Get("date"), branch)
 	if err != nil {
 		response.InternalError(w, "failed to build register")
 		return
@@ -38,7 +45,13 @@ func (h *AdminAttendanceHandler) Register(w http.ResponseWriter, r *http.Request
 
 func (h *AdminAttendanceHandler) Today(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	stats, err := h.svc.TodayStats(r.Context(), q.Get("date"), q.Get("branch"))
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, q.Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	stats, err := h.svc.TodayStats(r.Context(), q.Get("date"), branch)
 	if err != nil {
 		response.InternalError(w, "failed to compute attendance stats")
 		return
@@ -52,7 +65,8 @@ func (h *AdminAttendanceHandler) CheckIn(w http.ResponseWriter, r *http.Request)
 		response.BadRequest(w, err.Error())
 		return
 	}
-	rec, err := h.svc.CheckIn(r.Context(), req, attendanceActor(r))
+	role, scope := caller(r)
+	rec, err := h.svc.CheckIn(r.Context(), req, attendanceActor(r), policy.AllowedOrNil(role, scope))
 	if err != nil {
 		response.BadRequest(w, err.Error())
 		return
@@ -67,7 +81,8 @@ func (h *AdminAttendanceHandler) CheckOut(w http.ResponseWriter, r *http.Request
 		response.BadRequest(w, err.Error())
 		return
 	}
-	rec, err := h.svc.CheckOut(r.Context(), req, attendanceActor(r))
+	role, scope := caller(r)
+	rec, err := h.svc.CheckOut(r.Context(), req, attendanceActor(r), policy.AllowedOrNil(role, scope))
 	if err != nil {
 		response.BadRequest(w, err.Error())
 		return
@@ -82,7 +97,8 @@ func (h *AdminAttendanceHandler) Mark(w http.ResponseWriter, r *http.Request) {
 		response.BadRequest(w, err.Error())
 		return
 	}
-	rec, err := h.svc.Mark(r.Context(), req, attendanceActor(r))
+	role, scope := caller(r)
+	rec, err := h.svc.Mark(r.Context(), req, attendanceActor(r), policy.AllowedOrNil(role, scope))
 	if err != nil {
 		response.BadRequest(w, err.Error())
 		return

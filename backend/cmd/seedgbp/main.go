@@ -6,7 +6,9 @@
 //
 // DROPS + rebuilds branch_digests / branch_reviews and refreshes each branch's
 // google.* cache. Deterministic (fixed RNG). Branches with no rating (e.g. a
-// coming-soon location) are skipped.
+// coming-soon location) are skipped. NEVER run this against an environment
+// with real ingested GBP digests/reviews — seedguard.RequireDrop below
+// refuses unless explicitly confirmed.
 package main
 
 import (
@@ -18,6 +20,7 @@ import (
 
 	"github.com/blue-nest-montessori/api/internal/config"
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/platform/seedguard"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -60,6 +63,9 @@ var keywordPool = []string{
 }
 
 func main() {
+	if err := seedguard.RequireDrop("cmd/seedgbp"); err != nil {
+		log.Fatal(err)
+	}
 	for _, path := range []string{".env", "../.env", "../../.env"} {
 		if err := godotenv.Load(path); err == nil {
 			break

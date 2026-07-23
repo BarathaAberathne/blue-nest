@@ -120,10 +120,11 @@ Data is safe — volumes persist. **Never** `dc down -v` (wipes the DB) or run
 ## Alternative: GHCR auto-deploy (NOT currently enabled — reference only)
 
 > ⚠️ **Prod deploys manually** (see [Manual deploy & verify](#manual-deploy--verify-current-prod-method)).
-> The GHCR + systemd auto-deploy documented in this section is **not active**. It's
-> kept for reference if you later switch to registry pulls (set `IMAGE_PREFIX` to
-> GHCR, install the timer). `build-images.yml` does still push images to GHCR on
-> `main` — but nothing on the droplet consumes them today.
+> The GHCR + systemd auto-deploy documented in this section is **not active**, and
+> there is currently no CI workflow building/pushing GHCR images either — it was
+> removed because nothing consumed them. This section is kept for reference if you
+> later switch to registry pulls: you'd need to set `IMAGE_PREFIX` to GHCR, install
+> the timer below, *and* re-add an image-build CI workflow.
 
 Assumes the existing layout: app checkout at `/home/deploy/app`, populated `.env`,
 nginx already terminating TLS for bluenest.uk / api.bluenest.uk.

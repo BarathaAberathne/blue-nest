@@ -14,6 +14,7 @@ import (
 
 	"github.com/blue-nest-montessori/api/internal/config"
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/platform/seedguard"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -244,6 +245,10 @@ var products = []models.Product{
 }
 
 func main() {
+	if err := seedguard.RequireDrop("cmd/seed"); err != nil {
+		log.Fatal(err)
+	}
+
 	cfg := config.Load()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

@@ -140,11 +140,18 @@ clean:
 # first (categories are derived from products), then branches, then users.
 # Re-running is safe — each command drops & re-inserts its collection except
 # users, which is idempotent.
+#
+# seed/seedchildren/seedstaff/seeddailylogs/seedgbp DROP their collections, so
+# each refuses to run (internal/platform/seedguard) unless SEED_ALLOW_DROP=1.
+# These targets already pass through _guard-not-prod (blocked on a host whose
+# .env has APP_ENV=production), so we export the confirmation here rather than
+# make every contributor pass it by hand — a bare `go run ./cmd/seedchildren`
+# outside `make` still refuses by default.
 seed: seed-all  ## alias
 
 seed-products:
 	@echo "→ Seeding products & categories..."
-	cd backend && go run ./cmd/seed
+	cd backend && SEED_ALLOW_DROP=1 go run ./cmd/seed
 
 seed-branches:
 	@echo "→ Seeding branches..."
@@ -166,7 +173,7 @@ seed-users:
 
 seed-children:
 	@echo "→ Seeding nursery rooms, children & today's attendance..."
-	cd backend && go run ./cmd/seedchildren
+	cd backend && SEED_ALLOW_DROP=1 go run ./cmd/seedchildren
 
 # Import REAL Famly exports (rooms/staff/children). Idempotent — never drops, so
 # it is prod-safe. On the droplet Mongo is only reachable inside the container,
@@ -188,15 +195,15 @@ seed-famly:
 
 seed-staff:
 	@echo "→ Seeding nursery staff & today's staff attendance..."
-	cd backend && go run ./cmd/seedstaff
+	cd backend && SEED_ALLOW_DROP=1 go run ./cmd/seedstaff
 
 seed-daily:
 	@echo "→ Seeding practitioner daily records (observations, safeguarding, meals)..."
-	cd backend && go run ./cmd/seeddailylogs
+	cd backend && SEED_ALLOW_DROP=1 go run ./cmd/seeddailylogs
 
 seed-gbp:
 	@echo "→ Seeding Google Business Profile digests & reviews..."
-	cd backend && go run ./cmd/seedgbp
+	cd backend && SEED_ALLOW_DROP=1 go run ./cmd/seedgbp
 
 seed-all: seed-products seed-branches seed-catalogue seed-users seed-children seed-staff seed-daily seed-gbp
 	@echo "✓ All seeds complete"

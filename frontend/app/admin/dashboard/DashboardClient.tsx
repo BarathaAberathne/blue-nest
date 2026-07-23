@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight, Baby, BookOpen, CalendarCheck, Check, ChevronDown, ClipboardList, Eye, EyeOff, Gauge,
@@ -10,6 +10,7 @@ import {
 import { api } from "@/lib/api";
 import { getAccessToken, getAuthUser } from "@/lib/auth";
 import { usePermissions } from "@/lib/usePermissions";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { ORDER_STATUS_META } from "@/lib/admin-status";
@@ -58,6 +59,34 @@ export default function DashboardClient() {
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [newName, setNewName] = useState("");
 
+  // Live KPI stats (children/staff/attendance/daily) — split out from the
+  // rest of the batch below so it can also be re-run silently on a timer
+  // (background kiosk clock-ins etc. shouldn't require an F5 to show up)
+  // without refreshing the heavier CRUD lists (orders/products/blog/...).
+  // requestIdRef guards a stale in-flight response from overwriting a newer one.
+  const liveStatsRequestIdRef = useRef(0);
+  const refreshLiveStats = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    const myId = ++liveStatsRequestIdRef.current;
+    // Branch managers see their own branch — pass it to the branch-filterable
+    // stats endpoints (the org-wide roles pass nothing and get the whole org).
+    const u = getAuthUser();
+    const bm = u?.role === "branch_manager" && (u?.branch_slugs?.length ?? 0) > 0;
+    const branchParam = bm ? { branch: u!.branch_slugs![0] } : undefined;
+
+    const jobs: Promise<void>[] = [];
+    if (has("children.manage")) jobs.push(api.adminGetChildStats(token).then((v) => setChildStats((v as ChildStats) ?? null)).catch(() => { /* best-effort per source */ }));
+    if (has("attendance.manage")) jobs.push(api.adminGetAttendanceToday(token, branchParam).then((v) => setAttStats((v as AttendanceStats) ?? null)).catch(() => { /* best-effort per source */ }));
+    if (has("staff.manage")) jobs.push(api.adminGetStaffStats(token, branchParam).then((v) => setStaffStats((v as StaffStats) ?? null)).catch(() => { /* best-effort per source */ }));
+    if (has("daily_logs.manage")) jobs.push(api.adminGetDailyStats(token).then((v) => setDailyStats((v as DailyStats) ?? null)).catch(() => { /* best-effort per source */ }));
+    await Promise.allSettled(jobs);
+    if (liveStatsRequestIdRef.current !== myId) return; // superseded — nothing further to do
+  };
+  // Background auto-refresh for just the live KPIs — no loading flash, and the
+  // heavier CRUD lists below stay fetch-once (they aren't live-monitoring data).
+  useAutoRefresh(refreshLiveStats, 30_000);
+
   // Fetch only the data sources the caller is permitted to read (so specialist
   // roles get their scoped KPIs instead of a wall of 403s). Waits for the
   // permission set to resolve so we request exactly the right subset.
@@ -82,17 +111,9 @@ export default function DashboardClient() {
         }
       }).catch(() => { /* best-effort — falls back to defaults */ }),
     );
-    // Branch managers see their own branch — pass it to the branch-filterable
-    // stats endpoints (the org-wide roles pass nothing and get the whole org).
-    const u = getAuthUser();
-    const bm = u?.role === "branch_manager" && (u?.branch_slugs?.length ?? 0) > 0;
-    const branchParam = bm ? { branch: u!.branch_slugs![0] } : undefined;
 
     // Nursery operations (the primary business).
-    if (has("children.manage")) run(api.adminGetChildStats(token), (v) => setChildStats((v as ChildStats) ?? null));
-    if (has("attendance.manage")) run(api.adminGetAttendanceToday(token, branchParam), (v) => setAttStats((v as AttendanceStats) ?? null));
-    if (has("staff.manage")) run(api.adminGetStaffStats(token, branchParam), (v) => setStaffStats((v as StaffStats) ?? null));
-    if (has("daily_logs.manage")) run(api.adminGetDailyStats(token), (v) => setDailyStats((v as DailyStats) ?? null));
+    jobs.push(refreshLiveStats());
 
     if (has("store.manage")) {
       run(api.adminGetOrders(token), (v) => setOrders((v as Order[]) ?? []));

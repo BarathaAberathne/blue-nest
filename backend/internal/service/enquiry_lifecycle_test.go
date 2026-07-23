@@ -212,7 +212,7 @@ func TestStatsComputation(t *testing.T) {
 	}}
 	svc := newTestEnquirySvc(repo)
 
-	st, err := svc.Stats(context.Background())
+	st, err := svc.Stats(context.Background(), "")
 	if err != nil {
 		t.Fatal(err)
 	}

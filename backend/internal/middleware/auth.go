@@ -139,9 +139,12 @@ func ManagementOnly(next http.Handler) http.Handler {
 	})
 }
 
-// SuperAdminOnly permits only the top-level super admin (account management).
+// SuperAdminOnly permits the top-level super admin (account management) and
+// the cross-tenant platform operator — platform_super_admin holds every
+// permission (models.AllPermissions) and must be able to manage users/roles
+// too, not just be excluded by a literal role-string match.
 func SuperAdminOnly(next http.Handler) http.Handler {
-	return RequireRole("super_admin")(next)
+	return RequireRole("super_admin", string(models.RolePlatformSuperAdmin))(next)
 }
 
 // PlatformOnly permits only the cross-tenant SaaS operator (managing the list of
@@ -156,7 +159,8 @@ func RequirePermission(perm models.Permission) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			role, _ := r.Context().Value(UserRoleKey).(string)
-			if !models.HasPermission(models.Role(role), perm) {
+			orgID, _ := r.Context().Value(UserOrgKey).(string)
+			if !models.HasPermission(orgID, models.Role(role), perm) {
 				response.Forbidden(w, "insufficient permissions")
 				return
 			}

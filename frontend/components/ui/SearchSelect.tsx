@@ -22,6 +22,7 @@ export default function SearchSelect({
   placeholder = "Search…",
   extraOption,
   className = "",
+  disabled = false,
 }: {
   options: SearchOption[];
   value: string;
@@ -29,6 +30,7 @@ export default function SearchSelect({
   placeholder?: string;
   extraOption?: SearchOption;
   className?: string;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -75,6 +77,7 @@ export default function SearchSelect({
           aria-autocomplete="list"
           value={open ? query : selectedLabel}
           placeholder={placeholder}
+          disabled={disabled}
           onFocus={() => { setOpen(true); setQuery(""); }}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onKeyDown={(e) => {
@@ -85,7 +88,7 @@ export default function SearchSelect({
               else if (extraOption) pick(extraOption.value);
             }
           }}
-          className="w-full rounded-lg border border-gray-200 pl-8 pr-8 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="w-full rounded-lg border border-gray-200 pl-8 pr-8 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
         />
         <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
       </div>

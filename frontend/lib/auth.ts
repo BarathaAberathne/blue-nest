@@ -26,6 +26,23 @@ export function isOrgWideRole(role?: string | null): boolean {
   return role === "super_admin" || role === "admin" || role === "director";
 }
 
+// Narrows a branch list to the signed-in user's own scope, for dropdowns that
+// create/filter branch-scoped records (daily log, rooms, staff, children…).
+// This is a UI convenience only — the backend is the actual enforcement point
+// (policy.EffectiveBranch / inScope) — so it fails open (returns the full list
+// unfiltered) whenever it can't determine a scope, rather than ever hiding a
+// branch a user is actually allowed to use. Many specialist roles (e.g.
+// practitioner, room_leader) lack the admin.branches.manage permission needed
+// to call GET /admin/branches, so this filters the public branch list against
+// the user object already in local storage instead of fetching a scoped one.
+export function scopedBranches<T extends { slug: string }>(branches: T[]): T[] {
+  const user = getAuthUser();
+  if (!user || isOrgWideRole(user.role)) return branches;
+  const allowed = user.branch_slugs;
+  if (!allowed || allowed.length === 0) return branches;
+  return branches.filter((b) => allowed.includes(b.slug));
+}
+
 export function getAccessToken(): string {
   if (!isBrowser()) return "";
   return window.localStorage.getItem(ACCESS_TOKEN_KEY) ?? "";

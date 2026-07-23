@@ -144,10 +144,19 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Roles:             service.NewRoleService(roleRepo),
 	}
 
-	// Seed built-in roles + load the effective role→permission cache so
-	// HasPermission reflects any Super-Admin edits (falls back to defaults).
-	if err := svc.Roles.EnsureSeeded(context.Background()); err != nil {
-		log.Warn("could not seed/load roles", "err", err)
+	// Seed built-in roles + load the effective role→permission cache for every
+	// organisation (the cache is keyed per-org, so each tenant needs its own
+	// seed+refresh pass — see models.SetRolePermissions).
+	if orgs, err := orgRepo.FindAll(context.Background()); err != nil {
+		log.Warn("could not list organisations for role seeding", "err", err)
+	} else {
+		orgIDs := make([]string, len(orgs))
+		for i, o := range orgs {
+			orgIDs[i] = o.ID.Hex()
+		}
+		if err := svc.Roles.EnsureSeeded(context.Background(), orgIDs); err != nil {
+			log.Warn("could not seed/load roles", "err", err)
+		}
 	}
 
 	// Sourcing engine: enable supplier adapters per config (off by default; the

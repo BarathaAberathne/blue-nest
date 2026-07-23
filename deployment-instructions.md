@@ -23,7 +23,6 @@ during normal operation:
 - `deploy/nginx/bluenest.conf` — nginx server config
 - `deploy/mongo-init/01-create-app-user.js` — runs on first mongo start
 - `.env.production.example` — populate as `.env` on the droplet
-- `.github/workflows/build-images.yml` — builds + pushes images to GHCR on push to main
 
 ---
 

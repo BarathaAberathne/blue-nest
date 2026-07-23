@@ -22,8 +22,10 @@ type EnquiryService interface {
 	// ListPaged returns one page of enquiries plus the total matching the filter.
 	ListPaged(ctx context.Context, f models.EnquiryFilter) ([]models.Enquiry, int64, error)
 	// Tasks returns grouped admissions work needing attention (the dashboard
-	// "Today's tasks" panel + the admin notification bell).
-	Tasks(ctx context.Context) (*models.EnquiryTasks, error)
+	// "Today's tasks" panel + the admin notification bell). Empty branch =
+	// org-wide; a branch-scoped caller passes their branch so the feed never
+	// surfaces another branch's enquiries.
+	Tasks(ctx context.Context, branch string) (*models.EnquiryTasks, error)
 	// BulkUpdate applies one action to many enquiries, reusing the single-record
 	// mutations so each still writes an attributed activity entry.
 	BulkUpdate(ctx context.Context, req models.EnquiryBulkRequest, actor models.EnquiryActor) (*models.EnquiryBulkResult, error)
@@ -35,7 +37,24 @@ type EnquiryService interface {
 	Assign(ctx context.Context, id string, req models.EnquiryAssignRequest, actor models.EnquiryActor) error
 	Register(ctx context.Context, id string, req models.EnquiryRegisterRequest, actor models.EnquiryActor) error
 	LogReply(ctx context.Context, id string, actor models.EnquiryActor) error
-	Stats(ctx context.Context) (*models.EnquiryStats, error)
+	// Stats aggregates the admissions dashboard KPIs/charts. Empty branch =
+	// org-wide; a branch-scoped caller passes their branch.
+	Stats(ctx context.Context, branch string) (*models.EnquiryStats, error)
+}
+
+// filterByBranch narrows enquiries to one branch (no-op when branch is empty,
+// i.e. an org-wide caller).
+func filterByBranch(all []models.Enquiry, branch string) []models.Enquiry {
+	if branch == "" {
+		return all
+	}
+	out := all[:0]
+	for _, e := range all {
+		if e.Branch == branch {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 type enquiryService struct {
@@ -157,11 +176,12 @@ func sameDay(a, b time.Time) bool {
 	return ay == by && am == bm && ad == bd
 }
 
-func (s *enquiryService) Tasks(ctx context.Context) (*models.EnquiryTasks, error) {
+func (s *enquiryService) Tasks(ctx context.Context, branch string) (*models.EnquiryTasks, error) {
 	all, err := s.repo.FindAll(ctx)
 	if err != nil {
 		return nil, err
 	}
+	all = filterByBranch(all, branch)
 
 	now := time.Now()
 	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
@@ -534,11 +554,12 @@ func firstResponseAt(e *models.Enquiry) (time.Time, bool) {
 	return earliest, found
 }
 
-func (s *enquiryService) Stats(ctx context.Context) (*models.EnquiryStats, error) {
+func (s *enquiryService) Stats(ctx context.Context, branch string) (*models.EnquiryStats, error) {
 	all, err := s.repo.FindAll(ctx)
 	if err != nil {
 		return nil, err
 	}
+	all = filterByBranch(all, branch)
 
 	now := time.Now()
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())

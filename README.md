@@ -247,9 +247,8 @@ feature/* ──PR──▶ develop ──(local prod-image QA gate: make stagin
 > QA environment (`make staging-up`) you run before promoting `develop → main`.
 
 - **CI** (`.github/workflows/ci.yml`) runs lint/test/build on PRs into `develop` and `main`.
-- **Image build** (`.github/workflows/build-images.yml`) pushes `blue-nest-frontend` / `blue-nest-backend` to GHCR on every `main` push, plus an immutable `:vX.Y.Z` image on a release tag.
 - **Env parity:** `.env.production.example` is the authoritative required-keys contract; `scripts/check-env.sh` blocks a staging run or prod deploy when a required key is missing or empty — this guards against a repeat of the missing-`ANTHROPIC_API_KEY` chat outage.
-- **Prod deploy is MANUAL (local-build mode):** SSH to the droplet, `git reset --hard origin/main`, and `docker compose … up -d --build --force-recreate` — the images are **built on the box** (`IMAGE_PREFIX` empty), then verified via health checks. Full runbook (deploy · verify · rollback) in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#manual-deploy--verify-current-prod-method). There is **no auto-deploy** — the GHCR/systemd timer is a documented, *not-currently-enabled* alternative. Droplet deploys use **plain `docker compose`** only — never `make docker-up`/`seed-*` (those run a host seed that drops data).
+- **Prod deploy is MANUAL (local-build mode):** SSH to the droplet, `git reset --hard origin/main`, and `docker compose … up -d --build --force-recreate` — the images are **built on the box** (`IMAGE_PREFIX` empty), then verified via health checks. Full runbook (deploy · verify · rollback) in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#manual-deploy--verify-current-prod-method). There is **no auto-deploy** and no CI image-push pipeline — a GHCR-pull deploy (`IMAGE_PREFIX` + a systemd timer) is a documented, *not-currently-built* future option. Droplet deploys use **plain `docker compose`** only — never `make docker-up`/`seed-*` (those run a host seed that drops data).
 
 Cut a release by promoting `develop → main` (optionally tagging `vX.Y.Z`).
 
