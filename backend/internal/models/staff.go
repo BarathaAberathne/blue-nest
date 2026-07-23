@@ -14,6 +14,16 @@ const (
 	StaffInactive StaffStatus = "inactive" // left / archived
 )
 
+// IsValidStaffStatus reports whether s is one of the approved statuses.
+func IsValidStaffStatus(s StaffStatus) bool {
+	switch s {
+	case StaffActive, StaffOnLeave, StaffInactive:
+		return true
+	default:
+		return false
+	}
+}
+
 // StaffType distinguishes payroll categories — permanent employees vs agency /
 // bank cover — which the workforce KPIs (agency count) and ratios rely on.
 type StaffType string

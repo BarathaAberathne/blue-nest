@@ -74,7 +74,8 @@ func (s *enquiryService) Submit(ctx context.Context, req models.EnquiryRequest) 
 	if strings.TrimSpace(req.Email) == "" {
 		return nil, errors.New("email is required")
 	}
-	if strings.TrimSpace(req.Branch) == "" {
+	req.Branch = strings.ToLower(strings.TrimSpace(req.Branch))
+	if req.Branch == "" {
 		return nil, errors.New("branch is required")
 	}
 	if strings.TrimSpace(req.EnquiryType) == "" {
@@ -316,7 +317,7 @@ func (s *enquiryService) CreateManual(ctx context.Context, req models.AdminEnqui
 	req.Name = strings.TrimSpace(req.Name)
 	req.Email = strings.TrimSpace(req.Email)
 	req.Phone = strings.TrimSpace(req.Phone)
-	req.Branch = strings.TrimSpace(req.Branch)
+	req.Branch = strings.ToLower(strings.TrimSpace(req.Branch))
 	req.EnquiryType = strings.TrimSpace(req.EnquiryType)
 	if req.Name == "" {
 		return nil, errors.New("name is required")

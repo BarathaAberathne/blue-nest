@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"regexp"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -61,10 +62,12 @@ func (r *dailyRecordRepository) query(f DailyRecordFilter) bson.M {
 		filter["date"] = bson.M{"$gte": f.Since}
 	}
 	if f.Q != "" {
+		// Escaped so free-text search input is matched literally — see staff.go.
+		q := regexp.QuoteMeta(f.Q)
 		filter["$or"] = bson.A{
-			bson.M{"title": bson.M{"$regex": f.Q, "$options": "i"}},
-			bson.M{"child_name": bson.M{"$regex": f.Q, "$options": "i"}},
-			bson.M{"ref": bson.M{"$regex": f.Q, "$options": "i"}},
+			bson.M{"title": bson.M{"$regex": q, "$options": "i"}},
+			bson.M{"child_name": bson.M{"$regex": q, "$options": "i"}},
+			bson.M{"ref": bson.M{"$regex": q, "$options": "i"}},
 		}
 	}
 	return filter

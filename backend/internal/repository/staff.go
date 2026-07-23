@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"regexp"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -16,6 +17,7 @@ type StaffFilter struct {
 	Status string
 	Type   string
 	Q      string
+	Email  string // exact, case-insensitive match — used for duplicate-email checks
 }
 
 type StaffRepository interface {
@@ -56,12 +58,19 @@ func (r *staffRepository) FindAll(ctx context.Context, f StaffFilter) ([]models.
 		filter["staff_type"] = f.Type
 	}
 	if f.Q != "" {
+		// Escaped so free-text search input is matched literally — an
+		// unbalanced pattern like "(" would otherwise fail regex compilation
+		// server-side and surface as a 500.
+		q := regexp.QuoteMeta(f.Q)
 		filter["$or"] = bson.A{
-			bson.M{"first_name": bson.M{"$regex": f.Q, "$options": "i"}},
-			bson.M{"last_name": bson.M{"$regex": f.Q, "$options": "i"}},
-			bson.M{"ref": bson.M{"$regex": f.Q, "$options": "i"}},
-			bson.M{"job_title": bson.M{"$regex": f.Q, "$options": "i"}},
+			bson.M{"first_name": bson.M{"$regex": q, "$options": "i"}},
+			bson.M{"last_name": bson.M{"$regex": q, "$options": "i"}},
+			bson.M{"ref": bson.M{"$regex": q, "$options": "i"}},
+			bson.M{"job_title": bson.M{"$regex": q, "$options": "i"}},
 		}
+	}
+	if f.Email != "" {
+		filter["email"] = bson.M{"$regex": "^" + regexp.QuoteMeta(f.Email) + "$", "$options": "i"}
 	}
 	opts := options.Find().SetSort(bson.D{{Key: "last_name", Value: 1}, {Key: "first_name", Value: 1}})
 	cursor, err := r.col.Find(ctx, filter, opts)
