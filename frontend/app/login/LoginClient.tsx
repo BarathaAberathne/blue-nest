@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageWrapper from "@/components/ui/PageWrapper";
 import { api } from "@/lib/api";
-import { getAuthUser, isManagementRole, setAuthSession } from "@/lib/auth";
+import { getAuthUser, isManagementRole, storeAuthResponse } from "@/lib/auth";
 import { mergeGuestCartToServer } from "@/lib/cart-sync";
 import type { AuthResponse, UserRole } from "@/types";
 
@@ -48,7 +48,7 @@ export default function LoginClient() {
 
     try {
       const auth = await api.login({ email, password }) as AuthResponse;
-      setAuthSession(auth.access_token, auth.user);
+      storeAuthResponse(auth.access_token, auth.refresh_token ?? "", auth.user);
       // Carry any guest-cart items into the server cart before we redirect.
       await mergeGuestCartToServer(auth.access_token);
       // Route by role: management → admin, staff → supply requests, parents → next.

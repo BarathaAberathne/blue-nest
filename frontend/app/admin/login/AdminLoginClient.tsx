@@ -20,7 +20,7 @@ import {
   Users,
 } from "lucide-react";
 import { api } from "@/lib/api";
-import { setAuthSession } from "@/lib/auth";
+import { storeAuthResponse } from "@/lib/auth";
 import type { AuthResponse } from "@/types";
 
 const LOGO = "/logo/bluenest-logo.png";
@@ -48,7 +48,7 @@ export default function AdminLoginClient() {
 
     try {
       const auth = await api.adminLogin({ email, password }) as AuthResponse;
-      setAuthSession(auth.access_token, auth.user);
+      storeAuthResponse(auth.access_token, auth.refresh_token ?? "", auth.user);
       // Staff land in their restricted portal; the director lands on the MD
       // Command Centre; other management gets the standard dashboard.
       const landing =
