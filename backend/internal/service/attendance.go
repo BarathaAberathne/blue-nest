@@ -15,9 +15,12 @@ type AttendanceService interface {
 	// Register returns one row per active child for the date, synthesising an
 	// "expected" record for children not yet marked.
 	Register(ctx context.Context, date, branch string) ([]models.AttendanceRecord, error)
-	CheckIn(ctx context.Context, req models.CheckInRequest, actor string) (*models.AttendanceRecord, error)
-	CheckOut(ctx context.Context, req models.CheckOutRequest, actor string) (*models.AttendanceRecord, error)
-	Mark(ctx context.Context, req models.AttendanceMarkRequest, actor string) (*models.AttendanceRecord, error)
+	// CheckIn/CheckOut/Mark take allowed (the caller's branch scope, nil = org-wide)
+	// so a branch-scoped manager can't touch another branch's child via a bare
+	// child_id — the child's branch is only known after baseRecord resolves it.
+	CheckIn(ctx context.Context, req models.CheckInRequest, actor string, allowed []string) (*models.AttendanceRecord, error)
+	CheckOut(ctx context.Context, req models.CheckOutRequest, actor string, allowed []string) (*models.AttendanceRecord, error)
+	Mark(ctx context.Context, req models.AttendanceMarkRequest, actor string, allowed []string) (*models.AttendanceRecord, error)
 	TodayStats(ctx context.Context, date, branch string) (*models.AttendanceStats, error)
 }
 
@@ -97,10 +100,13 @@ func (s *attendanceService) baseRecord(ctx context.Context, childID, date string
 	}, nil
 }
 
-func (s *attendanceService) CheckIn(ctx context.Context, req models.CheckInRequest, actor string) (*models.AttendanceRecord, error) {
+func (s *attendanceService) CheckIn(ctx context.Context, req models.CheckInRequest, actor string, allowed []string) (*models.AttendanceRecord, error) {
 	rec, err := s.baseRecord(ctx, req.ChildID, req.Date)
 	if err != nil {
 		return nil, err
+	}
+	if !branchAllowed(allowed, rec.BranchSlug) {
+		return nil, errOutsideScope
 	}
 	now := time.Now()
 	rec.Status = models.AttPresent
@@ -112,10 +118,13 @@ func (s *attendanceService) CheckIn(ctx context.Context, req models.CheckInReque
 	return s.repo.Upsert(ctx, rec)
 }
 
-func (s *attendanceService) CheckOut(ctx context.Context, req models.CheckOutRequest, actor string) (*models.AttendanceRecord, error) {
+func (s *attendanceService) CheckOut(ctx context.Context, req models.CheckOutRequest, actor string, allowed []string) (*models.AttendanceRecord, error) {
 	rec, err := s.baseRecord(ctx, req.ChildID, req.Date)
 	if err != nil {
 		return nil, err
+	}
+	if !branchAllowed(allowed, rec.BranchSlug) {
+		return nil, errOutsideScope
 	}
 	now := time.Now()
 	rec.CheckOut = &now
@@ -127,13 +136,16 @@ func (s *attendanceService) CheckOut(ctx context.Context, req models.CheckOutReq
 	return s.repo.Upsert(ctx, rec)
 }
 
-func (s *attendanceService) Mark(ctx context.Context, req models.AttendanceMarkRequest, actor string) (*models.AttendanceRecord, error) {
+func (s *attendanceService) Mark(ctx context.Context, req models.AttendanceMarkRequest, actor string, allowed []string) (*models.AttendanceRecord, error) {
 	if strings.TrimSpace(string(req.Status)) == "" {
 		return nil, errors.New("status is required")
 	}
 	rec, err := s.baseRecord(ctx, req.ChildID, req.Date)
 	if err != nil {
 		return nil, err
+	}
+	if !branchAllowed(allowed, rec.BranchSlug) {
+		return nil, errOutsideScope
 	}
 	rec.Status = req.Status
 	if req.Notes != "" {

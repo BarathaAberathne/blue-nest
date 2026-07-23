@@ -1015,6 +1015,35 @@ export interface ChildStats {
   branches: BranchChildStat[];
 }
 
+export interface CapacityDay {
+  day: string; // Mon..Fri
+  am_children: number;
+  am_available: number; // negative = overbooked
+  am_staff_required: number;
+  pm_children: number;
+  pm_available: number;
+  pm_staff_required: number;
+}
+
+export interface CapacityWeek {
+  week_start: string; // YYYY-MM-DD, the Monday
+  days: CapacityDay[];
+}
+
+export interface RoomCapacityForecast {
+  room_id: string;
+  room_name: string;
+  branch_slug: string;
+  capacity: number;
+  staff_ratio: number;
+  weeks: CapacityWeek[];
+}
+
+export interface CapacityForecast {
+  weeks: string[];
+  rooms: RoomCapacityForecast[];
+}
+
 export type AttendanceStatus = "expected" | "present" | "absent" | "holiday" | "sick";
 
 export interface AttendanceRecord {
@@ -1055,6 +1084,13 @@ export interface AttendanceStats {
 export type StaffStatus = "active" | "on_leave" | "inactive";
 export type StaffType = "permanent" | "agency" | "bank";
 
+export interface EmergencyContact {
+  name: string;
+  relation?: string;
+  phone?: string;
+  email?: string;
+}
+
 export interface Staff {
   id: string;
   ref?: string; // STF-YYYY-NNNNNN
@@ -1073,6 +1109,7 @@ export interface Staff {
   dbs_number?: string;
   dbs_expiry?: string;
   first_aid_expiry?: string;
+  emergency_contacts?: EmergencyContact[];
   user_id?: string; // linked login account (empty = HR-only, no login)
   has_pin?: boolean; // whether a kiosk clock-in PIN is set
   created_at?: string;
@@ -1095,6 +1132,7 @@ export interface StaffInput {
   dbs_number?: string;
   dbs_expiry?: string;
   first_aid_expiry?: string;
+  emergency_contacts?: EmergencyContact[];
   // Optional system login (People, login optional)
   enable_login?: boolean;
   login_role?: UserRole;

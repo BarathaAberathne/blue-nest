@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, Award, Baby, BadgeCheck, Cake, CalendarClock, CalendarDays, CalendarX, Check, CheckCircle2,
-  ChevronDown, ChevronLeft, ChevronRight, Clock, DoorOpen, GraduationCap, KeyRound, Mail, MapPin, Palmtree,
-  Pencil, Phone, Plus, Save, Search, ShieldCheck, Smile, StickyNote, Tags as TagsIcon, Thermometer, Trash2,
+  ArrowLeft, Award, Baby, BadgeCheck, CalendarClock, CalendarDays, CalendarX, Check, CheckCircle2,
+  ChevronDown, ChevronLeft, ChevronRight, Clock, DoorOpen, GraduationCap, KeyRound, Mail, Palmtree,
+  Pencil, Phone, Plus, Save, Search, ShieldCheck, Smile, Tags as TagsIcon, Thermometer, Trash2,
   User, Users, X,
 } from "lucide-react";
 import { api } from "@/lib/api";
@@ -14,7 +14,7 @@ import { branchShortName } from "@/lib/branch";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { fmtDate } from "@/lib/child";
 import { dbsExpiry, staffStatusAccent, staffStatusLabel, staffTypeAccent, staffTypeLabel } from "@/lib/staff";
-import type { Branch, Child, Shift, Staff, StaffAbsenceSummary, StaffInput } from "@/types";
+import type { Branch, Child, EmergencyContact, Shift, Staff, StaffAbsenceSummary, StaffInput } from "@/types";
 
 // ── date helpers ─────────────────────────────────────────────────────────────
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -50,6 +50,7 @@ const memberToInput = (m: Staff): StaffInput => ({
   staff_type: m.staff_type, status: m.status, start_date: m.start_date ?? "",
   contract_hours: m.contract_hours ?? 0, qualifications: m.qualifications ?? [],
   dbs_number: m.dbs_number ?? "", dbs_expiry: m.dbs_expiry ?? "", first_aid_expiry: m.first_aid_expiry ?? "",
+  emergency_contacts: m.emergency_contacts ?? [],
   enable_login: false, login_role: "staff", login_password: "",
 });
 
@@ -64,8 +65,16 @@ export default function StaffDetailClient({ id }: { id: string }) {
   const [sub, setSub] = useState<SubTab>("basic");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState<StaffInput | null>(null);
+  // Three independently-scoped edit modes — each opens only the fields shown
+  // on its own subpanel, so "Edit" on Contract can never surface the Basic
+  // info / branch-assignment form and vice versa.
+  const [identityEditing, setIdentityEditing] = useState(false);
+  const [identityForm, setIdentityForm] = useState<StaffInput | null>(null);
+  const identityFormRef = useRef<HTMLDivElement>(null);
+  const [basicEditing, setBasicEditing] = useState(false);
+  const [basicForm, setBasicForm] = useState<Pick<StaffInput, "first_name" | "last_name" | "job_title" | "email" | "phone"> | null>(null);
+  const [contractEditing, setContractEditing] = useState(false);
+  const [contractForm, setContractForm] = useState<Pick<StaffInput, "staff_type" | "start_date" | "contract_hours"> | null>(null);
   const [saving, setSaving] = useState(false);
   const [pin, setPin] = useState("");
   const [pinBusy, setPinBusy] = useState(false);
@@ -140,33 +149,55 @@ export default function StaffDetailClient({ id }: { id: string }) {
   };
 
   // ── edit ─────────────────────────────────────────────────────────────────
-  const startEdit = (goSub?: SubTab) => {
-    if (!member) return;
-    if (goSub) setSub(goSub);
-    setForm(memberToInput(member));
-    setEditing(true);
-  };
-  const save = async () => {
-    const token = getAccessToken();
-    if (!token || !form) return;
-    setSaving(true); setError(null);
-    try {
-      const updated = await api.adminUpdateStaff(token, id, form);
-      setMember(updated as Staff);
-      setEditing(false);
-    } catch (err) { setError(err instanceof Error ? err.message : "Failed to save"); }
-    finally { setSaving(false); }
-  };
-  // Persist a field patch without opening the full edit form (used by the
+  // Persist a field patch (used by every edit scope below, plus the
   // Qualifications add/remove panel). Sends the whole record — the update
-  // endpoint takes a full StaffInput — with the patch applied.
+  // endpoint takes a full StaffInput — with just the patch applied on top, so
+  // each scoped form only has to carry the handful of fields it actually edits.
   const patchStaff = async (patch: Partial<StaffInput>) => {
     const token = getAccessToken();
     if (!token || !member) return;
     const updated = await api.adminUpdateStaff(token, id, { ...memberToInput(member), ...patch });
     setMember(updated as Staff);
   };
-  const setField = (patch: Partial<StaffInput>) => setForm((f) => (f ? { ...f, ...patch } : f));
+
+  const startIdentityEdit = () => { if (!member) return; setIdentityForm(memberToInput(member)); setIdentityEditing(true); };
+  const startIdentityEditAndScroll = () => {
+    startIdentityEdit();
+    setTimeout(() => identityFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
+  const saveIdentity = async () => {
+    if (!identityForm) return;
+    setSaving(true); setError(null);
+    try { await patchStaff(identityForm); setIdentityEditing(false); }
+    catch (err) { setError(err instanceof Error ? err.message : "Failed to save"); }
+    finally { setSaving(false); }
+  };
+
+  const startBasicEdit = () => {
+    if (!member) return;
+    setBasicForm({ first_name: member.first_name, last_name: member.last_name, job_title: member.job_title ?? "", email: member.email ?? "", phone: member.phone ?? "" });
+    setBasicEditing(true);
+  };
+  const saveBasic = async () => {
+    if (!basicForm) return;
+    setSaving(true); setError(null);
+    try { await patchStaff(basicForm); setBasicEditing(false); }
+    catch (err) { setError(err instanceof Error ? err.message : "Failed to save"); }
+    finally { setSaving(false); }
+  };
+
+  const startContractEdit = () => {
+    if (!member) return;
+    setContractForm({ staff_type: member.staff_type, start_date: member.start_date ?? "", contract_hours: member.contract_hours ?? 0 });
+    setContractEditing(true);
+  };
+  const saveContract = async () => {
+    if (!contractForm) return;
+    setSaving(true); setError(null);
+    try { await patchStaff(contractForm); setContractEditing(false); }
+    catch (err) { setError(err instanceof Error ? err.message : "Failed to save"); }
+    finally { setSaving(false); }
+  };
 
   if (loading) return <p className="text-slate-400">Loading…</p>;
   if (!member) return <p className="text-red-500">{error ?? "Staff member not found."}</p>;
@@ -203,21 +234,27 @@ export default function StaffDetailClient({ id }: { id: string }) {
             <span className="font-mono text-xs text-slate-400">{member.ref ?? member.id}</span>
           </div>
         </div>
-        {!editing ? (
-          <button type="button" onClick={() => startEdit()} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+        {!identityEditing ? (
+          <button type="button" onClick={startIdentityEdit} title="Edit branch, status, compliance & login" className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
             <Pencil className="h-4 w-4" /> Edit
           </button>
         ) : (
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setEditing(false)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"><X className="h-4 w-4" /> Cancel</button>
-            <button type="button" onClick={save} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"><Save className="h-4 w-4" /> {saving ? "Saving…" : "Save"}</button>
+            <button type="button" onClick={() => setIdentityEditing(false)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"><X className="h-4 w-4" /> Cancel</button>
+            <button type="button" onClick={saveIdentity} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"><Save className="h-4 w-4" /> {saving ? "Saving…" : "Save"}</button>
           </div>
         )}
       </div>
 
+      {identityEditing && identityForm && (
+        <div ref={identityFormRef}>
+          <IdentityEditForm form={identityForm} member={member} branches={branches} setField={(p) => setIdentityForm((f) => (f ? { ...f, ...p } : f))} />
+        </div>
+      )}
+
       {/* ── Tabs ───────────────────────────────────────────────────── */}
       <div className="mb-6 flex gap-1 border-b border-slate-200" role="tablist" aria-label="Staff profile sections">
-        {([["profile", "Profile"], ["contacts", "Contacts (0)"], ["calendar", "Calendar"]] as [MainTab, string][]).map(([k, label]) => (
+        {([["profile", "Profile"], ["contacts", `Contacts (${(member.emergency_contacts ?? []).length})`], ["calendar", "Calendar"]] as [MainTab, string][]).map(([k, label]) => (
           <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
             className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold transition ${tab === k ? "border-teal-600 text-teal-700" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
             {label}
@@ -226,9 +263,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
       </div>
 
       {/* ══════════════════ PROFILE ══════════════════ */}
-      {tab === "profile" && (editing && form ? (
-        <EditForm form={form} member={member} branches={branches} setField={setField} />
-      ) : (
+      {tab === "profile" && (
         <div className="space-y-6">
           {/* Dashboard row */}
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -294,8 +329,16 @@ export default function StaffDetailClient({ id }: { id: string }) {
           </div>
 
           {/* Compliance strip — DBS + first aid (kept, condensed) */}
-          <section className="card grid grid-cols-1 gap-4 p-5 sm:grid-cols-3" aria-labelledby="comp-h">
-            <h2 id="comp-h" className="sr-only">Compliance</h2>
+          <section className="card p-5" aria-labelledby="comp-h">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 id="comp-h" className="text-sm font-bold uppercase tracking-widest text-slate-400">Compliance</h2>
+              {!identityEditing && (
+                <button type="button" onClick={startIdentityEditAndScroll} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400"><ShieldCheck className="h-4 w-4" /> DBS check</div>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-800">
@@ -311,6 +354,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
             <div>
               <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400"><KeyRound className="h-4 w-4" /> Kiosk PIN</div>
               <div className={`mt-1 text-sm font-medium ${member.has_pin ? "text-green-600" : "text-amber-600"}`}>{member.has_pin ? "Set" : "Not set"}</div>
+            </div>
             </div>
           </section>
 
@@ -337,7 +381,14 @@ export default function StaffDetailClient({ id }: { id: string }) {
                   <div>
                     <div className="mb-5 flex items-center justify-between">
                       <h3 className="font-heading text-base font-bold text-slate-900">Basic info</h3>
-                      <button onClick={() => startEdit("basic")} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
+                      {!basicEditing ? (
+                        <button onClick={startBasicEdit} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => setBasicEditing(false)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"><X className="h-3.5 w-3.5" /> Cancel</button>
+                          <button onClick={saveBasic} disabled={saving} className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-teal-700 disabled:opacity-50"><Save className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save"}</button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Login + Kiosk PIN — always shown */}
@@ -370,16 +421,24 @@ export default function StaffDetailClient({ id }: { id: string }) {
                       </div>
                     </div>
 
-                    <dl className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                      <ReadField icon={User} label="Name" value={fullName} />
-                      <ReadField icon={BadgeCheck} label="Job title" value={member.job_title} />
-                      <ReadField icon={Cake} label="Date of birth" value={undefined} />
-                      <ReadField icon={DoorOpen} label="Room" value={roomName ?? undefined} />
-                      <div className="sm:col-span-2"><ReadField icon={StickyNote} label="Special notes" value={undefined} multiline /></div>
-                      <ReadField icon={Mail} label="Email" value={member.email} />
-                      <ReadField icon={Phone} label="Phone number" value={member.phone} isPhone />
-                      <div className="sm:col-span-2"><ReadField icon={MapPin} label="Address" value={undefined} /></div>
-                    </dl>
+                    {!basicEditing || !basicForm ? (
+                      <dl className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
+                        <ReadField icon={User} label="Name" value={fullName} />
+                        <ReadField icon={BadgeCheck} label="Job title" value={member.job_title} />
+                        <ReadField icon={DoorOpen} label="Room" value={roomName ?? undefined} />
+                        <ReadField icon={Mail} label="Email" value={member.email} />
+                        <ReadField icon={Phone} label="Phone number" value={member.phone} isPhone />
+                      </dl>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <Field label="First name"><input value={basicForm.first_name} onChange={(e) => setBasicForm((f) => (f ? { ...f, first_name: e.target.value } : f))} className="inp" /></Field>
+                        <Field label="Last name"><input value={basicForm.last_name} onChange={(e) => setBasicForm((f) => (f ? { ...f, last_name: e.target.value } : f))} className="inp" /></Field>
+                        <Field label="Job title"><input value={basicForm.job_title} onChange={(e) => setBasicForm((f) => (f ? { ...f, job_title: e.target.value } : f))} className="inp" /></Field>
+                        <div />
+                        <Field label="Email"><input type="email" value={basicForm.email} onChange={(e) => setBasicForm((f) => (f ? { ...f, email: e.target.value } : f))} className="inp" /></Field>
+                        <Field label="Phone"><input value={basicForm.phone} onChange={(e) => setBasicForm((f) => (f ? { ...f, phone: e.target.value } : f))} className="inp" /></Field>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -391,14 +450,33 @@ export default function StaffDetailClient({ id }: { id: string }) {
                   <div>
                     <div className="mb-5 flex items-center justify-between">
                       <h3 className="font-heading text-base font-bold text-slate-900">Contract</h3>
-                      <button onClick={() => startEdit("contract")} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
+                      {!contractEditing ? (
+                        <button onClick={startContractEdit} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => setContractEditing(false)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"><X className="h-3.5 w-3.5" /> Cancel</button>
+                          <button onClick={saveContract} disabled={saving} className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-teal-700 disabled:opacity-50"><Save className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save"}</button>
+                        </div>
+                      )}
                     </div>
-                    <dl className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-                      <ReadField icon={BadgeCheck} label="Employee ID" value={member.ref} mono />
-                      <ReadField icon={BadgeCheck} label="Employment type" value={staffTypeLabel[member.staff_type]} />
-                      <ReadField icon={CalendarClock} label="Start date" value={member.start_date ? fmtDate(member.start_date) : undefined} />
-                      <ReadField icon={Clock} label="Weekly contracted hours" value={member.contract_hours ? `${member.contract_hours}h` : undefined} />
-                    </dl>
+                    {!contractEditing || !contractForm ? (
+                      <dl className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
+                        <ReadField icon={BadgeCheck} label="Employee ID" value={member.ref} mono />
+                        <ReadField icon={BadgeCheck} label="Employment type" value={staffTypeLabel[member.staff_type]} />
+                        <ReadField icon={CalendarClock} label="Start date" value={member.start_date ? fmtDate(member.start_date) : undefined} />
+                        <ReadField icon={Clock} label="Weekly contracted hours" value={member.contract_hours ? `${member.contract_hours}h` : undefined} />
+                      </dl>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <Field label="Employment type">
+                          <select value={contractForm.staff_type} onChange={(e) => setContractForm((f) => (f ? { ...f, staff_type: e.target.value as StaffInput["staff_type"] } : f))} className="inp bg-white">
+                            <option value="permanent">Permanent</option><option value="agency">Agency</option><option value="bank">Bank</option>
+                          </select>
+                        </Field>
+                        <Field label="Start date"><input type="date" value={contractForm.start_date} onChange={(e) => setContractForm((f) => (f ? { ...f, start_date: e.target.value } : f))} className="inp" /></Field>
+                        <Field label="Weekly contracted hours"><input type="number" min={0} value={contractForm.contract_hours} onChange={(e) => setContractForm((f) => (f ? { ...f, contract_hours: Number(e.target.value) } : f))} className="inp" /></Field>
+                      </div>
+                    )}
                     <div className="mt-6 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                       <CalendarClock className="h-5 w-5 flex-none text-teal-600" />
                       <div className="text-sm">
@@ -416,13 +494,12 @@ export default function StaffDetailClient({ id }: { id: string }) {
             </div>
           </section>
         </div>
-      ))}
+      )}
 
       {/* ══════════════════ CONTACTS ══════════════════ */}
       {tab === "contacts" && (
         <div className="card p-6">
-          <EmptyState icon={Users} title="No emergency contacts yet"
-            body="It's always a good idea to have contact info for the people close to this staff member — for emergencies and next-of-kin. This is on the roadmap." />
+          <ContactsPanel contacts={member.emergency_contacts ?? []} onSave={(next) => patchStaff({ emergency_contacts: next })} />
         </div>
       )}
 
@@ -559,6 +636,103 @@ function EmptyState({ icon: Icon, title, body }: { icon: typeof User; title: str
   );
 }
 
+// ── Contacts — emergency / next-of-kin contacts for this staff member ─────────
+const emptyContact: EmergencyContact = { name: "", relation: "", phone: "", email: "" };
+function ContactsPanel({ contacts, onSave }: { contacts: EmergencyContact[]; onSave: (next: EmergencyContact[]) => Promise<void> }) {
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState<EmergencyContact>(emptyContact);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState<EmergencyContact>(emptyContact);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const commit = async (next: EmergencyContact[]) => {
+    setBusy(true); setErr(null);
+    try { await onSave(next); }
+    catch (e) { setErr(e instanceof Error ? e.message : "Failed to save"); }
+    finally { setBusy(false); }
+  };
+  const add = async () => {
+    if (!draft.name.trim()) { setErr("A name is required."); return; }
+    await commit([...contacts, { ...draft, name: draft.name.trim() }]);
+    setDraft(emptyContact); setAdding(false);
+  };
+  const startEditContact = (i: number) => { setEditingIndex(i); setEditDraft(contacts[i]); setErr(null); };
+  const saveEditContact = async () => {
+    if (!editDraft.name.trim()) { setErr("A name is required."); return; }
+    const next = contacts.map((c, i) => (i === editingIndex ? { ...editDraft, name: editDraft.name.trim() } : c));
+    await commit(next);
+    setEditingIndex(null);
+  };
+  const remove = (i: number) => commit(contacts.filter((_, x) => x !== i));
+
+  return (
+    <div>
+      <div className="mb-5 flex items-center justify-between">
+        <h3 className="font-heading text-base font-bold text-slate-900">Emergency contacts {contacts.length > 0 && <span className="text-slate-400">({contacts.length})</span>}</h3>
+        {!adding && <button onClick={() => { setAdding(true); setDraft(emptyContact); setErr(null); }} className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-teal-700"><Plus className="h-3.5 w-3.5" /> Add contact</button>}
+      </div>
+
+      {err && <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-500">{err}</p>}
+
+      {adding && (
+        <div className="mb-5 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
+          <Field label="Name"><input autoFocus value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="inp" /></Field>
+          <Field label="Relationship"><input value={draft.relation} onChange={(e) => setDraft({ ...draft, relation: e.target.value })} placeholder="e.g. Partner, Parent" className="inp" /></Field>
+          <Field label="Phone"><input value={draft.phone} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} className="inp" /></Field>
+          <Field label="Email"><input type="email" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} className="inp" /></Field>
+          <div className="flex items-center gap-2 sm:col-span-2">
+            <button onClick={add} disabled={busy || !draft.name.trim()} className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">{busy ? "Saving…" : "Add"}</button>
+            <button onClick={() => { setAdding(false); setErr(null); }} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-white">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {contacts.length === 0 && !adding ? (
+        <EmptyState icon={Users} title="No emergency contacts yet" body="It's always a good idea to have contact info for the people close to this staff member — for emergencies, next-of-kin and day-to-day updates." />
+      ) : (
+        <div className="space-y-3">
+          {contacts.map((c, i) => (
+            <div key={i} className="rounded-xl border border-slate-200 p-4">
+              {editingIndex === i ? (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Field label="Name"><input autoFocus value={editDraft.name} onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })} className="inp" /></Field>
+                  <Field label="Relationship"><input value={editDraft.relation} onChange={(e) => setEditDraft({ ...editDraft, relation: e.target.value })} className="inp" /></Field>
+                  <Field label="Phone"><input value={editDraft.phone} onChange={(e) => setEditDraft({ ...editDraft, phone: e.target.value })} className="inp" /></Field>
+                  <Field label="Email"><input type="email" value={editDraft.email} onChange={(e) => setEditDraft({ ...editDraft, email: e.target.value })} className="inp" /></Field>
+                  <div className="flex items-center gap-2 sm:col-span-2">
+                    <button onClick={saveEditContact} disabled={busy} className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">{busy ? "Saving…" : "Save"}</button>
+                    <button onClick={() => setEditingIndex(null)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="grid h-10 w-10 flex-none place-items-center rounded-full bg-teal-50 text-teal-600"><User className="h-5 w-5" /></span>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{c.name}{c.relation ? <span className="ml-2 font-normal text-slate-400">{c.relation}</span> : null}</p>
+                      <p className="text-xs text-slate-500">
+                        {c.phone ? <a href={`tel:${c.phone}`} className="hover:text-teal-700">{c.phone}</a> : null}
+                        {c.phone && c.email ? " · " : null}
+                        {c.email ? <a href={`mailto:${c.email}`} className="hover:text-teal-700">{c.email}</a> : null}
+                        {!c.phone && !c.email ? "No phone or email on file" : null}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => startEditContact(i)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label={`Edit ${c.name}`}><Pencil className="h-4 w-4" /></button>
+                    <button onClick={() => remove(i)} disabled={busy} className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50" aria-label={`Remove ${c.name}`}><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Qualifications — add/remove a staff member's qualifications inline ────────
 function QualificationsPanel({ quals, onSave }: { quals: string[]; onSave: (next: string[]) => Promise<void> }) {
   const [adding, setAdding] = useState(false);
@@ -621,21 +795,16 @@ function QualificationsPanel({ quals, onSave }: { quals: string[]; onSave: (next
   );
 }
 
-// ── edit form (reuses the existing staff update + login provisioning) ─────────
-function EditForm({ form, member, branches, setField }: { form: StaffInput; member: Staff; branches: Branch[]; setField: (p: Partial<StaffInput>) => void }) {
+// ── identity edit form — branch/status/compliance/login only (name, contact,
+// job title live in Basic info's own scoped form; employment type/start date/
+// contract hours live in Contract's). Reuses the existing staff update + login
+// provisioning endpoint. ────────────────────────────────────────────────────
+function IdentityEditForm({ form, member, branches, setField }: { form: StaffInput; member: Staff; branches: Branch[]; setField: (p: Partial<StaffInput>) => void }) {
   return (
-    <div className="card grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
-      <Field label="First name"><input value={form.first_name} onChange={(e) => setField({ first_name: e.target.value })} className="inp" /></Field>
-      <Field label="Last name"><input value={form.last_name} onChange={(e) => setField({ last_name: e.target.value })} className="inp" /></Field>
-      <Field label="Job title"><input value={form.job_title} onChange={(e) => setField({ job_title: e.target.value })} className="inp" /></Field>
+    <div className="card mb-6 grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
       <Field label="Branch">
         <select value={form.branch_slug} onChange={(e) => setField({ branch_slug: e.target.value })} className="inp bg-white">
           {branches.map((b) => <option key={b.slug} value={b.slug}>{branchShortName(b)}</option>)}
-        </select>
-      </Field>
-      <Field label="Employment type">
-        <select value={form.staff_type} onChange={(e) => setField({ staff_type: e.target.value as StaffInput["staff_type"] })} className="inp bg-white">
-          <option value="permanent">Permanent</option><option value="agency">Agency</option><option value="bank">Bank</option>
         </select>
       </Field>
       <Field label="Status">
@@ -643,14 +812,9 @@ function EditForm({ form, member, branches, setField }: { form: StaffInput; memb
           <option value="active">Active</option><option value="on_leave">On leave</option><option value="inactive">Inactive</option>
         </select>
       </Field>
-      <Field label="Email"><input type="email" value={form.email} onChange={(e) => setField({ email: e.target.value })} className="inp" /></Field>
-      <Field label="Phone"><input value={form.phone} onChange={(e) => setField({ phone: e.target.value })} className="inp" /></Field>
-      <Field label="Start date"><input type="date" value={form.start_date} onChange={(e) => setField({ start_date: e.target.value })} className="inp" /></Field>
-      <Field label="Contract hours / week"><input type="number" min={0} value={form.contract_hours} onChange={(e) => setField({ contract_hours: Number(e.target.value) })} className="inp" /></Field>
       <Field label="DBS number"><input value={form.dbs_number} onChange={(e) => setField({ dbs_number: e.target.value })} className="inp" /></Field>
       <Field label="DBS expiry"><input type="date" value={form.dbs_expiry} onChange={(e) => setField({ dbs_expiry: e.target.value })} className="inp" /></Field>
       <Field label="Paediatric first aid expiry"><input type="date" value={form.first_aid_expiry} onChange={(e) => setField({ first_aid_expiry: e.target.value })} className="inp" /></Field>
-      <div className="sm:col-span-2"><Field label="Qualifications (comma-separated)"><input value={(form.qualifications ?? []).join(", ")} onChange={(e) => setField({ qualifications: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })} className="inp" /></Field></div>
 
       <div className="sm:col-span-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
         {member.user_id ? (

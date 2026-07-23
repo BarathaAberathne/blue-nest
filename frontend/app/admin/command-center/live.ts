@@ -6,11 +6,16 @@
 // or any management role), and falls back to the static mock when there is no
 // token or the request fails — so the page still renders for an anonymous demo.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import type { AttendanceStats, ChildStats, DailyStats, EnquiryStats, StaffStats } from "@/types";
 import { BRANCH_METRICS, CONVERSION_PCT, FUNNEL, type BranchMetric, type FunnelStage } from "./data";
+
+// Background refresh cadence for every hook below — matches the kiosk's own
+// existing polling interval (frontend/app/kiosk/KioskClient.tsx) for consistency.
+const REFRESH_MS = 30_000;
 
 export type LivePipeline = {
   live: boolean; // true when sourced from the backend
@@ -43,23 +48,25 @@ const FALLBACK: LivePipeline = {
 
 export function useEnquiryPipeline(): LivePipeline {
   const [stats, setStats] = useState<EnquiryStats | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
 
-  useEffect(() => {
+  const refresh = () => {
     const token = getAccessToken();
     if (!token) return; // anonymous → keep the static mock
-    let cancelled = false;
     api
       .adminGetEnquiryStats(token)
       .then((s) => {
-        if (!cancelled) setStats(s);
+        if (mountedRef.current) setStats(s);
       })
       .catch(() => {
         /* insufficient perms / offline → stay on the static fallback */
       });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  };
+  useEffect(() => { refresh(); }, []);
+  // Background auto-refresh — so a newly-registered enquiry, status change,
+  // etc. shows up here without a manual browser refresh.
+  useAutoRefresh(refresh, REFRESH_MS);
 
   if (!stats) return FALLBACK;
 
@@ -90,28 +97,45 @@ export function useEnquiryPipeline(): LivePipeline {
 }
 
 // ── Children & attendance live wiring (Phase 1) ──────────────────────────────
-// Each endpoint is fetched at most once per session (shared promise) so the
-// several widgets that need the same figures don't each fire a request.
-let childrenPromise: Promise<ChildStats | null> | null = null;
-let attendancePromise: Promise<AttendanceStats | null> | null = null;
-let staffPromise: Promise<StaffStats | null> | null = null;
+// Each endpoint is de-duped across the several widgets that need the same
+// figures via a short-lived cache — keyed by token (so a logout/login within
+// the same tab can't reuse another session's data) and expired just under the
+// poll interval (so the periodic auto-refresh below actually re-fetches
+// instead of returning a permanently-cached value for the tab's lifetime, as
+// it did before). A failed fetch clears its own entry so the next attempt
+// (the next tick, or another widget) retries instead of the failure sticking
+// around for the rest of the window.
+type CacheEntry<T> = { promise: Promise<T>; ts: number; token: string };
+const CACHE_STALE_MS = 25_000; // just under REFRESH_MS
+
+let childrenCache: CacheEntry<ChildStats | null> | null = null;
+let attendanceCache: CacheEntry<AttendanceStats | null> | null = null;
+let staffCache: CacheEntry<StaffStats | null> | null = null;
+let dailyCache: CacheEntry<DailyStats | null> | null = null;
 
 function fetchChildrenOnce(token: string): Promise<ChildStats | null> {
-  if (!childrenPromise) childrenPromise = api.adminGetChildStats(token).catch(() => null);
-  return childrenPromise;
+  if (childrenCache && childrenCache.token === token && Date.now() - childrenCache.ts < CACHE_STALE_MS) return childrenCache.promise;
+  const promise = api.adminGetChildStats(token).catch(() => { childrenCache = null; return null; });
+  childrenCache = { promise, ts: Date.now(), token };
+  return promise;
 }
 function fetchAttendanceOnce(token: string): Promise<AttendanceStats | null> {
-  if (!attendancePromise) attendancePromise = api.adminGetAttendanceToday(token).catch(() => null);
-  return attendancePromise;
+  if (attendanceCache && attendanceCache.token === token && Date.now() - attendanceCache.ts < CACHE_STALE_MS) return attendanceCache.promise;
+  const promise = api.adminGetAttendanceToday(token).catch(() => { attendanceCache = null; return null; });
+  attendanceCache = { promise, ts: Date.now(), token };
+  return promise;
 }
 function fetchStaffOnce(token: string): Promise<StaffStats | null> {
-  if (!staffPromise) staffPromise = api.adminGetStaffStats(token).catch(() => null);
-  return staffPromise;
+  if (staffCache && staffCache.token === token && Date.now() - staffCache.ts < CACHE_STALE_MS) return staffCache.promise;
+  const promise = api.adminGetStaffStats(token).catch(() => { staffCache = null; return null; });
+  staffCache = { promise, ts: Date.now(), token };
+  return promise;
 }
-let dailyPromise: Promise<DailyStats | null> | null = null;
 function fetchDailyOnce(token: string): Promise<DailyStats | null> {
-  if (!dailyPromise) dailyPromise = api.adminGetDailyStats(token).catch(() => null);
-  return dailyPromise;
+  if (dailyCache && dailyCache.token === token && Date.now() - dailyCache.ts < CACHE_STALE_MS) return dailyCache.promise;
+  const promise = api.adminGetDailyStats(token).catch(() => { dailyCache = null; return null; });
+  dailyCache = { promise, ts: Date.now(), token };
+  return promise;
 }
 
 export type LiveChildren = {
@@ -133,13 +157,15 @@ const FALLBACK_CHILDREN: LiveChildren = {
 
 export function useChildrenStats(): LiveChildren {
   const [stats, setStats] = useState<ChildStats | null>(null);
-  useEffect(() => {
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+  const refresh = () => {
     const token = getAccessToken();
     if (!token) return;
-    let cancelled = false;
-    fetchChildrenOnce(token).then((s) => { if (!cancelled && s) setStats(s); });
-    return () => { cancelled = true; };
-  }, []);
+    fetchChildrenOnce(token).then((s) => { if (mountedRef.current && s) setStats(s); });
+  };
+  useEffect(() => { refresh(); }, []);
+  useAutoRefresh(refresh, REFRESH_MS);
   if (!stats) return FALLBACK_CHILDREN;
   return {
     live: true,
@@ -172,13 +198,15 @@ const FALLBACK_ATTENDANCE: LiveAttendance = {
 
 export function useAttendanceToday(): LiveAttendance {
   const [stats, setStats] = useState<AttendanceStats | null>(null);
-  useEffect(() => {
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+  const refresh = () => {
     const token = getAccessToken();
     if (!token) return;
-    let cancelled = false;
-    fetchAttendanceOnce(token).then((s) => { if (!cancelled && s) setStats(s); });
-    return () => { cancelled = true; };
-  }, []);
+    fetchAttendanceOnce(token).then((s) => { if (mountedRef.current && s) setStats(s); });
+  };
+  useEffect(() => { refresh(); }, []);
+  useAutoRefresh(refresh, REFRESH_MS);
   if (!stats) return FALLBACK_ATTENDANCE;
   return {
     live: true,
@@ -216,13 +244,15 @@ const FALLBACK_STAFF: LiveStaff = {
 
 export function useStaffStats(): LiveStaff {
   const [stats, setStats] = useState<StaffStats | null>(null);
-  useEffect(() => {
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+  const refresh = () => {
     const token = getAccessToken();
     if (!token) return;
-    let cancelled = false;
-    fetchStaffOnce(token).then((s) => { if (!cancelled && s) setStats(s); });
-    return () => { cancelled = true; };
-  }, []);
+    fetchStaffOnce(token).then((s) => { if (mountedRef.current && s) setStats(s); });
+  };
+  useEffect(() => { refresh(); }, []);
+  useAutoRefresh(refresh, REFRESH_MS);
   if (!stats) return FALLBACK_STAFF;
   return {
     live: true,
@@ -253,16 +283,21 @@ export function useBranchMetrics(): { metrics: BranchMetric[]; live: boolean } {
   const childBy = new Map((children.raw?.branches ?? []).map((b) => [b.branch, b]));
   const attBy = new Map((attendance.raw?.branches ?? []).map((b) => [b.branch, b]));
   const staffBy = new Map((staff.raw?.branches ?? []).map((b) => [b.branch, b]));
+  // Once a source has resolved live, a branch missing from its per-branch
+  // breakdown genuinely has zero records (e.g. a branch with no children or
+  // staff seeded yet) — that's real data and must win over the old mock
+  // number, not fall back to it. Only an unresolved source (offline / signed
+  // out) keeps that branch's figure on the static mock.
   const metrics = BRANCH_METRICS.map((m) => {
     const c = childBy.get(m.slug);
     const a = attBy.get(m.slug);
     const s = staffBy.get(m.slug);
     return {
       ...m,
-      children: c ? c.children : m.children,
-      occupancy: c ? c.occupancy_rate : m.occupancy,
-      attendanceToday: a ? a.attendance_rate : m.attendanceToday,
-      staff: s ? s.total : m.staff,
+      children: children.live ? (c ? c.children : 0) : m.children,
+      occupancy: children.live ? (c ? c.occupancy_rate : 0) : m.occupancy,
+      attendanceToday: attendance.live ? (a ? a.attendance_rate : 0) : m.attendanceToday,
+      staff: staff.live ? (s ? s.total : 0) : m.staff,
     };
   });
   return { metrics, live: children.live || attendance.live || staff.live };
@@ -292,13 +327,15 @@ const FALLBACK_DAILY: LiveDaily = {
 
 export function useDailyStats(): LiveDaily {
   const [stats, setStats] = useState<DailyStats | null>(null);
-  useEffect(() => {
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+  const refresh = () => {
     const token = getAccessToken();
     if (!token) return;
-    let cancelled = false;
-    fetchDailyOnce(token).then((s) => { if (!cancelled && s) setStats(s); });
-    return () => { cancelled = true; };
-  }, []);
+    fetchDailyOnce(token).then((s) => { if (mountedRef.current && s) setStats(s); });
+  };
+  useEffect(() => { refresh(); }, []);
+  useAutoRefresh(refresh, REFRESH_MS);
   if (!stats) return FALLBACK_DAILY;
   return {
     live: true,

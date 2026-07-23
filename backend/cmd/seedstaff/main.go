@@ -3,9 +3,11 @@
 //
 // Run: cd backend && go run ./cmd/seedstaff   (or `make seed-staff`)
 //
-// DROPS and rebuilds the staff / staff_attendance collections (demo data only —
-// no real employee records exist yet), matching the mock per-branch headcounts
-// (~92 staff, ~90% present). Deterministic (fixed RNG seed).
+// DROPS and rebuilds the staff / staff_attendance collections with demo data
+// matching the mock per-branch headcounts (~92 staff, ~90% present).
+// Deterministic (fixed RNG seed). NEVER run this against an environment where
+// cmd/seedfamly has imported a real nursery's real staff — it drops that data
+// too, and seedguard.RequireDrop below refuses unless explicitly confirmed.
 package main
 
 import (
@@ -17,6 +19,7 @@ import (
 
 	"github.com/blue-nest-montessori/api/internal/config"
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/platform/seedguard"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -52,6 +55,9 @@ var lastNames = []string{
 }
 
 func main() {
+	if err := seedguard.RequireDrop("cmd/seedstaff"); err != nil {
+		log.Fatal(err)
+	}
 	for _, path := range []string{".env", "../.env", "../../.env"} {
 		if err := godotenv.Load(path); err == nil {
 			break

@@ -107,29 +107,35 @@ func (r *staffRepository) Update(ctx context.Context, id string, s models.Staff)
 		return nil, err
 	}
 	update := bson.M{"$set": bson.M{
-		"first_name":       s.FirstName,
-		"last_name":        s.LastName,
-		"email":            s.Email,
-		"phone":            s.Phone,
-		"branch_slug":      s.BranchSlug,
-		"room_id":          s.RoomID,
-		"job_title":        s.JobTitle,
-		"staff_type":       s.StaffType,
-		"status":           s.Status,
-		"start_date":       s.StartDate,
-		"contract_hours":   s.ContractHours,
-		"qualifications":   s.Qualifications,
-		"dbs_number":       s.DBSNumber,
-		"dbs_expiry":       s.DBSExpiry,
-		"first_aid_expiry": s.FirstAidExpiry,
-		"user_id":          s.UserID,
-		"updated_at":       time.Now(),
+		"first_name":         s.FirstName,
+		"last_name":          s.LastName,
+		"email":              s.Email,
+		"phone":              s.Phone,
+		"branch_slug":        s.BranchSlug,
+		"room_id":            s.RoomID,
+		"job_title":          s.JobTitle,
+		"staff_type":         s.StaffType,
+		"status":             s.Status,
+		"start_date":         s.StartDate,
+		"contract_hours":     s.ContractHours,
+		"qualifications":     s.Qualifications,
+		"dbs_number":         s.DBSNumber,
+		"dbs_expiry":         s.DBSExpiry,
+		"first_aid_expiry":   s.FirstAidExpiry,
+		"emergency_contacts": s.EmergencyContacts,
+		"user_id":            s.UserID,
+		"updated_at":         time.Now(),
 	}}
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
 	var out models.Staff
 	if err := r.col.FindOneAndUpdate(ctx, bson.M{"_id": oid}, update, opts).Decode(&out); err != nil {
 		return nil, err
 	}
+	// Update's $set never touches pin_hash, but HasPIN is a transient
+	// (bson:"-") field that only Decode-populates as its zero value — without
+	// this it always comes back false right after any save, even though the
+	// PIN itself is untouched (a fresh GET already computes it correctly).
+	out.HasPIN = out.PINHash != ""
 	return &out, nil
 }
 

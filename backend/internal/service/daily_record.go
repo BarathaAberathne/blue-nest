@@ -18,7 +18,10 @@ type DailyRecordService interface {
 	Update(ctx context.Context, id string, req models.DailyRecordRequest) (*models.DailyRecord, error)
 	SetStatus(ctx context.Context, id string, status models.DailyRecordStatus) (*models.DailyRecord, error)
 	Delete(ctx context.Context, id string) error
-	Stats(ctx context.Context, date string) (*models.DailyStats, error)
+	// Stats aggregates today's KPI tiles. Empty branch = org-wide (org-wide
+	// roles); a branch-scoped caller passes their branch so counts never
+	// include another branch's safeguarding/incident/medication data.
+	Stats(ctx context.Context, date, branch string) (*models.DailyStats, error)
 }
 
 type dailyRecordService struct {
@@ -134,13 +137,14 @@ func (s *dailyRecordService) Delete(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *dailyRecordService) Stats(ctx context.Context, date string) (*models.DailyStats, error) {
+func (s *dailyRecordService) Stats(ctx context.Context, date, branch string) (*models.DailyStats, error) {
 	if date == "" {
 		date = time.Now().Format("2006-01-02")
 	}
 	weekAgo := time.Now().AddDate(0, 0, -7).Format("2006-01-02")
 
 	count := func(f repository.DailyRecordFilter) int {
+		f.Branch = branch
 		n, err := s.repo.Count(ctx, f)
 		if err != nil {
 			return 0

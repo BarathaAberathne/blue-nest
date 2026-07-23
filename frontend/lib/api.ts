@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
+import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -299,6 +299,13 @@ export const api = {
       child_age_group?: string;
       room_allocation?: string;
       funding_type?: string;
+      // Child identity — required for registration to actually create the
+      // Child record (see AdminEnquiryHandler.Register); omitted, the enquiry
+      // is still marked registered but no child is created.
+      child_first_name?: string;
+      child_last_name?: string;
+      child_dob?: string;
+      child_gender?: string;
     },
   ) =>
     apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/register`, {
@@ -535,6 +542,13 @@ export const api = {
   },
   adminGetChildStats: (token: string) =>
     apiFetch<ChildStats>("/api/v1/admin/children/stats", { token }),
+  adminGetCapacityForecast: (token: string, params?: { branch?: string; weeks?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.branch) qs.set("branch", params.branch);
+    if (params?.weeks) qs.set("weeks", String(params.weeks));
+    const s = qs.toString();
+    return apiFetch<CapacityForecast>(`/api/v1/admin/children/capacity-forecast${s ? `?${s}` : ""}`, { token });
+  },
   adminGetChild: (token: string, id: string) =>
     apiFetch<Child>(`/api/v1/admin/children/${id}`, { token }),
   adminCreateChild: (token: string, body: ChildInput) =>

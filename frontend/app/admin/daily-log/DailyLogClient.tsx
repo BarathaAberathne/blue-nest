@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookOpen, CheckCircle2, Download, HeartPulse, Plus, Search, ShieldAlert, TriangleAlert, Utensils, X } from "lucide-react";
 import { api } from "@/lib/api";
-import { getAccessToken } from "@/lib/auth";
+import { getAccessToken, scopedBranches } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import { fmtDate } from "@/lib/child";
 import { dailyStatusAccent, dailyStatusLabel, dailyTypeAccent, dailyTypeLabel, severityAccent, EYFS_AREAS } from "@/lib/daily";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
+import SearchSelect from "@/components/ui/SearchSelect";
 import type { Branch, Child, DailyRecord, DailyRecordInput, DailyRecordType, DailyStats } from "@/types";
 
 const TYPES: DailyRecordType[] = ["observation", "incident", "safeguarding", "medication", "meal"];
@@ -46,7 +47,7 @@ export default function DailyLogClient() {
     ]);
     if (r.status === "fulfilled") setRecords((r.value as DailyRecord[]) ?? []);
     if (s.status === "fulfilled") setStats(s.value as DailyStats);
-    if (b.status === "fulfilled") setBranches((b.value as Branch[]) ?? []);
+    if (b.status === "fulfilled") setBranches(scopedBranches((b.value as Branch[]) ?? []));
     if (c.status === "fulfilled") setChildren((c.value as Child[]) ?? []);
     setLoading(false);
   };
@@ -60,6 +61,10 @@ export default function DailyLogClient() {
   const childrenForBranch = useMemo(
     () => children.filter((c) => !form.branch_slug || c.branch_slug === form.branch_slug),
     [children, form.branch_slug],
+  );
+  const childOptions = useMemo(
+    () => childrenForBranch.map((c) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` })),
+    [childrenForBranch],
   );
 
   const openCreate = () => {
@@ -202,10 +207,14 @@ export default function DailyLogClient() {
                 </select>
               </Field>
               <Field label="Child (optional)">
-                <select value={form.child_id} onChange={(e) => setField({ child_id: e.target.value })} className="inp bg-white" disabled={!form.branch_slug}>
-                  <option value="">Branch-wide / none</option>
-                  {childrenForBranch.map((c) => <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>)}
-                </select>
+                <SearchSelect
+                  options={childOptions}
+                  value={form.child_id ?? ""}
+                  onChange={(v) => setField({ child_id: v })}
+                  placeholder={form.branch_slug ? "Search children…" : "Select a branch first"}
+                  extraOption={{ value: "", label: "Branch-wide / none" }}
+                  disabled={!form.branch_slug}
+                />
               </Field>
               <Field label="Date"><input type="date" value={form.date} onChange={(e) => setField({ date: e.target.value })} className="inp" /></Field>
               <div className="sm:col-span-2"><Field label="Title *"><input value={form.title} onChange={(e) => setField({ title: e.target.value })} placeholder={form.type === "observation" ? "e.g. Counting to 20" : form.type === "medication" ? "e.g. Calpol" : "Short summary"} className="inp" /></Field></div>

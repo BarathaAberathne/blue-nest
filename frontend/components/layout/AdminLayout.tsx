@@ -2,15 +2,18 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
+  ArrowLeft,
   Baby,
   BarChart3,
   BookOpen,
   Building2,
   SlidersHorizontal,
   CalendarCheck,
+  CalendarRange,
+  ChevronsLeft,
   ClipboardList,
   DoorOpen,
   ExternalLink,
@@ -70,6 +73,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Child Attendance", href: "/admin/attendance", icon: CalendarCheck, permission: "attendance.manage" },
       { label: "Daily Log",        href: "/admin/daily-log",  icon: NotebookPen, permission: "daily_logs.manage" },
       { label: "Rooms",            href: "/admin/rooms",      icon: DoorOpen, permission: "children.manage" },
+      { label: "Room Planner",     href: "/admin/room-planner", icon: CalendarRange, permission: "children.manage" },
     ],
   },
   {
@@ -140,6 +144,7 @@ const activeNavItem = (sections: NavSection[], pathname: string): NavItem | unde
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { ready, isAuthenticated, user, ensureAuthenticated } = useAuthGuard("/admin/login");
   const { has, ready: permsReady, org, hasFeature } = usePermissions();
   const isStaff = user?.role === "staff";
@@ -220,99 +225,132 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div className="admin-shell min-h-screen flex bg-slate-50 font-body">
+    <div className="admin-shell min-h-screen bg-[var(--adm-bg)] font-body">
       {/* ── Sidebar ─────────────────────────────────────────── */}
-      <aside className="w-60 shrink-0 bg-slate-900 flex flex-col">
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-[var(--adm-line)] bg-[var(--adm-card)] transition-[width] duration-200 ease-in-out ${
+          sidebarOpen ? "w-56" : "w-[78px]"
+        }`}
+      >
         {/* Brand — per-tenant name, logo and accent colour */}
-        <div className="px-5 py-5 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            {org?.branding?.logo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={org.branding.logo_url} alt="" className="h-8 w-8 shrink-0 rounded-lg object-contain" />
-            ) : (
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg text-white text-xs font-bold shrink-0" style={{ backgroundColor: brandColor }}>
-                {brandInitials}
-              </span>
-            )}
-            <div className="min-w-0">
-              <p className="font-bold text-white text-sm leading-none truncate">{orgName}</p>
-              <p className="text-[0.65rem] text-slate-500 mt-0.5">{isStaff ? "Staff Portal" : "Admin Panel"}</p>
-            </div>
+        <div className="flex items-center gap-3 px-4 py-5">
+          {org?.branding?.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={org.branding.logo_url} alt="" className="h-9 w-9 shrink-0 rounded-xl object-contain" />
+          ) : (
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold text-white shadow-[0_6px_14px_rgba(15,157,140,.28)]"
+              style={{ background: `linear-gradient(150deg, ${brandColor}, #43C8B8)` }}
+            >
+              {brandInitials}
+            </span>
+          )}
+          <div className={`min-w-0 transition-opacity duration-150 ${sidebarOpen ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+            <p className="truncate text-sm font-extrabold leading-none text-[var(--adm-ink)]">{orgName}</p>
+            <p className="mt-1 text-[0.65rem] text-[var(--adm-muted)]">{isStaff ? "Staff Portal" : "Admin Panel"}</p>
           </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-4">
+        <nav className="flex-1 space-y-3 overflow-y-auto overflow-x-hidden px-3 py-2">
           {navSections.map((section, i) => (
-            <div key={section.heading ?? `section-${i}`} className="space-y-0.5">
-              {section.heading && (
-                <p className="px-3 pb-1 text-[0.6rem] font-semibold uppercase tracking-widest text-slate-500">
+            <div key={section.heading ?? `section-${i}`}>
+              {i > 0 && <hr className="my-2 border-[var(--adm-line)]" />}
+              {section.heading && sidebarOpen && (
+                <p className="px-3 pb-1 text-[0.6rem] font-semibold uppercase tracking-widest text-[var(--adm-muted)]">
                   {section.heading}
                 </p>
               )}
-              {section.items.map((item) => {
-                const Icon = item.icon;
-                const active = item.href === activeHref;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    style={active ? { backgroundColor: brandColor } : undefined}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                      active ? "text-white" : "text-slate-400 hover:bg-slate-800 hover:text-white"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    {item.label}
-                  </Link>
-                );
-              })}
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = item.href === activeHref;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      title={sidebarOpen ? undefined : item.label}
+                      className={`flex h-[42px] items-center gap-3 rounded-xl px-3 text-sm font-semibold whitespace-nowrap transition-colors ${
+                        active
+                          ? "bg-[var(--adm-accent-tint)] text-[var(--adm-accent)]"
+                          : "text-[var(--adm-ink-2)] hover:bg-[var(--adm-line-2)] hover:text-[var(--adm-ink)]"
+                      }`}
+                    >
+                      <Icon className="h-[18px] w-[18px] shrink-0" />
+                      <span className={`transition-opacity duration-150 ${sidebarOpen ? "opacity-100" : "opacity-0"}`}>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           ))}
         </nav>
 
         {/* Bottom actions */}
-        <div className="px-3 py-4 border-t border-slate-800 space-y-0.5">
+        <div className="space-y-0.5 border-t border-[var(--adm-line)] px-3 py-3">
           <Link
             href="/"
             target="_blank"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            title={sidebarOpen ? undefined : "View Site"}
+            className="flex h-[38px] items-center gap-3 rounded-xl px-3 text-xs font-semibold whitespace-nowrap text-[var(--adm-muted)] transition-colors hover:bg-[var(--adm-line-2)] hover:text-[var(--adm-ink-2)]"
           >
-            <ExternalLink className="h-3.5 w-3.5" />
-            View Site
+            <ExternalLink className="h-4 w-4 shrink-0" />
+            <span className={`transition-opacity duration-150 ${sidebarOpen ? "opacity-100" : "opacity-0"}`}>View Site</span>
           </Link>
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-slate-500 hover:text-red-400 transition-colors"
+            title={sidebarOpen ? undefined : "Sign Out"}
+            className="flex h-[38px] w-full items-center gap-3 rounded-xl px-3 text-xs font-semibold whitespace-nowrap text-[var(--adm-muted)] transition-colors hover:bg-[var(--adm-line-2)] hover:text-red-500"
           >
-            <LogOut className="h-3.5 w-3.5" />
-            Sign Out
+            <LogOut className="h-4 w-4 shrink-0" />
+            <span className={`transition-opacity duration-150 ${sidebarOpen ? "opacity-100" : "opacity-0"}`}>Sign Out</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen((v) => !v)}
+            aria-expanded={sidebarOpen}
+            aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+            className="mt-1 flex h-[38px] w-full items-center gap-3 rounded-xl px-3 text-xs font-semibold whitespace-nowrap text-[var(--adm-muted)] transition-colors hover:bg-[var(--adm-line-2)] hover:text-[var(--adm-ink-2)]"
+          >
+            <ChevronsLeft className={`h-4 w-4 shrink-0 transition-transform duration-200 ${sidebarOpen ? "" : "rotate-180"}`} />
+            <span className={`transition-opacity duration-150 ${sidebarOpen ? "opacity-100" : "opacity-0"}`}>Collapse</span>
           </button>
         </div>
       </aside>
 
       {/* ── Main area ───────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col overflow-auto">
+      <div className={`flex min-h-screen flex-col transition-[margin-left] duration-200 ease-in-out ${sidebarOpen ? "ml-56" : "ml-[78px]"}`}>
         {/* Topbar */}
-        <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between">
-          <div>
-            <p className="text-[0.65rem] font-bold uppercase tracking-widest text-slate-400">
+        <header
+          className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--adm-line)] px-7 py-3.5 backdrop-blur-md"
+          style={{ backgroundColor: "color-mix(in srgb, var(--adm-bg) 85%, transparent)" }}
+        >
+          <button
+            type="button"
+            onClick={() => router.back()}
+            aria-label="Go back"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--adm-line)] bg-[var(--adm-card)] text-[var(--adm-ink-2)] transition-colors hover:border-[var(--adm-accent-tint-2)] hover:text-[var(--adm-ink)]"
+          >
+            <ArrowLeft className="h-[18px] w-[18px]" />
+          </button>
+          <div className="min-w-0">
+            <p className="text-[0.65rem] font-bold uppercase tracking-widest text-[var(--adm-muted)]">
               {isStaff ? "Staff" : "Admin"}
             </p>
-            <p className="text-lg font-bold text-slate-900 leading-tight">{currentPage}</p>
+            <p className="truncate text-lg font-bold leading-tight text-[var(--adm-ink)]">{currentPage}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2.5">
             {isManagement && <NotificationBell />}
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-slate-700">
+            <div className="hidden text-right sm:block">
+              <p className="text-sm font-semibold text-[var(--adm-ink-2)]">
                 {user?.first_name} {user?.last_name}
               </p>
-              <p className="text-xs text-slate-400 capitalize">
+              <p className="text-xs capitalize text-[var(--adm-muted)]">
                 {user?.role?.replace("_", " ")}
               </p>
             </div>
-            <div className="h-9 w-9 rounded-full bg-teal-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[var(--adm-line)] bg-[var(--adm-accent)] text-sm font-bold text-white">
               {initials}
             </div>
           </div>

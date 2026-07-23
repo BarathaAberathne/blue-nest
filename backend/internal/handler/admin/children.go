@@ -2,6 +2,7 @@ package admin
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/policy"
@@ -23,8 +24,14 @@ func NewAdminChildHandler(svc service.ChildService, audit service.AuditService) 
 
 func (h *AdminChildHandler) List(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, q.Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
 	filter := repository.ChildFilter{
-		Branch: q.Get("branch"),
+		Branch: branch,
 		Room:   q.Get("room"),
 		Status: q.Get("status"),
 		Q:      q.Get("q"),
@@ -38,7 +45,13 @@ func (h *AdminChildHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminChildHandler) Stats(w http.ResponseWriter, r *http.Request) {
-	stats, err := h.svc.Stats(r.Context())
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	stats, err := h.svc.Stats(r.Context(), branch)
 	if err != nil {
 		response.InternalError(w, "failed to compute stats")
 		return
@@ -46,10 +59,30 @@ func (h *AdminChildHandler) Stats(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, stats)
 }
 
+func (h *AdminChildHandler) CapacityForecast(w http.ResponseWriter, r *http.Request) {
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	weeks, _ := strconv.Atoi(r.URL.Query().Get("weeks"))
+	forecast, err := h.svc.CapacityForecast(r.Context(), branch, weeks)
+	if err != nil {
+		response.InternalError(w, "failed to compute capacity forecast")
+		return
+	}
+	response.OK(w, forecast)
+}
+
 func (h *AdminChildHandler) Get(w http.ResponseWriter, r *http.Request) {
 	item, err := h.svc.GetByID(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
 		response.NotFound(w, "child not found")
+		return
+	}
+	if !inScope(r, item.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
 		return
 	}
 	response.OK(w, item)
@@ -59,6 +92,10 @@ func (h *AdminChildHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req models.ChildRequest
 	if err := validator.DecodeJSON(r, &req); err != nil {
 		response.BadRequest(w, err.Error())
+		return
+	}
+	if !inScope(r, req.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
 		return
 	}
 	created, err := h.svc.Create(r.Context(), req)
@@ -75,6 +112,15 @@ func (h *AdminChildHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var req models.ChildRequest
 	if err := validator.DecodeJSON(r, &req); err != nil {
 		response.BadRequest(w, err.Error())
+		return
+	}
+	existing, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "child not found")
+		return
+	}
+	if !inScope(r, existing.BranchSlug) || !inScope(r, req.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
 		return
 	}
 	updated, err := h.svc.Update(r.Context(), id, req)
@@ -138,6 +184,15 @@ func (h *AdminChildHandler) KeyChildren(w http.ResponseWriter, r *http.Request) 
 
 func (h *AdminChildHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	existing, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "child not found")
+		return
+	}
+	if !inScope(r, existing.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
 	if err := h.svc.Delete(r.Context(), id); err != nil {
 		response.InternalError(w, err.Error())
 		return

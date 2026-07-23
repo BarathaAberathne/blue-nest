@@ -7,6 +7,9 @@
 // DROPS and rebuilds the daily_records collection. Counts match the mock tiles:
 // safeguarding 2 open · incidents 1 today · medication 5 due · meals 386 served.
 // Links each record to a real seeded child. Deterministic (fixed RNG seed).
+// NEVER run this against an environment with real safeguarding/incident/
+// medication records — seedguard.RequireDrop below refuses unless explicitly
+// confirmed.
 package main
 
 import (
@@ -18,6 +21,7 @@ import (
 
 	"github.com/blue-nest-montessori/api/internal/config"
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/platform/seedguard"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -48,6 +52,9 @@ var meds = []struct{ name, dose string }{
 }
 
 func main() {
+	if err := seedguard.RequireDrop("cmd/seeddailylogs"); err != nil {
+		log.Fatal(err)
+	}
 	for _, path := range []string{".env", "../.env", "../../.env"} {
 		if err := godotenv.Load(path); err == nil {
 			break

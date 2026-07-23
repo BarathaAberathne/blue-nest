@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
@@ -23,11 +24,17 @@ func NewAdminDailyRecordHandler(svc service.DailyRecordService, audit service.Au
 
 func (h *AdminDailyRecordHandler) List(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, q.Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
 	limit, _ := strconv.ParseInt(q.Get("limit"), 10, 64)
 	filter := repository.DailyRecordFilter{
 		Type:    q.Get("type"),
 		ChildID: q.Get("child"),
-		Branch:  q.Get("branch"),
+		Branch:  branch,
 		Status:  q.Get("status"),
 		Date:    q.Get("date"),
 		Since:   q.Get("since"),
@@ -43,7 +50,13 @@ func (h *AdminDailyRecordHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminDailyRecordHandler) Stats(w http.ResponseWriter, r *http.Request) {
-	stats, err := h.svc.Stats(r.Context(), r.URL.Query().Get("date"))
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	stats, err := h.svc.Stats(r.Context(), r.URL.Query().Get("date"), branch)
 	if err != nil {
 		response.InternalError(w, "failed to compute stats")
 		return
@@ -57,6 +70,10 @@ func (h *AdminDailyRecordHandler) Get(w http.ResponseWriter, r *http.Request) {
 		response.NotFound(w, "record not found")
 		return
 	}
+	if !inScope(r, item.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
 	response.OK(w, item)
 }
 
@@ -64,6 +81,10 @@ func (h *AdminDailyRecordHandler) Create(w http.ResponseWriter, r *http.Request)
 	var req models.DailyRecordRequest
 	if err := validator.DecodeJSON(r, &req); err != nil {
 		response.BadRequest(w, err.Error())
+		return
+	}
+	if !inScope(r, req.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
 		return
 	}
 	created, err := h.svc.Create(r.Context(), req)
@@ -80,6 +101,15 @@ func (h *AdminDailyRecordHandler) Update(w http.ResponseWriter, r *http.Request)
 	var req models.DailyRecordRequest
 	if err := validator.DecodeJSON(r, &req); err != nil {
 		response.BadRequest(w, err.Error())
+		return
+	}
+	existing, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "record not found")
+		return
+	}
+	if !inScope(r, existing.BranchSlug) || !inScope(r, req.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
 		return
 	}
 	updated, err := h.svc.Update(r.Context(), id, req)
@@ -100,6 +130,15 @@ func (h *AdminDailyRecordHandler) SetStatus(w http.ResponseWriter, r *http.Reque
 		response.BadRequest(w, err.Error())
 		return
 	}
+	existing, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "record not found")
+		return
+	}
+	if !inScope(r, existing.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
 	updated, err := h.svc.SetStatus(r.Context(), id, body.Status)
 	if err != nil {
 		response.BadRequest(w, err.Error())
@@ -111,6 +150,15 @@ func (h *AdminDailyRecordHandler) SetStatus(w http.ResponseWriter, r *http.Reque
 
 func (h *AdminDailyRecordHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	existing, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "record not found")
+		return
+	}
+	if !inScope(r, existing.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
 	if err := h.svc.Delete(r.Context(), id); err != nil {
 		response.InternalError(w, err.Error())
 		return
