@@ -86,9 +86,15 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 
 		// ── Auth ──────────────────────────────────────────────────────────
 		authH := handler.NewAuthHandler(svc.Auth, svc.Organisations, cfg)
+		// Login is credential-guessable — rate-limit per IP so a script can't
+		// brute-force/credential-stuff it (every other public-but-abusable group
+		// in this file, e.g. the kiosk, already does this; login was the gap).
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.RateLimit(10, time.Minute))
+			r.Post("/auth/login", authH.Login)
+			r.Post("/admin/auth/login", authH.AdminLogin)
+		})
 		r.Post("/auth/register", authH.Register)
-		r.Post("/auth/login", authH.Login)
-		r.Post("/admin/auth/login", authH.AdminLogin)
 		r.Post("/auth/logout", authH.Logout)
 		r.Post("/auth/refresh", authH.Refresh)
 

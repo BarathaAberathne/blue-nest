@@ -72,6 +72,10 @@ func (h *AdminStaffHandler) Create(w http.ResponseWriter, r *http.Request) {
 		response.Forbidden(w, "outside your branch scope")
 		return
 	}
+	if callerRole, _ := caller(r); req.EnableLogin && !policy.CanGrantRole(callerRole, req.LoginRole) {
+		response.Forbidden(w, "you cannot grant that role")
+		return
+	}
 	created, err := h.svc.Create(r.Context(), req)
 	if err != nil {
 		response.BadRequest(w, err.Error())
@@ -96,6 +100,10 @@ func (h *AdminStaffHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	if !inScope(r, existing.BranchSlug) || !inScope(r, req.BranchSlug) {
 		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	if callerRole, _ := caller(r); req.EnableLogin && !policy.CanGrantRole(callerRole, req.LoginRole) {
+		response.Forbidden(w, "you cannot grant that role")
 		return
 	}
 	updated, err := h.svc.Update(r.Context(), id, req)
