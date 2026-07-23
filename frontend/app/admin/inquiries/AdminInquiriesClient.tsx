@@ -42,9 +42,12 @@ const SOURCE_OPTIONS: { value: string; label: string }[] = [
 ];
 const EMPTY_CREATE = { name: "", email: "", phone: "", branch: "", child_age: "", enquiry_type: "", source: "phone", priority: "medium", assigned_to: "", message: "", note: "" };
 
+// Parsed as UTC midnight (note the "Z") so the stored instant's calendar date
+// always matches what the user typed, regardless of the browser's local
+// timezone — matches toDateInput's read-back, which also reads the UTC date.
 function dateInputToISO(v: string): string | null {
   if (!v) return null;
-  const d = new Date(`${v}T00:00:00`);
+  const d = new Date(`${v}T00:00:00Z`);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 function toDateInput(iso?: string | null): string {
