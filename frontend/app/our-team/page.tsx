@@ -103,7 +103,7 @@ const ALL_STAFF: TeamMember[] = [
 
   // MD ─────────────────────────────────────────────────
   {
-    name: "Mahesh Devinde Ratnayake", role: "Managing Director",
+    name: "Mahesh Ratnayake", role: "Managing Director",
     branch: "Harrow", category: "MD", initial: "M", colour: c(0),
     photo: "/team/mahesh-devinde-ratnayake.png",
     qualifications: ["Level 5 Early Years"],
@@ -169,25 +169,25 @@ const ALL_STAFF: TeamMember[] = [
     qualifications: ["Level 3 Early Years"],
   },
   {
-    name: "Nilakshi Bandara Rathnayake Mudiyanselage", role: "Nursery Practitioner",
+    name: "Nilakshi Bandara", role: "Nursery Practitioner",
     branch: "Harrow", category: "Academic", initial: "N", colour: c(5),
     photo: "/team/nilakshi-bandara-rathnayake-mudiyanselage.jpg",
     qualifications: ["Level 3 Early Years"],
   },
   {
-    name: "Priyanthi Mala Wijesekara", role: "Nursery Practitioner",
+    name: "Priyanthi Wijesekara", role: "Nursery Practitioner",
     branch: "Harrow", category: "Academic", initial: "P", colour: c(0),
     photo: "/team/priyanthi-mala-wijesekara.png",
     qualifications: [],
   },
   {
-    name: "Resmi Pathirattil Thankappan", role: "Nursery Practitioner",
+    name: "Resmi Thankappan", role: "Nursery Practitioner",
     branch: "Harrow", category: "Academic", initial: "R", colour: c(1),
     photo: "/team/resmi-pathirattil-thankappan.png",
     qualifications: ["Level 3 Early Years"],
   },
   {
-    name: "Shelin Graham Jadav", role: "Senior Practitioner",
+    name: "Shelin Jadav", role: "Senior Practitioner",
     branch: "Harrow", category: "Academic", initial: "S", colour: c(2),
     photo: "/team/shelin-graham-jadav.jpg",
     qualifications: [],
@@ -205,7 +205,7 @@ const ALL_STAFF: TeamMember[] = [
     qualifications: [],
   },
   {
-    name: "Xhensaura Jenny Bushi", role: "3rd In Charge",
+    name: "Xhensaura Jenny", role: "3rd In Charge",
     branch: "Harrow", category: "Academic", initial: "X", colour: c(5),
     photo: "/team/xhensaura-jenny-bushi.jpg",
     qualifications: ["Level 5 Early Years"],
@@ -255,8 +255,8 @@ const ALL_STAFF: TeamMember[] = [
     qualifications: [],
   },
   {
-    name: "Kurukulasuriya Lorage Adithya Parindhini Fernando", role: "Nursery Assistant",
-    branch: "Harrow", category: "Support", initial: "K", colour: c(1),
+    name: "Parindhini Fernando", role: "Nursery Assistant",
+    branch: "Harrow", category: "Support", initial: "P", colour: c(1),
     // photo: "/team/kurukulasuriya-lorage-adithya-parindhini-fernando.jpg",
     qualifications: [],
   },
@@ -267,7 +267,7 @@ const ALL_STAFF: TeamMember[] = [
     qualifications: [],
   },
   {
-    name: "Ram Kumar Shrestha", role: "Maintenance",
+    name: "Ram Kumar", role: "Maintenance",
     branch: "Harrow", category: "Support", initial: "R", colour: c(3),
     photo: "/team/ram-kumar-shrestha.png",
     qualifications: [],
@@ -279,7 +279,7 @@ const ALL_STAFF: TeamMember[] = [
     qualifications: [],
   },
   {
-    name: "Srimaal Saman Kahawe Guruge", role: "Ground Handling",
+    name: "Srimaal Kahaweguruge", role: "Ground Handling",
     branch: "Harrow", category: "Support", initial: "S", colour: c(4),
     photo: "/team/srimaal-saman-kahawe-guruge.jpg",
     qualifications: [],
@@ -298,12 +298,6 @@ const ALL_STAFF: TeamMember[] = [
     photo: "/team/baratha-abeyrathne.png",
     qualifications: [],
   },
-  {
-    name: "Thilina Obeysinghe Arachchige", role: "Business Analyst",
-    branch: "Harrow", category: "BA", initial: "T", colour: c(1),
-    // photo: "/team/thilina-obeysinghe-arachchige.jpg",
-    qualifications: [],
-  },
 
   // ════════════════════════════════════════════════════
   //  BOREHAMWOOD
@@ -319,14 +313,14 @@ const ALL_STAFF: TeamMember[] = [
 
   // Academic ───────────────────────────────────────────
   {
-    name: "Chathuni Iroshika Jayasekara Mudalige Don", role: "Room Leader",
+    name: "Chathuni Don", role: "Room Leader",
     branch: "Borehamwood", category: "Academic", initial: "C", colour: c(0),
     photo: "/team/chathuni-iroshika-jayasekara-mudalige-don.jpg",
     qualifications: ["Level 3 Early Years"],
   },
   {
-    name: "Hettiarachchige Don Nethmi Angela", role: "Nursery Practitioner",
-    branch: "Borehamwood", category: "Academic", initial: "H", colour: c(1),
+    name: "Nethmi Angela", role: "Nursery Practitioner",
+    branch: "Borehamwood", category: "Academic", initial: "N", colour: c(1),
     photo: "/team/hettiarachchige-don-nethmi-angela.jpg",
     qualifications: ["Level 3 Early Years"],
   },
@@ -351,25 +345,25 @@ const ALL_STAFF: TeamMember[] = [
 
   // Support ────────────────────────────────────────────
   {
-    name: "Asini Ovinya Wijensundara", role: "Room Leader",
-    branch: "Borehamwood", category: "Support", initial: "A", colour: c(0),
+    name: "Ovinya Wijensundara", role: "Room Leader",
+    branch: "Borehamwood", category: "Support", initial: "O", colour: c(0),
     photo: "/team/asini-ovinya-wijensundara.jpg",
     qualifications: ["Level 3 Early Years"],
   },
   {
-    name: "Dilan Pradeep Kumara", role: "Nursery Chef",
+    name: "Dilan Pradeep", role: "Nursery Chef",
     branch: "Borehamwood", category: "Support", initial: "D", colour: c(1),
     photo: "/team/dilan-pradeep-kumara.jpg",
     qualifications: [],
   },
   {
-    name: "Dulanga Dilrangi Wijesekara", role: "Nursery Assistant",
+    name: "Dulanga Wijesekara", role: "Nursery Assistant",
     branch: "Borehamwood", category: "Support", initial: "D", colour: c(2),
     // photo: "/team/dulanga-dilrangi-wijesekara.jpg",
     qualifications: [],
   },
   {
-    name: "Ishinda Dinal Abeywickrema", role: "Facilities & Compliance Officer",
+    name: "Ishinda Abeywickrema", role: "Facilities & Compliance Officer",
     branch: "Borehamwood", category: "Support", initial: "I", colour: c(3),
     photo: "/team/ishinda-dinal-abeywickrema.jpg",
     qualifications: [],
@@ -407,7 +401,7 @@ const ALL_STAFF: TeamMember[] = [
 
   // Deputy ─────────────────────────────────────────────
   {
-    name: "Star Amber Mercedes Takelove", role: "Deputy Manager",
+    name: "Star Takelove", role: "Deputy Manager",
     branch: "Pinner", category: "Deputy", initial: "S", colour: c(0),
     // photo: "/team/star-amber-mercedes-takelove.jpg",
     qualifications: [],
@@ -421,7 +415,7 @@ const ALL_STAFF: TeamMember[] = [
     qualifications: [],
   },
   {
-    name: "Dilanka Lakmali Bandaranayake Mudiyanselage", role: "Room Leader",
+    name: "Dilanka Mudiyanselage", role: "Room Leader",
     branch: "Pinner", category: "Academic", initial: "D", colour: c(1),
     photo: "/team/dilanka-lakmali-bandaranayake-mudiyanselage.jpg",
     qualifications: [],
@@ -441,7 +435,7 @@ const ALL_STAFF: TeamMember[] = [
 
   // Support ────────────────────────────────────────────
   {
-    name: "Amelie Marie Hogberg", role: "Bank Staff",
+    name: "Amelie Hogberg", role: "Bank Staff",
     branch: "Pinner", category: "Support", initial: "A", colour: c(0),
     // photo: "/team/amelie-marie-hogberg.jpg",
     qualifications: [],
@@ -823,7 +817,14 @@ function Avatar({
         className={`${dim} relative shrink-0 overflow-hidden rounded-full border-2`}
         style={{ borderColor: av.border }}
       >
-        <Image src={photo} alt="" fill sizes={`${px}px`} className="object-cover" />
+        <Image
+          src={photo}
+          alt=""
+          fill
+          sizes={`${px}px`}
+          className="object-cover"
+          style={{ objectPosition: "50% 18%" }}
+        />
       </div>
     );
   }
