@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PageWrapper from "@/components/ui/PageWrapper";
 import { api } from "@/lib/api";
-import { setAuthSession } from "@/lib/auth";
+import { storeAuthResponse } from "@/lib/auth";
 import { mergeGuestCartToServer } from "@/lib/cart-sync";
 import type { AuthResponse } from "@/types";
 
@@ -37,7 +37,7 @@ export default function RegisterClient() {
         email,
         password,
       }) as AuthResponse;
-      setAuthSession(auth.access_token, auth.user);
+      storeAuthResponse(auth.access_token, auth.refresh_token ?? "", auth.user);
       // Carry any guest-cart items into the new account's server cart.
       await mergeGuestCartToServer(auth.access_token);
       router.push(next);
