@@ -72,13 +72,6 @@ export function getAuthUser(): User | null {
   }
 }
 
-export function setAuthSession(accessToken: string, user: User) {
-  if (!isBrowser()) return;
-  window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-  window.dispatchEvent(new Event(AUTH_UPDATED_EVENT));
-}
-
 export function storeAuthResponse(accessToken: string, refreshToken: string, user: User) {
   if (!isBrowser()) return;
   window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
