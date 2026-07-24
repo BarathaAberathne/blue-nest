@@ -6,6 +6,7 @@ import { Download, KeyRound, Plus, Search, ShieldCheck, UserCheck, Users, X } fr
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { dbsExpiry, staffStatusAccent, staffStatusLabel, staffTypeAccent, staffTypeLabel } from "@/lib/staff";
@@ -46,6 +47,7 @@ export default function StaffClient() {
     setLoading(false);
   };
   useEffect(() => { void load(); }, []);
+  useAutoRefresh(load, 30_000);
 
   const branchName = useMemo(() => {
     const m = new Map(branches.map((b) => [b.slug, branchShortName(b)]));

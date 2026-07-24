@@ -6,6 +6,7 @@ import { Baby, Download, Plus, Search, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { ageLabel, childStatusAccent, fundingLabel } from "@/lib/child";
@@ -46,6 +47,9 @@ export default function ChildrenClient() {
     setLoading(false);
   };
   useEffect(() => { void load(); }, []);
+  // Keeps the list current if another staff member adds/edits a child
+  // elsewhere while this page sits open — same cadence as attendance/staff.
+  useAutoRefresh(load, 30_000);
 
   const branchName = useMemo(() => {
     const m = new Map(branches.map((b) => [b.slug, branchShortName(b)]));

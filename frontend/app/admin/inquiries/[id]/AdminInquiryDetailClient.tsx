@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import Card from "@/components/ui/Card";
 import StatusBadge from "@/components/ui/StatusBadge";
 import NoteBox from "@/components/admin/inquiries/NoteBox";
@@ -111,8 +112,15 @@ export default function AdminInquiryDetailClient({ id }: { id: string }) {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
-  const hydrate = useCallback((e: Enquiry) => {
+  // `silent`: on a background refresh, only the read-only source-of-truth
+  // (`enquiry` — status, notes, activity log) updates. The draft form fields
+  // (next action, follow-up, registration form) are deliberately left alone
+  // so a passive timer never overwrites text the admin is mid-way typing —
+  // they're only (re)synced on the initial load and after the admin's OWN
+  // save (via `run`, which always calls hydrate without `silent`).
+  const hydrate = useCallback((e: Enquiry, silent?: boolean) => {
     setEnquiry(e);
+    if (silent) return;
     setNextActionDraft(e.next_action ?? "");
     setFollowUpDraft(toDateInput(e.follow_up_date));
     setAppOpen(e.enquiry_type === "Application form");
@@ -134,11 +142,19 @@ export default function AdminInquiryDetailClient({ id }: { id: string }) {
   useEffect(() => {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated."); setLoading(false); return; }
-    api.adminGetEnquiry(token, id).then(hydrate)
+    api.adminGetEnquiry(token, id).then((e) => hydrate(e))
       .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load inquiry"))
       .finally(() => setLoading(false));
     api.adminGetEnquiryAssignees(token).then(setAssignees).catch(() => { /* non-blocking */ });
   }, [id, hydrate]);
+
+  // Silent background refresh — another staff member's status change/note/
+  // assignment shows up here without a manual reload.
+  useAutoRefresh(() => {
+    const token = getAccessToken();
+    if (!token) return;
+    return api.adminGetEnquiry(token, id).then((e) => hydrate(e, true)).catch(() => { /* keep last-good data */ });
+  }, 30_000);
 
   const run = useCallback(
     async (fn: (token: string) => Promise<Enquiry>, success: string) => {
