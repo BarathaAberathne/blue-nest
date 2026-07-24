@@ -187,6 +187,23 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   at `/admin/inquiries/[id]` (Overview/Message/Notes & Activity/Follow-up/Registration + sticky action
   panel), and a KPI dashboard at `/admin/inquiries/dashboard` (cards, **recharts** charts, conversion
   funnel, branch comparison). Shared UI: `components/ui/{Tabs,StatusBadge}`, helpers in `lib/enquiry.ts`.
+- **Duplicate prevention & real-time sync (Enquiries/Children/Staff/Daily Logs, delivered):** backend —
+  a submission with the same **email** as an existing still-in-pipeline enquiry (new/contacted/
+  awaiting_reply/booked_visit/visit_completed — never registered/cancelled/lost/spam) within 24h merges
+  into it as a note instead of creating a duplicate (`enquiryService.mergeIfDuplicate`, wired into both
+  `Submit` and `CreateManual`/`POST /admin/enquiries` — the latter returns `200`+an accurate `merge_duplicate`
+  audit entry rather than `201` when it merges); `POST /admin/children` rejects a second child with the same
+  first+last name and DOB at the same branch (`childService.duplicateChild`, also enforced inside
+  `EnsureFromEnquiry` so two enquiry threads for the same family link to one child); `POST
+  /admin/daily-records` debounces an exact resubmit (same child+type+branch+date+title+meal_type) within 5s
+  into the existing record (`dailyRecordService.recentDuplicate`) without blocking genuinely distinct
+  same-day entries. Staff already had duplicate-email rejection (Phase QA pass, above). Frontend — Enquiries
+  (list + detail), Children (list + detail), Staff (list + detail) and Daily Logs now poll via
+  `lib/useAutoRefresh.ts` (30s interval + refire on tab focus/visibility, paused while hidden) so another
+  staff member's change shows up without a manual reload; detail pages only refresh their read-only display
+  state in the background (`hydrate(e, silent)` on the enquiry detail page) so an admin's in-progress edit
+  form is never silently overwritten. `useAutoRefresh` was originally built for the attendance/dashboard/
+  command-centre pages (see Staff Attendance module below) — this extends the same hook to these five.
 - **Audit log** (`models/audit_log.go`, collection `audit_logs`): append-only record of admin
   mutations. `service.AuditService.Record(r, action, entityType, entityID, summary, details)` is
   called from admin handlers after a successful mutation (best-effort — never blocks the operation;
@@ -481,8 +498,9 @@ promoting `develop → main`. Don't confuse the staging *environment* with a bra
   for the filtered subsets). **Its own README has an exact, validated coverage matrix — check it before
   assuming "the suite" means "full plan coverage"; as of this writing it references 49 of the plan's 55
   `TC-XXX-NNN` ids (many as deliberate "gap lock" tests — a passing test that proves the plan's *expected*
-  behaviour is currently absent, e.g. no room-capacity/age-band enforcement, no duplicate-enquiry detection,
-  no room-staff assignment validation). The remaining 6 (`TC-VISIT-002/003`, `TC-LOG-002/003`,
+  behaviour is currently absent, e.g. no room-capacity/age-band enforcement, no room-staff assignment
+  validation). Duplicate-enquiry detection is no longer one of these — see "Duplicate prevention & real-time
+  sync" below. The remaining 6 (`TC-VISIT-002/003`, `TC-LOG-002/003`,
   `TC-RATIO-001/002`) are verified N/A — no such entity/record-type/live-ratio-system exists server-side at
   all, not merely untested. See the README's coverage matrix before starting new coverage, and extend it
   when you add a suite.**
