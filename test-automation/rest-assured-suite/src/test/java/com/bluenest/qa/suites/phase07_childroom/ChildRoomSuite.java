@@ -49,6 +49,14 @@ import static org.hamcrest.Matchers.*;
  * a bare {@code {"branch_slug":"harrow"}} PUT). Fixed in the same {@code
  * applyChild} function. Test 8 below is the lock for the safeguarding-
  * relevant fields; {@code ScheduleSuite} locks the {@code sessions} field.
+ *
+ * <p><b>Third regression (duplicate children):</b> unlike rooms (name) and
+ * staff (email), {@code childService.Create}/{@code Update}/{@code
+ * EnsureFromEnquiry} had no duplicate check at all — a double-submit could
+ * create two enrolment records for the same child. Fixed with a
+ * name+DOB+branch check ({@code childService.duplicateChild}), excluding
+ * children with status {@code left} (a re-enrolment is legitimate). Test 9
+ * below is the lock.
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @DisplayName("Phase 11 — Child room assignment")
@@ -267,6 +275,38 @@ class ChildRoomSuite {
                     .body("data.dietary_reqs", equalTo("No dairy"));
         } finally {
             given().spec(Api.authed(adminToken)).when().delete("/api/v1/admin/children/" + fixtureId);
+        }
+    }
+
+    @Test
+    @Order(9)
+    @DisplayName("Exit Criteria §6 (regression): a second child with the same name and date of birth at the same branch is rejected, not silently duplicated")
+    @Tag("regression")
+    void tc_exitcriteria_duplicateChildRejected() {
+        String lastName = TestData.uniqueName("DupeChild");
+        String dob = "2023-05-01";
+
+        Response first = given().spec(Api.authed(adminToken))
+                .body(Map.of("first_name", "QA-AUTOTEST", "last_name", lastName, "dob", dob, "branch_slug", Env.HARROW_BRANCH_SLUG))
+                .when().post("/api/v1/admin/children");
+        first.then().statusCode(201);
+        String firstId = first.jsonPath().getString("data.id");
+
+        try {
+            // Then: an identical name+DOB+branch is rejected, not duplicated.
+            given().spec(Api.authed(adminToken))
+                    .body(Map.of("first_name", "QA-AUTOTEST", "last_name", lastName, "dob", dob, "branch_slug", Env.HARROW_BRANCH_SLUG))
+                    .when().post("/api/v1/admin/children")
+                    .then().statusCode(400).body("error", containsStringIgnoringCase("already exists"));
+
+            // A DIFFERENT date of birth for the same name is NOT a duplicate.
+            Response secondChild = given().spec(Api.authed(adminToken))
+                    .body(Map.of("first_name", "QA-AUTOTEST", "last_name", lastName, "dob", "2024-01-01", "branch_slug", Env.HARROW_BRANCH_SLUG))
+                    .when().post("/api/v1/admin/children");
+            secondChild.then().statusCode(201);
+            given().spec(Api.authed(adminToken)).when().delete("/api/v1/admin/children/" + secondChild.jsonPath().getString("data.id"));
+        } finally {
+            given().spec(Api.authed(adminToken)).when().delete("/api/v1/admin/children/" + firstId);
         }
     }
 }

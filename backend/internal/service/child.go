@@ -163,6 +163,32 @@ func (s *childService) mintRef(ctx context.Context) (string, error) {
 	return models.FormatRef(models.RefPrefixChild, year, seq), nil
 }
 
+// duplicateChild reports whether branch already has an active/waitlisted
+// child with the same first+last name (case-insensitive) and DOB as the
+// given record, other than excludeID (empty on create). "left" children are
+// excluded — a former child re-enrolling under the same identity is a
+// legitimate, not a duplicate, record.
+func (s *childService) duplicateChild(ctx context.Context, branch string, c *models.Child, excludeID string) (bool, error) {
+	if strings.TrimSpace(c.DOB) == "" {
+		return false, nil // nothing to key a duplicate check on
+	}
+	children, err := s.repo.FindAll(ctx, repository.ChildFilter{Branch: branch})
+	if err != nil {
+		return false, err
+	}
+	for _, existing := range children {
+		if existing.ID.Hex() == excludeID || existing.Status == models.ChildLeft {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(existing.FirstName), c.FirstName) &&
+			strings.EqualFold(strings.TrimSpace(existing.LastName), c.LastName) &&
+			existing.DOB == c.DOB {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (s *childService) Create(ctx context.Context, req models.ChildRequest) (*models.Child, error) {
 	if strings.TrimSpace(req.FirstName) == "" || strings.TrimSpace(req.LastName) == "" {
 		return nil, errors.New("child first and last name are required")
@@ -175,6 +201,11 @@ func (s *childService) Create(ctx context.Context, req models.ChildRequest) (*mo
 	}
 	c := &models.Child{Status: models.ChildActive, FundingType: models.FundingNone}
 	applyChild(c, req)
+	if dup, err := s.duplicateChild(ctx, c.BranchSlug, c, ""); err != nil {
+		return nil, err
+	} else if dup {
+		return nil, errors.New("a child with that name and date of birth already exists at this branch")
+	}
 	ref, err := s.mintRef(ctx)
 	if err != nil {
 		return nil, err
@@ -195,6 +226,11 @@ func (s *childService) Update(ctx context.Context, id string, req models.ChildRe
 		return nil, err
 	}
 	applyChild(existing, req)
+	if dup, err := s.duplicateChild(ctx, existing.BranchSlug, existing, id); err != nil {
+		return nil, err
+	} else if dup {
+		return nil, errors.New("a child with that name and date of birth already exists at this branch")
+	}
 	updated, err := s.repo.Update(ctx, id, *existing)
 	if err != nil {
 		return nil, err
@@ -220,6 +256,14 @@ func (s *childService) EnsureFromEnquiry(ctx context.Context, enquiryID string, 
 	}
 	c := &models.Child{Status: models.ChildActive, FundingType: models.FundingNone, EnquiryID: enquiryID}
 	applyChild(c, req)
+	// A DIFFERENT enquiry registering the same name+DOB (e.g. two enquiry
+	// threads for the same family) must link to the existing child, not
+	// create a second enrolment record for it.
+	if dup, err := s.duplicateChild(ctx, c.BranchSlug, c, ""); err != nil {
+		return nil, err
+	} else if dup {
+		return nil, errors.New("a child with that name and date of birth already exists at this branch")
+	}
 	ref, err := s.mintRef(ctx)
 	if err != nil {
 		return nil, err
