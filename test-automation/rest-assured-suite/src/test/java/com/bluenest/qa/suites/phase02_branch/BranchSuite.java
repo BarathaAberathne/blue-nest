@@ -2,6 +2,7 @@ package com.bluenest.qa.suites.phase02_branch;
 
 import com.bluenest.qa.config.Env;
 import com.bluenest.qa.support.Api;
+import com.bluenest.qa.support.JsonUtil;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.*;
 
@@ -123,7 +124,6 @@ class BranchSuite {
             "contact", "admissions", "postcode", "lat", "lng", "website", "parking", "opening_hours",
             "capacity", "age_groups", "ofsted_rating", "ofsted_report_url", "google", "social", "group_id");
 
-    @SuppressWarnings("unchecked")
     private static Map<String, Object> harrowRequestBody() {
         Response res = given().spec(Api.authed(adminToken)).when().get("/api/v1/admin/branches");
         List<Map<String, Object>> branches = res.jsonPath().getList("data");
@@ -161,8 +161,7 @@ class BranchSuite {
     @Tag("regression")
     void tc_br_003b_invalidOpeningHoursNotValidated() {
         Map<String, Object> baseline = harrowRequestBody();
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> originalHours = (List<Map<String, Object>>) baseline.get("opening_hours");
+        List<Map<String, Object>> originalHours = JsonUtil.asMapList(baseline.get("opening_hours"));
 
         // Build a fresh (non-aliased) copy of opening_hours with day[0] corrupted,
         // so `baseline` below is guaranteed untouched for the restore step.

@@ -204,7 +204,7 @@ class DailyLogSuite {
                 .queryParam("limit", "50")
                 .when().get("/api/v1/admin/audit-logs");
         audit.then().statusCode(200);
-        List<Map> entries = audit.jsonPath().getList("data", Map.class);
+        List<Map<String, Object>> entries = audit.jsonPath().getList("data");
         boolean found = entries.stream().anyMatch(e -> id.equals(e.get("entity_id")));
         Assertions.assertTrue(found, "expected an audit_logs entry for the deleted daily_record id " + id);
     }

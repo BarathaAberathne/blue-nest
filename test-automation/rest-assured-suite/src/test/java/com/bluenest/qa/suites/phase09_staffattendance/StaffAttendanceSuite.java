@@ -174,7 +174,7 @@ class StaffAttendanceSuite {
 
         res.then().statusCode(200)
                 .body("data.status", equalTo("present"));
-        List<Map> corrections = res.jsonPath().getList("data.corrections", Map.class);
+        List<Map<String, Object>> corrections = res.jsonPath().getList("data.corrections");
         Assertions.assertFalse(corrections.isEmpty(), "backfilling via correct must append at least one audit entry");
         Assertions.assertEquals("status", corrections.get(corrections.size() - 1).get("field"));
     }
@@ -194,7 +194,7 @@ class StaffAttendanceSuite {
                 .when().patch("/api/v1/admin/staff-attendance/" + testDateRecordId + "/correct");
 
         res.then().statusCode(200).body("data.status", equalTo("sick"));
-        List<Map> corrections = res.jsonPath().getList("data.corrections", Map.class);
+        List<Map<String, Object>> corrections = res.jsonPath().getList("data.corrections");
         boolean hasStatusCorrection = corrections.stream().anyMatch(c -> "status".equals(c.get("field")));
         Assertions.assertTrue(hasStatusCorrection, "expected a 'status' field entry in the correction history");
     }
@@ -281,7 +281,7 @@ class StaffAttendanceSuite {
                         "reason", "QA-AUTOTEST manual correction — forgot to clock out"))
                 .when().patch("/api/v1/admin/staff-attendance/000000000000000000000000/correct");
         corrected.then().statusCode(200).body("data.missing_clockout", is(false));
-        List<Map> corrections = corrected.jsonPath().getList("data.corrections", Map.class);
+        List<Map<String, Object>> corrections = corrected.jsonPath().getList("data.corrections");
         boolean hasClockOutCorrection = corrections.stream().anyMatch(c -> "clock_out".equals(c.get("field")));
         Assertions.assertTrue(hasClockOutCorrection, "expected a 'clock_out' field entry in the correction history");
     }

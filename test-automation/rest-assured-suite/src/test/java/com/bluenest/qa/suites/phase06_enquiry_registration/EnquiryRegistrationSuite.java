@@ -212,7 +212,8 @@ class EnquiryRegistrationSuite {
         Response registered = given().spec(Api.authed(adminToken))
                 .when().get("/api/v1/admin/enquiries?status=registered");
 
-        List<Map> matches = registered.jsonPath().getList("data", Map.class).stream()
+        List<Map<String, Object>> registeredList = registered.jsonPath().getList("data");
+        List<Map<String, Object>> matches = registeredList.stream()
                 .filter(e -> enquiryId.equals(e.get("id")))
                 .toList();
         Assertions.assertEquals(1, matches.size(), "enquiry must appear exactly once in Registered");

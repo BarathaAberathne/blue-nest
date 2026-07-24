@@ -4,7 +4,7 @@ An API/end-to-end regression suite for the flows and defects covered by
 `test-automation/test-instructions` (the master QA plan) and this project's
 live manual QA pass. Java 17+, Maven, REST-Assured 5, JUnit 5.
 
-**Status: complete coverage of what's actually testable.** 120
+**Status: complete coverage of what's actually testable.** 106
 tests, all passing, referencing 49 of the plan's 55 `TC-XXX-NNN` cases (some
 partially — see the coverage matrix below). The remaining 6 are **not
 missing tests** — they're plan cases describing functionality that was

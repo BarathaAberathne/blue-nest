@@ -2,6 +2,7 @@ package com.bluenest.qa.suites.phase12_schedule;
 
 import com.bluenest.qa.config.Env;
 import com.bluenest.qa.support.Api;
+import com.bluenest.qa.support.JsonUtil;
 import com.bluenest.qa.support.TestData;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.*;
@@ -67,19 +68,18 @@ class ScheduleSuite {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static Map<String, Object> dayEntry(String day) {
         Response forecast = given().spec(Api.authed(adminToken))
                 .queryParam("branch", Env.HARROW_BRANCH_SLUG).queryParam("weeks", 1)
                 .when().get("/api/v1/admin/children/capacity-forecast");
         forecast.then().statusCode(200);
 
-        List<Map> rooms = forecast.jsonPath().getList("data.rooms", Map.class);
-        Map room = (Map) rooms.stream()
-                .filter(r -> roomId.equals(((Map) r).get("room_id")))
+        List<Map<String, Object>> rooms = forecast.jsonPath().getList("data.rooms");
+        Map<String, Object> room = rooms.stream()
+                .filter(r -> roomId.equals(r.get("room_id")))
                 .findFirst().orElseThrow(() -> new IllegalStateException("dedicated schedule room missing from forecast"));
-        List<Map> weeks = (List<Map>) room.get("weeks");
-        List<Map> days = (List<Map>) weeks.get(0).get("days");
+        List<Map<String, Object>> weeks = JsonUtil.asMapList(room.get("weeks"));
+        List<Map<String, Object>> days = JsonUtil.asMapList(weeks.get(0).get("days"));
         return days.stream().filter(d -> day.equals(d.get("day"))).findFirst()
                 .orElseThrow(() -> new IllegalStateException("day " + day + " missing from forecast"));
     }

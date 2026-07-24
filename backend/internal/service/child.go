@@ -104,18 +104,12 @@ func (s *childService) KeyChildren(ctx context.Context, staffID string) ([]model
 	return s.repo.FindAll(ctx, repository.ChildFilter{KeyPerson: staffID})
 }
 
-// applyChild copies req onto c. Identity-critical fields (name/DOB/branch) only
-// overwrite when the request actually supplies them — a caller updating just
-// one field (e.g. a room assignment) must never silently wipe the others.
-// RoomID is exempt: clearing it is how a child is unassigned from a room.
 // applyChild copies a ChildRequest onto a Child record for both Create and
-// Update. Safety-relevant and identity fields only overwrite when the
+// Update. Identity and safety-relevant fields only overwrite when the
 // request actually supplies a value — a partial update (e.g. "just change
-// room_id") must never silently wipe allergies/medical notes/guardians,
-// same data-loss pattern as the DOB bug already fixed here, discovered to
-// still be present for these fields while building ScheduleSuite. RoomID
-// stays unconditional: clearing it is the legitimate "unassign from room"
-// action.
+// room_id") must never silently wipe DOB/allergies/medical notes/guardians.
+// RoomID stays unconditional: clearing it is the legitimate "unassign from
+// room" action.
 func applyChild(c *models.Child, req models.ChildRequest) {
 	if s := strings.TrimSpace(req.FirstName); s != "" {
 		c.FirstName = s
