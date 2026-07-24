@@ -1,0 +1,2104 @@
+# Nursery Management System — Full End-to-End Test Plan
+
+## 1. Test Objective
+
+Validate that the Nursery Management System supports the complete operational lifecycle of a nursery branch without data gaps, duplicate functionality, incorrect permissions, stale data, duplicate network calls, broken integrations, or inconsistent KPI reporting.
+
+The primary business flow under test is:
+
+**Create Harrow branch → configure branch details → add staff → assign managers and roles → receive enquiry → deputy manager handles enquiry → book visit → complete visit → convert enquiry to registration → assign child to room → assign staff to room → record child and staff attendance → add daily logs → verify dashboards, KPIs, APIs, notifications, audit records, and database consistency.**
+
+---
+
+# 2. Test Scope
+
+## 2.1 Functional Areas
+
+The test covers:
+
+1. Authentication and role-based access
+2. Branch creation and configuration
+3. Staff creation and employment records
+4. Manager and deputy manager assignment
+5. Room creation and capacity management
+6. Enquiry submission and processing
+7. Visit scheduling and completion
+8. Child registration and enrolment
+9. Parent and guardian creation
+10. Child-to-room allocation
+11. Staff-to-room allocation
+12. Child attendance
+13. Staff attendance and working hours
+14. Daily child logs
+15. Notifications
+16. Dashboard and KPI updates
+17. API and endpoint validation
+18. Network request validation
+19. Database integrity
+20. Audit trail validation
+21. Error handling and recovery
+22. Duplicate prevention
+23. Concurrent usage
+24. Performance and security
+
+---
+
+# 3. Test Environment
+
+## 3.1 Recommended Environments
+
+Run the test flow in:
+
+* Local development environment
+* Shared test environment
+* Staging environment
+* Production-like environment before release
+
+Production data must not be used for destructive testing.
+
+## 3.2 Test Configuration
+
+Use a clean test tenant or database.
+
+Suggested test tenant:
+
+**Organisation:** Blue Nest Montessori School
+**Branch:** Harrow
+**Branch code:** HARROW
+**Environment:** Staging
+**Timezone:** Europe/London
+**Currency:** GBP
+**Operating days:** Monday to Friday
+**Opening hours:** 07:30–18:30
+
+## 3.3 Test Users
+
+| User                  | Role             | Expected Access                                               |
+| --------------------- | ---------------- | ------------------------------------------------------------- |
+| Director Test         | Director         | Full organisation access                                      |
+| Regional Manager Test | Regional Manager | Access to assigned branches                                   |
+| Harrow Manager Test   | Branch Manager   | Full Harrow branch access                                     |
+| Harrow Deputy Test    | Deputy Manager   | Enquiries, visits, children, rooms, attendance and daily logs |
+| Room Leader Test      | Room Leader      | Assigned room, staff and child operational access             |
+| Practitioner Test     | Teaching Staff   | Assigned room, attendance and daily logs                      |
+| Parent Test           | Parent           | Own child only                                                |
+| Finance Test          | Finance/Admin    | Financial and reporting access where applicable               |
+| Unauthorised Test     | No Harrow access | Must not access Harrow data                                   |
+
+---
+
+# 4. Test Data
+
+## 4.1 Branch Data
+
+* Name: Blue Nest Montessori School Harrow
+* Code: HARROW
+* Address: Test Harrow Address
+* Telephone: 020 0000 0000
+* Email: [harrow.test@bluenest.uk](mailto:harrow.test@bluenest.uk)
+* Capacity: 60
+* Opening hours: 07:30–18:30
+* Status: Active
+
+## 4.2 Rooms
+
+| Room           |   Age Range | Capacity |
+| -------------- | ----------: | -------: |
+| Baby Room      | 3–24 months |       12 |
+| Toddler Room   |   2–3 years |       20 |
+| Preschool Room |   3–5 years |       28 |
+
+## 4.3 Staff
+
+Create at least:
+
+* 1 Branch Manager
+* 1 Deputy Manager
+* 1 Baby Room Leader
+* 2 Baby Room Practitioners
+* 1 Toddler Room Leader
+* 3 Toddler Room Practitioners
+* 1 Preschool Room Leader
+* 4 Preschool Practitioners
+* 1 Bank Staff member
+* 1 Inactive staff member
+
+## 4.4 Child and Enquiry Data
+
+* Child name: Test Child Harrow
+* Date of birth: Use a date that places the child in the Toddler Room age range
+* Parent name: Test Parent
+* Parent email: unique test email
+* Parent telephone: unique test telephone
+* Requested start date: future valid date
+* Requested days: Monday, Wednesday and Friday
+* Requested session: Full day
+* Funding: None initially
+* Enquiry type: Arrange a visit
+* Source: Website
+
+---
+
+# 5. Entry Criteria
+
+Testing can begin when:
+
+* The application is deployed successfully.
+* Database migrations have completed.
+* Authentication is working.
+* Email, notification and calendar integrations are available or mocked.
+* Required API endpoints are deployed.
+* Test users are available.
+* Test database can be reset.
+* Logs and network requests can be inspected.
+* KPI calculations are enabled.
+* Background jobs and queues are running.
+
+---
+
+# 6. Exit Criteria
+
+The flow passes when:
+
+* All critical business steps complete successfully.
+* No duplicate branch, staff, child, enquiry, visit or attendance records are created.
+* All role permissions behave correctly.
+* Room capacities and staffing ratios are enforced.
+* Child and staff attendance update correctly.
+* Daily logs are visible to authorised users.
+* KPIs match the underlying data.
+* API responses and status codes are correct.
+* No redundant or duplicate network calls occur.
+* No critical console, server, database or background job errors occur.
+* Audit records exist for significant changes.
+* Cross-branch data isolation is maintained.
+* Retrying failed operations does not create duplicates.
+
+---
+
+# 7. End-to-End Test Flow
+
+## Phase 1 — Authentication and Organisation Access
+
+### TC-AUTH-001: Director Login
+
+**Actor:** Director
+
+**Steps:**
+
+1. Open the login page.
+2. Enter valid Director credentials.
+3. Submit the login form.
+4. Inspect the authentication request.
+5. Open the main dashboard.
+
+**Expected results:**
+
+* Login succeeds.
+* Authentication request is sent once.
+* Access token or session is created securely.
+* Director is redirected to the correct dashboard.
+* Organisation-level navigation is visible.
+* No branch-specific data is loaded repeatedly.
+* No sensitive information appears in browser storage unnecessarily.
+* No console errors occur.
+
+### TC-AUTH-002: Invalid Login
+
+**Steps:**
+
+1. Enter an incorrect password.
+2. Submit the form repeatedly.
+
+**Expected results:**
+
+* Login fails with a safe message.
+* No account existence information is exposed.
+* Rate limiting or lockout protection applies where configured.
+* No session is created.
+* One login request is generated per deliberate submission.
+
+---
+
+## Phase 2 — Create the Harrow Branch
+
+### TC-BR-001: Create Harrow Branch
+
+**Actor:** Director
+
+**Steps:**
+
+1. Navigate to Branch Management.
+2. Select Create Branch.
+3. Enter the Harrow branch details.
+4. Save the branch.
+5. Inspect the network request.
+6. Refresh the page.
+7. Search for the Harrow branch.
+
+**Expected results:**
+
+* One branch record is created.
+* A unique branch ID is generated.
+* Branch code HARROW is unique.
+* The save button is disabled while the request is processing.
+* Only one create request is sent.
+* Response returns the expected success status.
+* The branch appears in the branch list.
+* Data remains after refresh.
+* An audit entry records who created the branch and when.
+* Branch KPIs initialise at zero.
+* No default rooms, users or records are duplicated.
+
+### TC-BR-002: Prevent Duplicate Branch
+
+**Steps:**
+
+1. Attempt to create another branch using the same branch code.
+2. Attempt to create another branch using the same name and address.
+3. Double-click the save button.
+4. Repeat the same request using an API client.
+
+**Expected results:**
+
+* Duplicate branch code is rejected.
+* Double submission does not create two records.
+* Server-side uniqueness rules are enforced.
+* API returns a clear validation or conflict response.
+* No partial branch is created.
+
+### TC-BR-003: Branch Configuration
+
+Configure:
+
+* Address
+* Contact details
+* Opening hours
+* Capacity
+* Nursery registration details
+* Notification recipients
+* Enquiry settings
+* Attendance settings
+* Room ratio settings
+* Holiday calendar
+* Fee settings
+* Funding settings
+
+**Expected results:**
+
+* Each setting saves correctly.
+* Required fields are validated.
+* Invalid opening hours are rejected.
+* Configuration is scoped to Harrow.
+* Changes are reflected without requiring unnecessary full-page reloads.
+* Updating one setting does not overwrite unrelated settings.
+
+---
+
+## Phase 3 — Create Rooms
+
+### TC-ROOM-001: Create Nursery Rooms
+
+**Actor:** Branch Manager or Director
+
+**Steps:**
+
+1. Create Baby Room.
+2. Create Toddler Room.
+3. Create Preschool Room.
+4. Set age ranges and capacities.
+5. Assign branch as Harrow.
+6. Save each room.
+
+**Expected results:**
+
+* Three unique room records are created.
+* Each room is linked to Harrow.
+* Age ranges do not overlap incorrectly unless explicitly permitted.
+* Capacity values are positive integers.
+* Rooms appear in room dashboards.
+* Initial child occupancy is zero.
+* Initial assigned staff count is zero.
+
+### TC-ROOM-002: Room Validation
+
+Test:
+
+* Missing name
+* Capacity of zero
+* Negative capacity
+* Invalid age range
+* Duplicate room name in the same branch
+* Same room name in another branch
+
+**Expected results:**
+
+* Invalid values are rejected.
+* Duplicate policy is applied consistently.
+* Cross-branch room names are allowed if designed that way.
+* Error messages identify the affected field.
+
+---
+
+## Phase 4 — Add Staff
+
+### TC-STAFF-001: Add Branch Manager
+
+**Actor:** Director
+
+**Steps:**
+
+1. Open Staff Management.
+2. Select Add Staff.
+3. Enter the branch manager's details.
+4. Assign Harrow branch.
+5. Assign Branch Manager role.
+6. Set employment status to Active.
+7. Save.
+
+**Expected results:**
+
+* Staff profile is created once.
+* User account and staff profile are correctly linked.
+* Harrow branch assignment is correct.
+* Branch Manager permissions are applied.
+* Welcome or account activation notification is sent once.
+* No duplicate user is created if the email already exists.
+* Audit record is generated.
+
+### TC-STAFF-002: Add Deputy Manager and Teaching Staff
+
+Repeat the flow for:
+
+* Deputy Manager
+* Room Leaders
+* Practitioners
+* Bank Staff
+
+**Expected results:**
+
+* Roles are correctly assigned.
+* Staff are visible within Harrow only.
+* Employment data is stored.
+* Required safeguarding and qualification fields are validated where implemented.
+* Inactive staff cannot be assigned to active duties unless explicitly allowed.
+
+### TC-STAFF-003: Duplicate Staff Prevention
+
+Test:
+
+* Same email address
+* Same employee number
+* Same identity submitted twice
+* Double-click Save
+* Browser retry after timeout
+* API replay
+
+**Expected results:**
+
+* No duplicate staff or user accounts are created.
+* Idempotency is used for retried create operations where appropriate.
+* Conflict response is returned for genuine duplicates.
+* Existing records are not silently overwritten.
+
+---
+
+## Phase 5 — Set Branch Managers and Reporting Structure
+
+### TC-ROLE-001: Assign Branch Manager
+
+**Actor:** Director
+
+**Steps:**
+
+1. Open Harrow branch settings.
+2. Assign the Branch Manager.
+3. Save.
+4. Log in as the Branch Manager.
+
+**Expected results:**
+
+* The manager is linked to Harrow.
+* Manager sees Harrow operational data.
+* Manager cannot access unauthorised branches.
+* The branch dashboard displays the correct manager.
+* Previous manager assignment is handled according to business rules.
+* Only one active primary Branch Manager exists unless multiple managers are supported.
+
+### TC-ROLE-002: Assign Deputy Manager
+
+**Steps:**
+
+1. Assign Harrow Deputy Test as Deputy Manager.
+2. Grant enquiry and visit permissions.
+3. Log in as the Deputy Manager.
+
+**Expected results:**
+
+The deputy can:
+
+* View Harrow enquiries
+* Update enquiry statuses
+* Add notes
+* Book visits
+* Register children
+* View rooms
+* Record attendance where permitted
+* Add daily logs
+
+The deputy cannot:
+
+* Access organisation-wide settings
+* Delete the branch
+* Assign Director permissions
+* View another branch without permission
+* Change protected finance settings unless authorised
+
+### TC-ROLE-003: Permission Change Propagation
+
+**Steps:**
+
+1. Remove one permission from the Deputy Manager.
+2. Keep the existing session open.
+3. Attempt the restricted action.
+4. Log out and log back in.
+5. Retry.
+
+**Expected results:**
+
+* Permission changes apply according to the designed session policy.
+* Backend permission checks prevent unauthorised operations.
+* Hiding a button is not the only security control.
+* Direct API access is rejected.
+
+---
+
+## Phase 6 — Assign Staff to Rooms
+
+### TC-ROOMSTAFF-001: Assign Room Leader
+
+**Steps:**
+
+1. Open Toddler Room.
+2. Assign Toddler Room Leader.
+3. Set assignment start date.
+4. Save.
+
+**Expected results:**
+
+* Room leader appears in the Toddler Room.
+* Assignment dates are stored.
+* Staff workload is updated.
+* Room staffing KPI updates.
+* No duplicate room assignment is created.
+
+### TC-ROOMSTAFF-002: Assign Practitioners
+
+Assign three practitioners to the Toddler Room.
+
+**Expected results:**
+
+* Assigned staff appear once.
+* Active assignment count is correct.
+* Staff-to-child ratio calculation uses active, present staff where applicable.
+* Staff assigned to multiple rooms are handled according to system rules.
+* Scheduling conflicts are identified.
+
+### TC-ROOMSTAFF-003: Inactive Staff Assignment
+
+Attempt to assign an inactive staff member.
+
+**Expected results:**
+
+* Assignment is rejected or clearly flagged.
+* Inactive staff are not counted in staffing KPIs.
+* A direct API request cannot bypass the restriction.
+
+---
+
+## Phase 7 — Submit an Enquiry
+
+### TC-ENQ-001: Website Enquiry Submission
+
+**Actor:** Parent
+
+**Steps:**
+
+1. Open the public enquiry form.
+2. Enter parent and child details.
+3. Select Harrow.
+4. Select Arrange a Visit.
+5. Submit the enquiry.
+6. Inspect the request and response.
+7. Check the admin dashboard.
+8. Check confirmation notifications.
+
+**Expected results:**
+
+* One enquiry is created.
+* Enquiry status is New.
+* Enquiry is linked to Harrow.
+* Parent details are stored correctly.
+* Source is recorded as Website.
+* Created date and time use the correct timezone.
+* Deputy or manager receives one notification.
+* Parent receives one confirmation.
+* Dashboard New Enquiries KPI increases by one.
+* No duplicate request occurs due to analytics, form libraries or retries.
+* The form cannot be resubmitted accidentally after success.
+
+### TC-ENQ-002: Required Field Validation
+
+Test missing:
+
+* Parent name
+* Email and telephone
+* Branch
+* Enquiry type
+* Consent fields
+* Child age or date of birth
+
+**Expected results:**
+
+* Client-side validation provides immediate feedback.
+* Server-side validation independently rejects invalid requests.
+* No partial enquiry is created.
+* Error responses use a consistent schema.
+
+### TC-ENQ-003: Duplicate Enquiry Detection
+
+Submit the same enquiry:
+
+* Twice within one minute
+* From two browser tabs
+* After a timeout
+* With the same parent email and child
+* With a slightly different message
+
+**Expected results:**
+
+* Exact duplicates are prevented or flagged.
+* Legitimate repeat enquiries are not incorrectly lost.
+* Duplicate matching criteria are documented.
+* Notifications are not sent repeatedly for the same record.
+
+---
+
+## Phase 8 — Deputy Manager Handles the Enquiry
+
+### TC-ENQ-004: View New Enquiry
+
+**Actor:** Deputy Manager
+
+**Steps:**
+
+1. Log in as Deputy Manager.
+2. Open Enquiries.
+3. Filter by New.
+4. Open the test enquiry.
+
+**Expected results:**
+
+* Enquiry appears under Harrow.
+* Parent and child information is complete.
+* No other branch data is visible.
+* Opening the enquiry does not change its status unless designed to.
+* One detail request is made.
+* Supporting data is not fetched repeatedly without need.
+
+### TC-ENQ-005: Add Enquiry Note
+
+**Steps:**
+
+1. Add a note recording the parent conversation.
+2. Save.
+3. Refresh.
+4. Log in as Branch Manager and view the note.
+
+**Expected results:**
+
+* Note is saved once.
+* Author and timestamp are recorded.
+* Note is linked to the enquiry.
+* Branch Manager can view it.
+* Parent cannot view internal notes.
+* Editing or deleting notes follows permissions.
+* Audit trail records modifications.
+
+### TC-ENQ-006: Update Enquiry Status
+
+Change status:
+
+**New → Contacted**
+
+**Expected results:**
+
+* Status changes once.
+* Status history records previous and new values.
+* Contacted Enquiries KPI updates.
+* New Enquiries KPI decreases appropriately.
+* Status does not become inconsistent between list and detail views.
+* Refresh does not revert the status.
+
+---
+
+## Phase 9 — Book the Nursery Visit
+
+### TC-VISIT-001: Create Visit Booking
+
+**Actor:** Deputy Manager
+
+**Steps:**
+
+1. Select Book Visit from the enquiry.
+2. Choose Harrow.
+3. Select a future date and time.
+4. Assign the Deputy Manager as host.
+5. Add notes.
+6. Save the visit.
+
+**Expected results:**
+
+* One visit record is created.
+* Visit is linked to the enquiry.
+* Parent and child information is reused rather than duplicated unnecessarily.
+* Enquiry status changes to Visit Booked where designed.
+* Calendar shows the visit.
+* Parent receives one confirmation.
+* Host receives one notification.
+* Upcoming Visits KPI increases.
+* Visit booking request is sent once.
+* Time is stored and displayed correctly in Europe/London.
+
+### TC-VISIT-002: Visit Conflict Validation
+
+Test booking:
+
+* Outside opening hours
+* In the past
+* At a conflicting time
+* With an unavailable host
+* On a branch closure date
+
+**Expected results:**
+
+* Invalid bookings are rejected or warned according to policy.
+* No visit is created after failed validation.
+* Conflict check runs on the server, not only the client.
+
+### TC-VISIT-003: Reschedule Visit
+
+**Steps:**
+
+1. Change the date and time.
+2. Save.
+3. Inspect notifications and audit history.
+
+**Expected results:**
+
+* Existing visit is updated rather than duplicated.
+* Old date is removed from the calendar.
+* New date is displayed.
+* One reschedule notification is sent.
+* Visit history records the change.
+
+### TC-VISIT-004: Complete Visit
+
+**Steps:**
+
+1. Open the visit after the scheduled time.
+2. Mark it Completed.
+3. Add visit outcome notes.
+4. Save.
+
+**Expected results:**
+
+* Visit status becomes Completed.
+* Completed Visits KPI increases.
+* Upcoming Visits KPI decreases.
+* Enquiry progresses to the correct next stage.
+* Visit cannot be completed twice.
+* Outcome notes are retained.
+
+---
+
+## Phase 10 — Convert Enquiry to Registration
+
+### TC-REG-001: Start Registration
+
+**Actor:** Deputy Manager
+
+**Steps:**
+
+1. Open the completed enquiry.
+2. Select Register Child.
+3. Confirm parent and child details.
+4. Enter emergency contacts.
+5. Enter medical, allergy and dietary information.
+6. Select requested days and sessions.
+7. Add funding information.
+8. Set start date.
+9. Submit registration.
+
+**Expected results:**
+
+* A child record is created once.
+* Parent or guardian record is created or linked.
+* Parent is not duplicated if already present.
+* Child is linked to Harrow.
+* Enquiry is linked to the child registration.
+* Enquiry status changes to Registered.
+* Registered Children KPI increases.
+* Enquiry conversion KPI updates.
+* A registration audit entry is created.
+* Required consent and safeguarding fields are validated.
+
+### TC-REG-002: Registered Tile Validation
+
+**Steps:**
+
+1. Return to the enquiry board.
+2. Open the Registered column or tile.
+3. Locate the child.
+4. Refresh the page.
+5. Log in as Branch Manager and repeat.
+
+**Expected results:**
+
+* The enquiry appears exactly once in Registered.
+* The child does not remain incorrectly in New, Contacted or Visit Booked.
+* Registered count matches the number of registered enquiry records.
+* Tile count, list count and API count match.
+* Data remains correct after refresh and new login.
+* No client-only state causes a misleading count.
+
+### TC-REG-003: Prevent Duplicate Conversion
+
+Attempt to register the enquiry again.
+
+**Expected results:**
+
+* System detects that registration already exists.
+* A second child is not created.
+* A second parent is not created.
+* Duplicate registration API requests are rejected or return the existing result safely.
+* Notifications are not sent twice.
+
+### TC-REG-004: Partial Registration Failure
+
+Simulate failure after:
+
+* Parent creation
+* Child creation
+* Session creation
+* Room assignment
+* Notification creation
+
+**Expected results:**
+
+* Transaction rolls back or reaches a recoverable state.
+* No orphaned records remain.
+* User receives a clear retry message.
+* Retrying does not duplicate successful earlier operations.
+* Failure is logged with a correlation ID.
+
+---
+
+## Phase 11 — Assign Registered Child to a Room
+
+### TC-CHILDROOM-001: Automatic Room Recommendation
+
+**Steps:**
+
+1. Open the registered child's profile.
+2. View recommended room.
+
+**Expected results:**
+
+* Toddler Room is recommended based on date of birth and start date.
+* Recommendation uses the child's age on the relevant date.
+* Room capacity is displayed.
+* Existing occupancy is accurate.
+* Recommendation does not automatically commit without confirmation unless designed to.
+
+### TC-CHILDROOM-002: Assign Child to Toddler Room
+
+**Steps:**
+
+1. Assign the child to Toddler Room.
+2. Enter the assignment start date.
+3. Save.
+4. Open the Toddler Room roster.
+
+**Expected results:**
+
+* Child appears once in the Toddler Room.
+* Child is removed from unassigned registrations.
+* Room occupancy increases by one.
+* Available spaces decrease by one.
+* Branch occupancy KPI updates.
+* Child room history is created.
+* Assignment is effective from the correct date.
+* Staff ratio projection updates.
+
+### TC-CHILDROOM-003: Capacity Validation
+
+Fill the room to capacity, then assign one additional child.
+
+**Expected results:**
+
+* Over-capacity assignment is blocked or requires authorised override.
+* Normal users cannot silently exceed capacity.
+* Capacity warning is visible.
+* KPI does not show impossible occupancy without an override record.
+
+### TC-CHILDROOM-004: Incorrect Age Room
+
+Attempt to assign the child to Baby Room or Preschool Room.
+
+**Expected results:**
+
+* Age incompatibility is flagged.
+* Authorised override requires a reason where permitted.
+* Override appears in the audit trail.
+* Unauthorised API requests are rejected.
+
+---
+
+## Phase 12 — Child Session and Schedule Validation
+
+### TC-SCHEDULE-001: Add Child Schedule
+
+Assign:
+
+* Monday full day
+* Wednesday full day
+* Friday full day
+
+**Expected results:**
+
+* Three schedule entries are created or one structured schedule is stored.
+* Days appear correctly in the room register.
+* Child is not expected on Tuesday or Thursday.
+* Session counts update.
+* Occupancy projections update for each day.
+
+### TC-SCHEDULE-002: Schedule Change
+
+Change Friday to Thursday.
+
+**Expected results:**
+
+* Existing schedule is updated.
+* Friday occupancy decreases.
+* Thursday occupancy increases.
+* Old schedule is retained in history where required.
+* Attendance expectations use the updated effective date.
+
+---
+
+## Phase 13 — Staff Attendance
+
+### TC-STAFFATT-001: Staff Check-In
+
+**Actor:** Practitioner
+
+**Steps:**
+
+1. Open attendance kiosk.
+2. Identify the staff member.
+3. Check in.
+4. Inspect request and response.
+5. View branch attendance dashboard.
+
+**Expected results:**
+
+* One open attendance session is created.
+* Check-in time is correct.
+* Staff status becomes Present.
+* Staff Present KPI increases.
+* Room available-staff count increases.
+* Staff ratio calculations update.
+* Duplicate check-in is blocked.
+* The kiosk does not submit multiple requests from repeated taps.
+
+### TC-STAFFATT-002: Staff Check-Out
+
+**Steps:**
+
+1. Check out the staff member.
+2. Inspect recorded hours.
+
+**Expected results:**
+
+* Open session is closed.
+* Check-out time is stored.
+* Worked duration is calculated correctly.
+* Break rules are applied where configured.
+* Monthly hours KPI updates.
+* Staff status changes from Present.
+* A second check-out is rejected.
+
+### TC-STAFFATT-003: Missing Check-Out
+
+Leave one staff member checked in overnight.
+
+**Expected results:**
+
+* System flags an incomplete attendance record.
+* Hours are not calculated as an unlimited shift.
+* Manager can correct the record with a reason.
+* Correction is audited.
+
+### TC-STAFFATT-004: Offline or Network Retry
+
+Simulate network failure during check-in.
+
+**Expected results:**
+
+* User receives clear feedback.
+* A retry does not create two check-ins.
+* Offline queue behaviour is controlled.
+* Server idempotency prevents duplicate attendance records.
+
+---
+
+## Phase 14 — Child Attendance
+
+### TC-CHILDATT-001: Child Check-In
+
+**Actor:** Deputy Manager, Room Leader or authorised staff
+
+**Steps:**
+
+1. Open the Toddler Room register.
+2. Select the test child.
+3. Record arrival time.
+4. Record drop-off person.
+5. Add an optional note.
+6. Save.
+
+**Expected results:**
+
+* One child attendance record is created.
+* Child status becomes Present.
+* Child Present KPI increases.
+* Expected versus actual attendance updates.
+* Room occupancy count reflects present children.
+* Staff-to-child ratio recalculates.
+* Parent application receives the update where enabled.
+* Duplicate check-in is blocked.
+
+### TC-CHILDATT-002: Child Check-Out
+
+Record:
+
+* Departure time
+* Collection person
+* Staff member authorising collection
+
+**Expected results:**
+
+* Attendance session is closed.
+* Duration is calculated.
+* Collection information is stored.
+* Child status changes to Collected or Absent from premises.
+* Parent notification is sent once if enabled.
+* Second check-out is rejected.
+
+### TC-CHILDATT-003: Unscheduled Attendance
+
+Attempt to check in the child on Tuesday.
+
+**Expected results:**
+
+* System flags the day as unscheduled.
+* Authorised staff can add an extra session if permitted.
+* Extra attendance affects occupancy and billing where applicable.
+* The action is audited.
+
+### TC-CHILDATT-004: Child Attendance Safety
+
+Test:
+
+* Check-out before check-in
+* Check-out time before arrival
+* Two active attendance sessions
+* Collection by unauthorised person
+* Attendance against the wrong branch
+
+**Expected results:**
+
+* Invalid operations are blocked.
+* Safeguarding warnings are prominent.
+* Cross-branch attendance is rejected.
+* Audit events capture attempted overrides.
+
+---
+
+## Phase 15 — Ratio and Capacity Validation
+
+### TC-RATIO-001: Calculate Live Room Ratio
+
+With children and staff checked in:
+
+1. Open Toddler Room.
+2. Record the number of present children.
+3. Record the number of present qualified staff.
+4. Compare the displayed ratio with the expected result.
+
+**Expected results:**
+
+* Only checked-in and eligible staff are counted.
+* Only present children are counted.
+* Bank staff are counted according to assignment rules.
+* Staff on break are handled according to policy.
+* Ratio warnings update in near real time.
+* KPI and room detail show the same values.
+
+### TC-RATIO-002: Understaffed Room
+
+Check out enough staff to make the room understaffed.
+
+**Expected results:**
+
+* Ratio warning appears.
+* Manager receives a notification where configured.
+* Room status changes to At Risk or Understaffed.
+* Warning clears when staffing is restored.
+* No duplicate warnings are generated for the same unresolved event.
+
+---
+
+## Phase 16 — Daily Child Logs
+
+### TC-LOG-001: Add Meal Log
+
+**Actor:** Practitioner
+
+**Steps:**
+
+1. Open the test child's daily diary.
+2. Add breakfast or lunch details.
+3. Record amount eaten.
+4. Save.
+
+**Expected results:**
+
+* Meal log is created once.
+* Correct child, room, branch, date and author are stored.
+* Parent can view the permitted information.
+* Daily Log Completion KPI updates.
+* Saving one log does not create duplicate timeline events.
+
+### TC-LOG-002: Add Sleep Log
+
+Record:
+
+* Sleep start
+* Sleep end
+* Sleep location
+* Observation note
+
+**Expected results:**
+
+* Duration is calculated correctly.
+* End time cannot be before start time.
+* Active sleep status is visible.
+* Repeated taps do not create duplicate sleep sessions.
+
+### TC-LOG-003: Add Nappy or Toileting Log
+
+Record the appropriate care entry.
+
+**Expected results:**
+
+* Entry is stored securely.
+* Only authorised users can view it.
+* Daily summary updates.
+* Parent visibility follows configuration.
+
+### TC-LOG-004: Add Activity and Learning Observation
+
+Record:
+
+* Activity
+* Observation
+* EYFS area where applicable
+* Photos where permitted
+* Next steps
+* Staff author
+
+**Expected results:**
+
+* Observation is linked to the correct child.
+* Media uploads complete successfully.
+* Failed uploads do not leave broken records.
+* Consent restrictions are enforced.
+* Parent sees only published or approved content.
+* Draft and published states behave correctly.
+
+### TC-LOG-005: Add Accident or Incident Record
+
+**Expected results:**
+
+* Required fields are enforced.
+* Manager review workflow is triggered.
+* Parent acknowledgement is requested where implemented.
+* Record cannot be silently deleted.
+* Audit history is maintained.
+* Sensitive data access is restricted.
+
+### TC-LOG-006: Daily Log Summary
+
+Open the child's daily summary.
+
+**Expected results:**
+
+* Meals, sleep, toileting, activities and attendance appear.
+* Entries are ordered correctly.
+* No duplicate timeline items are displayed.
+* Summary matches raw log records.
+* Date filtering uses the branch timezone.
+
+---
+
+# 8. KPI Validation Plan
+
+## 8.1 Branch-Level KPIs
+
+Validate at least:
+
+* Total active children
+* Registered children
+* Children starting soon
+* Room occupancy
+* Available spaces
+* Present children
+* Absent children
+* Expected children
+* Present staff
+* Absent staff
+* Staff working hours
+* Staff-to-child ratio
+* New enquiries
+* Contacted enquiries
+* Visits booked
+* Visits completed
+* Registered enquiries
+* Enquiry conversion rate
+* Daily logs completed
+* Daily logs outstanding
+* Overdue tasks
+* Room capacity warnings
+* Staffing ratio warnings
+
+## 8.2 KPI Validation Method
+
+For every KPI:
+
+1. Identify the source records.
+2. Calculate the expected value manually.
+3. Compare the dashboard tile.
+4. Compare the detail page.
+5. Compare the API response.
+6. Compare the database query.
+7. Refresh the browser.
+8. Log out and back in.
+9. Trigger any scheduled aggregation job.
+10. Compare again.
+
+## 8.3 Example KPI Calculations
+
+### Enquiry Conversion Rate
+
+```text
+Registered enquiries / Total eligible enquiries × 100
+```
+
+Confirm whether cancelled, spam or duplicate enquiries are excluded.
+
+### Room Occupancy
+
+```text
+Active assigned children / Room capacity × 100
+```
+
+Confirm whether the KPI is based on registered children, scheduled children or children physically present.
+
+### Staff Attendance Hours
+
+```text
+Check-out time − Check-in time − unpaid breaks
+```
+
+### Daily Log Completion
+
+```text
+Children with required daily logs completed / Expected present children × 100
+```
+
+### Live Ratio
+
+```text
+Present eligible children / Present eligible staff
+```
+
+## 8.4 KPI Consistency Tests
+
+**Expected results:**
+
+* Dashboard totals equal underlying records.
+* Branch total equals the sum of room totals.
+* Organisation total equals the sum of authorised branch totals.
+* Status transitions move records between KPIs rather than double-counting them.
+* Deleted, cancelled or inactive records follow documented inclusion rules.
+* KPIs do not remain stale after successful writes.
+* Eventual consistency delay remains within the accepted threshold.
+* Scheduled recalculation produces the same result as real-time calculation.
+
+---
+
+# 9. API and Endpoint Test Plan
+
+## 9.1 Core Endpoint Groups
+
+Expected endpoint groups may include:
+
+```text
+POST   /auth/login
+GET    /branches
+POST   /branches
+GET    /branches/{branchId}
+PATCH  /branches/{branchId}
+
+GET    /staff
+POST   /staff
+GET    /staff/{staffId}
+PATCH  /staff/{staffId}
+POST   /branches/{branchId}/staff-assignments
+
+GET    /rooms
+POST   /rooms
+PATCH  /rooms/{roomId}
+POST   /rooms/{roomId}/staff
+POST   /rooms/{roomId}/children
+
+POST   /enquiries
+GET    /enquiries
+GET    /enquiries/{enquiryId}
+PATCH  /enquiries/{enquiryId}
+POST   /enquiries/{enquiryId}/notes
+
+POST   /visits
+PATCH  /visits/{visitId}
+POST   /visits/{visitId}/complete
+
+POST   /registrations
+POST   /enquiries/{enquiryId}/convert
+GET    /children/{childId}
+PATCH  /children/{childId}
+
+POST   /staff-attendance/check-in
+POST   /staff-attendance/check-out
+POST   /child-attendance/check-in
+POST   /child-attendance/check-out
+
+POST   /daily-logs
+PATCH  /daily-logs/{logId}
+GET    /daily-logs
+
+GET    /dashboard/kpis
+GET    /branches/{branchId}/kpis
+GET    /rooms/{roomId}/kpis
+```
+
+Adapt endpoint names to the actual implementation.
+
+## 9.2 Endpoint Validation Checklist
+
+For each endpoint verify:
+
+* Correct HTTP method
+* Correct route
+* Authentication required
+* Authorisation enforced
+* Branch scope enforced
+* Request schema validated
+* Response schema consistent
+* Correct status code
+* Correct error status code
+* Stable error structure
+* Pagination
+* Filtering
+* Sorting
+* Idempotency where needed
+* Correlation or request ID
+* Audit logging
+* No sensitive information leakage
+* Database transaction behaviour
+* Retry behaviour
+* Timeout handling
+* Rate limiting where appropriate
+
+## 9.3 Expected Status Codes
+
+| Situation                       | Expected Response |
+| ------------------------------- | ----------------- |
+| Successful creation             | 201               |
+| Successful read or update       | 200               |
+| Successful no-content operation | 204               |
+| Invalid request                 | 400               |
+| Unauthenticated                 | 401               |
+| Unauthorised                    | 403               |
+| Record not found                | 404               |
+| Duplicate conflict              | 409               |
+| Validation failure              | 400 or 422        |
+| Rate limit exceeded             | 429               |
+| Unexpected server failure       | 500               |
+
+Use the application's agreed API standard consistently.
+
+---
+
+# 10. Network Call Validation
+
+## 10.1 General Checks
+
+For every major screen:
+
+1. Open browser developer tools.
+2. Clear the Network panel.
+3. Perform one user action.
+4. Count requests.
+5. Inspect request payloads.
+6. Inspect responses.
+7. Check for cancelled requests.
+8. Check for repeated polling.
+9. Check for unnecessary full dataset reloads.
+10. Check WebSocket or event subscriptions.
+
+## 10.2 Duplicate Call Scenarios
+
+Specifically inspect for:
+
+* React Strict Mode double requests
+* Duplicate `useEffect` execution
+* Query hooks mounted in multiple components
+* Re-fetch on every render
+* Form submit plus button click both firing
+* Retry library duplicating successful writes
+* Optimistic update followed by duplicate create
+* WebSocket event plus polling applying the same update twice
+* Multiple dashboard widgets fetching the same dataset separately
+* Parent component and child component calling the same endpoint
+* Navigation prefetch creating unnecessary protected requests
+* Repeated token refresh calls
+* Multiple notification events from one transaction
+
+## 10.3 Expected Network Behaviour
+
+* One deliberate create action produces one logical create operation.
+* Safe retries use idempotency keys.
+* Read requests use caching or shared query state where appropriate.
+* KPI requests are consolidated where practical.
+* Realtime subscriptions are created once and cleaned up on unmount.
+* Changing filters cancels or ignores stale requests.
+* Old responses do not overwrite newer state.
+* No infinite request loops occur.
+* No request is made for hidden or unauthorised data.
+
+---
+
+# 11. Database Integrity Validation
+
+## 11.1 Record Relationships
+
+Validate:
+
+* Branch has unique ID.
+* Staff profile links to one user identity.
+* Staff branch assignment links to Harrow.
+* Room links to Harrow.
+* Enquiry links to Harrow.
+* Visit links to the enquiry.
+* Registration links to the enquiry.
+* Child links to parent or guardian.
+* Child links to Harrow.
+* Child room assignment links to Toddler Room.
+* Staff room assignments link to the correct room.
+* Attendance records link to the correct person and branch.
+* Daily logs link to the correct child, branch, room and author.
+
+## 11.2 Orphan Checks
+
+Confirm there are no:
+
+* Staff records without users
+* User accounts without intended staff profiles
+* Rooms without branches
+* Visits without enquiries
+* Registrations without children
+* Children without guardians where required
+* Attendance records without staff or children
+* Daily logs without children
+* Room assignments without active rooms
+* Notifications pointing to deleted records
+
+## 11.3 Uniqueness Checks
+
+Validate unique constraints for:
+
+* Branch code
+* Staff employee number
+* User email
+* Child registration number
+* Attendance active session
+* Enquiry conversion
+* Room assignment active period
+* External payment or notification IDs
+* Idempotency key
+
+## 11.4 Transaction Checks
+
+The following operations should use transactions where appropriate:
+
+* Enquiry conversion
+* Child and guardian creation
+* Registration and schedule creation
+* Room assignment
+* Attendance check-in and status update
+* Attendance check-out and hours calculation
+* Incident creation and notification
+* Branch creation with default configuration
+
+---
+
+# 12. Duplicate Functionality Review
+
+Review the codebase and UI for overlapping features such as:
+
+* Two enquiry creation services
+* Separate visit booking modules performing the same operation
+* Child registration implemented in multiple components
+* Staff attendance and payroll hours calculated independently
+* Room assignment stored in both child and room records without a single source of truth
+* KPI logic duplicated between frontend and backend
+* Notification logic triggered from both controller and event listener
+* Multiple repositories writing to the same table
+* Legacy and new APIs active simultaneously
+* Duplicate route handlers
+* Duplicate event consumers
+* Multiple forms for the same business action
+* Separate status enumerations with inconsistent values
+
+## Expected architecture principle
+
+Each business capability should have:
+
+* One authoritative service
+* One source of truth
+* One documented API contract
+* One status model
+* One consistent validation layer
+* One audit mechanism
+* One event publication path
+
+The frontend may present multiple views, but all views should use the same backend business operation.
+
+---
+
+# 13. Gap Analysis Checklist
+
+Check for missing transitions or unsupported states.
+
+## Enquiry Lifecycle
+
+Expected lifecycle:
+
+```text
+New
+→ Contacted
+→ Visit Booked
+→ Visit Completed
+→ Registration Started
+→ Registered
+```
+
+Alternative exits:
+
+```text
+Cancelled
+Not Interested
+No Response
+Duplicate
+Spam
+Waiting List
+```
+
+Validate that:
+
+* Every status can be reached correctly.
+* Invalid transitions are blocked.
+* Status history is retained.
+* Records cannot become stuck without an available action.
+* Reopening a cancelled enquiry follows clear rules.
+
+## Child Lifecycle
+
+Expected lifecycle:
+
+```text
+Prospective
+→ Registered
+→ Awaiting Start
+→ Active
+→ Temporarily Inactive
+→ Left
+→ Archived
+```
+
+## Staff Lifecycle
+
+Expected lifecycle:
+
+```text
+Invited
+→ Active
+→ On Leave
+→ Suspended
+→ Left
+→ Archived
+```
+
+## Visit Lifecycle
+
+Expected lifecycle:
+
+```text
+Scheduled
+→ Confirmed
+→ Completed
+```
+
+Alternative states:
+
+```text
+Cancelled
+Rescheduled
+No Show
+```
+
+## Attendance Lifecycle
+
+Expected lifecycle:
+
+```text
+Expected
+→ Checked In
+→ Checked Out
+```
+
+Alternative states:
+
+```text
+Absent
+Sick
+Holiday
+Authorised Absence
+Late
+Missing Check-Out
+```
+
+---
+
+# 14. Role-Based Access Test Matrix
+
+| Action                  |            Director |      Branch Manager |      Deputy Manager |       Room Leader |      Practitioner |          Parent |
+| ----------------------- | ------------------: | ------------------: | ------------------: | ----------------: | ----------------: | --------------: |
+| Create branch           |                 Yes |                  No |                  No |                No |                No |              No |
+| Edit Harrow branch      |                 Yes |                 Yes |             Limited |                No |                No |              No |
+| Add branch manager      |                 Yes |             Limited |                  No |                No |                No |              No |
+| Add staff               |                 Yes |                 Yes |             Limited |                No |                No |              No |
+| View enquiries          |                 Yes |                 Yes |                 Yes |        Limited/No |                No | Own submissions |
+| Update enquiry          |                 Yes |                 Yes |                 Yes |                No |                No |              No |
+| Book visit              |                 Yes |                 Yes |                 Yes |                No |                No |    Request only |
+| Register child          |                 Yes |                 Yes |                 Yes |                No |                No |     Submit data |
+| Assign child to room    |                 Yes |                 Yes |                 Yes |           Limited |                No |              No |
+| Assign staff to room    |                 Yes |                 Yes |             Limited |                No |                No |              No |
+| Record child attendance |                 Yes |                 Yes |                 Yes |               Yes |               Yes |              No |
+| Record staff attendance |                 Yes |                 Yes |                 Yes |         Self/team |              Self |              No |
+| Add daily logs          |                 Yes |                 Yes |                 Yes |               Yes |               Yes |              No |
+| View own child's logs   | No operational need | No operational need | No operational need | Assigned children | Assigned children |             Yes |
+| View another branch     |                 Yes |       Assigned only |       Assigned only |                No |                No |              No |
+
+Every restricted action must be tested through both the UI and direct API calls.
+
+---
+
+# 15. Realtime Data Synchronisation Tests
+
+Open the system in two browser sessions.
+
+## Scenario
+
+* Session A: Deputy Manager
+* Session B: Branch Manager
+
+### Test actions
+
+1. Session A updates the enquiry to Contacted.
+2. Confirm Session B receives the update.
+3. Session A books a visit.
+4. Confirm the visit appears in Session B.
+5. Session A registers the child.
+6. Confirm room and KPI screens update.
+7. Session B assigns the child to Toddler Room.
+8. Confirm Session A receives the update.
+9. A practitioner checks in.
+10. Confirm the live staff count changes.
+11. Check in the child.
+12. Confirm room occupancy and ratio change.
+
+### Expected results
+
+* Updates are delivered once.
+* Stale values are replaced correctly.
+* No duplicate tiles or records appear.
+* Event ordering is preserved.
+* Reconnecting after network loss recovers missed updates.
+* A reconnect does not create duplicate subscriptions.
+* Events are scoped by organisation and branch.
+* Users do not receive events for unauthorised branches.
+* Realtime event IDs allow deduplication.
+
+---
+
+# 16. Concurrency Tests
+
+## TC-CON-001: Two Users Update the Same Enquiry
+
+1. Deputy Manager and Branch Manager open the same enquiry.
+2. Deputy changes status.
+3. Manager adds a note using stale data.
+4. Both save.
+
+**Expected results:**
+
+* No data is silently lost.
+* Versioning, timestamps or optimistic locking identify conflicts.
+* Non-conflicting changes are merged safely where supported.
+
+## TC-CON-002: Two Users Assign the Last Room Place
+
+1. Set Toddler Room to one available space.
+2. Two users assign different children simultaneously.
+
+**Expected results:**
+
+* Only one assignment succeeds.
+* Capacity is not exceeded.
+* The losing user receives a clear conflict message.
+
+## TC-CON-003: Simultaneous Attendance Check-In
+
+Check in the same staff member from two devices.
+
+**Expected results:**
+
+* Only one open attendance session exists.
+* One request succeeds.
+* The duplicate request returns an idempotent result or conflict.
+
+---
+
+# 17. Error Handling and Recovery
+
+Test:
+
+* API timeout
+* Database timeout
+* Notification service failure
+* Email service failure
+* Realtime service disconnection
+* File upload failure
+* Authentication token expiry
+* Browser refresh during submission
+* Back button after successful submission
+* Mobile network interruption
+* Server error during registration conversion
+* Queue consumer failure
+
+## Expected results
+
+* Business data is not duplicated.
+* User sees an actionable error.
+* Failed notifications do not reverse successful business transactions.
+* Failed background jobs retry safely.
+* Dead-letter handling exists where applicable.
+* Correlation IDs allow troubleshooting.
+* Sensitive stack traces are not shown to users.
+* Partial failures are visible to administrators.
+
+---
+
+# 18. Performance Tests
+
+## Target Scenarios
+
+Test with:
+
+* 10 branches
+* 500 staff
+* 2,000 children
+* 10,000 enquiries
+* 100,000 attendance records
+* 500,000 daily log entries
+
+## Performance checks
+
+* Branch dashboard load
+* Enquiry board load
+* Enquiry search
+* Room register load
+* Attendance check-in
+* Attendance report
+* KPI calculation
+* Daily log timeline
+* Parent dashboard
+* Bulk notification
+* Realtime updates
+
+## Suggested acceptance targets
+
+* Standard page load: under 3 seconds
+* Primary API read: under 1 second where practical
+* Attendance write: under 1 second
+* Search response: under 2 seconds
+* KPI refresh: under 3 seconds
+* Realtime event delivery: under 5 seconds
+
+Targets should be adjusted to the deployment architecture.
+
+---
+
+# 19. Security Tests
+
+Validate:
+
+* Authentication
+* Session expiry
+* Password reset
+* Multi-factor authentication where configured
+* Role-based access
+* Branch-level data isolation
+* API object-level authorisation
+* Protection against IDOR
+* Protection against SQL or NoSQL injection
+* XSS protection
+* CSRF protection
+* Secure file upload
+* Rate limiting
+* Audit logging
+* Sensitive information encryption
+* Secure cookies
+* Token storage
+* Logging redaction
+* Parent-child access isolation
+* Staff medical and HR data separation
+* Daily log privacy
+* Consent-based media access
+
+Test direct URL and API access using IDs belonging to another branch.
+
+Expected result:
+
+**The system returns 403 or 404 without leaking record details.**
+
+---
+
+# 20. Accessibility and Device Testing
+
+Test on:
+
+* Desktop Chrome
+* Desktop Edge
+* Desktop Safari
+* Android tablet
+* iPad
+* Mobile phone
+* Attendance kiosk device
+
+Validate:
+
+* Keyboard navigation
+* Focus states
+* Screen reader labels
+* Error announcements
+* Colour contrast
+* Touch target size
+* Responsive tables
+* Date and time controls
+* Modal usability
+* Kiosk large-button usability
+* Offline or weak-network behaviour
+
+---
+
+# 21. Automated Test Coverage
+
+## Unit Tests
+
+Cover:
+
+* Age-to-room calculation
+* Room capacity
+* Staff ratio calculations
+* Attendance duration
+* Break deduction
+* KPI formulas
+* Enquiry status transitions
+* Visit status transitions
+* Child lifecycle transitions
+* Permission rules
+* Duplicate detection
+* Idempotency handling
+
+## Integration Tests
+
+Cover:
+
+* Branch creation and configuration
+* User and staff creation
+* Role assignment
+* Enquiry creation
+* Visit booking
+* Enquiry conversion
+* Child and guardian creation
+* Room assignment
+* Attendance
+* Daily logs
+* Notifications
+* KPI recalculation
+* Audit records
+
+## API Contract Tests
+
+Validate:
+
+* Request schemas
+* Response schemas
+* Error schemas
+* Enum values
+* Pagination structures
+* Authentication headers
+* Idempotency headers
+
+## End-to-End Automation
+
+Automate the golden path:
+
+```text
+Director logs in
+→ Creates Harrow branch
+→ Creates rooms
+→ Adds staff
+→ Assigns manager and deputy
+→ Assigns staff to rooms
+→ Parent submits enquiry
+→ Deputy handles enquiry
+→ Deputy books visit
+→ Deputy completes visit
+→ Deputy registers child
+→ Child appears in Registered
+→ Child is assigned to Toddler Room
+→ Staff check in
+→ Child checks in
+→ Practitioner adds daily logs
+→ Child and staff check out
+→ KPIs are verified
+→ APIs and duplicate calls are checked
+```
+
+Recommended tools:
+
+* Playwright for browser automation
+* API test runner for endpoint tests
+* Database assertions in isolated test environments
+* Network request interception
+* Accessibility scanner
+* Load-testing tool
+* Centralised log inspection
+
+---
+
+# 22. Golden Path Acceptance Test
+
+The entire system passes the primary acceptance test when all of the following are true:
+
+1. Harrow branch is created exactly once.
+2. Harrow branch settings persist correctly.
+3. Rooms are created and linked to Harrow.
+4. Staff are created without duplicates.
+5. Branch Manager and Deputy Manager permissions are correct.
+6. Staff are assigned to the right rooms.
+7. A website enquiry is received once.
+8. The Deputy Manager can view and handle the enquiry.
+9. Internal notes and status history are retained.
+10. A visit is booked, rescheduled and completed correctly.
+11. The enquiry converts to a child registration once.
+12. Parent and child records are not duplicated.
+13. The enquiry appears once in the Registered tile.
+14. The Registered tile count is correct.
+15. The child is assigned to the correct room.
+16. Room occupancy updates correctly.
+17. Staff assignments and ratios update correctly.
+18. Staff check-in and check-out work correctly.
+19. Child check-in and check-out work correctly.
+20. Daily logs are stored and displayed correctly.
+21. Parent visibility follows permissions and consent.
+22. Dashboard KPIs match source records.
+23. API responses are correct.
+24. No redundant write requests occur.
+25. No duplicate realtime updates occur.
+26. No orphaned database records exist.
+27. Cross-branch access is blocked.
+28. Audit logs contain all major actions.
+29. Errors are recoverable without duplicate data.
+30. The complete flow works after browser refresh and fresh login.
+
+---
+
+# 23. Test Execution Evidence
+
+For each test, capture:
+
+* Test case ID
+* Tester
+* Date and time
+* Environment
+* Build or commit ID
+* User role
+* Input data
+* Expected result
+* Actual result
+* Pass or fail
+* Screenshot
+* Video where useful
+* Network request evidence
+* API request and response
+* Database verification
+* Console logs
+* Server log correlation ID
+* Defect reference
+
+---
+
+# 24. Defect Severity
+
+## Critical
+
+* Data loss
+* Child safeguarding risk
+* Cross-branch data exposure
+* Duplicate attendance affecting safeguarding
+* Incorrect authorised collection
+* Registration creates multiple children
+* Branch isolation failure
+* System unavailable
+
+## High
+
+* Incorrect room capacity
+* Incorrect staff ratio
+* KPI materially inaccurate
+* Attendance hours incorrect
+* Visit or enquiry workflow blocked
+* Permission escalation
+* Daily logs assigned to the wrong child
+
+## Medium
+
+* Notification not sent
+* Dashboard temporarily stale
+* Validation message unclear
+* Non-critical duplicate read calls
+* Layout issue affecting usability
+
+## Low
+
+* Cosmetic issue
+* Minor wording error
+* Non-blocking alignment issue
+* Inconsistent date formatting
+
+---
+
+# 25. Recommended Test Automation Structure
+
+```text
+tests/
+├── unit/
+│   ├── branch/
+│   ├── staff/
+│   ├── rooms/
+│   ├── enquiries/
+│   ├── registration/
+│   ├── attendance/
+│   ├── daily-logs/
+│   └── kpis/
+│
+├── integration/
+│   ├── branch-creation/
+│   ├── staff-assignment/
+│   ├── enquiry-to-registration/
+│   ├── room-assignment/
+│   ├── attendance/
+│   └── realtime-sync/
+│
+├── api/
+│   ├── auth/
+│   ├── branches/
+│   ├── staff/
+│   ├── rooms/
+│   ├── enquiries/
+│   ├── visits/
+│   ├── children/
+│   ├── attendance/
+│   ├── daily-logs/
+│   └── kpis/
+│
+├── e2e/
+│   ├── director-branch-setup.spec
+│   ├── staff-management.spec
+│   ├── enquiry-lifecycle.spec
+│   ├── registration-flow.spec
+│   ├── room-allocation.spec
+│   ├── attendance-flow.spec
+│   ├── daily-log-flow.spec
+│   └── full-harrow-golden-path.spec
+│
+├── performance/
+├── security/
+├── accessibility/
+└── fixtures/
+```
+
+---
+
+# 26. Final Release Gate
+
+Do not release the nursery management workflow unless:
+
+* All critical tests pass.
+* All high-severity defects are resolved.
+* Golden path automation passes consistently.
+* Duplicate write tests pass.
+* Permission and branch isolation tests pass.
+* Attendance and safeguarding tests pass.
+* KPI reconciliation passes.
+* Database integrity checks pass.
+* Network duplication review passes.
+* Realtime synchronisation tests pass.
+* Rollback and recovery procedures are verified.
+* Test evidence is attached to the release.

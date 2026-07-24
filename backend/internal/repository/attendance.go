@@ -43,15 +43,30 @@ func (r *attendanceRepository) Upsert(ctx context.Context, rec models.Attendance
 		"notes":       rec.Notes,
 		"updated_at":  now,
 	}
+	// Callers always pass a complete record (baseRecord merges the existing
+	// document forward first), so a nil CheckIn/CheckOut here means the
+	// caller means it — e.g. CheckIn resets a stale CheckOut on re-entry, and
+	// Mark clears both when switching to absent/sick/holiday. $unset (not a
+	// bare omission from $set) is required or Mongo just leaves the old value.
+	unset := bson.M{}
 	if rec.CheckIn != nil {
 		set["check_in"] = rec.CheckIn
 		set["checked_in_by"] = rec.CheckedInBy
+	} else {
+		unset["check_in"] = ""
+		unset["checked_in_by"] = ""
 	}
 	if rec.CheckOut != nil {
 		set["check_out"] = rec.CheckOut
 		set["checked_out_by"] = rec.CheckedOutBy
+	} else {
+		unset["check_out"] = ""
+		unset["checked_out_by"] = ""
 	}
 	update := bson.M{"$set": set, "$setOnInsert": bson.M{"created_at": now}}
+	if len(unset) > 0 {
+		update["$unset"] = unset
+	}
 	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
 	var out models.AttendanceRecord
 	err := r.col.FindOneAndUpdate(ctx, bson.M{"child_id": rec.ChildID, "date": rec.Date}, update, opts).Decode(&out)

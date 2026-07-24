@@ -108,9 +108,13 @@ func (s *attendanceService) CheckIn(ctx context.Context, req models.CheckInReque
 	if !branchAllowed(allowed, rec.BranchSlug) {
 		return nil, errOutsideScope
 	}
+	if rec.CheckIn != nil && rec.CheckOut == nil {
+		return nil, errors.New("already checked in")
+	}
 	now := time.Now()
 	rec.Status = models.AttPresent
 	rec.CheckIn = &now
+	rec.CheckOut = nil
 	rec.CheckedInBy = actor
 	if req.Notes != "" {
 		rec.Notes = req.Notes
@@ -125,6 +129,12 @@ func (s *attendanceService) CheckOut(ctx context.Context, req models.CheckOutReq
 	}
 	if !branchAllowed(allowed, rec.BranchSlug) {
 		return nil, errOutsideScope
+	}
+	if rec.CheckIn == nil {
+		return nil, errors.New("not checked in yet")
+	}
+	if rec.CheckOut != nil {
+		return nil, errors.New("already checked out")
 	}
 	now := time.Now()
 	rec.CheckOut = &now

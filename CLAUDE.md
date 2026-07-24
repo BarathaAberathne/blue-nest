@@ -459,10 +459,60 @@ promoting `develop → main`. Don't confuse the staging *environment* with a bra
   (The frontend Next build is memory-heavy on 4 GB — add swap if OOM. CI does push GHCR images;
   switching the droplet to GHCR pulls is a future improvement.)
 
+## QA & test automation (`test-automation/`)
+- **`test-automation/test-instructions`** — the master QA test plan (26 sections, `TC-XXX-NNN`-numbered
+  test cases covering the full nursery-management lifecycle: branch → staff → enquiry → registration →
+  room/staff assignment → attendance → daily logs → KPIs → security → performance). Written against an
+  idealised from-scratch tenant; this codebase's suites adapt it to the real, already-seeded Harrow branch
+  (see the REST-Assured README's "Why this suite runs against the real Harrow branch").
+- **`test-automation/rest-assured-suite/`** — a real, compiling Java/Maven/REST-Assured 5/JUnit 5 API
+  regression suite (**not** a UI/browser suite — see its README "What this suite is and isn't").
+  `TestMethodOrder`-based `*Suite` classes, one per plan phase, package-numbered `phase01_auth` ..
+  `phase13_concurrency`, then `phase90_security` so alphabetical execution order matches the plan's own
+  phase order — `phase90_security`'s permanently-high number (not its plan phase §19) exists because its
+  rate-limit regression test burns the shared per-IP login budget for the rest of that window (see
+  `SecuritySuite`'s class Javadoc); every test's `@DisplayName` carries its `TC-XXX-NNN` id (or a
+  `-REG`/`SEC-NNN` id for suite-authored regression locks). Requires a JDK 17+ + Maven (`brew install openjdk
+  maven`; openjdk is keg-only on macOS — `export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"` and `JAVA_HOME`
+  accordingly). Run via **`make test-e2e`** (full suite) / **`make test-e2e-regression`** (fix-lock subset —
+  fastest deploy-safety check) from the repo root — these wrap `mvn test` and export `PATH`/`JAVA_HOME` for
+  you, overridable via `QA_BASE_URL` / `QA_ADMIN_EMAIL` / `QA_ADMIN_PASSWORD` env vars — or `cd
+  test-automation/rest-assured-suite && mvn test` directly (`-Dgroups=regression` / `-Dgroups=golden-path`
+  for the filtered subsets). **Its own README has an exact, validated coverage matrix — check it before
+  assuming "the suite" means "full plan coverage"; as of this writing it references 49 of the plan's 55
+  `TC-XXX-NNN` ids (many as deliberate "gap lock" tests — a passing test that proves the plan's *expected*
+  behaviour is currently absent, e.g. no room-capacity/age-band enforcement, no duplicate-enquiry detection,
+  no room-staff assignment validation). The remaining 6 (`TC-VISIT-002/003`, `TC-LOG-002/003`,
+  `TC-RATIO-001/002`) are verified N/A — no such entity/record-type/live-ratio-system exists server-side at
+  all, not merely untested. See the README's coverage matrix before starting new coverage, and extend it
+  when you add a suite.**
+- **`test-automation/injection-fuzz.sh`** — a bash + curl security-fuzzing script (NoSQL operator
+  injection, malformed-regex/ReDoS probes against every free-text search endpoint, JSON type-confusion,
+  auth-bypass probes). `./test-automation/injection-fuzz.sh [base_url] [admin_email] [admin_password]`,
+  grep-able `PASS|FAIL` output, non-zero exit on any failure.
+- **`test-automation/section18-plan.md`** — the scoped-out plan for what the REST-Assured suite and fuzz
+  script deliberately don't cover: load/performance testing at scale (needs an isolated perf DB — never
+  point synthetic bulk-seeding at the real `blue_nest_montessori` DB), a fuller security pass (rate-limit
+  fuzzing, dependency/secret scanning), accessibility (axe-core), and a real browser/UI-layer suite
+  (Playwright — a deliberately separate suite from the API-layer one, see its README).
+- Both the REST-Assured suite and the fuzz script run against the **real Harrow branch** with real seeded
+  data (there is no disposable per-test database yet). Every fixture they create is `QA-AUTOTEST-`-prefixed
+  and self-cleans in `@AfterAll` where a delete endpoint exists; anything left behind after an interrupted
+  run is safe to delete by hand purely by that prefix. **Do not delete `QA-AUTOTEST-` fixtures found in the
+  live DB without checking first** — some (e.g. the persistent test child registered during this session)
+  are intentionally kept as ongoing fixtures per explicit user instruction, not run debris.
+
 ## Conventions
 - Commits: conventional style, **no `Co-Authored-By` Claude trailer**.
 - Don't commit `next-env.d.ts` churn or stray root files (QA reports/xlsx).
 - Round trig in SVG coords (avoid SSR hydration mismatches).
 - Verify changes: `cd backend && go build ./... && go vet ./internal/...`;
   `cd frontend && npm run type-check && npx eslint <paths>`; then browser-check via chrome-devtools.
+  **Then, for any change touching backend business logic, permissions, or an API contract: rebuild +
+  redeploy the affected container(s) (`docker compose build backend|frontend && docker compose up -d
+  --force-recreate backend|frontend`) and run the REST-Assured suite (`make test-e2e` from the repo root,
+  or at minimum `make test-e2e-regression` for the fast fix-lock subset) — this is a required deployment
+  step before pushing to remote, not optional polish. A change that only touches an area the suite doesn't
+  cover yet (see its coverage matrix) still needs the Go/TS build+vet+lint steps, but flag the coverage gap
+  rather than skipping verification silently.**
 - Keep this file + `README.md` / `ARCHITECTURE_SUMMARY.md` / `swagger.yaml` updated as features land.

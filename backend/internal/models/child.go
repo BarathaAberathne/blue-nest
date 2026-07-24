@@ -14,6 +14,16 @@ const (
 	ChildLeft     ChildStatus = "left"
 )
 
+// IsValidChildStatus reports whether s is one of the approved statuses.
+func IsValidChildStatus(s ChildStatus) bool {
+	switch s {
+	case ChildActive, ChildWaitlist, ChildLeft:
+		return true
+	default:
+		return false
+	}
+}
+
 // Funding types — the child's free-hours entitlement.
 const (
 	FundingNone = "none"
