@@ -40,6 +40,9 @@ func (f *fakeEnquiryRepo) FindByID(_ context.Context, id string) (*models.Enquir
 	}
 	return nil, errors.New("not found")
 }
+func (f *fakeEnquiryRepo) FindRecentOpenByEmail(_ context.Context, _, _ string, _ []string, _ time.Time) (*models.Enquiry, error) {
+	return nil, nil
+}
 func (f *fakeEnquiryRepo) ChangeStatus(_ context.Context, _, status string, act models.EnquiryActivity) error {
 	f.changedStatus = status
 	a := act

@@ -37,14 +37,22 @@ import static org.hamcrest.Matchers.*;
  * `QA-AUTOTEST-`-prefixed, the same "meaningful, not deleted" precedent this
  * session's manual QA pass already established for other test fixtures.
  *
- * <p><b>TC-ENQ-003 and TC-REG-004 are documented gap locks, not passing
- * assertions of good behaviour:</b> verified directly against {@code
- * backend/internal/service/enquiry.go} — there is no duplicate-enquiry
- * detection at all (two identical submissions create two documents), and
- * {@code Register} is two non-transactional writes (enquiry status flip,
- * then a best-effort child creation) with no rollback — the enquiry can end
- * up {@code registered} with zero children created. Both are locked here so
- * a future fix is required to update these tests, not silently regress.
+ * <p><b>TC-ENQ-003 (duplicate detection):</b> {@code enquiryService.
+ * mergeIfDuplicate} now checks, on both {@code Submit} (public {@code
+ * /contact}) and {@code CreateManual} (this admin route), for an existing
+ * still-in-pipeline enquiry (status not registered/cancelled/lost/spam) for
+ * the same branch+email within a 24h window; a match merges the new message
+ * onto the existing enquiry as a note (nothing submitted is lost) and
+ * returns it — {@code 200}, not {@code 201} — instead of creating a second
+ * document. Test 15 below is the regression lock for that fix, replacing
+ * what was previously a documented gap.
+ *
+ * <p><b>TC-REG-004 is still a documented gap lock, not a passing assertion
+ * of good behaviour:</b> {@code Register} is two non-transactional writes
+ * (enquiry status flip, then a best-effort child creation) with no
+ * rollback — the enquiry can end up {@code registered} with zero children
+ * created. Locked here so a future fix is required to update the test, not
+ * silently regress.
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @DisplayName("Phases 7-10 — Enquiry -> Visit -> Registration")
@@ -302,30 +310,76 @@ class EnquiryRegistrationSuite {
 
     @Test
     @Order(15)
-    @DisplayName("TC-ENQ-003 (regression, documents a real gap): submitting the same enquiry twice creates two separate records, not a detected duplicate")
+    @DisplayName("TC-ENQ-003 (regression): submitting the same enquiry twice merges into one record instead of creating a duplicate")
     @Tag("regression")
-    void tc_enq_003_noDuplicateDetection() {
+    void tc_enq_003_duplicateSubmissionMerges() {
         String email = TestData.uniqueEmail("dupe-enquiry");
-        Map<String, Object> body = Map.of(
+        Map<String, Object> firstBody = Map.of(
                 "name", "QA-AUTOTEST Duplicate Probe", "email", email,
+                "branch", Env.HARROW_BRANCH_SLUG, "enquiry_type", "General enquiry",
+                "message", "First message");
+
+        String firstId = given().spec(Api.authed(adminToken)).body(firstBody)
+                .when().post("/api/v1/admin/enquiries")
+                .then().statusCode(201).extract().jsonPath().getString("data.id");
+
+        // When the same email submits again shortly after, while the first is
+        // still in the open pipeline (status "new")...
+        Map<String, Object> secondBody = Map.of(
+                "name", "QA-AUTOTEST Duplicate Probe", "email", email,
+                "branch", Env.HARROW_BRANCH_SLUG, "enquiry_type", "General enquiry",
+                "message", "Second message - retried after a timeout");
+
+        Response second = given().spec(Api.authed(adminToken)).body(secondBody)
+                .when().post("/api/v1/admin/enquiries");
+
+        // Then: it merges into the SAME record (200, not 201) rather than
+        // creating a duplicate — and the second message isn't lost, it's
+        // captured as a note on the existing enquiry.
+        second.then().statusCode(200).body("data.id", equalTo(firstId));
+        List<Map<String, Object>> notes = second.jsonPath().getList("data.notes");
+        boolean hasMergeNote = notes.stream().anyMatch(n -> String.valueOf(n.get("note")).contains("Second message - retried after a timeout"));
+        Assertions.assertTrue(hasMergeNote, "the second submission's message must be preserved as a note on the merged-into enquiry");
+
+        Response list = given().spec(Api.authed(adminToken))
+                .queryParam("branch", Env.HARROW_BRANCH_SLUG).queryParam("q", "Duplicate Probe")
+                .when().get("/api/v1/admin/enquiries");
+        List<Map<String, Object>> allMatches = list.jsonPath().getList("data");
+        long matching = allMatches.stream()
+                .filter(e -> email.equalsIgnoreCase(String.valueOf(e.get("email"))))
+                .count();
+        Assertions.assertEquals(1, matching, "exactly one enquiry document must exist for this email, not two");
+    }
+
+    @Test
+    @Order(16)
+    @DisplayName("TC-ENQ-003b: A submission from the same email AFTER the first is Registered is treated as a genuinely new enquiry, not merged")
+    void tc_enq_003b_newEnquiryAfterRegisteredIsNotMerged() {
+        String email = TestData.uniqueEmail("post-reg-enquiry");
+        Map<String, Object> body = Map.of(
+                "name", "QA-AUTOTEST Post-Registration", "email", email,
                 "branch", Env.HARROW_BRANCH_SLUG, "enquiry_type", "General enquiry");
 
         String firstId = given().spec(Api.authed(adminToken)).body(body)
                 .when().post("/api/v1/admin/enquiries")
                 .then().statusCode(201).extract().jsonPath().getString("data.id");
+        given().spec(Api.authed(adminToken)).body(Map.of("status", "contacted"))
+                .when().patch("/api/v1/admin/enquiries/" + firstId + "/status").then().statusCode(200);
+        given().spec(Api.authed(adminToken)).body(Map.of(
+                        "registration_date", "2026-07-24T00:00:00Z", "expected_start_date", "2026-09-01T00:00:00Z"))
+                .when().post("/api/v1/admin/enquiries/" + firstId + "/register")
+                .then().statusCode(200).body("data.status", equalTo("registered"));
 
-        // Then: the plan expects this to be flagged/blocked as a likely
-        // duplicate. The real system has no such detection — it creates a
-        // second, fully independent enquiry document, silently.
+        // A new submission from the same email now (e.g. enquiring about a
+        // second child) must NOT merge into the closed-out registered one.
         String secondId = given().spec(Api.authed(adminToken)).body(body)
                 .when().post("/api/v1/admin/enquiries")
                 .then().statusCode(201).extract().jsonPath().getString("data.id");
-
-        Assertions.assertNotEquals(firstId, secondId, "documents the gap: two identical submissions produce two distinct enquiry ids");
+        Assertions.assertNotEquals(firstId, secondId, "a new enquiry after Registered must be its own record, not merged into the closed one");
     }
 
     @Test
-    @Order(16)
+    @Order(17)
     @DisplayName("TC-REG-004 (regression, documents a real gap): registering with no child fields still flips the enquiry to Registered — no atomicity ties status to child creation")
     @Tag("regression")
     void tc_reg_004_registrationNotAtomicWithChildCreation() {

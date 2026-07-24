@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"log/slog"
+	"regexp"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -20,6 +21,9 @@ type EnquiryRepository interface {
 	// limit/skip), backing paginated list views.
 	Count(ctx context.Context, f models.EnquiryFilter) (int64, error)
 	FindByID(ctx context.Context, id string) (*models.Enquiry, error)
+	// FindRecentOpenByEmail finds an in-pipeline duplicate for branch+email
+	// created since the given time, or nil — see the implementation comment.
+	FindRecentOpenByEmail(ctx context.Context, branch, email string, statuses []string, since time.Time) (*models.Enquiry, error)
 	// ChangeStatus sets the status and appends an activity entry. When the new
 	// status is "registered" it also flips registration.is_registered to true.
 	ChangeStatus(ctx context.Context, id, status string, act models.EnquiryActivity) error
@@ -137,6 +141,29 @@ func (r *enquiryRepository) FindByID(ctx context.Context, id string) (*models.En
 	}
 	var e models.Enquiry
 	if err = r.col.FindOne(ctx, bson.M{"_id": oid}).Decode(&e); err != nil {
+		return nil, err
+	}
+	return &e, nil
+}
+
+// FindRecentOpenByEmail returns the most recently created still-in-pipeline
+// enquiry (status in statuses) for branch+email created at or after since, or
+// nil if none exists. Backs duplicate-submission detection — email match is
+// exact (case-insensitive), never a regex, so it can't be tricked by regex
+// metacharacters in the input.
+func (r *enquiryRepository) FindRecentOpenByEmail(ctx context.Context, branch, email string, statuses []string, since time.Time) (*models.Enquiry, error) {
+	filter := bson.M{
+		"branch":     branch,
+		"email":      bson.M{"$regex": "^" + regexp.QuoteMeta(email) + "$", "$options": "i"},
+		"status":     bson.M{"$in": statuses},
+		"created_at": bson.M{"$gte": since},
+	}
+	opts := options.FindOne().SetSort(bson.D{{Key: "created_at", Value: -1}})
+	var e models.Enquiry
+	if err := r.col.FindOne(ctx, filter, opts).Decode(&e); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &e, nil
