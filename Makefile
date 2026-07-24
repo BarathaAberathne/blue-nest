@@ -5,6 +5,7 @@
         mongo-shell setup \
         seed seed-products seed-branches seed-catalogue seed-users seed-children seed-staff seed-daily seed-gbp seed-famly seed-all \
         wait-api \
+        test-e2e test-e2e-regression \
         staging-up staging-verify staging-logs staging-down staging-clean \
         optimize-images optimize-images-dry
 
@@ -55,6 +56,37 @@ test:
 
 test-backend:
 	cd backend && go test -race -v ./...
+
+# REST-Assured API/E2E suite (test-automation/rest-assured-suite) — the
+# TDD-numbered TC-XXX-NNN suite documented in CLAUDE.md's "QA & test
+# automation" section. Requires the API reachable (default
+# http://localhost:8080 — `make docker-up`/`make dev` first) and a real
+# admin login (defaults to the seeded admin@bluenest.uk). Override via
+# QA_BASE_URL / QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD env vars, e.g. against
+# staging: QA_BASE_URL=http://localhost:8080 make test-e2e (staging listens
+# on the same host ports as dev). Exports PATH/JAVA_HOME for a keg-only
+# Homebrew OpenJDK install (harmless no-op if that path doesn't exist, e.g.
+# on Linux CI with a system JDK already on PATH).
+test-e2e:
+	@echo "→ Running REST-Assured E2E suite against $${QA_BASE_URL:-http://localhost:8080}..."
+	@PATH="/opt/homebrew/opt/openjdk/bin:$$PATH" \
+	 JAVA_HOME="$${JAVA_HOME:-/opt/homebrew/opt/openjdk}" \
+	 bash -c 'cd test-automation/rest-assured-suite && mvn -q test \
+	   -Dqa.baseUrl=$${QA_BASE_URL:-http://localhost:8080} \
+	   -Dqa.adminEmail=$${QA_ADMIN_EMAIL:-admin@bluenest.uk} \
+	   -Dqa.adminPassword=$${QA_ADMIN_PASSWORD:-changeme-min-8-chars}'
+
+# Regression-tag subset only — fast pre-push check (see CLAUDE.md: run this,
+# or the full test-e2e, before pushing any backend business-logic/permission/
+# API-contract change).
+test-e2e-regression:
+	@echo "→ Running REST-Assured regression subset against $${QA_BASE_URL:-http://localhost:8080}..."
+	@PATH="/opt/homebrew/opt/openjdk/bin:$$PATH" \
+	 JAVA_HOME="$${JAVA_HOME:-/opt/homebrew/opt/openjdk}" \
+	 bash -c 'cd test-automation/rest-assured-suite && mvn -q test -Dgroups=regression \
+	   -Dqa.baseUrl=$${QA_BASE_URL:-http://localhost:8080} \
+	   -Dqa.adminEmail=$${QA_ADMIN_EMAIL:-admin@bluenest.uk} \
+	   -Dqa.adminPassword=$${QA_ADMIN_PASSWORD:-changeme-min-8-chars}'
 
 # ── Lint ──────────────────────────────────────────────────────────────────────
 lint:

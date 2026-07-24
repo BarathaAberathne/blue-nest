@@ -104,25 +104,53 @@ func (s *childService) KeyChildren(ctx context.Context, staffID string) ([]model
 	return s.repo.FindAll(ctx, repository.ChildFilter{KeyPerson: staffID})
 }
 
+// applyChild copies a ChildRequest onto a Child record for both Create and
+// Update. Identity and safety-relevant fields only overwrite when the
+// request actually supplies a value — a partial update (e.g. "just change
+// room_id") must never silently wipe DOB/allergies/medical notes/guardians.
+// RoomID stays unconditional: clearing it is the legitimate "unassign from
+// room" action.
 func applyChild(c *models.Child, req models.ChildRequest) {
-	c.FirstName = strings.TrimSpace(req.FirstName)
-	c.LastName = strings.TrimSpace(req.LastName)
-	c.DOB = strings.TrimSpace(req.DOB)
-	c.Gender = strings.TrimSpace(req.Gender)
-	c.BranchSlug = strings.TrimSpace(req.BranchSlug)
+	if s := strings.TrimSpace(req.FirstName); s != "" {
+		c.FirstName = s
+	}
+	if s := strings.TrimSpace(req.LastName); s != "" {
+		c.LastName = s
+	}
+	if s := strings.TrimSpace(req.DOB); s != "" {
+		c.DOB = s
+	}
+	if s := strings.TrimSpace(req.Gender); s != "" {
+		c.Gender = s
+	}
+	if s := strings.TrimSpace(req.BranchSlug); s != "" {
+		c.BranchSlug = s
+	}
 	c.RoomID = strings.TrimSpace(req.RoomID)
 	if req.Status != "" {
 		c.Status = req.Status
 	}
-	c.StartDate = strings.TrimSpace(req.StartDate)
-	c.Guardians = req.Guardians
+	if s := strings.TrimSpace(req.StartDate); s != "" {
+		c.StartDate = s
+	}
+	if req.Guardians != nil {
+		c.Guardians = req.Guardians
+	}
 	if req.FundingType != "" {
 		c.FundingType = req.FundingType
 	}
-	c.Sessions = req.Sessions
-	c.Allergies = strings.TrimSpace(req.Allergies)
-	c.DietaryReqs = strings.TrimSpace(req.DietaryReqs)
-	c.MedicalNotes = strings.TrimSpace(req.MedicalNotes)
+	if req.Sessions != nil {
+		c.Sessions = req.Sessions
+	}
+	if s := strings.TrimSpace(req.Allergies); s != "" {
+		c.Allergies = s
+	}
+	if s := strings.TrimSpace(req.DietaryReqs); s != "" {
+		c.DietaryReqs = s
+	}
+	if s := strings.TrimSpace(req.MedicalNotes); s != "" {
+		c.MedicalNotes = s
+	}
 }
 
 // mintRef allocates the next CHD-YYYY-NNNNNN reference for the current year.
@@ -142,6 +170,9 @@ func (s *childService) Create(ctx context.Context, req models.ChildRequest) (*mo
 	if strings.TrimSpace(req.BranchSlug) == "" {
 		return nil, errors.New("branch is required")
 	}
+	if req.Status != "" && !models.IsValidChildStatus(req.Status) {
+		return nil, errors.New("invalid child status")
+	}
 	c := &models.Child{Status: models.ChildActive, FundingType: models.FundingNone}
 	applyChild(c, req)
 	ref, err := s.mintRef(ctx)
@@ -156,6 +187,9 @@ func (s *childService) Create(ctx context.Context, req models.ChildRequest) (*mo
 }
 
 func (s *childService) Update(ctx context.Context, id string, req models.ChildRequest) (*models.Child, error) {
+	if req.Status != "" && !models.IsValidChildStatus(req.Status) {
+		return nil, errors.New("invalid child status")
+	}
 	existing, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err

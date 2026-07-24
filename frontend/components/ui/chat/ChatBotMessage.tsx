@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { marked } from "marked";
+import DOMPurify from "dompurify";
 import ChatBotTyping from "./ChatBotTyping";
 import type { ChatMessage } from "@/types/chat";
 
@@ -11,9 +12,13 @@ interface Props {
   message: ChatMessage;
 }
 
+// marked renders any raw HTML embedded in the source text verbatim, so the
+// output must be sanitized before use with dangerouslySetInnerHTML — the
+// content nominally comes from our own model call, but nothing enforces that
+// invariant end-to-end (e.g. text retrieved via tool use could carry markup).
 function renderMarkdown(content: string): string {
   try {
-    return marked.parse(content) as string;
+    return DOMPurify.sanitize(marked.parse(content) as string);
   } catch {
     return content;
   }
@@ -58,7 +63,6 @@ export default function ChatBotMessageBubble({ message }: Props) {
         ) : isBot ? (
           <div
             className="[&_p]:mb-2 [&_p:last-child]:mb-0 [&_p:first-child]:mt-0 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:my-1 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:my-1 [&_li]:mb-0.5 [&_strong]:font-bold [&_a]:text-[#4aa7a2] [&_a]:underline [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_h1,h2,h3]:font-bold [&_h1,h2,h3]:mb-1"
-            // Safe: content originates from our controlled Anthropic API call
             dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content) }}
           />
         ) : (

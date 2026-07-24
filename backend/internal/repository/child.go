@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"regexp"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -62,10 +63,12 @@ func (r *childRepository) FindAll(ctx context.Context, f ChildFilter) ([]models.
 		filter["key_person_id"] = f.KeyPerson
 	}
 	if f.Q != "" {
+		// Escaped so free-text search input is matched literally — see staff.go.
+		q := regexp.QuoteMeta(f.Q)
 		filter["$or"] = bson.A{
-			bson.M{"first_name": bson.M{"$regex": f.Q, "$options": "i"}},
-			bson.M{"last_name": bson.M{"$regex": f.Q, "$options": "i"}},
-			bson.M{"ref": bson.M{"$regex": f.Q, "$options": "i"}},
+			bson.M{"first_name": bson.M{"$regex": q, "$options": "i"}},
+			bson.M{"last_name": bson.M{"$regex": q, "$options": "i"}},
+			bson.M{"ref": bson.M{"$regex": q, "$options": "i"}},
 		}
 	}
 	opts := options.Find().SetSort(bson.D{{Key: "last_name", Value: 1}, {Key: "first_name", Value: 1}})

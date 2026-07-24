@@ -88,27 +88,59 @@ func (s *staffService) GetByID(ctx context.Context, id string) (*models.Staff, e
 	return s.repo.FindByID(ctx, id)
 }
 
+// applyStaff copies a StaffRequest onto a Staff record for both Create and
+// Update. Most fields only overwrite when the request actually supplies a
+// non-empty value — a partial update (e.g. "just change room_id") must never
+// silently wipe email/phone/job_title/DBS/First-Aid data, the same
+// data-loss pattern already fixed for children's applyChild. RoomID stays
+// unconditional: clearing it is the legitimate "unassign from room" action.
 func applyStaff(st *models.Staff, req models.StaffRequest) {
-	st.FirstName = strings.TrimSpace(req.FirstName)
-	st.LastName = strings.TrimSpace(req.LastName)
-	st.Email = strings.TrimSpace(req.Email)
-	st.Phone = strings.TrimSpace(req.Phone)
-	st.BranchSlug = strings.TrimSpace(req.BranchSlug)
+	if v := strings.TrimSpace(req.FirstName); v != "" {
+		st.FirstName = v
+	}
+	if v := strings.TrimSpace(req.LastName); v != "" {
+		st.LastName = v
+	}
+	if v := strings.TrimSpace(req.Email); v != "" {
+		st.Email = v
+	}
+	if v := strings.TrimSpace(req.Phone); v != "" {
+		st.Phone = v
+	}
+	if v := strings.TrimSpace(req.BranchSlug); v != "" {
+		st.BranchSlug = v
+	}
 	st.RoomID = strings.TrimSpace(req.RoomID)
-	st.JobTitle = strings.TrimSpace(req.JobTitle)
+	if v := strings.TrimSpace(req.JobTitle); v != "" {
+		st.JobTitle = v
+	}
 	if req.StaffType != "" {
 		st.StaffType = req.StaffType
 	}
 	if req.Status != "" {
 		st.Status = req.Status
 	}
-	st.StartDate = strings.TrimSpace(req.StartDate)
-	st.ContractHours = req.ContractHours
-	st.Qualifications = req.Qualifications
-	st.DBSNumber = strings.TrimSpace(req.DBSNumber)
-	st.DBSExpiry = strings.TrimSpace(req.DBSExpiry)
-	st.FirstAidExpiry = strings.TrimSpace(req.FirstAidExpiry)
-	st.EmergencyContacts = req.EmergencyContacts
+	if v := strings.TrimSpace(req.StartDate); v != "" {
+		st.StartDate = v
+	}
+	if req.ContractHours != 0 {
+		st.ContractHours = req.ContractHours
+	}
+	if req.Qualifications != nil {
+		st.Qualifications = req.Qualifications
+	}
+	if v := strings.TrimSpace(req.DBSNumber); v != "" {
+		st.DBSNumber = v
+	}
+	if v := strings.TrimSpace(req.DBSExpiry); v != "" {
+		st.DBSExpiry = v
+	}
+	if v := strings.TrimSpace(req.FirstAidExpiry); v != "" {
+		st.FirstAidExpiry = v
+	}
+	if req.EmergencyContacts != nil {
+		st.EmergencyContacts = req.EmergencyContacts
+	}
 }
 
 func (s *staffService) mintRef(ctx context.Context) (string, error) {
@@ -126,6 +158,18 @@ func (s *staffService) Create(ctx context.Context, req models.StaffRequest) (*mo
 	}
 	if strings.TrimSpace(req.BranchSlug) == "" {
 		return nil, errors.New("branch is required")
+	}
+	if req.Status != "" && !models.IsValidStaffStatus(req.Status) {
+		return nil, errors.New("invalid staff status")
+	}
+	if email := strings.TrimSpace(req.Email); email != "" {
+		existing, err := s.repo.FindAll(ctx, repository.StaffFilter{Email: email})
+		if err != nil {
+			return nil, err
+		}
+		if len(existing) > 0 {
+			return nil, errors.New("a staff member with that email already exists")
+		}
 	}
 	st := &models.Staff{Status: models.StaffActive, StaffType: models.StaffPermanent}
 	applyStaff(st, req)
@@ -146,9 +190,23 @@ func (s *staffService) Create(ctx context.Context, req models.StaffRequest) (*mo
 }
 
 func (s *staffService) Update(ctx context.Context, id string, req models.StaffRequest) (*models.Staff, error) {
+	if req.Status != "" && !models.IsValidStaffStatus(req.Status) {
+		return nil, errors.New("invalid staff status")
+	}
 	existing, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if email := strings.TrimSpace(req.Email); email != "" && !strings.EqualFold(email, existing.Email) {
+		dupes, err := s.repo.FindAll(ctx, repository.StaffFilter{Email: email})
+		if err != nil {
+			return nil, err
+		}
+		for _, d := range dupes {
+			if d.ID != existing.ID {
+				return nil, errors.New("a staff member with that email already exists")
+			}
+		}
 	}
 	applyStaff(existing, req)
 	if req.EnableLogin {

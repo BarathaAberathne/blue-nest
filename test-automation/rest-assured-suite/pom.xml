@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.bluenest</groupId>
+  <artifactId>qa-rest-assured-suite</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+  <name>Blue Nest Montessori QA — REST-Assured API/E2E Suite</name>
+
+  <properties>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <rest-assured.version>5.5.0</rest-assured.version>
+    <junit.version>5.11.3</junit.version>
+    <jackson.version>2.18.1</jackson.version>
+    <!-- Overridable: mvn test -Dqa.baseUrl=... -Dqa.adminEmail=... -->
+    <qa.baseUrl>http://localhost:8080</qa.baseUrl>
+    <qa.adminEmail>admin@bluenest.uk</qa.adminEmail>
+    <qa.adminPassword>changeme-min-8-chars</qa.adminPassword>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <version>${rest-assured.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>json-path</artifactId>
+      <version>${rest-assured.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <version>2.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.2</version>
+        <configuration>
+          <!-- Our test classes are named *Suite.java (not Surefire's default
+               *Test/*Tests/TestCase pattern) to match "test suites -> test
+               cases" terminology, so the include pattern must be explicit. -->
+          <includes>
+            <include>**/*Suite.java</include>
+          </includes>
+          <!-- Many suites are stateful (create-then-mutate) — never parallelize
+               test *methods* within a class; suites (classes) may still run
+               in the JVM sequentially since we don't configure parallelism. -->
+          <systemPropertyVariables>
+            <qa.baseUrl>${qa.baseUrl}</qa.baseUrl>
+            <qa.adminEmail>${qa.adminEmail}</qa.adminEmail>
+            <qa.adminPassword>${qa.adminPassword}</qa.adminPassword>
+          </systemPropertyVariables>
+          <!-- Suite packages are zero-padded (phase01_..phase13_, then
+               phase90_security) precisely so alphabetical order mirrors the QA
+               test plan's phase order (auth → branch → rooms → staff → roles →
+               enquiry/registration → room-assign → attendance →
+               staff-attendance → daily-logs → room-staff → schedule →
+               concurrency → security) — a full `mvn test` run tells the same
+               story top-to-bottom as the manual pass it's replacing. There is
+               no phase14_ratio: TC-RATIO-001/002 describe a live staff:child
+               ratio/warning system that doesn't exist anywhere server-side —
+               see the README coverage matrix rather than a suite for that one.
+               `phase90_security` is deliberately given a permanently-high
+               number, unrelated to its master-plan phase number (§19), because
+               its rate-limit regression test burns the shared per-IP login
+               budget — see SecuritySuite's class Javadoc. The large gap to 90
+               is intentional so new suites can keep slotting in at
+               phase15/16/... without ever renumbering security again. -->
+          <runOrder>alphabetical</runOrder>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
