@@ -6,6 +6,7 @@ import { ArrowLeft, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { ageLabel, childStatusAccent, fmtDate, fundingLabel } from "@/lib/child";
 import { dailyTypeAccent, dailyTypeLabel } from "@/lib/daily";
@@ -43,6 +44,9 @@ export default function ChildDetailClient({ id }: { id: string }) {
     setLoading(false);
   };
   useEffect(() => { void load(); }, [id]);
+  // Only touches the read-only display state (child/records) — safe to
+  // background-refresh mid-edit since `form` is a separate, un-synced state.
+  useAutoRefresh(load, 30_000);
 
   const branchName = useMemo(() => new Map(branches.map((b) => [b.slug, branchShortName(b)])), [branches]);
   const roomName = useMemo(() => new Map(rooms.map((r) => [r.id, r.name])), [rooms]);

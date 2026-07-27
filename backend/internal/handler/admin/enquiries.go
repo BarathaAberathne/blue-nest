@@ -263,9 +263,17 @@ func (h *AdminEnquiryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		response.Forbidden(w, "outside your branch scope")
 		return
 	}
-	enquiry, err := h.svc.CreateManual(r.Context(), req, actor(r))
+	enquiry, created, err := h.svc.CreateManual(r.Context(), req, actor(r))
 	if err != nil {
 		response.BadRequest(w, err.Error())
+		return
+	}
+	if !created {
+		// A duplicate was merged into an existing enquiry, not a new one —
+		// 200 (the existing resource), and an accurate audit label.
+		h.audit.Record(r, "merge_duplicate", "enquiry", enquiry.ID.Hex(),
+			"Merged a duplicate submission into the enquiry from "+enquiry.Name, map[string]interface{}{"source": enquiry.Source})
+		response.OK(w, enquiry)
 		return
 	}
 	h.audit.Record(r, "create", "enquiry", enquiry.ID.Hex(),

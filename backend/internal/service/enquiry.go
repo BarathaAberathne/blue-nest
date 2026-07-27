@@ -30,7 +30,10 @@ type EnquiryService interface {
 	// mutations so each still writes an attributed activity entry.
 	BulkUpdate(ctx context.Context, req models.EnquiryBulkRequest, actor models.EnquiryActor) (*models.EnquiryBulkResult, error)
 	GetByID(ctx context.Context, id string) (*models.Enquiry, error)
-	CreateManual(ctx context.Context, req models.AdminEnquiryCreateRequest, actor models.EnquiryActor) (*models.Enquiry, error)
+	// CreateManual logs an enquiry. The bool reports whether a new record was
+	// created (true) or an in-flight duplicate was merged into instead
+	// (false) — callers use it to pick 201 vs 200 and an accurate audit label.
+	CreateManual(ctx context.Context, req models.AdminEnquiryCreateRequest, actor models.EnquiryActor) (*models.Enquiry, bool, error)
 	ChangeStatus(ctx context.Context, id, status string, actor models.EnquiryActor) error
 	AddNote(ctx context.Context, id, note string, actor models.EnquiryActor) (*models.EnquiryNote, error)
 	UpdateFollowUp(ctx context.Context, id string, req models.EnquiryFollowUpRequest, actor models.EnquiryActor) error
@@ -85,6 +88,15 @@ func (s *enquiryService) Submit(ctx context.Context, req models.EnquiryRequest) 
 		return nil, errors.New("consent is required")
 	}
 
+	// Duplicate-submission guard: a double-click, a retry after a timeout, or
+	// the same form open in two tabs must not spawn a second CRM card (or a
+	// second round of notification emails) for an enquiry still in flight.
+	if dup, err := s.mergeIfDuplicate(ctx, req.Branch, req.Email, req.Message, models.EnquiryActor{}); err != nil {
+		return nil, err
+	} else if dup != nil {
+		return dup, nil
+	}
+
 	enquiry := &models.Enquiry{
 		Name:        req.Name,
 		Email:       req.Email,
@@ -122,6 +134,55 @@ func (s *enquiryService) Submit(ctx context.Context, req models.EnquiryRequest) 
 	}()
 
 	return enquiry, nil
+}
+
+// duplicateEnquiryWindow bounds how far back a same-email submission still
+// counts as a duplicate of an in-flight enquiry rather than a genuine new
+// one — long enough to absorb a double-click, a retry after a timeout, or
+// the same form left open in two tabs, short enough that a real follow-up
+// enquiry days later is never silently merged away.
+const duplicateEnquiryWindow = 24 * time.Hour
+
+// openPipelineEnquiryStatuses are the statuses a duplicate can still merge
+// into. Registered/cancelled/lost/spam are excluded on purpose: a new
+// submission after any of those represents a fresh need (a second child, a
+// second attempt), not a duplicate of a closed-out one.
+var openPipelineEnquiryStatuses = []string{
+	models.EnquiryStatusNew,
+	models.EnquiryStatusContacted,
+	models.EnquiryStatusAwaitingReply,
+	models.EnquiryStatusBookedVisit,
+	models.EnquiryStatusVisitCompleted,
+}
+
+// mergeIfDuplicate looks for an enquiry still in the open pipeline for
+// branch+email within duplicateEnquiryWindow. If found, it records the new
+// message as a note on that enquiry (so nothing submitted is lost) and
+// returns it — the caller must return this record instead of creating a new
+// one, and must not re-send notification emails. Returns (nil, nil) when
+// there's nothing to merge into.
+func (s *enquiryService) mergeIfDuplicate(ctx context.Context, branch, email, message string, actor models.EnquiryActor) (*models.Enquiry, error) {
+	dup, err := s.repo.FindRecentOpenByEmail(ctx, branch, email, openPipelineEnquiryStatuses, time.Now().Add(-duplicateEnquiryWindow))
+	if err != nil || dup == nil {
+		return nil, err
+	}
+
+	noteText := "Duplicate submission detected (same email, still in pipeline) — merged instead of creating a new enquiry."
+	if strings.TrimSpace(message) != "" {
+		noteText += " New message: " + strings.TrimSpace(message)
+	}
+	note := models.EnquiryNote{
+		ID:         primitive.NewObjectID().Hex(),
+		Note:       noteText,
+		AuthorID:   actor.ID,
+		AuthorName: actor.Name,
+		CreatedAt:  time.Now(),
+	}
+	act := newActivity(models.EnquiryActivityNoteAdded, actor, "Duplicate submission merged into this enquiry")
+	if err := s.repo.AddNote(ctx, dup.ID.Hex(), note, act); err != nil {
+		return nil, err
+	}
+	return s.repo.FindByID(ctx, dup.ID.Hex())
 }
 
 func (s *enquiryService) ListAll(ctx context.Context) ([]models.Enquiry, error) {
@@ -313,33 +374,41 @@ func normalize(e *models.Enquiry) {
 // CreateManual logs an enquiry received off-website. No consent gate, no
 // auto-emails — the admin can reply later from the detail view. Records an
 // opening "created" activity attributed to the actor.
-func (s *enquiryService) CreateManual(ctx context.Context, req models.AdminEnquiryCreateRequest, actor models.EnquiryActor) (*models.Enquiry, error) {
+func (s *enquiryService) CreateManual(ctx context.Context, req models.AdminEnquiryCreateRequest, actor models.EnquiryActor) (*models.Enquiry, bool, error) {
 	req.Name = strings.TrimSpace(req.Name)
 	req.Email = strings.TrimSpace(req.Email)
 	req.Phone = strings.TrimSpace(req.Phone)
 	req.Branch = strings.ToLower(strings.TrimSpace(req.Branch))
 	req.EnquiryType = strings.TrimSpace(req.EnquiryType)
 	if req.Name == "" {
-		return nil, errors.New("name is required")
+		return nil, false, errors.New("name is required")
 	}
 	if req.Email == "" && req.Phone == "" {
-		return nil, errors.New("an email or phone number is required")
+		return nil, false, errors.New("an email or phone number is required")
 	}
 	if req.Branch == "" {
-		return nil, errors.New("branch is required")
+		return nil, false, errors.New("branch is required")
 	}
 	if req.EnquiryType == "" {
-		return nil, errors.New("enquiry type is required")
+		return nil, false, errors.New("enquiry type is required")
 	}
 	priority := strings.TrimSpace(req.Priority)
 	if priority == "" {
 		priority = models.EnquiryPriorityMedium
 	} else if !models.IsValidPriority(priority) {
-		return nil, errors.New("invalid priority")
+		return nil, false, errors.New("invalid priority")
 	}
 	source := strings.TrimSpace(req.Source)
 	if source == "" {
 		source = "manual"
+	}
+
+	if req.Email != "" {
+		if dup, err := s.mergeIfDuplicate(ctx, req.Branch, req.Email, req.Message, actor); err != nil {
+			return nil, false, err
+		} else if dup != nil {
+			return dup, false, nil
+		}
 	}
 
 	enquiry := &models.Enquiry{
@@ -370,9 +439,9 @@ func (s *enquiryService) CreateManual(ctx context.Context, req models.AdminEnqui
 	}
 
 	if err := s.repo.Create(ctx, enquiry); err != nil {
-		return nil, fmt.Errorf("create enquiry: %w", err)
+		return nil, false, fmt.Errorf("create enquiry: %w", err)
 	}
-	return enquiry, nil
+	return enquiry, true, nil
 }
 
 func (s *enquiryService) ChangeStatus(ctx context.Context, id, status string, actor models.EnquiryActor) error {

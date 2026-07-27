@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Columns3, Download, LayoutDashboard, ListChecks, Plus, Search, SlidersHorizontal, Table2 } from "lucide-react";
 import { api, type EnquiryListParams } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import Modal from "@/components/ui/Modal";
 import PipelineBoard from "@/components/admin/inquiries/PipelineBoard";
 import EnquiryTable, { type SortKey } from "@/components/admin/inquiries/EnquiryTable";
@@ -165,14 +166,14 @@ export default function AdminInquiriesClient() {
   const sortParam = (k: SortKey): string =>
     k === "enquiry_type" ? "type" : k === "assigned_to" ? "assigned_to" : k;
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent?: boolean) => {
     const token = getAccessToken();
     if (!token) {
       setError("Not authenticated — please sign in as admin.");
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (!silent) setLoading(true);
     const params: EnquiryListParams = {
       branch: branch || undefined,
       status: status || undefined,
@@ -200,11 +201,14 @@ export default function AdminInquiriesClient() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load inquiries");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [view, branch, status, assigned, from, to, sortKey, sortDir, page, pageSize]);
 
   useEffect(() => { void load(); }, [load]);
+  // Silent background refresh — keeps the pipeline/table current if another
+  // staff member changes an enquiry elsewhere while this page sits open.
+  useAutoRefresh(() => load(true), 30_000);
 
   const loadTasks = useCallback(() => {
     const token = getAccessToken();
