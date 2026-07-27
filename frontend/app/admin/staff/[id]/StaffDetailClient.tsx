@@ -11,6 +11,7 @@ import {
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { fmtDate } from "@/lib/child";
 import { dbsExpiry, staffStatusAccent, staffStatusLabel, staffTypeAccent, staffTypeLabel } from "@/lib/staff";
@@ -91,6 +92,9 @@ export default function StaffDetailClient({ id }: { id: string }) {
     setLoading(false);
   };
   useEffect(() => { void load(); }, [id]);
+  // Only touches read-only display state — safe to background-refresh mid-edit
+  // since each of the three edit-mode forms is a separate, un-synced state.
+  useAutoRefresh(load, 30_000);
 
   // Rota shifts for this person, for the selected week — powers Scheduled hours + Calendar.
   useEffect(() => {

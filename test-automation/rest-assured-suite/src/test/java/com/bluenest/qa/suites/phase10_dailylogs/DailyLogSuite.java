@@ -43,6 +43,15 @@ import static org.hamcrest.Matchers.*;
  * itself. TC-LOG-005b below regression-locks exactly that: the record is
  * genuinely gone (404 after) AND the deletion is captured in {@code
  * /admin/audit-logs}.
+ *
+ * <p><b>Regression (duplicate submissions):</b> {@code dailyRecordService.
+ * Create} had no protection against a double-tap or client retry creating
+ * two identical records — fixed with a 5-second debounce ({@code
+ * recentDuplicate}: same child+type+branch+date+title+meal_type created
+ * within the window returns the existing record instead of a new one). This
+ * is deliberately a narrow debounce, not a business rule: a child can have
+ * several distinct meals/observations on the same day, so the match is on
+ * EVERY content field, not just child+date. Test 11 below is the lock.
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @DisplayName("Phase 16 — Daily Logs")
@@ -230,5 +239,40 @@ class DailyLogSuite {
         given().spec(Api.authed(adminToken))
                 .when().get("/api/v1/admin/daily-records/000000000000000000000000")
                 .then().statusCode(404);
+    }
+
+    @Test
+    @Order(11)
+    @DisplayName("Exit Criteria §6 (regression): a rapid double-submit of the identical log entry merges into one record, but a genuinely different entry the same day does not")
+    @Tag("regression")
+    void tc_exitcriteria_duplicateDailyRecordDebounced() {
+        String childId = "000000000000000000000099";
+        Map<String, Object> lunch = new HashMap<>(baseBody("meal", "QA-AUTOTEST Duplicate Debounce Lunch"));
+        lunch.put("meal_type", "lunch");
+        lunch.put("eaten", "most");
+        lunch.put("child_id", childId);
+
+        Response first = given().spec(Api.authed(adminToken)).body(lunch).when().post("/api/v1/admin/daily-records");
+        first.then().statusCode(201);
+        String firstId = first.jsonPath().getString("data.id");
+
+        // An immediate identical resubmission (the exact double-tap/retry
+        // shape) must merge into the SAME record, not create a second one.
+        Response second = given().spec(Api.authed(adminToken)).body(lunch).when().post("/api/v1/admin/daily-records");
+        second.then().statusCode(201).body("data.id", equalTo(firstId));
+
+        // But a genuinely different entry for the same child, same day (a
+        // different meal_type) must NOT be swallowed by the debounce.
+        Map<String, Object> snack = new HashMap<>(baseBody("meal", "QA-AUTOTEST Duplicate Debounce Snack"));
+        snack.put("meal_type", "snack");
+        snack.put("eaten", "all");
+        snack.put("child_id", childId);
+        Response third = given().spec(Api.authed(adminToken)).body(snack).when().post("/api/v1/admin/daily-records");
+        third.then().statusCode(201);
+        String thirdId = third.jsonPath().getString("data.id");
+        Assertions.assertNotEquals(firstId, thirdId, "a distinct meal_type must not be merged away by the duplicate debounce");
+
+        given().spec(Api.authed(adminToken)).when().delete("/api/v1/admin/daily-records/" + firstId);
+        given().spec(Api.authed(adminToken)).when().delete("/api/v1/admin/daily-records/" + thirdId);
     }
 }

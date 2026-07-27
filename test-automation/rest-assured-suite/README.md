@@ -4,7 +4,7 @@ An API/end-to-end regression suite for the flows and defects covered by
 `test-automation/test-instructions` (the master QA plan) and this project's
 live manual QA pass. Java 17+, Maven, REST-Assured 5, JUnit 5.
 
-**Status: complete coverage of what's actually testable.** 106
+**Status: complete coverage of what's actually testable.** 123
 tests, all passing, referencing 49 of the plan's 55 `TC-XXX-NNN` cases (some
 partially — see the coverage matrix below). The remaining 6 are **not
 missing tests** — they're plan cases describing functionality that was
@@ -151,15 +151,17 @@ both self-minted regression ids with no matching plan case (the plan only
 goes to `TC-AUTH-002`/`TC-STAFF-003`) — real, valuable tests, just not plan
 citations.
 
-**Fully covered (21):** `TC-AUTH-001/002`, `TC-BR-001/002`, `TC-ENQ-001/002/
-004/005/006`, `TC-REG-001/002/003`, `TC-ROOM-001/002`, `TC-SCHEDULE-001`,
-`TC-STAFF-001/003`, `TC-VISIT-001/004` *(expressed as status transitions —
-see "no separate Visit suite" above)*, `TC-CHILDROOM-002`, `TC-ROLE-003`
-*(session/permission-propagation policy — old token keeps old permissions
-until refresh, a fresh login picks up a role change, and the
-privilege-escalation regression this session found and fixed)*.
+**Fully covered (22):** `TC-AUTH-001/002`, `TC-BR-001/002`, `TC-ENQ-001/002/
+003/004/005/006` *(003: duplicate-submission merge — see "Duplicate
+prevention & real-time sync" in CLAUDE.md)*, `TC-REG-001/002/003`,
+`TC-ROOM-001/002`, `TC-SCHEDULE-001`, `TC-STAFF-001/003`, `TC-VISIT-001/004`
+*(expressed as status transitions — see "no separate Visit suite" above)*,
+`TC-CHILDROOM-002`, `TC-ROLE-003` *(session/permission-propagation policy —
+old token keeps old permissions until refresh, a fresh login picks up a role
+change, and the privilege-escalation regression this session found and
+fixed)*.
 
-**Partially covered (28) — present in the suite but narrower than the plan's
+**Partially covered (27) — present in the suite but narrower than the plan's
 case, INCLUDING gap locks (marked below) that pass by proving the plan's
 expected behaviour does not currently exist:**
 
@@ -179,7 +181,6 @@ expected behaviour does not currently exist:**
 | `TC-LOG-005` | required fields, audit-log entry on delete | manager-review workflow trigger, parent acknowledgement, sensitive-data access restriction (no field-level redaction exists); **the plan says a record "cannot be silently deleted" — the real system allows a genuine hard delete, just an audited one, not a blocked one** — documented as a characteristic, not fixed here |
 | `TC-LOG-006` | the branch-wide `/admin/daily-records/stats` KPI aggregate is well-formed | **this is a different feature than the plan's case** — the plan wants a per-*child* chronological daily summary (meals/sleep/toileting/activities/attendance in order); no such per-child timeline endpoint exists, only the branch-wide aggregate tested here |
 | `TC-BR-003` | address/contact/opening-hours/capacity round-trip via `PUT` | **gap lock** — an invalid opening-hours entry (`"open":"not-a-time"`) is accepted, not rejected; fees/funding/notification/enquiry-settings/holiday-calendar fields don't exist on the `Branch` model at all |
-| `TC-ENQ-003` | two identical enquiry submissions both succeed | **gap lock** — no duplicate-enquiry detection exists anywhere (no email+child window check); the plan expects this flagged/blocked |
 | `TC-REG-004` | registering with no child fields still flips the enquiry to Registered | **gap lock** — `Register` is two non-transactional writes with no rollback; "registered" does not guarantee a child record exists |
 | `TC-ROOMSTAFF-001` | a staff member's `room_id` links them to a room | **gap lock** — there is no "room leader" concept at all, just a plain link |
 | `TC-ROOMSTAFF-002` | two staff assigned to the same room both succeed | **gap lock** — no max-staff-per-room cap exists |

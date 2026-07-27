@@ -5,6 +5,7 @@ import { BookOpen, CheckCircle2, Download, HeartPulse, Plus, Search, ShieldAlert
 import { api } from "@/lib/api";
 import { getAccessToken, scopedBranches } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { fmtDate } from "@/lib/child";
 import { dailyStatusAccent, dailyStatusLabel, dailyTypeAccent, dailyTypeLabel, severityAccent, EYFS_AREAS } from "@/lib/daily";
 import StatCard from "@/components/admin/ui/StatCard";
@@ -52,6 +53,9 @@ export default function DailyLogClient() {
     setLoading(false);
   };
   useEffect(() => { void load(); }, [typeFilter, branchFilter, q]);
+  // Safeguarding/medication entries logged by another staff member show up
+  // here without a manual reload — this is the highest-value page for it.
+  useAutoRefresh(load, 30_000);
 
   const branchName = useMemo(() => {
     const m = new Map(branches.map((b) => [b.slug, branchShortName(b)]));

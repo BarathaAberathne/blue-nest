@@ -103,6 +103,11 @@ func (s *dailyRecordService) Create(ctx context.Context, req models.DailyRecordR
 	if rec.BranchSlug == "" {
 		return nil, errors.New("branch is required")
 	}
+	if dup, err := s.recentDuplicate(ctx, rec); err != nil {
+		return nil, err
+	} else if dup != nil {
+		return dup, nil
+	}
 	year := time.Now().Year()
 	seq, err := s.counters.Next(ctx, models.CounterDailyRecord+"-"+strconv.Itoa(year))
 	if err != nil {
@@ -113,6 +118,34 @@ func (s *dailyRecordService) Create(ctx context.Context, req models.DailyRecordR
 		return nil, err
 	}
 	return rec, nil
+}
+
+// duplicateRecordWindow is a debounce, not a business rule: a child can
+// legitimately have several meals/observations on the same day, but never
+// two IDENTICAL submissions (same child, type, title, meal_type) seconds
+// apart — that's a double-tap or a client retry, not two real events.
+const duplicateRecordWindow = 5 * time.Second
+
+// recentDuplicate returns an existing record matching rec on every
+// content field, created within duplicateRecordWindow, or nil.
+func (s *dailyRecordService) recentDuplicate(ctx context.Context, rec *models.DailyRecord) (*models.DailyRecord, error) {
+	if rec.ChildID == "" {
+		return nil, nil // nothing to key a duplicate check on
+	}
+	existing, err := s.repo.FindAll(ctx, repository.DailyRecordFilter{
+		Type: string(rec.Type), ChildID: rec.ChildID, Branch: rec.BranchSlug, Date: rec.Date,
+	})
+	if err != nil {
+		return nil, err
+	}
+	cutoff := time.Now().Add(-duplicateRecordWindow)
+	for i := range existing {
+		e := &existing[i]
+		if e.CreatedAt.After(cutoff) && e.Title == rec.Title && e.MealType == rec.MealType {
+			return e, nil
+		}
+	}
+	return nil, nil
 }
 
 func (s *dailyRecordService) Update(ctx context.Context, id string, req models.DailyRecordRequest) (*models.DailyRecord, error) {
