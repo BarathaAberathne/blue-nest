@@ -16,13 +16,12 @@ fixtureScope: case
 timeoutSeconds: 30
 ---
 
-# Room-only update preserves safety fields (Critical/safeguarding regression)
+# Partial update preserves safety fields (Critical/safeguarding regression)
 
-Replaces legacy `ChildRoomSuite.tc_childroom_004_reg_partialUpdatePreservesSafetyFields`
-— a second regression found after the DOB fix: `allergies`/`medical_notes`/
-`dietary_reqs` were still unconditionally overwritten by a room-only
-update, silently erasing real safeguarding data. Reads the shared
-`adminSession`/`branch`/`room` suite fixtures — see `SUI-ASSIGN-001`.
+A safeguarding regression lock: a minimal `PUT /admin/children/{id}` must
+never silently wipe `allergies`/`medical_notes`/`dietary_reqs` (a real
+data-loss bug found earlier via this style of test). Reads the shared
+`adminSession`/`branch` suite fixtures — see `SUI-CHILDROOM-001`.
 
 ```bnrest
 Setup
@@ -42,7 +41,7 @@ Body
 When Put /api/v1/admin/children/${fixture.body.data.id} Into updated Using adminSession.accessToken
 {
   "branch_slug": "${branch.slug}",
-  "room_id": "${room.id}"
+  "gender": "female"
 }
 Then AssertStatus updated 200
 And Assert updated.body.data.allergies == "Peanuts - severe"

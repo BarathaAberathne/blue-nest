@@ -56,7 +56,6 @@ type Staff struct {
 	Email             string             `bson:"email,omitempty"        json:"email,omitempty"`
 	Phone             string             `bson:"phone,omitempty"        json:"phone,omitempty"`
 	BranchSlug        string             `bson:"branch_slug"            json:"branch_slug"`
-	RoomID            string             `bson:"room_id,omitempty"      json:"room_id,omitempty"`
 	JobTitle          string             `bson:"job_title,omitempty"    json:"job_title,omitempty"`
 	StaffType         StaffType          `bson:"staff_type"             json:"staff_type"`
 	Status            StaffStatus        `bson:"status"                 json:"status"`
@@ -77,15 +76,22 @@ type Staff struct {
 	HasPIN    bool      `bson:"-"                  json:"has_pin"`
 	CreatedAt time.Time `bson:"created_at"        json:"created_at"`
 	UpdatedAt time.Time `bson:"updated_at"        json:"updated_at"`
+
+	// RoomID/RoomName are a COMPUTED read projection of the staff member's
+	// current PRIMARY active room, resolved from the canonical
+	// staff_room_assignments at read time (never stored, never written — the
+	// same pattern as Child.KeyPersonName). Room allocation is managed only
+	// through the assignment endpoints; there is no stored room scalar.
+	RoomID   string `bson:"-" json:"room_id,omitempty"`
+	RoomName string `bson:"-" json:"room_name,omitempty"`
 }
 
 type StaffRequest struct {
-	FirstName         string             `json:"first_name" validate:"required"`
-	LastName          string             `json:"last_name"  validate:"required"`
-	Email             string             `json:"email"`
-	Phone             string             `json:"phone"`
+	FirstName  string `json:"first_name" validate:"required"`
+	LastName   string `json:"last_name"  validate:"required"`
+	Email      string `json:"email"`
+	Phone      string `json:"phone"`
 	BranchSlug        string             `json:"branch_slug" validate:"required"`
-	RoomID            string             `json:"room_id"`
 	JobTitle          string             `json:"job_title"`
 	StaffType         StaffType          `json:"staff_type"`
 	Status            StaffStatus        `json:"status"`
@@ -115,12 +121,15 @@ type StaffStats struct {
 	AttendanceRate int               `json:"attendance_rate"` // present ÷ total, round-half-up
 	Total          int               `json:"total"`
 	Present        int               `json:"present"`
-	OnLeave        int               `json:"on_leave"`
+	OnLeave        int               `json:"on_leave"` // annual leave (+ meeting/remote)
 	Training       int               `json:"training"`
 	Sick           int               `json:"sick"`
+	DependantSick  int               `json:"dependant_sick"`
+	UnpaidLeave    int               `json:"unpaid_leave"`
+	Maternity      int               `json:"maternity"`
 	LateArrival    int               `json:"late_arrival"`
 	Agency         int               `json:"agency"`
-	Absent         int               `json:"absent"`
+	Absent         int               `json:"absent"` // unauthorised / unexplained absence
 	DBSExpiring    int               `json:"dbs_expiring"` // valid DBS expiring within 90 days
 	Branches       []BranchStaffStat `json:"branches"`
 }

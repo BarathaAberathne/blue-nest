@@ -1,33 +1,11 @@
 # Test migration map
 
-Human-readable view of `test-platform/migration-manifest.json` (the authoritative,
-machine-readable mapping), grouped by **bnrest suite**. Covers both the original
-123-legacy-test migration (Wave 1, `SUI-AUTH-001` .. `SUI-NET-001`) and the brand-new
-modules added during the "add all endpoints" pass (Wave 2, `SUI-STORE-001` ..
-`SUI-USERACCOUNT-001`, no legacy equivalent). Regenerated directly from the manifest
-(not hand-transcribed) so it cannot drift out of sync.
+Human-readable view of `test-platform/migration-manifest.json` (authoritative), grouped by suite.
+Regenerated from the manifest so it cannot drift. Legacy room_id write-path tests were
+removed during the room-allocation consolidation — the canonical assignment model is now the
+single source of truth (see `docs/architecture/duplicate-implementation-audit.md`).
 
-| Planned collection | `COL-FUNC-001` Nursery CMS Functional Tests |
-|---|---|
-
-**Overall: 160 of 164 manifest entries completed (98%), 0 pending, 4 deliberately not migrated (documented platform limitation).**
-
-## SUI-ASSIGN-001 — Child and Staff Assignment (12/12 migrated)
-
-| Legacy class.method | Legacy ID | New test ID | Status | Parity |
-|---|---|---|---|---|
-| ChildRoomSuite.tc_childroom_001_roomAgeRangesArePresent | TC-CHILDROOM-001 | `CHILDROOM-TC-001` | ✅ completed | verified |
-| ChildRoomSuite.tc_childroom_002_assignRoom | TC-CHILDROOM-002 | `CHILDROOM-TC-002` | ✅ completed | verified |
-| ChildRoomSuite.tc_childroom_002_reg_roomOnlyUpdatePreservesDob | TC-CHILDROOM-002-REG | `CHILDROOM-TC-002-REG` | ✅ completed | verified |
-| ChildRoomSuite.tc_childroom_002_reg_roomOnlyUpdatePreservesName | TC-CHILDROOM-002-REG-b | `CHILDROOM-TC-002-REG-b` | ✅ completed | verified |
-| ChildRoomSuite.tc_childroom_002c_roomCanBeUnassigned | TC-CHILDROOM-002c | `CHILDROOM-TC-002c` | ✅ completed | verified |
-| ChildRoomSuite.tc_childroom_003_overCapacityAssignmentNotEnforced | TC-CHILDROOM-003 | `CHILDROOM-TC-003` | ✅ completed | verified |
-| ChildRoomSuite.tc_childroom_004_ageMismatchAssignmentNotEnforced | TC-CHILDROOM-004 | `CHILDROOM-TC-004` | ✅ completed | verified |
-| ChildRoomSuite.tc_childroom_004_reg_partialUpdatePreservesSafetyFields | TC-CHILDROOM-004-REG | `CHILDROOM-TC-004-REG` | ✅ completed | verified |
-| RoomStaffSuite.tc_roomstaff_001_staffLinkedToRoom | TC-ROOMSTAFF-001 | `ROOMSTAFF-TC-001` | ✅ completed | verified |
-| RoomStaffSuite.tc_roomstaff_002_noMaxStaffPerRoomEnforced | TC-ROOMSTAFF-002 | `ROOMSTAFF-TC-002` | ✅ completed | verified |
-| RoomStaffSuite.tc_roomstaff_003_inactiveStaffAssignmentNotGated | TC-ROOMSTAFF-003 | `ROOMSTAFF-TC-003` | ✅ completed | verified |
-| RoomStaffSuite.tc_roomstaff_003b_nonexistentRoomIdAccepted | TC-ROOMSTAFF-003b | `ROOMSTAFF-TC-003b` | ✅ completed | verified |
+**Overall: 150 of 150 completed (100%), 0 deliberately not migrated.**
 
 ## SUI-ATT-001 — Attendance (19/19 migrated)
 
@@ -57,9 +35,9 @@ modules added during the "add all endpoints" pass (Wave 2, `SUI-STORE-001` ..
 
 | Legacy class.method | Legacy ID | New test ID | Status | Parity |
 |---|---|---|---|---|
-| (new coverage, no legacy equivalent) | — | `AUDIT-TC-001` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `AUDIT-TC-002` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `AUDIT-TC-003` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `AUDIT-TC-001` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `AUDIT-TC-002` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `AUDIT-TC-003` | ✅ completed | n/a-new-coverage |
 
 ## SUI-AUTH-001 — Authentication (15/15 migrated)
 
@@ -70,7 +48,7 @@ modules added during the "add all endpoints" pass (Wave 2, `SUI-STORE-001` ..
 | AuthSuite.tc_auth_002_invalidPasswordRejected | TC-AUTH-002 | `AUTH-TC-002` | ✅ completed | verified |
 | AuthSuite.tc_auth_002b_noAccountEnumeration | TC-AUTH-002b | `AUTH-TC-002b` | ✅ completed | verified |
 | SecuritySuite.tc_auth_003_loginIsRateLimited | TC-AUTH-003 | `AUTH-TC-003` | ✅ completed | verified |
-| (new coverage, no legacy equivalent) | — | `AUTH-TC-004` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `AUTH-TC-004` | ✅ completed | n/a-new-coverage |
 | SecuritySuite.sec_001_noTokenRejected | SEC-001 | `SEC-TC-001` | ✅ completed | verified |
 | SecuritySuite.sec_002_malformedTokenRejected | SEC-002 | `SEC-TC-002` | ✅ completed | verified |
 | SecuritySuite.sec_003_operatorInjectionQueryParamsInert | SEC-003 (regression) | `SEC-TC-003` | ✅ completed | verified |
@@ -85,14 +63,14 @@ modules added during the "add all endpoints" pass (Wave 2, `SUI-STORE-001` ..
 
 | Legacy class.method | Legacy ID | New test ID | Status | Parity |
 |---|---|---|---|---|
-| (new coverage, no legacy equivalent) | — | `BLOG-TC-001` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `BLOG-TC-002` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `BLOG-TC-003` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `BLOG-TC-004` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `BLOG-TC-005` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `BLOG-TC-006` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `BLOG-TC-007` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `BLOG-TC-008` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `BLOG-TC-001` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `BLOG-TC-002` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `BLOG-TC-003` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `BLOG-TC-004` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `BLOG-TC-005` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `BLOG-TC-006` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `BLOG-TC-007` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `BLOG-TC-008` | ✅ completed | n/a-new-coverage |
 
 ## SUI-BRANCH-001 — Harrow Branch Setup (7/7 migrated)
 
@@ -104,7 +82,14 @@ modules added during the "add all endpoints" pass (Wave 2, `SUI-STORE-001` ..
 | BranchSuite.tc_br_002b_repeatedDuplicateAttemptsBothRejected | TC-BR-002b | `BRANCH-TC-002b` | ✅ completed | verified |
 | BranchSuite.tc_br_003_configFieldsRoundTrip | TC-BR-003 | `BRANCH-TC-003` | ✅ completed | verified |
 | BranchSuite.tc_br_003b_invalidOpeningHoursNotValidated | TC-BR-003b | `BRANCH-TC-003b` | ✅ completed | verified |
-| (new coverage, no legacy equivalent) | — | `BRANCH-TC-004` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `BRANCH-TC-004` | ✅ completed | n/a-new-coverage |
+
+## SUI-CHILDROOM-001 — Child Room Allocation and Transfer (2/2 migrated)
+
+| Legacy class.method | Legacy ID | New test ID | Status | Parity |
+|---|---|---|---|---|
+| ChildRoomSuite.tc_childroom_001_roomAgeRangesArePresent | TC-CHILDROOM-001 | `CHILDROOM-TC-001` | ✅ completed | verified |
+| ChildRoomSuite.tc_childroom_004_reg_partialUpdatePreservesSafetyFields | TC-CHILDROOM-004-REG | `CHILDROOM-TC-004-REG` | ✅ completed | verified |
 
 ## SUI-ENQUIRY-001 — Enquiry Lifecycle (10/10 migrated)
 
@@ -125,19 +110,19 @@ modules added during the "add all endpoints" pass (Wave 2, `SUI-STORE-001` ..
 
 | Legacy class.method | Legacy ID | New test ID | Status | Parity |
 |---|---|---|---|---|
-| (new coverage, no legacy equivalent) | — | `KEY-TC-001` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `KEY-TC-002` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `KEY-TC-003` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `KEY-TC-004` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `KEY-TC-005` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `KEY-TC-001` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `KEY-TC-002` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `KEY-TC-003` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `KEY-TC-004` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `KEY-TC-005` | ✅ completed | n/a-new-coverage |
 
 ## SUI-KIOSK-001 — Kiosk (Entrance Tablet) (3/3 migrated)
 
 | Legacy class.method | Legacy ID | New test ID | Status | Parity |
 |---|---|---|---|---|
-| (new coverage, no legacy equivalent) | — | `KIOSK-TC-001` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `KIOSK-TC-002` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `KIOSK-TC-003` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `KIOSK-TC-001` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `KIOSK-TC-002` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `KIOSK-TC-003` | ✅ completed | n/a-new-coverage |
 
 ## SUI-KPI-001 — KPI Reconciliation (2/2 migrated)
 
@@ -161,32 +146,28 @@ modules added during the "add all endpoints" pass (Wave 2, `SUI-STORE-001` ..
 | DailyLogSuite.tc_log_006_dailySummaryWellFormed | TC-LOG-006 | `LOG-TC-006` | ✅ completed | verified |
 | DailyLogSuite.tc_log_006b_unknownRecordRejected | TC-LOG-006b | `LOG-TC-006b` | ✅ completed | verified |
 
-## SUI-NET-001 — Network and Endpoint Validation (2/6 migrated)
+## SUI-NET-001 — Network and Endpoint Validation (2/2 migrated)
 
 | Legacy class.method | Legacy ID | New test ID | Status | Parity |
 |---|---|---|---|---|
 | ChildRoomSuite.tc_exitcriteria_duplicateChildRejected | Exit Criteria §6 (regression) | `CHILDROOM-TC-EXIT6` | ✅ completed | verified |
-| ConcurrencySuite.tc_con_001_concurrentEnquiryEditsBothPersist | TC-CON-001 | `CONCURRENCY-TC-001` | 🚫 not migrated | n/a-platform-limitation |
-| ConcurrencySuite.tc_con_001b_concurrentSameFieldEditIsSilentLastWriteWins | TC-CON-001b | `CONCURRENCY-TC-001b` | 🚫 not migrated | n/a-platform-limitation |
-| ConcurrencySuite.tc_con_002_concurrentRoomAssignmentExceedsCapacity | TC-CON-002 | `CONCURRENCY-TC-002` | 🚫 not migrated | n/a-platform-limitation |
-| ConcurrencySuite.tc_con_003_concurrentClockInStaysSingleRecord | TC-CON-003 | `CONCURRENCY-TC-003` | 🚫 not migrated | n/a-platform-limitation |
 | DailyLogSuite.tc_exitcriteria_duplicateDailyRecordDebounced | Exit Criteria §6 (regression) | `LOG-TC-EXIT6` | ✅ completed | verified |
 
 ## SUI-PROCUREMENT-001 — Procurement (Supply Requests, Catalogue, Purchase Orders, Suppliers, Analytics, Templates) (11/11 migrated)
 
 | Legacy class.method | Legacy ID | New test ID | Status | Parity |
 |---|---|---|---|---|
-| (new coverage, no legacy equivalent) | — | `PROC-TC-001` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `PROC-TC-002` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `PROC-TC-003` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `PROC-TC-004` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `PROC-TC-005` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `PROC-TC-006` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `PROC-TC-007` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `PROC-TC-008` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `PROC-TC-009` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `PROC-TC-010` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `PROC-TC-011` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `PROC-TC-001` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `PROC-TC-002` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `PROC-TC-003` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `PROC-TC-004` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `PROC-TC-005` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `PROC-TC-006` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `PROC-TC-007` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `PROC-TC-008` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `PROC-TC-009` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `PROC-TC-010` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `PROC-TC-011` | ✅ completed | n/a-new-coverage |
 
 ## SUI-REG-001 — Child Registration (5/5 migrated)
 
@@ -214,12 +195,12 @@ modules added during the "add all endpoints" pass (Wave 2, `SUI-STORE-001` ..
 
 | Legacy class.method | Legacy ID | New test ID | Status | Parity |
 |---|---|---|---|---|
-| (new coverage, no legacy equivalent) | — | `SHIFTS-TC-001` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `SHIFTS-TC-002` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `SHIFTS-TC-003` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `SHIFTS-TC-004` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `SHIFTS-TC-005` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `SHIFTS-TC-006` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `SHIFTS-TC-001` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `SHIFTS-TC-002` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `SHIFTS-TC-003` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `SHIFTS-TC-004` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `SHIFTS-TC-005` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `SHIFTS-TC-006` | ✅ completed | n/a-new-coverage |
 
 ## SUI-STAFF-001 — Staff and Role Setup (16/16 migrated)
 
@@ -246,28 +227,28 @@ modules added during the "add all endpoints" pass (Wave 2, `SUI-STORE-001` ..
 
 | Legacy class.method | Legacy ID | New test ID | Status | Parity |
 |---|---|---|---|---|
-| (new coverage, no legacy equivalent) | — | `STORE-TC-001` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `STORE-TC-002` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `STORE-TC-003` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `STORE-TC-004` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `STORE-TC-005` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `STORE-TC-006` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `STORE-TC-007` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `STORE-TC-008` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `STORE-TC-009` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `STORE-TC-001` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `STORE-TC-002` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `STORE-TC-003` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `STORE-TC-004` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `STORE-TC-005` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `STORE-TC-006` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `STORE-TC-007` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `STORE-TC-008` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `STORE-TC-009` | ✅ completed | n/a-new-coverage |
 
 ## SUI-USERACCOUNT-001 — User Account Management (Users, Roles, Org Self-Service, Platform Organisations, Dashboards) (8/8 migrated)
 
 | Legacy class.method | Legacy ID | New test ID | Status | Parity |
 |---|---|---|---|---|
-| (new coverage, no legacy equivalent) | — | `USER-TC-001` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `USER-TC-002` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `USER-TC-003` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `USER-TC-004` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `USER-TC-005` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `USER-TC-006` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `USER-TC-007` | ✅ completed | n/a-new-coverage |
-| (new coverage, no legacy equivalent) | — | `USER-TC-008` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `USER-TC-001` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `USER-TC-002` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `USER-TC-003` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `USER-TC-004` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `USER-TC-005` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `USER-TC-006` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `USER-TC-007` | ✅ completed | n/a-new-coverage |
+| (new coverage) | — | `USER-TC-008` | ✅ completed | n/a-new-coverage |
 
 ## SUI-VISIT-001 — Visit Booking (2/2 migrated)
 

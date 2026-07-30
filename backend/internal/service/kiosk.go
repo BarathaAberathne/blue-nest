@@ -43,11 +43,12 @@ type kioskService struct {
 	attRepo    repository.StaffAttendanceRepository
 	branches   repository.BranchRepository
 	rooms      repository.RoomRepository
+	staffRooms repository.StaffRoomAssignmentRepository // canonical staff→room source for the kiosk room column
 	attendance StaffAttendanceService
 }
 
-func NewKioskService(devices repository.KioskDeviceRepository, staff repository.StaffRepository, attRepo repository.StaffAttendanceRepository, branches repository.BranchRepository, rooms repository.RoomRepository, attendance StaffAttendanceService) KioskService {
-	return &kioskService{devices: devices, staff: staff, attRepo: attRepo, branches: branches, rooms: rooms, attendance: attendance}
+func NewKioskService(devices repository.KioskDeviceRepository, staff repository.StaffRepository, attRepo repository.StaffAttendanceRepository, branches repository.BranchRepository, rooms repository.RoomRepository, staffRooms repository.StaffRoomAssignmentRepository, attendance StaffAttendanceService) KioskService {
+	return &kioskService{devices: devices, staff: staff, attRepo: attRepo, branches: branches, rooms: rooms, staffRooms: staffRooms, attendance: attendance}
 }
 
 // ── device management ────────────────────────────────────────────────────────
@@ -203,6 +204,10 @@ func (s *kioskService) SearchStaff(ctx context.Context, branch, q string) ([]mod
 			roomName[rm.ID.Hex()] = rm.Name
 		}
 	}
+	primaryRoom := map[string]string{}
+	if s.staffRooms != nil {
+		primaryRoom = PrimaryStaffRooms(ctx, s.staffRooms, branch)
+	}
 	out := make([]models.KioskStaffResult, 0, len(people))
 	for _, p := range people {
 		id := p.ID.Hex()
@@ -210,7 +215,7 @@ func (s *kioskService) SearchStaff(ctx context.Context, branch, q string) ([]mod
 			ID:       id,
 			Name:     strings.TrimSpace(p.FirstName + " " + p.LastName),
 			JobTitle: p.JobTitle,
-			RoomName: roomName[p.RoomID],
+			RoomName: roomName[primaryRoom[id]],
 			HasPIN:   p.PINHash != "",
 		}
 		if rec, ok := byStaff[id]; ok {
@@ -240,6 +245,10 @@ func (s *kioskService) Overview(ctx context.Context, branch string) (*models.Kio
 		for _, rm := range rooms {
 			roomName[rm.ID.Hex()] = rm.Name
 		}
+	}
+	primaryRoom := map[string]string{}
+	if s.staffRooms != nil {
+		primaryRoom = PrimaryStaffRooms(ctx, s.staffRooms, branch)
 	}
 	recs, _ := s.attRepo.FindByDate(ctx, today(), branch)
 
@@ -274,7 +283,7 @@ func (s *kioskService) Overview(ctx context.Context, branch string) (*models.Kio
 		recent = append(recent, models.KioskRecentCheckIn{
 			Name:       r.StaffName,
 			JobTitle:   p.JobTitle,
-			RoomName:   roomName[p.RoomID],
+			RoomName:   roomName[primaryRoom[r.StaffID]],
 			Time:       r.ClockIn.Format("15:04"),
 			Late:       r.LateArrival,
 			ClockedOut: r.ClockOut != nil,

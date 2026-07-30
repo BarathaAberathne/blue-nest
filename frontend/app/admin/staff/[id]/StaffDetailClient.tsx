@@ -13,6 +13,8 @@ import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StageBadge from "@/components/admin/ui/StageBadge";
+import StaffRoomAllocations from "@/components/admin/rooms/StaffRoomAllocations";
+import { usePermissions } from "@/lib/usePermissions";
 import { fmtDate } from "@/lib/child";
 import { dbsExpiry, staffStatusAccent, staffStatusLabel, staffTypeAccent, staffTypeLabel } from "@/lib/staff";
 import type { Branch, Child, EmergencyContact, Shift, Staff, StaffAbsenceSummary, StaffInput } from "@/types";
@@ -45,9 +47,14 @@ type SubTab = "basic" | "quals" | "keys" | "contract" | "tags";
 // memberToInput maps a saved Staff record to the editable StaffInput the update
 // endpoint expects (login fields default to "no change"). Single mapping reused
 // by the edit form and the inline field-patch saves.
+// room_id is deliberately OMITTED: room allocation now lives in its own
+// authoritative model (StaffRoomAllocations panel + assignment endpoints), and
+// the request DTO treats an omitted room_id as "no change", so a profile save
+// can never touch — or silently wipe — the staff member's room. (Historic bug:
+// docs/rooms/staff-room-field-investigation.md.)
 const memberToInput = (m: Staff): StaffInput => ({
   first_name: m.first_name, last_name: m.last_name, email: m.email ?? "", phone: m.phone ?? "",
-  branch_slug: m.branch_slug, room_id: m.room_id ?? "", job_title: m.job_title ?? "",
+  branch_slug: m.branch_slug, job_title: m.job_title ?? "",
   staff_type: m.staff_type, status: m.status, start_date: m.start_date ?? "",
   contract_hours: m.contract_hours ?? 0, qualifications: m.qualifications ?? [],
   dbs_number: m.dbs_number ?? "", dbs_expiry: m.dbs_expiry ?? "", first_aid_expiry: m.first_aid_expiry ?? "",
@@ -64,6 +71,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
   const [week, setWeek] = useState(() => mondayOf(new Date()));
   const [tab, setTab] = useState<MainTab>("profile");
   const [sub, setSub] = useState<SubTab>("basic");
+  const { has } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Three independently-scoped edit modes — each opens only the fields shown
@@ -362,6 +370,15 @@ export default function StaffDetailClient({ id }: { id: string }) {
             </div>
           </section>
 
+          {/* Room allocations — the authoritative staff↔room model, visible and
+              (for staff.manage) editable in both view and edit workflows. */}
+          <StaffRoomAllocations
+            staffId={member.id}
+            branchSlug={member.branch_slug}
+            canManage={has("staff.manage")}
+            onChange={() => { void load(); }}
+          />
+
           {/* About panel */}
           <section className="card overflow-hidden" aria-labelledby="about-h">
             <div className="border-b border-slate-100 px-5 py-4">
@@ -429,7 +446,6 @@ export default function StaffDetailClient({ id }: { id: string }) {
                       <dl className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
                         <ReadField icon={User} label="Name" value={fullName} />
                         <ReadField icon={BadgeCheck} label="Job title" value={member.job_title} />
-                        <ReadField icon={DoorOpen} label="Room" value={roomName ?? undefined} />
                         <ReadField icon={Mail} label="Email" value={member.email} />
                         <ReadField icon={Phone} label="Phone number" value={member.phone} isPhone />
                       </dl>

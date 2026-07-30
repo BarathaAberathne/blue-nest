@@ -46,14 +46,34 @@ type childService struct {
 	rooms    repository.RoomRepository
 	counters repository.CounterRepository
 	staff    repository.StaffRepository
+	// roomAssignments is the canonical child→room model; the child service
+	// only READS from it to project the computed Child.RoomID and ends a
+	// child's placements on delete (nil-safe for unit tests).
+	roomAssignments ChildRoomAssignmentService
 }
 
-func NewChildService(repo repository.ChildRepository, rooms repository.RoomRepository, counters repository.CounterRepository, staff repository.StaffRepository) ChildService {
-	return &childService{repo: repo, rooms: rooms, counters: counters, staff: staff}
+func NewChildService(repo repository.ChildRepository, rooms repository.RoomRepository, counters repository.CounterRepository, staff repository.StaffRepository, roomAssignments ChildRoomAssignmentService) ChildService {
+	return &childService{repo: repo, rooms: rooms, counters: counters, staff: staff, roomAssignments: roomAssignments}
 }
 
 func (s *childService) List(ctx context.Context, f repository.ChildFilter) ([]models.Child, error) {
-	return s.repo.FindAll(ctx, f)
+	children, err := s.repo.FindAll(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	// Project the computed current room from the canonical assignment model
+	// (one batched query — no stored scalar, no N+1).
+	if s.roomAssignments != nil {
+		rooms := s.roomAssignments.CurrentRoomsByBranch(ctx, f.Branch)
+		names := s.roomNameMap(ctx, f.Branch)
+		for i := range children {
+			if rid, ok := rooms[children[i].ID.Hex()]; ok {
+				children[i].RoomID = rid
+				children[i].RoomName = names[rid]
+			}
+		}
+	}
+	return children, nil
 }
 func (s *childService) GetByID(ctx context.Context, id string) (*models.Child, error) {
 	c, err := s.repo.FindByID(ctx, id)
@@ -61,7 +81,40 @@ func (s *childService) GetByID(ctx context.Context, id string) (*models.Child, e
 		return nil, err
 	}
 	s.resolveKeyPerson(ctx, c)
+	s.resolveRoom(ctx, c)
 	return c, nil
+}
+
+// resolveRoom fills the transient RoomID/RoomName from the child's current
+// active placement in the canonical assignment model.
+func (s *childService) resolveRoom(ctx context.Context, c *models.Child) {
+	if c == nil || s.roomAssignments == nil {
+		return
+	}
+	rid := s.roomAssignments.CurrentRoom(ctx, c.ID.Hex())
+	if rid == "" {
+		return
+	}
+	c.RoomID = rid
+	if room, err := s.rooms.FindByID(ctx, rid); err == nil && room != nil {
+		c.RoomName = room.Name
+	}
+}
+
+// roomNameMap builds room_id → name for a branch (empty = all).
+func (s *childService) roomNameMap(ctx context.Context, branch string) map[string]string {
+	out := map[string]string{}
+	if s.rooms == nil {
+		return out
+	}
+	rooms, err := s.rooms.FindAll(ctx, branch)
+	if err != nil {
+		return out
+	}
+	for _, r := range rooms {
+		out[r.ID.Hex()] = r.Name
+	}
+	return out
 }
 
 // resolveKeyPerson fills the transient KeyPersonName from the staff record.
@@ -106,10 +159,9 @@ func (s *childService) KeyChildren(ctx context.Context, staffID string) ([]model
 
 // applyChild copies a ChildRequest onto a Child record for both Create and
 // Update. Identity and safety-relevant fields only overwrite when the
-// request actually supplies a value — a partial update (e.g. "just change
-// room_id") must never silently wipe DOB/allergies/medical notes/guardians.
-// RoomID stays unconditional: clearing it is the legitimate "unassign from
-// room" action.
+// request actually supplies a value — a partial update must never silently
+// wipe DOB/allergies/medical notes/guardians. Room placement is NOT a field
+// here: it is managed solely through the child-room-assignment endpoints.
 func applyChild(c *models.Child, req models.ChildRequest) {
 	if s := strings.TrimSpace(req.FirstName); s != "" {
 		c.FirstName = s
@@ -126,7 +178,6 @@ func applyChild(c *models.Child, req models.ChildRequest) {
 	if s := strings.TrimSpace(req.BranchSlug); s != "" {
 		c.BranchSlug = s
 	}
-	c.RoomID = strings.TrimSpace(req.RoomID)
 	if req.Status != "" {
 		c.Status = req.Status
 	}
@@ -214,6 +265,8 @@ func (s *childService) Create(ctx context.Context, req models.ChildRequest) (*mo
 	if err := s.repo.Create(ctx, c); err != nil {
 		return nil, err
 	}
+	// Room placement is a first-class operation via the child-room-assignment
+	// endpoint — not a field on the child record — so Create never touches it.
 	return c, nil
 }
 
@@ -235,15 +288,19 @@ func (s *childService) Update(ctx context.Context, id string, req models.ChildRe
 	if err != nil {
 		return nil, err
 	}
-	// KeyPersonName is transient (bson:"-"), resolved via a staff lookup — the
-	// repo's raw Decode leaves it blank, so it must be re-resolved here (same
-	// as GetByID does) or a save would appear to have cleared the key person's
-	// display name even though key_person_id itself is untouched.
+	// KeyPersonName + RoomName are transient (bson:"-"), resolved from their
+	// canonical sources — re-resolve so an edit doesn't appear to blank them.
 	s.resolveKeyPerson(ctx, updated)
+	s.resolveRoom(ctx, updated)
 	return updated, nil
 }
 
 func (s *childService) Delete(ctx context.Context, id string) error {
+	// End (never delete) any live placements first so their room can later be
+	// deactivated/deleted without dangling active rows.
+	if s.roomAssignments != nil {
+		s.roomAssignments.EndAllForChild(ctx, id, "child-deleted")
+	}
 	return s.repo.Delete(ctx, id)
 }
 
@@ -463,10 +520,16 @@ func (s *childService) CapacityForecast(ctx context.Context, branch string, week
 		return nil, err
 	}
 
+	// Group active children by their CURRENT room from the canonical
+	// assignment model (one batched query) — not a stored scalar.
+	currentRoom := map[string]string{}
+	if s.roomAssignments != nil {
+		currentRoom = s.roomAssignments.CurrentRoomsByBranch(ctx, branch)
+	}
 	byRoom := map[string][]models.Child{}
 	for _, c := range children {
-		if c.RoomID != "" {
-			byRoom[c.RoomID] = append(byRoom[c.RoomID], c)
+		if rid := currentRoom[c.ID.Hex()]; rid != "" {
+			byRoom[rid] = append(byRoom[rid], c)
 		}
 	}
 

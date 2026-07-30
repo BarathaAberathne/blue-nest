@@ -28,10 +28,13 @@ type dailyRecordService struct {
 	repo     repository.DailyRecordRepository
 	children repository.ChildRepository
 	counters repository.CounterRepository
+	// childRooms is the canonical child→room source used to default a daily
+	// record's room when the request omits it.
+	childRooms repository.ChildRoomAssignmentRepository
 }
 
-func NewDailyRecordService(repo repository.DailyRecordRepository, children repository.ChildRepository, counters repository.CounterRepository) DailyRecordService {
-	return &dailyRecordService{repo: repo, children: children, counters: counters}
+func NewDailyRecordService(repo repository.DailyRecordRepository, children repository.ChildRepository, counters repository.CounterRepository, childRooms repository.ChildRoomAssignmentRepository) DailyRecordService {
+	return &dailyRecordService{repo: repo, children: children, counters: counters, childRooms: childRooms}
 }
 
 func (s *dailyRecordService) List(ctx context.Context, f repository.DailyRecordFilter) ([]models.DailyRecord, error) {
@@ -78,8 +81,9 @@ func (s *dailyRecordService) apply(ctx context.Context, rec *models.DailyRecord,
 			if rec.BranchSlug == "" {
 				rec.BranchSlug = child.BranchSlug
 			}
-			if rec.RoomID == "" {
-				rec.RoomID = child.RoomID
+			if rec.RoomID == "" && s.childRooms != nil {
+				// Default to the child's current room from the canonical model.
+				rec.RoomID = CurrentChildRooms(ctx, s.childRooms, child.BranchSlug)[rec.ChildID]
 			}
 		}
 	}

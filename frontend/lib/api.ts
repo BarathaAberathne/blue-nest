@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
+import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -526,12 +526,45 @@ export const api = {
   // Nursery — rooms
   adminGetRooms: (token: string, branch?: string) =>
     apiFetch<Room[]>(`/api/v1/admin/rooms${branch ? `?branch=${encodeURIComponent(branch)}` : ""}`, { token }),
+  adminGetRoom: (token: string, id: string) =>
+    apiFetch<Room>(`/api/v1/admin/rooms/${id}`, { token }),
   adminCreateRoom: (token: string, body: RoomInput) =>
     apiFetch<Room>("/api/v1/admin/rooms", { method: "POST", body: JSON.stringify(body), token }),
   adminUpdateRoom: (token: string, id: string, body: RoomInput) =>
     apiFetch<Room>(`/api/v1/admin/rooms/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
   adminDeleteRoom: (token: string, id: string) =>
     apiFetch(`/api/v1/admin/rooms/${id}`, { method: "DELETE", token }),
+  adminSetRoomStatus: (token: string, id: string, status: "active" | "inactive") =>
+    apiFetch<Room>(`/api/v1/admin/rooms/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }), token }),
+
+  // Nursery — room allocations (the authoritative assignment model; both the
+  // room profile and the staff/child profiles use these same endpoints)
+  adminGetRoomCapacity: (token: string, roomId: string) =>
+    apiFetch<RoomCapacitySummary>(`/api/v1/admin/rooms/${roomId}/capacity`, { token }),
+  adminGetBranchRoomCapacity: (token: string, branch?: string) =>
+    apiFetch<RoomCapacitySummary[]>(`/api/v1/admin/rooms/capacity${branch ? `?branch=${encodeURIComponent(branch)}` : ""}`, { token }),
+  adminGetRoomStaff: (token: string, roomId: string, includeHistory?: boolean) =>
+    apiFetch<StaffRoomAssignment[]>(`/api/v1/admin/rooms/${roomId}/staff${includeHistory ? "?include=history" : ""}`, { token }),
+  adminGetRoomChildren: (token: string, roomId: string, includeHistory?: boolean) =>
+    apiFetch<ChildRoomAssignment[]>(`/api/v1/admin/rooms/${roomId}/children${includeHistory ? "?include=history" : ""}`, { token }),
+  adminGetStaffRoomAssignments: (token: string, staffId: string, includeHistory?: boolean) =>
+    apiFetch<StaffRoomAssignment[]>(`/api/v1/admin/staff/${staffId}/room-assignments${includeHistory ? "?include=history" : ""}`, { token }),
+  adminCreateStaffRoomAssignment: (token: string, body: StaffRoomAssignmentInput) =>
+    apiFetch<StaffRoomAssignment>("/api/v1/admin/staff-room-assignments", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateStaffRoomAssignment: (
+    token: string,
+    id: string,
+    body: { end?: boolean; end_date?: string; is_primary?: boolean; role_in_room?: string },
+  ) =>
+    apiFetch<StaffRoomAssignment>(`/api/v1/admin/staff-room-assignments/${id}`, { method: "PATCH", body: JSON.stringify(body), token }),
+  adminGetChildRoomAssignments: (token: string, childId: string) =>
+    apiFetch<ChildRoomAssignment[]>(`/api/v1/admin/children/${childId}/room-assignments`, { token }),
+  adminCreateChildRoomAssignment: (token: string, body: ChildRoomAssignmentInput) =>
+    apiFetch<ChildRoomAssignment>("/api/v1/admin/child-room-assignments", { method: "POST", body: JSON.stringify(body), token }),
+  adminEndChildRoomAssignment: (token: string, id: string, body?: { end_date?: string; reason?: string }) =>
+    apiFetch<ChildRoomAssignment>(`/api/v1/admin/child-room-assignments/${id}`, { method: "PATCH", body: JSON.stringify({ end: true, ...body }), token }),
+  adminTransferChildRoom: (token: string, childId: string, body: ChildTransferInput) =>
+    apiFetch<ChildRoomAssignment>(`/api/v1/admin/children/${childId}/transfer-room`, { method: "POST", body: JSON.stringify(body), token }),
 
   // Nursery — children
   adminGetChildren: (token: string, params?: { branch?: string; room?: string; status?: string; q?: string }) => {

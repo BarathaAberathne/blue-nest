@@ -11,7 +11,8 @@
         build-bnrest-cli test-legacy test-new test-all test-api test-smoke test-regression \
         test-parity test-validate test-discover test-changed test-map test-report test-ui \
         test-docker test-clean \
-        test-suite test-case test-collection test-tag test-owner test-file
+        test-suite test-case test-collection test-tag test-owner test-file \
+        migrate-tenancy migrate-room-assignments
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 all: build
@@ -392,6 +393,15 @@ migrate-tenancy:
 	  echo "  no backend container running → falling back to local Go toolchain"; \
 	  cd backend && go run ./cmd/migratetenancy; \
 	fi
+
+# Room-allocation migration: map legacy child.room_id / staff.room_id values
+# into the authoritative assignment collections, then verify parity.
+# Idempotent + non-destructive — see docs/rooms/room-allocation-migration-plan.md.
+migrate-room-assignments:
+	@echo "→ Room-allocation migration (legacy room_id → assignment records)..."
+	@cd backend && go run ./cmd/migrateroomassignments
+	@echo "→ Verifying migration parity..."
+	@cd backend && go run ./cmd/migrateroomassignments -verify
 
 # ── Frontend image optimisation ──────────────────────────────────────────────
 # One-shot pass that resizes any /public image wider than 1920px down to 1920,

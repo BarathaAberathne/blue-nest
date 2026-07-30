@@ -44,6 +44,8 @@ type Services struct {
 	Attendance        service.AttendanceService
 	Staff             service.StaffService
 	StaffAttendance   service.StaffAttendanceService
+	StaffRoomAssign   service.StaffRoomAssignmentService
+	ChildRoomAssign   service.ChildRoomAssignmentService
 	Kiosk             service.KioskService
 	Shifts            service.ShiftService
 	DailyRecords      service.DailyRecordService
@@ -320,11 +322,25 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermChildrenManage))
 				adminRoomH := adminHandler.NewAdminRoomHandler(svc.Rooms, svc.Audit)
+				adminChildRoomH := adminHandler.NewAdminChildRoomAssignmentHandler(svc.ChildRoomAssign, svc.Audit)
 				r.Get("/admin/rooms", adminRoomH.List)
+				// Registered before /admin/rooms/{id} so "capacity" is never
+				// captured as an id.
+				r.Get("/admin/rooms/capacity", adminChildRoomH.CapacityByBranch)
 				r.Get("/admin/rooms/{id}", adminRoomH.Get)
 				r.Post("/admin/rooms", adminRoomH.Create)
 				r.Put("/admin/rooms/{id}", adminRoomH.Update)
+				r.Patch("/admin/rooms/{id}/status", adminRoomH.SetStatus)
 				r.Delete("/admin/rooms/{id}", adminRoomH.Delete)
+
+				// Child room allocations — room profile and child profile both
+				// land on the same service (docs/rooms/room-allocation-design.md).
+				r.Get("/admin/rooms/{id}/capacity", adminChildRoomH.Capacity)
+				r.Get("/admin/rooms/{id}/children", adminChildRoomH.ListForRoom)
+				r.Post("/admin/child-room-assignments", adminChildRoomH.Create)
+				r.Patch("/admin/child-room-assignments/{id}", adminChildRoomH.End)
+				r.Get("/admin/children/{id}/room-assignments", adminChildRoomH.ListForChild)
+				r.Post("/admin/children/{id}/transfer-room", adminChildRoomH.Transfer)
 
 				adminChildH := adminHandler.NewAdminChildHandler(svc.Children, svc.Audit)
 				r.Get("/admin/children", adminChildH.List)
@@ -365,6 +381,14 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				// but gated under staff.manage as it's viewed from the staff profile).
 				adminStaffKeyChildrenH := adminHandler.NewAdminChildHandler(svc.Children, svc.Audit)
 				r.Get("/admin/staff/{id}/key-children", adminStaffKeyChildrenH.KeyChildren)
+
+				// Staff room allocations — room profile and staff profile both
+				// land on the same service (docs/rooms/room-allocation-design.md).
+				adminStaffRoomH := adminHandler.NewAdminStaffRoomAssignmentHandler(svc.StaffRoomAssign, svc.Audit)
+				r.Post("/admin/staff-room-assignments", adminStaffRoomH.Create)
+				r.Patch("/admin/staff-room-assignments/{id}", adminStaffRoomH.Update)
+				r.Get("/admin/staff/{id}/room-assignments", adminStaffRoomH.ListForStaff)
+				r.Get("/admin/rooms/{id}/staff", adminStaffRoomH.ListForRoom)
 
 				adminStaffAttH := adminHandler.NewAdminStaffAttendanceHandler(svc.StaffAttendance, svc.Audit)
 				r.Get("/admin/staff-attendance", adminStaffAttH.Register)

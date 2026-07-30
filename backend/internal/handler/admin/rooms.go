@@ -92,6 +92,38 @@ func (h *AdminRoomHandler) Update(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, updated)
 }
 
+// SetStatus activates/deactivates a room — deliberately separate from Update
+// so a stale edit payload can never flip status as a side effect.
+func (h *AdminRoomHandler) SetStatus(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var req models.RoomStatusRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	existing, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "room not found")
+		return
+	}
+	if !inScope(r, existing.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	prev := string(existing.Status)
+	if prev == "" {
+		prev = string(models.RoomActive)
+	}
+	updated, err := h.svc.SetStatus(r.Context(), id, req.Status)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "status", "room", id, "Set room "+updated.Name+" status to "+string(req.Status),
+		map[string]interface{}{"previous": prev, "new": string(req.Status)})
+	response.OK(w, updated)
+}
+
 func (h *AdminRoomHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	existing, err := h.svc.GetByID(r.Context(), id)
@@ -104,7 +136,9 @@ func (h *AdminRoomHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.svc.Delete(r.Context(), id); err != nil {
-		response.InternalError(w, err.Error())
+		// The only service-level refusal is "live allocations exist" — a
+		// caller mistake, not a server fault.
+		response.BadRequest(w, err.Error())
 		return
 	}
 	h.audit.Record(r, "delete", "room", id, "Deleted room", nil)
