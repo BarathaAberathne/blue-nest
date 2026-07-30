@@ -79,3 +79,9 @@ frontend/main
 famly-templates/
 *famly-templates*.zip
 backend/seedfamly
+
+# ── BlueNest TestFlow (test-platform/) generated output ──────────────────────
+# Reports/graphs/requests from running the bnrest engine — regenerate with
+# `make test-new` / `make test-map`, never source.
+/test-results/
+frontend/public/test-platform-graph.json

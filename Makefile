@@ -7,7 +7,11 @@
         wait-api \
         test-e2e test-e2e-regression \
         staging-up staging-verify staging-logs staging-down staging-clean \
-        optimize-images optimize-images-dry
+        optimize-images optimize-images-dry \
+        build-bnrest-cli test-legacy test-new test-all test-api test-smoke test-regression \
+        test-parity test-validate test-discover test-changed test-map test-report test-ui \
+        test-docker test-clean \
+        test-suite test-case test-collection test-tag test-owner test-file
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 all: build
@@ -87,6 +91,131 @@ test-e2e-regression:
 	   -Dqa.baseUrl=$${QA_BASE_URL:-http://localhost:8080} \
 	   -Dqa.adminEmail=$${QA_ADMIN_EMAIL:-admin@bluenest.uk} \
 	   -Dqa.adminPassword=$${QA_ADMIN_PASSWORD:-changeme-min-8-chars}'
+
+# ── BlueNest TestFlow (bnrest) platform ───────────────────────────────────────
+# docs/testing/README.md is the entry point for writing/running these tests.
+# Every target below is a thin wrapper around one CLI (test-platform/engine's
+# cli.Main) — see docs/testing/running-tests.md for the full command reference.
+BNREST_JAR := test-platform/engine/target/testplatform-engine-1.0.0-cli.jar
+BNREST_JAVA_ENV := PATH="/opt/homebrew/opt/openjdk/bin:$$PATH" JAVA_HOME="$${JAVA_HOME:-/opt/homebrew/opt/openjdk}"
+BNREST_TESTS_ROOT := $(CURDIR)/test-platform/tests
+BNREST_RESULTS_ROOT := $(CURDIR)/test-results
+
+build-bnrest-cli:
+	@$(BNREST_JAVA_ENV) bash -c 'cd test-platform/engine && mvn -q package -DskipTests'
+
+# Phase C (spec §18): the legacy REST-Assured suite, unmodified, still runnable
+# for as long as any test in migration-manifest.json remains "pending".
+test-legacy: test-e2e
+
+test-new: build-bnrest-cli
+	@$(BNREST_JAVA_ENV) java -jar $(BNREST_JAR) run \
+	  --testsRoot=$(BNREST_TESTS_ROOT) --resultsRoot=$(BNREST_RESULTS_ROOT) \
+	  --baseUrl=$${QA_BASE_URL:-http://localhost:8080}
+
+test-all: test-legacy test-new
+
+test-api: test-new
+
+test-smoke: build-bnrest-cli
+	@$(BNREST_JAVA_ENV) java -jar $(BNREST_JAR) run --tag=smoke \
+	  --testsRoot=$(BNREST_TESTS_ROOT) --resultsRoot=$(BNREST_RESULTS_ROOT) \
+	  --baseUrl=$${QA_BASE_URL:-http://localhost:8080}
+
+test-regression: build-bnrest-cli
+	@$(BNREST_JAVA_ENV) java -jar $(BNREST_JAR) run --tag=regression \
+	  --testsRoot=$(BNREST_TESTS_ROOT) --resultsRoot=$(BNREST_RESULTS_ROOT) \
+	  --baseUrl=$${QA_BASE_URL:-http://localhost:8080}
+
+# Runs the legacy + new Auth suites and prints the parity report (see
+# test-platform-architecture.md "Migration approach" — only Auth is verified
+# so far; docs/testing/migration-guide.md tracks the rest).
+test-parity: test-legacy test-new
+	@echo "→ See test-results/migration/parity-report.md"
+	@cat test-results/migration/parity-report.md 2>/dev/null || true
+
+test-validate: build-bnrest-cli
+	@$(BNREST_JAVA_ENV) java -jar $(BNREST_JAR) validate --testsRoot=$(BNREST_TESTS_ROOT)
+
+test-discover: build-bnrest-cli
+	@$(BNREST_JAVA_ENV) java -jar $(BNREST_JAR) discover --testsRoot=$(BNREST_TESTS_ROOT)
+
+# Best-effort impact selection (spec §16): if any changed file IS a .bnrest.md
+# test file, run just those; otherwise fall back safely to the full new suite
+# and say why (a real backend-file → endpoint → test static map is future work,
+# see test-platform-architecture.md "Deliberate scope decisions").
+test-changed: build-bnrest-cli
+	@changed=$$(git diff --name-only HEAD 2>/dev/null; git diff --name-only --cached HEAD 2>/dev/null); \
+	test_files=$$(echo "$$changed" | grep '\.bnrest\.md$$' || true); \
+	if [ -z "$$test_files" ]; then \
+	  echo "→ No changed .bnrest.md files detected — cannot map impact precisely; falling back to the full new suite (test-new)."; \
+	  $(MAKE) test-new; \
+	else \
+	  echo "→ Changed test files detected, running only those:"; \
+	  echo "$$test_files" | sed 's/^/    /'; \
+	  for f in $$test_files; do $(BNREST_JAVA_ENV) java -jar $(BNREST_JAR) run --file=$(CURDIR)/$$f \
+	    --testsRoot=$(BNREST_TESTS_ROOT) --resultsRoot=$(BNREST_RESULTS_ROOT) --baseUrl=$${QA_BASE_URL:-http://localhost:8080}; done; \
+	fi
+
+test-map: build-bnrest-cli
+	@$(BNREST_JAVA_ENV) java -jar $(BNREST_JAR) graph --testsRoot=$(BNREST_TESTS_ROOT) --resultsRoot=$(BNREST_RESULTS_ROOT)
+	@mkdir -p frontend/public
+	@cp test-results/graphs/graph.json frontend/public/test-platform-graph.json
+	@echo "→ Graph exported to test-results/graphs/graph.{json,mmd} and copied to frontend/public/test-platform-graph.json"
+	@echo "→ Run 'make test-ui' then open http://localhost:3000/test-mapper"
+
+test-report:
+	@echo "→ Reports from the last run: test-results/{json,junit,html,requests,graphs,migration}/"
+	@echo "→ Static HTML: open test-results/html/index.html"
+
+test-ui:
+	@$(MAKE) test-map
+	cd frontend && npm run dev
+
+# NOTE: deliberately NOT `up --abort-on-container-exit` — seed-test is a
+# one-shot service that's SUPPOSED to exit(0) once seeding is done, and
+# --abort-on-container-exit tears the whole stack down the instant ANY
+# container exits (including seed-test, well before test-runner even starts,
+# since it depends_on seed-test completing first) — that raced test-runner
+# out before it could run at all. Bringing the long-running/one-shot
+# dependencies up first (with --wait, which blocks until healthy/completed)
+# and then `run`-ning test-runner as its own step avoids the race entirely.
+test-docker:
+	docker compose -f docker-compose.test.yml build
+	docker compose -f docker-compose.test.yml up -d --wait mongodb-test backend-test seed-test; \
+	docker compose -f docker-compose.test.yml run --rm test-runner \
+	  run --testsRoot=/app/tests --resultsRoot=/app/results \
+	  --baseUrl=http://backend-test:8080 --adminEmail=$${QA_ADMIN_EMAIL:-admin@bluenest.uk}; \
+	code=$$?; \
+	docker compose -f docker-compose.test.yml down -v; \
+	exit $$code
+
+test-clean:
+	rm -rf test-results test-platform/engine/target
+
+test-suite: build-bnrest-cli
+	@$(BNREST_JAVA_ENV) java -jar $(BNREST_JAR) run --suite=$(SUITE) \
+	  --testsRoot=$(BNREST_TESTS_ROOT) --resultsRoot=$(BNREST_RESULTS_ROOT) --baseUrl=$${QA_BASE_URL:-http://localhost:8080}
+
+test-case: build-bnrest-cli
+	@$(BNREST_JAVA_ENV) java -jar $(BNREST_JAR) run --case=$(CASE) \
+	  --testsRoot=$(BNREST_TESTS_ROOT) --resultsRoot=$(BNREST_RESULTS_ROOT) --baseUrl=$${QA_BASE_URL:-http://localhost:8080}
+
+test-collection: build-bnrest-cli
+	@$(BNREST_JAVA_ENV) java -jar $(BNREST_JAR) run --collection=$(COLLECTION) \
+	  --testsRoot=$(BNREST_TESTS_ROOT) --resultsRoot=$(BNREST_RESULTS_ROOT) --baseUrl=$${QA_BASE_URL:-http://localhost:8080}
+
+test-tag: build-bnrest-cli
+	@$(BNREST_JAVA_ENV) java -jar $(BNREST_JAR) run --tag=$(TAG) \
+	  --testsRoot=$(BNREST_TESTS_ROOT) --resultsRoot=$(BNREST_RESULTS_ROOT) --baseUrl=$${QA_BASE_URL:-http://localhost:8080}
+
+test-owner: build-bnrest-cli
+	@$(BNREST_JAVA_ENV) java -jar $(BNREST_JAR) run --owner=$(OWNER) \
+	  --testsRoot=$(BNREST_TESTS_ROOT) --resultsRoot=$(BNREST_RESULTS_ROOT) --baseUrl=$${QA_BASE_URL:-http://localhost:8080}
+
+test-file: build-bnrest-cli
+	@$(BNREST_JAVA_ENV) java -jar $(BNREST_JAR) run --file=$(FILE) \
+	  --testsRoot=$(BNREST_TESTS_ROOT) --resultsRoot=$(BNREST_RESULTS_ROOT) --baseUrl=$${QA_BASE_URL:-http://localhost:8080}
 
 # ── Lint ──────────────────────────────────────────────────────────────────────
 lint:
