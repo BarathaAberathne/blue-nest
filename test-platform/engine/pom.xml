@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.bluenest</groupId>
+  <artifactId>testplatform-engine</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+  <name>BlueNest TestFlow — bnrest execution engine</name>
+
+  <!--
+    Isolated from test-automation/rest-assured-suite/pom.xml on purpose:
+    `make test-legacy` must keep running exactly what it always has, with
+    zero build coupling to this module. See docs/testing/test-platform-architecture.md.
+  -->
+
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <rest-assured.version>5.5.0</rest-assured.version>
+    <junit.version>5.11.3</junit.version>
+    <jackson.version>2.18.1</jackson.version>
+    <snakeyaml.version>2.3</snakeyaml.version>
+    <!-- Overridable: mvn test -Dqa.baseUrl=... -->
+    <qa.baseUrl>http://localhost:8080</qa.baseUrl>
+    <qa.adminEmail>admin@bluenest.uk</qa.adminEmail>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <version>${rest-assured.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>json-path</artifactId>
+      <version>${rest-assured.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-launcher</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+    <!-- New dependencies vs. the legacy suite: YAML front-matter parsing, and
+         real JSONPath (REST-Assured's own "json-path" module is a different,
+         Groovy-GPath-based library — AssertJson needs genuine JSONPath). -->
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <version>${snakeyaml.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.jayway.jsonpath</groupId>
+      <artifactId>json-path</artifactId>
+      <version>2.9.0</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.2</version>
+        <configuration>
+          <!-- Picks up both the engine's own unit tests (*Test.java, the
+               Surefire default) and the JUnit5 @TestFactory adapter that
+               discovers/runs every *.bnrest.md script (BnRestTestFactory). -->
+          <includes>
+            <include>**/*Test.java</include>
+            <include>**/*TestFactory.java</include>
+          </includes>
+          <systemPropertyVariables>
+            <qa.baseUrl>${qa.baseUrl}</qa.baseUrl>
+            <qa.adminEmail>${qa.adminEmail}</qa.adminEmail>
+            <bnrest.testsRoot>${project.basedir}/../tests</bnrest.testsRoot>
+            <bnrest.resultsRoot>${project.basedir}/../../test-results</bnrest.resultsRoot>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals><goal>shade</goal></goals>
+            <configuration>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>com.bluenest.testplatform.cli.Main</mainClass>
+                </transformer>
+              </transformers>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>cli</shadedClassifierName>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
