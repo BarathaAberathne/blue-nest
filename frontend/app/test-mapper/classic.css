@@ -1,0 +1,382 @@
+/* BlueNest TestFlow — "classic desktop app" theme (scoped under .tf-classic).
+   Deliberately recreates a Windows 2000/XP-era MDI tool's chrome (title bar,
+   menu bar, toolbar, dockable panels, tree view, property grid, flowchart)
+   rather than the site's modern Tailwind admin theme — this page is a
+   standalone dev tool, not part of the tenant admin shell. */
+
+.tf-classic {
+  --tf-titlebar-from: #3a7bd5;
+  --tf-titlebar-to: #0b3d91;
+  --tf-panel-title-from: #2a6fd6;
+  --tf-panel-title-to: #0d3f8f;
+  --tf-chrome-bg: #ece9d8;
+  --tf-chrome-border: #8e8e8e;
+  --tf-chrome-border-light: #ffffff;
+  --tf-content-bg: #ffffff;
+  --tf-tree-selected-bg: #cce4ff;
+  --tf-tree-selected-border: #99c2eb;
+  --tf-tree-hover-bg: #e8f1fc;
+  --tf-text: #1a1a1a;
+  --tf-text-muted: #5a5a5a;
+  --tf-link: #0b3d91;
+  --tf-status-bar-bg: #ece9d8;
+
+  --tf-node-collection-bg: #d5e8d4;
+  --tf-node-collection-border: #82b366;
+  --tf-node-suite-bg: #dae8fc;
+  --tf-node-suite-border: #6c8ebf;
+  --tf-node-case-bg: #fff2cc;
+  --tf-node-case-border: #d6b656;
+  --tf-node-util-bg: #e1d5e7;
+  --tf-node-util-border: #9673a6;
+  --tf-node-endpoint-bg: #e1d5e7;
+  --tf-node-endpoint-border: #9673a6;
+  --tf-node-fixture-bg: #ffe6cc;
+  --tf-node-fixture-border: #d79b00;
+
+  --tf-pass: #2e7d32;
+  --tf-pass-bg: #e6f4ea;
+  --tf-fail: #c62828;
+  --tf-fail-bg: #fdeaea;
+  --tf-skip: #a15c00;
+  --tf-skip-bg: #fdf3e3;
+  --tf-notrun: #6b6b6b;
+  --tf-notrun-bg: #f0f0f0;
+  --tf-running: #0b5fb0;
+  --tf-running-bg: #e6f0fb;
+
+  font-family: Tahoma, Verdana, "Segoe UI", sans-serif;
+  color: var(--tf-text);
+  background: var(--tf-chrome-bg);
+}
+
+.tf-classic * {
+  box-sizing: border-box;
+}
+
+/* ---- Title bar ---- */
+.tf-titlebar {
+  background: linear-gradient(180deg, var(--tf-titlebar-from) 0%, var(--tf-titlebar-to) 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  font-weight: bold;
+  font-size: 13px;
+  border-bottom: 1px solid #06255c;
+}
+
+.tf-titlebar-btn {
+  width: 22px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #f6f6f6, #d8d8d8);
+  border: 1px solid #6b6b6b;
+  border-radius: 2px;
+  color: #1a1a1a;
+  font-size: 11px;
+  line-height: 1;
+  cursor: default;
+}
+.tf-titlebar-btn:hover {
+  background: linear-gradient(180deg, #ffffff, #e2e2e2);
+}
+.tf-titlebar-btn.tf-close:hover {
+  background: linear-gradient(180deg, #ff6b6b, #d33);
+  color: #fff;
+}
+
+/* ---- Menu bar ---- */
+.tf-menubar {
+  display: flex;
+  align-items: center;
+  background: var(--tf-chrome-bg);
+  border-bottom: 1px solid var(--tf-chrome-border);
+  padding: 2px 6px;
+  font-size: 12px;
+  position: relative;
+}
+.tf-menu-item {
+  padding: 3px 8px;
+  cursor: default;
+  border: 1px solid transparent;
+}
+.tf-menu-item:hover,
+.tf-menu-item.tf-open {
+  background: var(--tf-tree-selected-bg);
+  border: 1px solid var(--tf-tree-selected-border);
+  border-radius: 2px;
+}
+.tf-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--tf-content-bg);
+  border: 1px solid var(--tf-chrome-border);
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.25);
+  min-width: 200px;
+  z-index: 40;
+  padding: 2px;
+}
+.tf-menu-dropdown button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  text-align: left;
+  font-size: 12px;
+  background: none;
+  border: none;
+}
+.tf-menu-dropdown button:hover {
+  background: var(--tf-tree-selected-bg);
+}
+.tf-menu-dropdown hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 2px 4px;
+}
+
+/* ---- Toolbar ---- */
+.tf-toolbar {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  background: var(--tf-chrome-bg);
+  border-bottom: 1px solid var(--tf-chrome-border);
+  padding: 4px 6px;
+}
+.tf-toolbar-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 52px;
+  padding: 3px 8px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--tf-text);
+  background: none;
+}
+.tf-toolbar-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #fffef2, #ffe9a8);
+  border: 1px solid #cc9d33;
+}
+.tf-toolbar-btn:disabled {
+  color: #a0a0a0;
+  cursor: default;
+}
+.tf-toolbar-sep {
+  width: 1px;
+  margin: 2px 4px;
+  background: #c8c4b4;
+  border-right: 1px solid #fff;
+}
+
+/* ---- Dockable panel ---- */
+.tf-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--tf-chrome-border);
+  background: var(--tf-content-bg);
+}
+.tf-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(180deg, var(--tf-panel-title-from), var(--tf-panel-title-to));
+  color: #fff;
+  font-weight: bold;
+  font-size: 12px;
+  padding: 4px 8px;
+  flex-shrink: 0;
+}
+.tf-panel-title-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+.tf-panel-title-actions button {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  font-size: 9px;
+  line-height: 1;
+  border-radius: 1px;
+}
+.tf-panel-title-actions button:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+.tf-panel-body {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  background: var(--tf-content-bg);
+}
+
+/* ---- Status bar ---- */
+.tf-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--tf-status-bar-bg);
+  border-top: 1px solid var(--tf-chrome-border-light);
+  box-shadow: 0 -1px 0 #fff inset;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: var(--tf-text);
+}
+.tf-statusbar-cell {
+  padding: 1px 10px;
+  border-left: 1px solid #c8c4b4;
+  border-right: 1px solid #fff;
+}
+.tf-statusbar-cell:first-child {
+  border-left: none;
+}
+
+/* ---- Tree view ---- */
+.tf-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  font-size: 12px;
+  border: 1px solid transparent;
+  cursor: default;
+  white-space: nowrap;
+}
+.tf-tree-row:hover {
+  background: var(--tf-tree-hover-bg);
+}
+.tf-tree-row.tf-selected {
+  background: var(--tf-tree-selected-bg);
+  border: 1px dotted var(--tf-tree-selected-border);
+}
+.tf-tree-expander {
+  width: 12px;
+  height: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #7a7a7a;
+  background: #fff;
+  font-size: 9px;
+  line-height: 1;
+  color: #333;
+  flex-shrink: 0;
+}
+
+/* ---- Property grid (Inspector) ---- */
+.tf-propgrid-section-title {
+  background: linear-gradient(180deg, #f3f1e6, #e4e0cd);
+  border-top: 1px solid #fff;
+  border-bottom: 1px solid var(--tf-chrome-border);
+  font-weight: bold;
+  font-size: 12px;
+  color: var(--tf-link);
+  padding: 3px 8px;
+}
+.tf-propgrid-row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 6px;
+  padding: 3px 8px;
+  font-size: 12px;
+  border-bottom: 1px solid #f0efe6;
+}
+.tf-propgrid-row dt {
+  color: var(--tf-text-muted);
+}
+.tf-propgrid-row dd {
+  color: var(--tf-text);
+  word-break: break-word;
+}
+
+/* ---- Status chip ---- */
+.tf-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 1px 6px;
+  border: 1px solid;
+}
+.tf-status-dot {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+/* ---- Buttons ---- */
+.tf-btn {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 3px 10px;
+  background: linear-gradient(180deg, #ffffff, #e4e4e4);
+  border: 1px solid #8e8e8e;
+  border-radius: 2px;
+  color: var(--tf-text);
+}
+.tf-btn:hover {
+  background: linear-gradient(180deg, #ffffff, #d6e8ff);
+  border-color: #6ea0e0;
+}
+.tf-link-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--tf-link);
+  text-decoration: underline;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  text-align: left;
+}
+.tf-link-btn:hover {
+  color: #d64500;
+}
+
+/* ---- Classic table ---- */
+.tf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.tf-table th {
+  background: linear-gradient(180deg, #f3f1e6, #e4e0cd);
+  border: 1px solid var(--tf-chrome-border);
+  padding: 4px 8px;
+  text-align: left;
+  font-weight: bold;
+  white-space: nowrap;
+}
+.tf-table td {
+  border: 1px solid #dedad0;
+  padding: 3px 8px;
+}
+.tf-table tr:nth-child(even) td {
+  background: #f7f7f0;
+}
+.tf-table tr.tf-row-selected td {
+  background: var(--tf-tree-selected-bg);
+}
+.tf-table tr:hover td {
+  background: var(--tf-tree-hover-bg);
+}

@@ -223,6 +223,19 @@ func (s *authService) Register(ctx context.Context, req models.RegisterRequest) 
 		return nil, err
 	}
 
+	// Re-fetch rather than minting from the local `user` value: TenantCollection's
+	// InsertOne stamps org_id onto the document it sends to Mongo, not back onto
+	// this in-memory struct (see repository/tenant.go stampOrg), so the local
+	// copy's OrgID is still "" here. Login already re-fetches via FindByEmail for
+	// this same reason; without it, every newly registered customer's very first
+	// token would carry an empty org_id, which middleware.Auth then treats as
+	// cross-org — leaving their own orders un-scoped and invisible to admin reads.
+	created, err := s.users.FindByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+	user = *created
+
 	access, refresh, err := s.issueTokenPair(user)
 	if err != nil {
 		return nil, err

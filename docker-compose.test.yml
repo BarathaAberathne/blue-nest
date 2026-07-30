@@ -1,0 +1,106 @@
+# BlueNest TestFlow — isolated Docker test environment (spec §17).
+#
+# Reuses the existing backend Dockerfile/image unmodified; adds an ephemeral
+# Mongo, a one-shot seed step, and the bnrest test-runner. No secrets are
+# baked into any image here — QA_ADMIN_PASSWORD is read from the host's
+# environment (falling back to the same non-secret placeholder the legacy
+# suite's pom.xml already defaults to), exactly like `make test-e2e`.
+#
+# Usage: `make test-docker` (builds, waits for health, runs, tears down,
+# returns the test-runner's own exit code). Reports land back on the host at
+# ./test-results/ via a bind mount.
+#
+# This is entirely separate from docker-compose.yml (the dev stack) — running
+# it never touches dev's containers, network, or the `mongo_data`/
+# `uploads_data` volumes. An explicit project `name` keeps it fully isolated
+# from the dev stack's Compose project (which otherwise defaults to the same
+# directory-derived name and causes "orphan container" confusion between the
+# two independent stacks).
+name: bluenest-test
+
+services:
+  mongodb-test:
+    image: mongo:7
+    container_name: bluenest-test-mongo
+    # Ephemeral: tmpfs, not a named volume — every `make test-docker` run
+    # starts from a clean database, and `docker compose down -v` (which the
+    # Makefile always runs afterwards) leaves nothing behind either way.
+    tmpfs:
+      - /data/db
+    networks:
+      - bluenest-test-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend-test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bluenest-test-api
+    networks:
+      - bluenest-test-net
+    environment:
+      APP_ENV: test
+      APP_PORT: "8080"
+      MONGODB_URI: mongodb://mongodb-test:27017
+      MONGODB_DATABASE: blue_nest_montessori_test
+      FRONTEND_URL: http://localhost:3000
+      JWT_SECRET: ${JWT_SECRET:-test-only-jwt-secret-not-for-production}
+    depends_on:
+      mongodb-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/v1/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: seeds the default admin the bnrest Auth suite logs in as, then
+  # exits 0. The test-runner won't start until this completes successfully.
+  seed-test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bluenest-test-seed
+    networks:
+      - bluenest-test-net
+    environment:
+      MONGODB_URI: mongodb://mongodb-test:27017
+      MONGODB_DATABASE: blue_nest_montessori_test
+      DEFAULT_ADMIN_EMAIL: ${QA_ADMIN_EMAIL:-admin@bluenest.uk}
+      DEFAULT_ADMIN_PASSWORD: ${QA_ADMIN_PASSWORD:-changeme-min-8-chars}
+    command: ["./seedusers"]
+    depends_on:
+      backend-test:
+        condition: service_healthy
+
+  test-runner:
+    build:
+      context: ./test-platform/engine
+      dockerfile: Dockerfile
+    container_name: bluenest-test-runner
+    networks:
+      - bluenest-test-net
+    environment:
+      QA_ADMIN_PASSWORD: ${QA_ADMIN_PASSWORD:-changeme-min-8-chars}
+    volumes:
+      - ./test-platform/tests:/app/tests:ro
+      - ./test-results:/app/results
+    command:
+      - run
+      - --testsRoot=/app/tests
+      - --resultsRoot=/app/results
+      - --baseUrl=http://backend-test:8080
+      - --adminEmail=${QA_ADMIN_EMAIL:-admin@bluenest.uk}
+    depends_on:
+      backend-test:
+        condition: service_healthy
+      seed-test:
+        condition: service_completed_successfully
+
+networks:
+  bluenest-test-net:
+    driver: bridge

@@ -476,6 +476,75 @@ promoting `develop → main`. Don't confuse the staging *environment* with a bra
   (The frontend Next build is memory-heavy on 4 GB — add swap if OOM. CI does push GHCR images;
   switching the droplet to GHCR pulls is a future improvement.)
 
+## BlueNest TestFlow (`test-platform/`) — the declarative API test platform
+
+A Markdown+YAML (`.bnrest.md`) declarative API test format + Java execution
+engine (`test-platform/engine/`, Maven/JUnit 5/REST-Assured-as-transport)
+that is progressively replacing/supplementing the legacy
+`test-automation/rest-assured-suite` (below) via a strangler pattern — the
+legacy suite stays fully intact and running until every test it covers has
+a verified bnrest replacement (tracked in `test-platform/migration-manifest.json`,
+human-readable view in `docs/testing/test-migration-map.md`). Full design
+in `docs/testing/test-platform-architecture.md`; endpoint-by-endpoint
+coverage ledger in `docs/testing/endpoint-inventory.md`. Tests are
+Collection → Suite → Case → Util, executed via
+`Given/When/Then/And` command lines (`Get/Post/Put/Patch/Delete`,
+`Assert`/`AssertJson`/`AssertStatus`, `Call`, `CopyJson`, `Set`, `ExpectFail`,
+etc. — a closed, restricted grammar, never `eval()`'d as code), with a
+dependency graph + a classic-desktop-styled visual mapper at
+`frontend/app/test-mapper` (dev tool, not a tenant feature). Run via
+`make test-suite SUITE=<id>` / `test-case CASE=<id>` / `test-collection
+COLLECTION=COL-FUNC-001` etc. (thin wrappers around one CLI); `make
+test-map` regenerates the dependency graph for the mapper.
+`COL-FUNC-001` (the primary generic functional collection) currently runs
+**24 suites** covering essentially every real, in-scope backend endpoint —
+the original nursery lifecycle (Auth/Branch/Room/Staff/Enquiry/Registration/
+Key-Person/Visit/Assignment/Attendance/Daily-Logs/Schedule/Network — the
+last replacing the legacy suite's `ConcurrencySuite`+`SecuritySuite`) plus
+brand-new coverage the legacy suite never had at all: Store (products/cart/
+checkout/orders), Blog, Kiosk (device+PIN; the kiosk-facing routes
+themselves need a custom `X-Kiosk-Token` header this engine can't send yet
+— a documented, tracked limitation, not silently skipped), Procurement
+(supply requests/catalogue/purchase-orders/suppliers/analytics/templates),
+Shifts (rota), Audit log, and User Account Management (users/roles/org
+self-service/platform organisations/dashboards). **`SUI-AUTH-001` runs
+LAST in the collection** (not first) — it now ends with a login
+rate-limit regression lock that deliberately burns the shared per-IP
+`/auth/login` budget every other suite's own login depends on, mirroring
+why the legacy `SecuritySuite` had to run last too. A known, accepted
+characteristic: a full `COL-FUNC-001` run's cumulative login volume can
+still trip that same rate limit on whichever suite happens to need a
+fresh login last, independent of `AUTH-TC-003` — every suite passes 100%
+individually; only a full-collection run occasionally shows one
+rate-limit-flavored failure, not a real regression.
+
+**A real production bug was found and fixed while writing this test
+coverage** (per this repo's established practice — see the test-writing
+feedback note in project memory): `POST /auth/register` minted a
+brand-new customer's very first JWT with an **empty `org_id` claim**
+(`internal/service/auth.go`'s `Register` built its `models.User` locally
+and issued the token from that pre-insert struct, whose `OrgID` was never
+populated — `TenantCollection.InsertOne`'s org-stamping rewrites the
+document sent to Mongo, not the caller's Go value). `middleware.Auth`
+treats an empty `org_id` claim as cross-org, so every write that customer
+made — including their own checkout order — got created with **no
+`org_id` at all**, invisible to any org-scoped admin fetch. Fixed by
+having `Register` re-fetch the user (mirroring what `Login` already does)
+before issuing tokens; regression-locked by `SUI-STORE-001`'s
+`STORE-TC-007/008/009`.
+
+**Known leftover test data (local dev DB only, not staging/prod):** live
+manual debugging of the `org_id` bug above (curl against `localhost:8080`)
+left a handful of records that don't follow the `QA-AUTOTEST-` fixture
+prefix, so they won't turn up in a `QA-AUTOTEST` grep — a branch
+`qa-debug-branch-*` (archived, not hard-deleted — branches have no hard
+delete), a staff record + its login user under that branch, three
+standalone customer users (`qa-debug-*@bluenest.test`), one `pending`
+order, and one supply request — all harmless local-dev debris, safe to
+delete by hand (`db.branches`/`db.staff`/`db.users`/`db.orders`/
+`db.order_requests`, matching on `qa-debug` in the relevant name/email
+field) whenever convenient.
+
 ## QA & test automation (`test-automation/`)
 - **`test-automation/test-instructions`** — the master QA test plan (26 sections, `TC-XXX-NNN`-numbered
   test cases covering the full nursery-management lifecycle: branch → staff → enquiry → registration →
@@ -517,8 +586,8 @@ promoting `develop → main`. Don't confuse the staging *environment* with a bra
   data (there is no disposable per-test database yet). Every fixture they create is `QA-AUTOTEST-`-prefixed
   and self-cleans in `@AfterAll` where a delete endpoint exists; anything left behind after an interrupted
   run is safe to delete by hand purely by that prefix. **Do not delete `QA-AUTOTEST-` fixtures found in the
-  live DB without checking first** — some (e.g. the persistent test child registered during this session)
-  are intentionally kept as ongoing fixtures per explicit user instruction, not run debris.
+  live DB without checking first** — some (e.g. a persistent test child registered against Harrow) are
+  intentionally kept as ongoing fixtures per explicit user instruction, not run debris.
 
 ## Conventions
 - Commits: conventional style, **no `Co-Authored-By` Claude trailer**.
