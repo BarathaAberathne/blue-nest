@@ -134,6 +134,28 @@ type roomInfo struct {
 	name   string
 }
 
+// legacyRoomSource reads the raw stored room_id off a child/staff document.
+// The models deliberately dropped the RoomID bson tag — it is now a computed
+// projection (bson:"-") resolved from the assignment collections — so the
+// migration MUST read the legacy scalar directly through this struct. Decoding
+// into models.Child / models.Staff would silently yield an EMPTY RoomID (the
+// bson decoder skips bson:"-" fields), converting nothing and leaving prod with
+// every child/staff unassigned. Same field names + bson tags on both source
+// collections, so one struct serves both.
+type legacyRoomSource struct {
+	ID         primitive.ObjectID `bson:"_id"`
+	RoomID     string             `bson:"room_id"`
+	Ref        string             `bson:"ref"`
+	FirstName  string             `bson:"first_name"`
+	LastName   string             `bson:"last_name"`
+	BranchSlug string             `bson:"branch_slug"`
+	Status     string             `bson:"status"`
+	StartDate  string             `bson:"start_date"`
+	OrgID      string             `bson:"org_id"`
+	CreatedAt  time.Time          `bson:"created_at"`
+	UpdatedAt  time.Time          `bson:"updated_at"`
+}
+
 func loadRooms(ctx context.Context, db *mongo.Database) map[string]roomInfo {
 	out := map[string]roomInfo{}
 	cur, err := db.Collection("rooms").Find(ctx, bson.M{})
@@ -167,7 +189,7 @@ func migrateChildren(ctx context.Context, db *mongo.Database, rooms map[string]r
 	if err != nil {
 		log.Fatalf("children scan: %v", err)
 	}
-	var children []models.Child
+	var children []legacyRoomSource
 	if err := cur.All(ctx, &children); err != nil {
 		log.Fatalf("children decode: %v", err)
 	}
@@ -214,7 +236,7 @@ func migrateChildren(ctx context.Context, db *mongo.Database, rooms map[string]r
 		}
 		// A child who has left keeps the placement as pure history so current
 		// occupancy is not inflated.
-		if c.Status == models.ChildLeft {
+		if c.Status == string(models.ChildLeft) {
 			a.Status = models.AssignmentEnded
 			a.EndDate = dateOnly(c.UpdatedAt)
 			st.endedHistory++
@@ -240,7 +262,7 @@ func migrateStaff(ctx context.Context, db *mongo.Database, rooms map[string]room
 	if err != nil {
 		log.Fatalf("staff scan: %v", err)
 	}
-	var staff []models.Staff
+	var staff []legacyRoomSource
 	if err := cur.All(ctx, &staff); err != nil {
 		log.Fatalf("staff decode: %v", err)
 	}
@@ -284,7 +306,7 @@ func migrateStaff(ctx context.Context, db *mongo.Database, rooms map[string]room
 			CreatedAt:  time.Now(),
 			UpdatedAt:  time.Now(),
 		}
-		if s.Status == models.StaffInactive {
+		if s.Status == string(models.StaffInactive) {
 			a.Status = models.AssignmentEnded
 			a.EndDate = dateOnly(s.UpdatedAt)
 			a.IsPrimary = false
