@@ -88,6 +88,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	kioskDeviceRepo := repository.NewKioskDeviceRepository(db)
 	shiftRepo := repository.NewShiftRepository(db)
 	dailyRecordRepo := repository.NewDailyRecordRepository(db)
+	notificationRepo := repository.NewNotificationRepository(db)
 	gbpRepo := repository.NewGBPRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
 	orgRepo := repository.NewOrganisationRepository(db)
@@ -109,6 +110,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	staffRoomAssignSvc := service.NewStaffRoomAssignmentService(staffRoomAssignRepo, staffRepo, roomRepo)
 	childRoomAssignSvc := service.NewChildRoomAssignmentService(childRoomAssignRepo, childRepo, roomRepo, staffRoomAssignRepo, attendanceRepo)
 	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo, staffRoomAssignRepo, termRepo)
+	notifSvc := service.NewNotificationService(notificationRepo)
 	orgSvc := service.NewOrganisationService(orgRepo, authSvc)
 	// Resolve the default tenant for public/unauthenticated requests. Empty until
 	// the tenancy migration creates it — then public data is scoped to that org.
@@ -151,7 +153,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		StaffAttendance:   staffAttSvc,
 		Kiosk:             service.NewKioskService(kioskDeviceRepo, staffRepo, staffAttendanceRepo, branchRepo, roomRepo, staffRoomAssignRepo, staffAttSvc),
 		Shifts:            service.NewShiftService(shiftRepo, staffRepo, roomRepo),
-		DailyRecords:      service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo, childRoomAssignRepo),
+		DailyRecords:      service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo, childRoomAssignRepo, userRepo, notifSvc),
+		Notifications:     notifSvc,
 		BranchOverview:    service.NewBranchOverviewService(childRepo, roomRepo, attendanceRepo, staffRepo, staffAttendanceRepo, dailyRecordRepo, enquiryRepo),
 		GBP:               service.NewGBPService(gbpRepo, branchRepo),
 		Roles:             service.NewRoleService(roleRepo),

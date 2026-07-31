@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, User } from "@/types";
+import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, NotificationsResponse, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -538,6 +538,14 @@ export const api = {
   // Public read (unauthenticated) — the application form's session picker.
   getTaxonomy: (category: string, branch?: string) =>
     apiFetch<TaxonomyTerm[]>(`/api/v1/taxonomy?category=${encodeURIComponent(category)}${branch ? `&branch=${encodeURIComponent(branch)}` : ""}`),
+
+  // ── In-app notifications ───────────────────────────────────────────────────
+  adminGetNotifications: (token: string) =>
+    apiFetch<NotificationsResponse>("/api/v1/admin/notifications", { token }),
+  adminMarkNotificationRead: (token: string, id: string) =>
+    apiFetch<void>(`/api/v1/admin/notifications/${id}/read`, { method: "PATCH", token }),
+  adminMarkAllNotificationsRead: (token: string) =>
+    apiFetch<void>("/api/v1/admin/notifications/read-all", { method: "POST", token }),
 
   // ── Term-time dates ────────────────────────────────────────────────────────
   adminGetTerms: (token: string, branch?: string) =>

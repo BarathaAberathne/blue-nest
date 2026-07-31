@@ -54,6 +54,7 @@ type Services struct {
 	Roles             service.RoleService
 	Taxonomy          service.TaxonomyService
 	Terms             service.TermService
+	Notifications     service.NotificationService
 }
 
 type Repos struct {
@@ -451,6 +452,11 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 					r.Get("/admin/taxonomy/{id}", adminTaxonomyH.Get)
 					r.Get("/admin/terms", adminTermH.List)
 					r.Get("/admin/terms/{id}", adminTermH.Get)
+					// In-app notifications — every management user reads their OWN.
+					adminNotifH := adminHandler.NewAdminNotificationHandler(svc.Notifications)
+					r.Get("/admin/notifications", adminNotifH.List)
+					r.Post("/admin/notifications/read-all", adminNotifH.MarkAllRead)
+					r.Patch("/admin/notifications/{id}/read", adminNotifH.MarkRead)
 					r.Group(func(r chi.Router) {
 						r.Use(middleware.RequirePermission(models.PermBranchesManage))
 						r.Post("/admin/taxonomy", adminTaxonomyH.Create)
