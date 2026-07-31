@@ -100,8 +100,12 @@ child/staff detail, capacity and attendance registers.
    stored `room_id`). Any `MISMATCH …` line or a non-zero exit means the
    convert did not complete — **stop and investigate; the release is not
    done.**
-5. **Spot-check** a few children in the admin UI show their room, and the
-   rota groups them under the right classroom.
+5. **Spot-check** the admin UI: a few children show their room in the
+   `/admin/children` ROOM column and on the child detail page, and each
+   room's detail page (`/admin/rooms/{id}`) lists its allocated children.
+   (`/admin/rota` groups **staff** — not children — by room; note prod
+   staff historically had no `room_id`, so the rota may show "no staff
+   assigned to a room yet" until managers assign them, which is expected.)
 
 There is a brief window between steps 2 and 4 where rooms read as
 unassigned — keep it short by running the migration immediately after the
@@ -143,8 +147,11 @@ docker compose exec backend ./migrateroomassignments -verify
 Gate (⑤): the migrate log must show real `children: … migrated=<N>` (not
 `invalid-room=<N>`) and the verify log must end with **`VERIFY OK`**. Any
 `MISMATCH …` line or non-zero exit → **stop; the release is not done.**
-Then spot-check the live admin UI (a child shows its room, `/admin/rota`
-groups by classroom, `/admin/staff-attendance` shows the leave breakdown).
+Then spot-check the live admin UI: a child shows its room (`/admin/children`
+ROOM column + child detail) and each room's detail page lists its children;
+`/admin/rota` groups **staff** by room (may read "no staff assigned to a
+room yet" on prod until managers assign them — expected); and
+`/admin/staff-attendance` shows the leave breakdown.
 
 **Rollback** (only if the gate fails and can't be resolved):
 
