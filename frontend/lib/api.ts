@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, User } from "@/types";
+import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -524,6 +524,31 @@ export const api = {
     }),
 
   // Nursery — rooms
+  // ── Configurable taxonomy (lists) ──────────────────────────────────────────
+  // With a branch → picker mode (active branch + org-wide terms); without → the
+  // management view (every term in the category, all branches).
+  adminGetTaxonomy: (token: string, category: string, branch?: string) =>
+    apiFetch<TaxonomyTerm[]>(`/api/v1/admin/taxonomy?category=${encodeURIComponent(category)}${branch ? `&branch=${encodeURIComponent(branch)}` : ""}`, { token }),
+  adminCreateTaxonomy: (token: string, body: TaxonomyInput) =>
+    apiFetch<TaxonomyTerm>("/api/v1/admin/taxonomy", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateTaxonomy: (token: string, id: string, body: TaxonomyInput) =>
+    apiFetch<TaxonomyTerm>(`/api/v1/admin/taxonomy/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminDeleteTaxonomy: (token: string, id: string) =>
+    apiFetch<void>(`/api/v1/admin/taxonomy/${id}`, { method: "DELETE", token }),
+  // Public read (unauthenticated) — the application form's session picker.
+  getTaxonomy: (category: string, branch?: string) =>
+    apiFetch<TaxonomyTerm[]>(`/api/v1/taxonomy?category=${encodeURIComponent(category)}${branch ? `&branch=${encodeURIComponent(branch)}` : ""}`),
+
+  // ── Term-time dates ────────────────────────────────────────────────────────
+  adminGetTerms: (token: string, branch?: string) =>
+    apiFetch<Term[]>(`/api/v1/admin/terms${branch ? `?branch=${encodeURIComponent(branch)}` : ""}`, { token }),
+  adminCreateTerm: (token: string, body: TermInput) =>
+    apiFetch<Term>("/api/v1/admin/terms", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateTerm: (token: string, id: string, body: TermInput) =>
+    apiFetch<Term>(`/api/v1/admin/terms/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminDeleteTerm: (token: string, id: string) =>
+    apiFetch<void>(`/api/v1/admin/terms/${id}`, { method: "DELETE", token }),
+
   adminGetRooms: (token: string, branch?: string) =>
     apiFetch<Room[]>(`/api/v1/admin/rooms${branch ? `?branch=${encodeURIComponent(branch)}` : ""}`, { token }),
   adminGetRoom: (token: string, id: string) =>

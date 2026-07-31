@@ -12,16 +12,10 @@ import ChildRoomAllocations from "@/components/admin/rooms/ChildRoomAllocations"
 import { usePermissions } from "@/lib/usePermissions";
 import { ageLabel, childStatusAccent, fmtDate, fundingLabel } from "@/lib/child";
 import { dailyTypeAccent, dailyTypeLabel } from "@/lib/daily";
+import { useTaxonomy, sessionOptions } from "@/lib/useTaxonomy";
 import type { Branch, Child, ChildInput, ChildSession, DailyRecord, Guardian, Room } from "@/types";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-const SESSION_TYPES: { value: string; label: string }[] = [
-  { value: "", label: "Not attending" },
-  { value: "am", label: "AM (8–1pm)" },
-  { value: "pm", label: "PM (1–6pm)" },
-  { value: "school", label: "School (9–4pm)" },
-  { value: "full", label: "Full day (8am–6pm)" },
-];
 
 export default function ChildDetailClient({ id }: { id: string }) {
   const [child, setChild] = useState<Child | null>(null);
@@ -34,6 +28,15 @@ export default function ChildDetailClient({ id }: { id: string }) {
   const [form, setForm] = useState<ChildInput | null>(null);
   const [saving, setSaving] = useState(false);
   const { has } = usePermissions();
+
+  // Configurable, per-branch lists drive the session picker + tag chips.
+  const taxBranch = form?.branch_slug ?? child?.branch_slug ?? "";
+  const sessionTypeOptions = sessionOptions(useTaxonomy("session_type", taxBranch));
+  const sessionLabel = (code: string) => sessionTypeOptions.find((o) => o.value === code)?.label ?? code;
+  const allergyTerms = useTaxonomy("allergy_type", taxBranch);
+  const dietaryTerms = useTaxonomy("dietary_label", taxBranch);
+  const toggleTag = (field: "allergy_tags" | "dietary_tags", code: string) =>
+    setForm((f) => (f ? { ...f, [field]: (f[field] ?? []).includes(code) ? (f[field] ?? []).filter((c) => c !== code) : [...(f[field] ?? []), code] } : f));
 
   const load = async () => {
     const token = getAccessToken();
@@ -62,6 +65,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
       funding_type: child.funding_type, allergies: child.allergies ?? "", dietary_reqs: child.dietary_reqs ?? "",
       medical_notes: child.medical_notes ?? "", guardians: child.guardians ?? [],
       sessions: child.sessions ?? [],
+      allergy_tags: child.allergy_tags ?? [], dietary_tags: child.dietary_tags ?? [],
     });
     setEditing(true);
   };
@@ -156,7 +160,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
               <>
                 <h2 className="mb-3 mt-6 text-sm font-bold uppercase tracking-widest text-slate-400">Weekly sessions</h2>
                 <div className="flex flex-wrap gap-2">
-                  {child.sessions.map((s, i) => <StageBadge key={i} label={`${s.day} · ${SESSION_TYPES.find((t) => t.value === s.type)?.label ?? s.type}`} accent="sky" withDot={false} />)}
+                  {child.sessions.map((s, i) => <StageBadge key={i} label={`${s.day} · ${sessionLabel(s.type)}`} accent="sky" withDot={false} />)}
                 </div>
               </>
             )}
@@ -239,8 +243,26 @@ export default function ChildDetailClient({ id }: { id: string }) {
             </select>
           </Field>
           <Field label="Start date"><input type="date" value={form.start_date} onChange={(e) => setField({ start_date: e.target.value })} className="inp" /></Field>
-          <Field label="Allergies"><input value={form.allergies} onChange={(e) => setField({ allergies: e.target.value })} className="inp" /></Field>
-          <Field label="Dietary requirements"><input value={form.dietary_reqs} onChange={(e) => setField({ dietary_reqs: e.target.value })} className="inp" /></Field>
+          <div>
+            <label className="mb-2 block text-xs font-medium text-slate-500">Allergies</label>
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {allergyTerms.map((t) => {
+                const on = (form.allergy_tags ?? []).includes(t.code);
+                return <button type="button" key={t.id} onClick={() => toggleTag("allergy_tags", t.code)} className={`rounded-full px-2.5 py-1 text-xs font-medium ${on ? "bg-red-100 text-red-700" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>{t.label}</button>;
+              })}
+            </div>
+            <input value={form.allergies} onChange={(e) => setField({ allergies: e.target.value })} className="inp" placeholder="Additional allergy notes…" />
+          </div>
+          <div>
+            <label className="mb-2 block text-xs font-medium text-slate-500">Dietary requirements</label>
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              {dietaryTerms.map((t) => {
+                const on = (form.dietary_tags ?? []).includes(t.code);
+                return <button type="button" key={t.id} onClick={() => toggleTag("dietary_tags", t.code)} className={`rounded-full px-2.5 py-1 text-xs font-medium ${on ? "bg-amber-100 text-amber-700" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>{t.label}</button>;
+              })}
+            </div>
+            <input value={form.dietary_reqs} onChange={(e) => setField({ dietary_reqs: e.target.value })} className="inp" placeholder="Additional dietary notes…" />
+          </div>
           <div className="sm:col-span-2"><Field label="Medical notes"><textarea value={form.medical_notes} onChange={(e) => setField({ medical_notes: e.target.value })} rows={2} className="inp" /></Field></div>
 
           <div className="sm:col-span-2">
@@ -250,7 +272,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
                 <label key={day} className="text-sm">
                   <span className="mb-1 block text-xs font-medium text-slate-500">{day}</span>
                   <select value={sessionFor(day)} onChange={(e) => setSession(day, e.target.value)} className="inp bg-white">
-                    {SESSION_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    {sessionTypeOptions.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </label>
               ))}

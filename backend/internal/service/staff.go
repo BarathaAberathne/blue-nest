@@ -185,6 +185,9 @@ func applyStaff(st *models.Staff, req models.StaffRequest) {
 	if req.ContractHours != 0 {
 		st.ContractHours = req.ContractHours
 	}
+	if req.TermTimeOnly != nil {
+		st.TermTimeOnly = *req.TermTimeOnly
+	}
 	if req.Qualifications != nil {
 		st.Qualifications = req.Qualifications
 	}

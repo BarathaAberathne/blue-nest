@@ -74,6 +74,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	purchaseCartRepo := repository.NewPurchaseCartRepository(db)
 	orderTemplateRepo := repository.NewOrderTemplateRepository(db)
 	supplierRepo := repository.NewSupplierRepository(db)
+	taxonomyRepo := repository.NewTaxonomyRepository(db)
+	termRepo := repository.NewTermRepository(db)
 	dashboardLayoutRepo := repository.NewDashboardLayoutRepository(db)
 	dashboardProfileRepo := repository.NewDashboardProfileRepository(db)
 	roomRepo := repository.NewRoomRepository(db)
@@ -135,6 +137,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Catalogue:         service.NewCatalogueService(catalogueRepo),
 		OrderTemplates:    service.NewOrderTemplateService(orderTemplateRepo),
 		Suppliers:         service.NewSupplierService(supplierRepo),
+		Taxonomy:          service.NewTaxonomyService(taxonomyRepo),
+		Terms:             service.NewTermService(termRepo),
 		Procurement:       service.NewProcurementAnalyticsService(orderRequestRepo, purchaseCartRepo),
 		DashboardLayouts:  service.NewDashboardLayoutService(dashboardLayoutRepo),
 		DashboardProfiles: service.NewDashboardProfileService(dashboardProfileRepo),

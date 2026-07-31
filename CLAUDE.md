@@ -431,6 +431,22 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   (`make migrate-room-assignments`, idempotent + `-verify`). Full design in `docs/rooms/*` and the
   consolidation rationale in `docs/architecture/duplicate-implementation-audit.md`.
 
+- **Configurable taxonomy (lists) + term-time (delivered):** the "configurable, not hardcoded" rule is now
+  a real module. `taxonomy_terms` (`models/taxonomy.go`, tenant-scoped, optional `branch_slug` — ""=org-wide
+  default) holds curated lookup lists by `category`: `session_type` (with start/end times — the weekly
+  session slots), `allergy_type`, `dietary_label` (extend `ValidTaxonomyCategory` for more). Admin CRUD at
+  **`/admin/lists`** (`branches.manage`); reads open to any back-office role so pickers resolve; a public
+  `GET /taxonomy` feeds the application form. `cmd/seedtaxonomy` (`make seed-taxonomy`, idempotent, baked
+  into the image) seeds org-wide defaults per org — the session codes (`am/pm/full/school`) **match existing
+  `child.sessions` values** so they keep resolving. Every session picker (admin child create + detail edit,
+  public application form) and the child **allergy/dietary tag chips** read from this list, not hardcoded
+  arrays; `child.allergy_tags[]`/`dietary_tags[]` are additive (free-text `allergies`/`dietary_reqs` kept as
+  notes). Frontend: `lib/useTaxonomy.ts` (`useTaxonomy`, `sessionOptions`, fallback). **Term-time**: `terms`
+  (`models/term.go`, per-branch date ranges) with admin CRUD at **`/admin/terms`**, plus a
+  `staff.term_time_only` flag (attendance "expected" logic not yet term-aware — config + flags first).
+  **Admin list ordering**: `lib/group.ts` (`sortByName`/`groupByBranch`) — lists sort alphabetically, ordered
+  by branch (children/staff lists + the new admin pages; rollout to the remaining lists uses the same helper).
+
 Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (CSV/Excel/PDF) +
 notifications. Then Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 

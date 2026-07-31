@@ -15,6 +15,8 @@ import {
   CalendarRange,
   ChevronsLeft,
   ClipboardList,
+  CalendarDays,
+  ListChecks,
   DoorOpen,
   ExternalLink,
   Inbox,
@@ -66,6 +68,8 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Settings", href: "/admin/organisation", icon: SlidersHorizontal, permission: "dashboard.view", roles: ["super_admin"] },
       { label: "Branches", href: "/admin/branches", icon: Building2, permission: "branches.manage" },
       { label: "Rooms",    href: "/admin/rooms",     icon: DoorOpen, permission: "children.manage" },
+      { label: "Lists",    href: "/admin/lists",     icon: ListChecks, permission: "branches.manage" },
+      { label: "Term dates", href: "/admin/terms",   icon: CalendarDays, permission: "branches.manage" },
     ],
   },
   {

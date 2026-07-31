@@ -10,18 +10,12 @@ import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { ageLabel, childStatusAccent, fundingLabel } from "@/lib/child";
+import { useTaxonomy, sessionOptions } from "@/lib/useTaxonomy";
 import type { Branch, Child, ChildInput, ChildSession, ChildStats, Room } from "@/types";
 
 // Weekly-session controls, matched to the child edit form so a session pattern
 // can be captured at registration time — not only when editing an existing child.
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-const SESSION_TYPES: { value: string; label: string }[] = [
-  { value: "", label: "Not attending" },
-  { value: "am", label: "AM (8–1pm)" },
-  { value: "pm", label: "PM (1–6pm)" },
-  { value: "school", label: "School (9–4pm)" },
-  { value: "full", label: "Full day (8am–6pm)" },
-];
 
 const emptyForm: ChildInput = {
   first_name: "", last_name: "", dob: "", gender: "", branch_slug: "",
@@ -77,16 +71,22 @@ export default function ChildrenClient() {
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return children.filter((c) => {
+    const filtered = children.filter((c) => {
       if (branchFilter && c.branch_slug !== branchFilter) return false;
       if (statusFilter && c.status !== statusFilter) return false;
       if (needle) {
-        const hay = `${c.first_name} ${c.last_name} ${c.ref ?? ""}`.toLowerCase();
+        const hay = `${c.first_name} ${c.last_name} ${c.ref ?? ""} ${roomName(c.room_id)}`.toLowerCase();
         if (!hay.includes(needle)) return false;
       }
       return true;
     });
-  }, [children, branchFilter, statusFilter, q]);
+    // Alphabetical by name, grouped by branch (branch order first, then name).
+    return filtered.sort((a, b) => {
+      const byBranch = branchName(a.branch_slug).localeCompare(branchName(b.branch_slug), undefined, { sensitivity: "base" });
+      if (byBranch !== 0) return byBranch;
+      return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, undefined, { sensitivity: "base" });
+    });
+  }, [children, branchFilter, statusFilter, q, branchName, roomName]);
 
   const roomsForBranch = useMemo(
     () => rooms.filter((r) => r.branch_slug === form.branch_slug),
@@ -159,6 +159,16 @@ export default function ChildrenClient() {
       const rest = (f.sessions ?? []).filter((s) => s.day !== day);
       const next: ChildSession[] = type ? [...rest, { day, type }] : rest;
       return { ...f, sessions: next.sort((a, b) => WEEKDAYS.indexOf(a.day) - WEEKDAYS.indexOf(b.day)) };
+    });
+
+  // Configurable, per-branch lists drive the pickers (fall back to defaults).
+  const sessionTypeOptions = sessionOptions(useTaxonomy("session_type", form.branch_slug ?? ""));
+  const allergyTerms = useTaxonomy("allergy_type", form.branch_slug ?? "");
+  const dietaryTerms = useTaxonomy("dietary_label", form.branch_slug ?? "");
+  const toggleTag = (field: "allergy_tags" | "dietary_tags", code: string) =>
+    setForm((f) => {
+      const cur = f[field] ?? [];
+      return { ...f, [field]: cur.includes(code) ? cur.filter((c) => c !== code) : [...cur, code] };
     });
 
   return (
@@ -279,8 +289,28 @@ export default function ChildrenClient() {
               <Field label="Phone"><input value={form.guardians?.[0]?.phone ?? ""} onChange={(e) => setGuardian({ phone: e.target.value })} className="inp" /></Field>
 
               <div className="sm:col-span-2 mt-2 border-t border-slate-100 pt-3 text-xs font-bold uppercase tracking-widest text-slate-400">Care notes</div>
-              <Field label="Allergies"><input value={form.allergies} onChange={(e) => setField({ allergies: e.target.value })} className="inp" /></Field>
-              <Field label="Dietary requirements"><input value={form.dietary_reqs} onChange={(e) => setField({ dietary_reqs: e.target.value })} className="inp" /></Field>
+              <div className="sm:col-span-2">
+                <label className="mb-2 block text-xs font-medium text-slate-500">Allergies</label>
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {allergyTerms.length === 0 && <span className="text-xs text-slate-400">No allergy tags configured — add them under Lists.</span>}
+                  {allergyTerms.map((t) => {
+                    const on = (form.allergy_tags ?? []).includes(t.code);
+                    return <button type="button" key={t.id} onClick={() => toggleTag("allergy_tags", t.code)} className={`rounded-full px-2.5 py-1 text-xs font-medium ${on ? "bg-red-100 text-red-700" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>{t.label}</button>;
+                  })}
+                </div>
+                <input value={form.allergies} onChange={(e) => setField({ allergies: e.target.value })} className="inp" placeholder="Additional allergy notes…" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mb-2 block text-xs font-medium text-slate-500">Dietary requirements</label>
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {dietaryTerms.length === 0 && <span className="text-xs text-slate-400">No dietary labels configured — add them under Lists.</span>}
+                  {dietaryTerms.map((t) => {
+                    const on = (form.dietary_tags ?? []).includes(t.code);
+                    return <button type="button" key={t.id} onClick={() => toggleTag("dietary_tags", t.code)} className={`rounded-full px-2.5 py-1 text-xs font-medium ${on ? "bg-amber-100 text-amber-700" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>{t.label}</button>;
+                  })}
+                </div>
+                <input value={form.dietary_reqs} onChange={(e) => setField({ dietary_reqs: e.target.value })} className="inp" placeholder="Additional dietary notes…" />
+              </div>
               <div className="sm:col-span-2"><Field label="Medical notes"><textarea value={form.medical_notes} onChange={(e) => setField({ medical_notes: e.target.value })} rows={2} className="inp" /></Field></div>
               <div className="sm:col-span-2">
                 <label className="mb-2 block text-xs font-medium text-slate-500">Weekly sessions</label>
@@ -289,7 +319,7 @@ export default function ChildrenClient() {
                     <label key={day} className="text-sm">
                       <span className="mb-1 block text-xs font-medium text-slate-500">{day}</span>
                       <select value={sessionFor(day)} onChange={(e) => setSession(day, e.target.value)} className="inp bg-white">
-                        {SESSION_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        {sessionTypeOptions.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                       </select>
                     </label>
                   ))}

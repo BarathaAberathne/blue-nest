@@ -1056,6 +1056,8 @@ export interface Child {
   guardians?: Guardian[];
   funding_type: string; // none | 15h | 30h
   sessions?: ChildSession[];
+  allergy_tags?: string[];
+  dietary_tags?: string[];
   allergies?: string;
   dietary_reqs?: string;
   medical_notes?: string;
@@ -1079,9 +1081,57 @@ export interface ChildInput {
   guardians?: Guardian[];
   funding_type?: string;
   sessions?: ChildSession[];
+  allergy_tags?: string[];
+  dietary_tags?: string[];
   allergies?: string;
   dietary_reqs?: string;
   medical_notes?: string;
+}
+
+// ── Configurable taxonomy (session slots, allergy/dietary tags…) ─────────────
+export type TaxonomyCategory = "session_type" | "allergy_type" | "dietary_label";
+
+export interface TaxonomyTerm {
+  id: string;
+  branch_slug?: string; // "" = org-wide default
+  category: TaxonomyCategory | string;
+  code: string;
+  label: string;
+  start_time?: string; // session_type only, "HH:MM"
+  end_time?: string;
+  sort_order: number;
+  active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TaxonomyInput {
+  branch_slug?: string;
+  category: string;
+  code?: string;
+  label: string;
+  start_time?: string;
+  end_time?: string;
+  sort_order?: number;
+  active?: boolean;
+}
+
+// ── Term-time dates ──────────────────────────────────────────────────────────
+export interface Term {
+  id: string;
+  branch_slug?: string;
+  name: string;
+  start_date: string; // YYYY-MM-DD
+  end_date: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface TermInput {
+  branch_slug?: string;
+  name: string;
+  start_date: string;
+  end_date: string;
 }
 
 export interface ChildStatPoint {
@@ -1193,11 +1243,13 @@ export interface Staff {
   phone?: string;
   branch_slug: string;
   room_id?: string;
+  room_name?: string; // computed projection of the primary active room
   job_title?: string;
   staff_type: StaffType;
   status: StaffStatus;
   start_date?: string;
   contract_hours?: number;
+  term_time_only?: boolean;
   qualifications?: string[];
   dbs_number?: string;
   dbs_expiry?: string;
@@ -1222,6 +1274,7 @@ export interface StaffInput {
   status?: StaffStatus;
   start_date?: string;
   contract_hours?: number;
+  term_time_only?: boolean;
   qualifications?: string[];
   dbs_number?: string;
   dbs_expiry?: string;
