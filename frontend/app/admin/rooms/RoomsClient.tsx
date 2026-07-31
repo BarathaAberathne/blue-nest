@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { DoorOpen, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
@@ -40,8 +40,13 @@ export default function RoomsClient() {
   }, [branches]);
 
   const rows = useMemo(
-    () => (branchFilter ? rooms.filter((r) => r.branch_slug === branchFilter) : rooms),
-    [rooms, branchFilter],
+    () => (branchFilter ? rooms.filter((r) => r.branch_slug === branchFilter) : rooms)
+      .slice()
+      .sort((a, b) => {
+        const byBranch = branchName(a.branch_slug).localeCompare(branchName(b.branch_slug), undefined, { sensitivity: "base" });
+        return byBranch !== 0 ? byBranch : a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+      }),
+    [rooms, branchFilter, branchName],
   );
 
   const totals = useMemo(() => {
@@ -126,8 +131,12 @@ export default function RoomsClient() {
               <tr><td colSpan={8} className="px-4 py-6 text-slate-400">Loading…</td></tr>
             ) : rows.length === 0 ? (
               <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-400">No rooms yet — add your first.</td></tr>
-            ) : rows.map((r) => (
-              <tr key={r.id} className="hover:bg-slate-50">
+            ) : rows.map((r, i) => (
+              <Fragment key={r.id}>
+              {(i === 0 || rows[i - 1].branch_slug !== r.branch_slug) && (
+                <tr className="bg-slate-50/70"><td colSpan={8} className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">{branchName(r.branch_slug)}</td></tr>
+              )}
+              <tr className="hover:bg-slate-50">
                 <td className="px-4 py-3 font-medium text-slate-900">
                   <Link href={`/admin/rooms/${r.id}`} className="hover:text-teal-600 hover:underline">{r.name}</Link>
                 </td>
@@ -148,6 +157,7 @@ export default function RoomsClient() {
                   </div>
                 </td>
               </tr>
+              </Fragment>
             ))}
           </tbody>
         </table>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarCheck, CheckCircle2, Clock, LogOut, UserCheck, UserX } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
@@ -51,6 +51,13 @@ export default function AttendanceClient() {
 
   const branchName = useMemo(() => new Map(branches.map((b) => [b.slug, branchShortName(b)])), [branches]);
 
+  // Register grouped by branch (alphabetical), children alphabetical within.
+  const sortedRows = useMemo(() => [...rows].sort((a, b) => {
+    const ba = branchName.get(a.branch_slug) ?? a.branch_slug, bb = branchName.get(b.branch_slug) ?? b.branch_slug;
+    const byBranch = ba.localeCompare(bb, undefined, { sensitivity: "base" });
+    return byBranch !== 0 ? byBranch : (a.child_name || "").localeCompare(b.child_name || "", undefined, { sensitivity: "base" });
+  }), [rows, branchName]);
+
   const act = async (fn: () => Promise<unknown>, key: string) => {
     const token = getAccessToken();
     if (!token) return;
@@ -100,11 +107,16 @@ export default function AttendanceClient() {
               <tr><td colSpan={6} className="px-4 py-6 text-slate-400">Loading…</td></tr>
             ) : rows.length === 0 ? (
               <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-400">No active children for this selection.</td></tr>
-            ) : rows.map((r) => {
+            ) : sortedRows.map((r, i) => {
               const busyIn = busy === `in-${r.child_id}`, busyOut = busy === `out-${r.child_id}`, busyMark = busy === `mark-${r.child_id}`;
               const anyBusy = busyIn || busyOut || busyMark;
+              const showHeader = i === 0 || sortedRows[i - 1].branch_slug !== r.branch_slug;
               return (
-                <tr key={r.child_id} className="hover:bg-slate-50">
+                <Fragment key={r.child_id}>
+                {showHeader && (
+                  <tr className="bg-slate-50/70"><td colSpan={6} className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">{branchName.get(r.branch_slug) ?? r.branch_slug}</td></tr>
+                )}
+                <tr className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium text-slate-900">{r.child_name}</td>
                   <td className="px-4 py-3 text-slate-500">{branchName.get(r.branch_slug) ?? r.branch_slug}</td>
                   <td className="px-4 py-3"><StageBadge label={r.status} accent={attendanceAccent[r.status]} withDot /></td>
@@ -125,6 +137,7 @@ export default function AttendanceClient() {
                     </div>
                   </td>
                 </tr>
+                </Fragment>
               );
             })}
           </tbody>
