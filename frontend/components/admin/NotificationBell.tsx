@@ -6,7 +6,7 @@ import { AlertTriangle, Bell, CalendarDays, FileWarning, PhoneCall } from "lucid
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { fmtBranch } from "@/lib/enquiry";
-import type { EnquiryTaskItem, EnquiryTasks } from "@/types";
+import type { AppNotification, EnquiryTaskItem, EnquiryTasks } from "@/types";
 
 // localStorage key for the set of notification item ids the admin has already
 // seen (opened the bell on). The badge only counts items NOT yet seen, so it
@@ -35,9 +35,22 @@ export default function NotificationBell() {
   const [seen, setSeen] = useState<string[]>(() => loadSeen());
   const ref = useRef<HTMLDivElement>(null);
 
+  const [notifs, setNotifs] = useState<AppNotification[]>([]);
+  const [notifUnread, setNotifUnread] = useState(0);
+
   useEffect(() => {
     const token = getAccessToken();
     if (token) api.adminGetEnquiryTasks(token).then(setTasks).catch(() => { /* non-blocking */ });
+  }, []);
+
+  // Backend in-app notifications (daily-log approvals etc.).
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token) return;
+    const load = () => api.adminGetNotifications(token).then((r) => { setNotifs(r?.items ?? []); setNotifUnread(r?.unread ?? 0); }).catch(() => { /* non-blocking */ });
+    void load();
+    const t = setInterval(load, 60_000); // poll so approvals surface without a reload
+    return () => clearInterval(t);
   }, []);
 
   useEffect(() => {
@@ -74,10 +87,19 @@ export default function NotificationBell() {
         if (typeof window !== "undefined") {
           window.localStorage.setItem(SEEN_KEY, JSON.stringify(currentIds));
         }
+        // Mark backend notifications read once the bell is opened.
+        if (notifUnread > 0) {
+          const token = getAccessToken();
+          if (token) api.adminMarkAllNotificationsRead(token).catch(() => {});
+          setNotifUnread(0);
+          setNotifs((ns) => ns.map((n) => ({ ...n, read: true })));
+        }
       }
       return next;
     });
   };
+
+  const badge = unseenCount + notifUnread;
 
   return (
     <div ref={ref} className="relative">
@@ -85,12 +107,12 @@ export default function NotificationBell() {
         type="button"
         onClick={toggle}
         className="relative flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
-        aria-label={`Notifications${unseenCount ? ` (${unseenCount} new)` : ""}`}
+        aria-label={`Notifications${badge ? ` (${badge} new)` : ""}`}
       >
         <Bell className="h-5 w-5" />
-        {unseenCount > 0 && (
+        {badge > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[0.6rem] font-bold text-white">
-            {unseenCount > 9 ? "9+" : unseenCount}
+            {badge > 9 ? "9+" : badge}
           </span>
         )}
       </button>
@@ -102,7 +124,19 @@ export default function NotificationBell() {
             <p className="text-xs text-slate-400">{currentIds.length === 0 ? "You're all caught up" : `${currentIds.length} item${currentIds.length === 1 ? "" : "s"} need attention`}</p>
           </div>
           <div className="max-h-96 overflow-auto">
-            {groups.length === 0 ? (
+            {notifs.length > 0 && (
+              <div className="border-b border-slate-50 px-2 py-2">
+                <p className="px-2 py-1 text-xs font-semibold text-slate-500">Recent</p>
+                {notifs.slice(0, 6).map((n) => (
+                  <Link key={n.id} href={n.link || "#"} onClick={() => setOpen(false)}
+                    className={`block rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50 ${n.read ? "" : "bg-teal-50/50"}`}>
+                    <span className="block truncate font-medium text-slate-800">{n.title}</span>
+                    {n.body && <span className="block truncate text-xs text-slate-500">{n.body}</span>}
+                  </Link>
+                ))}
+              </div>
+            )}
+            {groups.length === 0 && notifs.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-slate-400">Nothing needs attention right now 🎉</p>
             ) : (
               groups.map((g) => (

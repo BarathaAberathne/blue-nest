@@ -1117,6 +1117,26 @@ export interface TaxonomyInput {
   active?: boolean;
 }
 
+// ── In-app notifications ─────────────────────────────────────────────────────
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body?: string;
+  link?: string;
+  entity_type?: string;
+  entity_id?: string;
+  read: boolean;
+  read_at?: string;
+  created_at?: string;
+}
+
+export interface NotificationsResponse {
+  items: AppNotification[];
+  unread: number;
+}
+
 // ── Term-time dates ──────────────────────────────────────────────────────────
 export interface Term {
   id: string;
