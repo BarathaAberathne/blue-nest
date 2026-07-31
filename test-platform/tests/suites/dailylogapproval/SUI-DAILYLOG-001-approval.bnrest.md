@@ -32,6 +32,7 @@ AssertStatus child 201
 Body
 Call CatchError ../../cases/dailylogapproval/DAILYLOG-TC-001-self-approval-blocked.bnrest.md
 Call CatchError ../../cases/dailylogapproval/DAILYLOG-TC-002-second-approver.bnrest.md
+Call CatchError ../../cases/dailylogapproval/DAILYLOG-TC-003-approval-notifications.bnrest.md
 
 Teardown
 Delete /api/v1/admin/children/${child.body.data.id} Using adminSession.accessToken

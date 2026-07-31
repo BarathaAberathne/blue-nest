@@ -36,10 +36,46 @@ type dailyRecordService struct {
 	// childRooms is the canonical child→room source used to default a daily
 	// record's room when the request omits it.
 	childRooms repository.ChildRoomAssignmentRepository
+	// users + notifs power approval notifications (optional; nil = no-op).
+	users repository.UserRepository
+	notifs NotificationService
 }
 
-func NewDailyRecordService(repo repository.DailyRecordRepository, children repository.ChildRepository, counters repository.CounterRepository, childRooms repository.ChildRoomAssignmentRepository) DailyRecordService {
-	return &dailyRecordService{repo: repo, children: children, counters: counters, childRooms: childRooms}
+func NewDailyRecordService(repo repository.DailyRecordRepository, children repository.ChildRepository, counters repository.CounterRepository, childRooms repository.ChildRoomAssignmentRepository, users repository.UserRepository, notifs NotificationService) DailyRecordService {
+	return &dailyRecordService{repo: repo, children: children, counters: counters, childRooms: childRooms, users: users, notifs: notifs}
+}
+
+// approversFor returns the user ids that can approve a log for `branch` — every
+// user whose role holds daily_logs.approve and whose branch scope covers it
+// (org-wide roles have no branch_slugs). Best-effort; empty on any error.
+func (s *dailyRecordService) approversFor(ctx context.Context, branch string) []string {
+	if s.users == nil {
+		return nil
+	}
+	orgID, _ := repository.OrgFromContext(ctx)
+	users, err := s.users.FindAll(ctx)
+	if err != nil {
+		return nil
+	}
+	var ids []string
+	for _, u := range users {
+		if !models.HasPermission(orgID, u.Role, models.PermDailyLogsApprove) {
+			continue
+		}
+		if len(u.BranchSlugs) == 0 || contains(u.BranchSlugs, branch) {
+			ids = append(ids, u.ID.Hex())
+		}
+	}
+	return ids
+}
+
+func contains(ss []string, v string) bool {
+	for _, s := range ss {
+		if s == v {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *dailyRecordService) List(ctx context.Context, f repository.DailyRecordFilter) ([]models.DailyRecord, error) {
@@ -151,6 +187,26 @@ func (s *dailyRecordService) Create(ctx context.Context, req models.DailyRecordR
 	if err := s.repo.Create(ctx, rec); err != nil {
 		return nil, err
 	}
+	// Notify approvers there's a log to review (best-effort; excludes the author).
+	if s.notifs != nil {
+		recipients := []string{}
+		for _, id := range s.approversFor(ctx, rec.BranchSlug) {
+			if id != actorID {
+				recipients = append(recipients, id)
+			}
+		}
+		who := rec.ChildName
+		if who == "" {
+			who = "the branch"
+		}
+		_ = s.notifs.NotifyMany(ctx, recipients, models.Notification{
+			Type:  models.NotifDailyLogSubmitted,
+			Title: "Daily log to review",
+			Body:  string(rec.Type) + " for " + who + " submitted by " + actorName,
+			Link:  "/admin/daily-log/" + rec.ID.Hex(),
+			EntityType: "daily_record", EntityID: rec.ID.Hex(),
+		})
+	}
 	return rec, nil
 }
 
@@ -213,13 +269,23 @@ func (s *dailyRecordService) Approve(ctx context.Context, id, actorID, actorName
 		return nil, errors.New("you cannot approve a log you submitted — it needs a second approver")
 	}
 	now := time.Now()
-	return s.repo.SetApproval(ctx, id, bson.M{
+	updated, err := s.repo.SetApproval(ctx, id, bson.M{
 		"approval_status":  models.ApprovalApproved,
 		"approved_by":      actorID,
 		"approved_by_name": actorName,
 		"approved_at":      now,
 		"rejection_reason": "",
 	})
+	if err == nil && s.notifs != nil && rec.SubmittedBy != "" {
+		_ = s.notifs.NotifyMany(ctx, []string{rec.SubmittedBy}, models.Notification{
+			Type:  models.NotifDailyLogApproved,
+			Title: "Your daily log was approved",
+			Body:  string(rec.Type) + ": " + rec.Title + " — approved by " + actorName,
+			Link:  "/admin/daily-log/" + id,
+			EntityType: "daily_record", EntityID: id,
+		})
+	}
+	return updated, err
 }
 
 func (s *dailyRecordService) Reject(ctx context.Context, id, actorID, actorName, reason string) (*models.DailyRecord, error) {
@@ -234,13 +300,23 @@ func (s *dailyRecordService) Reject(ctx context.Context, id, actorID, actorName,
 		return nil, errors.New("you cannot review a log you submitted")
 	}
 	now := time.Now()
-	return s.repo.SetApproval(ctx, id, bson.M{
+	updated, err := s.repo.SetApproval(ctx, id, bson.M{
 		"approval_status":  models.ApprovalRejected,
 		"approved_by":      actorID,
 		"approved_by_name": actorName,
 		"approved_at":      now,
 		"rejection_reason": strings.TrimSpace(reason),
 	})
+	if err == nil && s.notifs != nil && rec.SubmittedBy != "" {
+		_ = s.notifs.NotifyMany(ctx, []string{rec.SubmittedBy}, models.Notification{
+			Type:  models.NotifDailyLogRejected,
+			Title: "Your daily log was rejected",
+			Body:  string(rec.Type) + ": " + rec.Title + " — " + strings.TrimSpace(reason),
+			Link:  "/admin/daily-log/" + id,
+			EntityType: "daily_record", EntityID: id,
+		})
+	}
+	return updated, err
 }
 
 func (s *dailyRecordService) Delete(ctx context.Context, id string) error {
