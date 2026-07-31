@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Baby, Download, Plus, Search, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
@@ -223,8 +223,12 @@ export default function ChildrenClient() {
               <tr><td colSpan={7} className="px-4 py-6 text-slate-400">Loading…</td></tr>
             ) : rows.length === 0 ? (
               <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">No children match.</td></tr>
-            ) : rows.map((c) => (
-              <tr key={c.id} className="cursor-pointer hover:bg-slate-50">
+            ) : rows.map((c, i) => (
+              <Fragment key={c.id}>
+              {(i === 0 || rows[i - 1].branch_slug !== c.branch_slug) && (
+                <tr className="bg-slate-50/70"><td colSpan={7} className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">{branchName(c.branch_slug)}</td></tr>
+              )}
+              <tr className="cursor-pointer hover:bg-slate-50">
                 <td className="px-4 py-3 font-mono text-xs text-slate-500"><Link href={`/admin/children/${c.id}`} className="hover:text-teal-600">{c.ref ?? "—"}</Link></td>
                 <td className="px-4 py-3 font-medium text-slate-900"><Link href={`/admin/children/${c.id}`} className="hover:text-teal-600">{c.first_name} {c.last_name}</Link></td>
                 <td className="px-4 py-3 text-slate-500">{ageLabel(c.dob)}</td>
@@ -233,6 +237,7 @@ export default function ChildrenClient() {
                 <td className="px-4 py-3 text-slate-500">{fundingLabel(c.funding_type)}</td>
                 <td className="px-4 py-3"><StageBadge label={c.status} accent={childStatusAccent[c.status]} withDot /></td>
               </tr>
+              </Fragment>
             ))}
           </tbody>
         </table>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Download, KeyRound, Plus, Search, ShieldCheck, UserCheck, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
@@ -193,10 +193,15 @@ export default function StaffClient() {
               <tr><td colSpan={8} className="px-4 py-6 text-slate-400">Loading…</td></tr>
             ) : rows.length === 0 ? (
               <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-400">No staff match.</td></tr>
-            ) : rows.map((s) => {
+            ) : rows.map((s, i) => {
               const dbs = dbsExpiry(s.dbs_expiry);
+              const showHeader = i === 0 || rows[i - 1].branch_slug !== s.branch_slug;
               return (
-                <tr key={s.id} className="hover:bg-slate-50">
+                <Fragment key={s.id}>
+                {showHeader && (
+                  <tr className="bg-slate-50/70"><td colSpan={8} className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">{branchName(s.branch_slug)}</td></tr>
+                )}
+                <tr className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-mono text-xs text-slate-500"><Link href={`/admin/staff/${s.id}`} className="hover:text-teal-600">{s.ref ?? "—"}</Link></td>
                   <td className="px-4 py-3 font-medium text-slate-900">
                     <Link href={`/admin/staff/${s.id}`} className="hover:text-teal-600">{s.first_name} {s.last_name}</Link>
@@ -209,6 +214,7 @@ export default function StaffClient() {
                   <td className="px-4 py-3">{dbs ? <StageBadge label={dbs.label} accent={dbs.accent} withDot={false} /> : <span className="text-slate-400">—</span>}</td>
                   <td className="px-4 py-3"><StageBadge label={staffStatusLabel[s.status]} accent={staffStatusAccent[s.status]} withDot /></td>
                 </tr>
+                </Fragment>
               );
             })}
           </tbody>

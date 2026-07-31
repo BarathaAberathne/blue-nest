@@ -443,9 +443,12 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   arrays; `child.allergy_tags[]`/`dietary_tags[]` are additive (free-text `allergies`/`dietary_reqs` kept as
   notes). Frontend: `lib/useTaxonomy.ts` (`useTaxonomy`, `sessionOptions`, fallback). **Term-time**: `terms`
   (`models/term.go`, per-branch date ranges) with admin CRUD at **`/admin/terms`**, plus a
-  `staff.term_time_only` flag (attendance "expected" logic not yet term-aware — config + flags first).
-  **Admin list ordering**: `lib/group.ts` (`sortByName`/`groupByBranch`) — lists sort alphabetically, ordered
-  by branch (children/staff lists + the new admin pages; rollout to the remaining lists uses the same helper).
+  `staff.term_time_only` flag; the staff-attendance roster is **term-aware** — a term-time-only staff member
+  with no record is excluded from the expected roster (never counted absent) outside their branch's term
+  dates (`staffAttendanceService.termActive`/`expectedToday`; when no terms exist, nobody is excluded). The
+  public application-form session picker also reads the configurable list (org-wide). **Admin list ordering**:
+  `lib/group.ts` (`sortByName`/`groupByBranch`) — lists sort alphabetically, grouped by branch; the
+  children + staff tables render per-branch section headers (the same helper extends to the remaining lists).
 
 Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (CSV/Excel/PDF) +
 notifications. Then Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.

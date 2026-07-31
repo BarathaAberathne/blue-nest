@@ -72,10 +72,48 @@ type staffAttendanceService struct {
 	shifts      repository.ShiftRepository                    // optional; enables shift-based late/overtime
 	rooms       repository.RoomRepository                     // optional; resolves room names for the register
 	staffRooms  repository.StaffRoomAssignmentRepository // canonical staff→room source for the register's room column
+	terms       repository.TermRepository                // optional; term-time-only staff aren't expected outside term dates
 }
 
-func NewStaffAttendanceService(repo repository.StaffAttendanceRepository, staff repository.StaffRepository, shifts repository.ShiftRepository, rooms repository.RoomRepository, staffRooms repository.StaffRoomAssignmentRepository) StaffAttendanceService {
-	return &staffAttendanceService{repo: repo, staff: staff, shifts: shifts, rooms: rooms, staffRooms: staffRooms}
+func NewStaffAttendanceService(repo repository.StaffAttendanceRepository, staff repository.StaffRepository, shifts repository.ShiftRepository, rooms repository.RoomRepository, staffRooms repository.StaffRoomAssignmentRepository, terms repository.TermRepository) StaffAttendanceService {
+	return &staffAttendanceService{repo: repo, staff: staff, shifts: shifts, rooms: rooms, staffRooms: staffRooms, terms: terms}
+}
+
+// termActive reports whether `date` falls inside a configured term for the
+// branch (branch-specific or org-wide). When no terms are configured it returns
+// true — we can't infer term dates, so term-time-only staff aren't excluded.
+// Cached per branch for the duration of one roster build.
+func (s *staffAttendanceService) termActive(ctx context.Context, cache map[string]bool, branch, date string) bool {
+	if s.terms == nil {
+		return true
+	}
+	if v, ok := cache[branch]; ok {
+		return v
+	}
+	terms, err := s.terms.FindAll(ctx, branch)
+	active := true // no terms configured (or lookup error) → don't exclude
+	if err == nil && len(terms) > 0 {
+		active = false
+		for _, t := range terms {
+			if t.StartDate <= date && date <= t.EndDate {
+				active = true
+				break
+			}
+		}
+	}
+	cache[branch] = active
+	return active
+}
+
+// expectedToday reports whether an active staff member with no attendance record
+// should be counted as "expected" (and therefore absent) on `date`. A
+// term-time-only staff member outside term dates is not contracted that day, so
+// they are excluded from the expected roster entirely.
+func (s *staffAttendanceService) expectedToday(ctx context.Context, cache map[string]bool, p models.Staff, date string) bool {
+	if !p.TermTimeOnly {
+		return true
+	}
+	return s.termActive(ctx, cache, p.BranchSlug, date)
 }
 
 // roomNames builds an id→name map for a branch (or all branches when empty),
@@ -122,10 +160,16 @@ func (s *staffAttendanceService) Register(ctx context.Context, date, branch stri
 		primaryRoom = PrimaryStaffRooms(ctx, s.staffRooms, branch)
 	}
 	out := make([]models.StaffAttendanceRecord, 0, len(people))
+	termCache := map[string]bool{}
 	for _, p := range people {
 		id := p.ID.Hex()
 		rec, ok := byStaff[id]
 		if !ok {
+			// Term-time-only staff outside term dates aren't contracted today —
+			// don't add them to the expected roster (so they never count absent).
+			if !s.expectedToday(ctx, termCache, p, date) {
+				continue
+			}
 			rec = models.StaffAttendanceRecord{
 				StaffID:    id,
 				StaffName:  strings.TrimSpace(p.FirstName + " " + p.LastName),
@@ -421,6 +465,17 @@ func (s *staffAttendanceService) TodayStats(ctx context.Context, date, branch st
 	for _, r := range records {
 		recByStaff[r.StaffID] = r
 	}
+
+	// Term-time-only staff outside term dates (with no record) aren't contracted
+	// today — exclude them so they don't inflate Total or count as absent.
+	termCache := map[string]bool{}
+	roster := make([]models.Staff, 0, len(people))
+	for _, p := range people {
+		if _, has := recByStaff[p.ID.Hex()]; has || s.expectedToday(ctx, termCache, p, date) {
+			roster = append(roster, p)
+		}
+	}
+	people = roster
 
 	stats := &models.StaffStats{Date: date, Total: len(people)}
 	totalByBranch := map[string]int{}

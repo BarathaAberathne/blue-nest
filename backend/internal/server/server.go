@@ -108,7 +108,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	// project the current room (no stored scalar, no sync).
 	staffRoomAssignSvc := service.NewStaffRoomAssignmentService(staffRoomAssignRepo, staffRepo, roomRepo)
 	childRoomAssignSvc := service.NewChildRoomAssignmentService(childRoomAssignRepo, childRepo, roomRepo, staffRoomAssignRepo, attendanceRepo)
-	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo, staffRoomAssignRepo)
+	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo, staffRoomAssignRepo, termRepo)
 	orgSvc := service.NewOrganisationService(orgRepo, authSvc)
 	// Resolve the default tenant for public/unauthenticated requests. Empty until
 	// the tenancy migration creates it — then public data is scoped to that org.

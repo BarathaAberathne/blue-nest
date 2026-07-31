@@ -25,4 +25,5 @@ Call ../../utils/auth/AUTH-UTIL-001-login.bnrest.md With Json Into adminSession
 Body
 Call CatchError ../../cases/taxonomy/TAX-TC-001-session-type-crud.bnrest.md
 Call CatchError ../../cases/taxonomy/TAX-TC-002-term-crud.bnrest.md
+Call CatchError ../../cases/taxonomy/TAX-TC-003-term-time-attendance.bnrest.md
 ```
