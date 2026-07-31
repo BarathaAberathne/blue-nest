@@ -74,7 +74,6 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Children",         href: "/admin/children",   icon: Baby, permission: "children.manage" },
       { label: "Child Attendance", href: "/admin/attendance", icon: CalendarCheck, permission: "attendance.manage" },
       { label: "Daily Log",        href: "/admin/daily-log",  icon: NotebookPen, permission: "daily_logs.manage" },
-      { label: "Room Planner",     href: "/admin/room-planner", icon: CalendarRange, permission: "children.manage" },
     ],
   },
   {
@@ -84,6 +83,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Rota",               href: "/admin/rota",               icon: CalendarClock, permission: "staff.manage" },
       { label: "Attendance",         href: "/admin/staff-attendance",   icon: UserCheck, permission: "staff.manage" },
       { label: "Attendance Devices", href: "/admin/attendance-devices", icon: MonitorSmartphone, permission: "staff.manage" },
+      { label: "Room Planner",       href: "/admin/room-planner",       icon: CalendarRange, permission: "children.manage" },
     ],
   },
   {
