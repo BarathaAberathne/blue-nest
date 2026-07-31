@@ -399,9 +399,17 @@ migrate-tenancy:
 # Idempotent + non-destructive — see docs/rooms/room-allocation-migration-plan.md.
 migrate-room-assignments:
 	@echo "→ Room-allocation migration (legacy room_id → assignment records)..."
-	@cd backend && go run ./cmd/migrateroomassignments
-	@echo "→ Verifying migration parity..."
-	@cd backend && go run ./cmd/migrateroomassignments -verify
+	@if docker compose ps backend --status running --quiet 2>/dev/null | grep -q .; then \
+	  echo "  using running backend container"; \
+	  docker compose exec backend ./migrateroomassignments; \
+	  echo "→ Verifying migration parity..."; \
+	  docker compose exec backend ./migrateroomassignments -verify; \
+	else \
+	  echo "  no backend container running → falling back to local Go toolchain"; \
+	  cd backend && go run ./cmd/migrateroomassignments; \
+	  echo "→ Verifying migration parity..."; \
+	  cd backend && go run ./cmd/migrateroomassignments -verify; \
+	fi
 
 # ── Frontend image optimisation ──────────────────────────────────────────────
 # One-shot pass that resizes any /public image wider than 1920px down to 1920,
