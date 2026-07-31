@@ -13,14 +13,15 @@ import (
 )
 
 type DailyRecordFilter struct {
-	Type    string
-	ChildID string
-	Branch  string
-	Status  string
-	Date    string // exact date (YYYY-MM-DD)
-	Since   string // date >= (inclusive)
-	Q       string
-	Limit   int64
+	Type     string
+	ChildID  string
+	Branch   string
+	Status   string
+	Approval string // "approved" (incl. legacy) | "pending" | "rejected" | "" (any)
+	Date     string // exact date (YYYY-MM-DD)
+	Since    string // date >= (inclusive)
+	Q        string
+	Limit    int64
 }
 
 type DailyRecordRepository interface {
@@ -29,6 +30,7 @@ type DailyRecordRepository interface {
 	FindByID(ctx context.Context, id string) (*models.DailyRecord, error)
 	Update(ctx context.Context, id string, r models.DailyRecord) (*models.DailyRecord, error)
 	UpdateStatus(ctx context.Context, id string, status models.DailyRecordStatus) (*models.DailyRecord, error)
+	SetApproval(ctx context.Context, id string, set bson.M) (*models.DailyRecord, error)
 	Delete(ctx context.Context, id string) error
 	Count(ctx context.Context, f DailyRecordFilter) (int, error)
 }
@@ -54,6 +56,15 @@ func (r *dailyRecordRepository) query(f DailyRecordFilter) bson.M {
 	}
 	if f.Status != "" {
 		filter["status"] = f.Status
+	}
+	switch f.Approval {
+	case models.ApprovalApproved:
+		// Approved incl. legacy records (no approval_status field).
+		filter["approval_status"] = bson.M{"$nin": bson.A{models.ApprovalPending, models.ApprovalRejected}}
+	case models.ApprovalPending:
+		filter["approval_status"] = models.ApprovalPending
+	case models.ApprovalRejected:
+		filter["approval_status"] = models.ApprovalRejected
 	}
 	if f.Date != "" {
 		filter["date"] = f.Date
@@ -148,6 +159,20 @@ func (r *dailyRecordRepository) UpdateStatus(ctx context.Context, id string, sta
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
 	var out models.DailyRecord
 	if err := r.col.FindOneAndUpdate(ctx, bson.M{"_id": oid}, update, opts).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (r *dailyRecordRepository) SetApproval(ctx context.Context, id string, set bson.M) (*models.DailyRecord, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	set["updated_at"] = time.Now()
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	var out models.DailyRecord
+	if err := r.col.FindOneAndUpdate(ctx, bson.M{"_id": oid}, bson.M{"$set": set}, opts).Decode(&out); err != nil {
 		return nil, err
 	}
 	return &out, nil

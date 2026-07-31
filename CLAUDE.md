@@ -204,6 +204,20 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   state in the background (`hydrate(e, silent)` on the enquiry detail page) so an admin's in-progress edit
   form is never silently overwritten. `useAutoRefresh` was originally built for the attendance/dashboard/
   command-centre pages (see Staff Attendance module below) — this extends the same hook to these five.
+- **Daily logs — per-type forms, single-log page, four-eyes approval, image attachments (delivered):**
+  each `DailyRecord` type (observation/incident/safeguarding/medication/meal) has its own field set
+  (`lib/dailyLog.ts` `typeFields`) surfaced by the shared **`components/admin/daily/DailyLogForm`** (type
+  picker → per-type fields → multi-image upload via `POST /admin/uploads/image` → `attachments[]`). Children
+  get an **Add daily log** button on their profile; every log opens as a **single page** at
+  **`/admin/daily-log/{id}`** (per-type render + attachments gallery + approval panel). **Four-eyes
+  approval**: every submission is created `approval_status=pending` (`submitted_by` recorded); it becomes the
+  permanent record — shown on the child profile, counted in KPIs (`Stats` filters approved), and future
+  parent-visible — only once a **different** approver (`daily_logs.approve`: managers/deputies/regional/EYFS
+  lead/admin/director/super-admin) approves via `POST /admin/daily-records/{id}/approve` — the service rejects
+  self-approval; `/reject` needs a reason. The daily-log list has Approved/Pending/Rejected tabs. Legacy
+  records (no `approval_status`) read as approved so history stays visible. **Note:** adding a new permission
+  now propagates to existing built-in DB roles automatically — `roleService.ensureSeededForOrg` additively
+  reconciles built-in roles to the code defaults on boot (union; never removes admin-added perms).
 - **Audit log** (`models/audit_log.go`, collection `audit_logs`): append-only record of admin
   mutations. `service.AuditService.Record(r, action, entityType, entityID, summary, details)` is
   called from admin handlers after a successful mutation (best-effort — never blocks the operation;

@@ -679,7 +679,8 @@ export type Permission =
   | "children.manage"
   | "attendance.manage"
   | "staff.manage"
-  | "daily_logs.manage";
+  | "daily_logs.manage"
+  | "daily_logs.approve";
 
 export interface MeOrg {
   id: string;
@@ -1505,6 +1506,21 @@ export interface DailyRecord {
   dose?: string;
   meal_type?: string;
   eaten?: string;
+  menu?: string;
+  action_taken?: string;
+  reported_to?: string;
+  administered_by?: string;
+  admin_time?: string;
+  parent_consent?: boolean;
+  attachments?: string[];
+  // Four-eyes approval workflow
+  approval_status?: "" | "pending" | "approved" | "rejected"; // "" = legacy/approved
+  submitted_by?: string;
+  submitted_by_name?: string;
+  approved_by?: string;
+  approved_by_name?: string;
+  approved_at?: string;
+  rejection_reason?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -1525,6 +1541,13 @@ export interface DailyRecordInput {
   dose?: string;
   meal_type?: string;
   eaten?: string;
+  menu?: string;
+  action_taken?: string;
+  reported_to?: string;
+  administered_by?: string;
+  admin_time?: string;
+  parent_consent?: boolean;
+  attachments?: string[];
 }
 
 export interface DailyStats {

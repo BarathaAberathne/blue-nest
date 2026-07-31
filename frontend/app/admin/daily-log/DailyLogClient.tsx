@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { approvalLabel, approvalAccent } from "@/lib/dailyLog";
 import { BookOpen, CheckCircle2, Download, HeartPulse, Plus, Search, ShieldAlert, TriangleAlert, Utensils, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken, scopedBranches } from "@/lib/auth";
@@ -30,6 +32,7 @@ export default function DailyLogClient() {
 
   const [typeFilter, setTypeFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
+  const [approval, setApproval] = useState("approved"); // approved | pending | rejected | "" (all)
   const [q, setQ] = useState("");
 
   const [form, setForm] = useState<DailyRecordInput>(emptyForm);
@@ -41,7 +44,7 @@ export default function DailyLogClient() {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
     const [r, s, b, c] = await Promise.allSettled([
-      api.adminGetDailyRecords(token, { type: typeFilter, branch: branchFilter, q, limit: 500 }),
+      api.adminGetDailyRecords(token, { type: typeFilter, branch: branchFilter, approval, q, limit: 500 }),
       api.adminGetDailyStats(token),
       api.getBranches(),
       api.adminGetChildren(token),
@@ -52,7 +55,7 @@ export default function DailyLogClient() {
     if (c.status === "fulfilled") setChildren((c.value as Child[]) ?? []);
     setLoading(false);
   };
-  useEffect(() => { void load(); }, [typeFilter, branchFilter, q]);
+  useEffect(() => { void load(); }, [typeFilter, branchFilter, approval, q]);
   // Safeguarding/medication entries logged by another staff member show up
   // here without a manual reload — this is the highest-value page for it.
   useAutoRefresh(load, 30_000);
@@ -157,17 +160,24 @@ export default function DailyLogClient() {
         <span className="ml-auto text-sm text-slate-400">{records.length} shown</span>
       </div>
 
+      <div className="mb-3 flex gap-2">
+        {[{ k: "approved", label: "Approved" }, { k: "pending", label: "Awaiting approval" }, { k: "rejected", label: "Rejected" }, { k: "", label: "All" }].map((t) => (
+          <button key={t.k} type="button" onClick={() => setApproval(t.k)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${approval === t.k ? "bg-teal-600 text-white" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>{t.label}</button>
+        ))}
+      </div>
+
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500"><tr>{["Ref", "Type", "Child", "Branch", "Title", "Date", "Status", ""].map((h) => <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>)}</tr></thead>
+          <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500"><tr>{["Ref", "Type", "Child", "Branch", "Title", "Date", "Status", "Approval", ""].map((h) => <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>)}</tr></thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={8} className="px-4 py-6 text-slate-400">Loading…</td></tr>
+              <tr><td colSpan={9} className="px-4 py-6 text-slate-400">Loading…</td></tr>
             ) : records.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-400">No records match.</td></tr>
+              <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-slate-400">No records match.</td></tr>
             ) : records.map((r) => (
               <tr key={r.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-mono text-xs text-slate-500">{r.ref ?? "—"}</td>
+                <td className="px-4 py-3 font-mono text-xs text-slate-500"><Link href={`/admin/daily-log/${r.id}`} className="hover:text-teal-600">{r.ref ?? "view"}</Link></td>
                 <td className="px-4 py-3"><StageBadge label={dailyTypeLabel[r.type]} accent={dailyTypeAccent[r.type]} withDot={false} /></td>
                 <td className="px-4 py-3 text-slate-700">{r.child_name || "—"}</td>
                 <td className="px-4 py-3 text-slate-500">{branchName(r.branch_slug)}</td>
@@ -177,6 +187,7 @@ export default function DailyLogClient() {
                 </td>
                 <td className="px-4 py-3 text-slate-500">{fmtDate(r.date)}</td>
                 <td className="px-4 py-3"><StageBadge label={dailyStatusLabel[r.status]} accent={dailyStatusAccent[r.status]} withDot={r.status === "open"} /></td>
+                <td className="px-4 py-3"><StageBadge label={approvalLabel[r.approval_status ?? ""] ?? "—"} accent={approvalAccent[r.approval_status ?? ""] ?? "slate"} withDot={(r.approval_status ?? "") === "pending"} /></td>
                 <td className="px-4 py-3 text-right">
                   {r.status === "open" && (r.type === "safeguarding" || r.type === "incident") && (
                     <button type="button" disabled={busy === r.id} onClick={() => setStatus(r, "resolved")} className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-50"><CheckCircle2 className="h-3.5 w-3.5" /> Resolve</button>

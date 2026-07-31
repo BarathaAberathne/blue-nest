@@ -695,7 +695,7 @@ export const api = {
     apiFetch<StaffAttendanceRecord>(`/api/v1/admin/staff-attendance/${id}/correct`, { method: "PATCH", body: JSON.stringify(body), token }),
 
   // Nursery — daily records (observations, incidents, safeguarding, medication, meals)
-  adminGetDailyRecords: (token: string, params?: { type?: string; child?: string; branch?: string; status?: string; date?: string; since?: string; q?: string; limit?: number }) => {
+  adminGetDailyRecords: (token: string, params?: { type?: string; child?: string; branch?: string; status?: string; approval?: string; date?: string; since?: string; q?: string; limit?: number }) => {
     const qs = new URLSearchParams();
     if (params) for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") qs.set(k, String(v));
     const s = qs.toString();
@@ -711,6 +711,10 @@ export const api = {
     apiFetch<DailyRecord>(`/api/v1/admin/daily-records/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
   adminSetDailyRecordStatus: (token: string, id: string, status: string) =>
     apiFetch<DailyRecord>(`/api/v1/admin/daily-records/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }), token }),
+  adminApproveDailyRecord: (token: string, id: string) =>
+    apiFetch<DailyRecord>(`/api/v1/admin/daily-records/${id}/approve`, { method: "POST", token }),
+  adminRejectDailyRecord: (token: string, id: string, reason: string) =>
+    apiFetch<DailyRecord>(`/api/v1/admin/daily-records/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }), token }),
   adminDeleteDailyRecord: (token: string, id: string) =>
     apiFetch(`/api/v1/admin/daily-records/${id}`, { method: "DELETE", token }),
 

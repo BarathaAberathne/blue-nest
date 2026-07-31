@@ -9,6 +9,7 @@ import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import ChildRoomAllocations from "@/components/admin/rooms/ChildRoomAllocations";
+import DailyLogForm from "@/components/admin/daily/DailyLogForm";
 import { usePermissions } from "@/lib/usePermissions";
 import { ageLabel, childStatusAccent, fmtDate, fundingLabel } from "@/lib/child";
 import { dailyTypeAccent, dailyTypeLabel } from "@/lib/daily";
@@ -28,6 +29,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
   const [form, setForm] = useState<ChildInput | null>(null);
   const [saving, setSaving] = useState(false);
   const { has } = usePermissions();
+  const [showLog, setShowLog] = useState(false);
 
   // Configurable, per-branch lists drive the session picker + tag chips.
   const taxBranch = form?.branch_slug ?? child?.branch_slug ?? "";
@@ -41,7 +43,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
   const load = async () => {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
-    const [c, b, r, d] = await Promise.allSettled([api.adminGetChild(token, id), api.getBranches(), api.adminGetRooms(token), api.adminGetDailyRecords(token, { child: id, limit: 12 })]);
+    const [c, b, r, d] = await Promise.allSettled([api.adminGetChild(token, id), api.getBranches(), api.adminGetRooms(token), api.adminGetDailyRecords(token, { child: id, approval: "approved", limit: 12 })]);
     if (c.status === "fulfilled") setChild(c.value as Child);
     else setError("Child not found.");
     if (b.status === "fulfilled") setBranches((b.value as Branch[]) ?? []);
@@ -198,17 +200,22 @@ export default function ChildDetailClient({ id }: { id: string }) {
           <div className="card p-5 lg:col-span-3">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">Recent daily records</h2>
-              <Link href="/admin/daily-log" className="text-xs text-teal-600 hover:underline">Open daily log →</Link>
+              <div className="flex items-center gap-3">
+                {has("daily_logs.manage") && <button type="button" onClick={() => setShowLog(true)} className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700"><Plus className="h-3.5 w-3.5" /> Add daily log</button>}
+                <Link href="/admin/daily-log" className="text-xs text-teal-600 hover:underline">Open daily log →</Link>
+              </div>
             </div>
             {records.length === 0 ? (
-              <p className="text-sm text-slate-400">No observations, incidents or other records logged for this child yet.</p>
+              <p className="text-sm text-slate-400">No approved observations, incidents or other records for this child yet.</p>
             ) : (
               <ul className="divide-y divide-slate-100">
                 {records.map((r) => (
-                  <li key={r.id} className="flex items-center gap-3 py-2.5 text-sm">
-                    <StageBadge label={dailyTypeLabel[r.type]} accent={dailyTypeAccent[r.type]} withDot={false} />
-                    <span className="flex-1 text-slate-800">{r.title}{r.eyfs_areas && r.eyfs_areas.length > 0 && <span className="ml-2 text-xs text-slate-400">{r.eyfs_areas.join(", ")}</span>}</span>
-                    <span className="text-xs text-slate-400">{fmtDate(r.date)}</span>
+                  <li key={r.id}>
+                    <Link href={`/admin/daily-log/${r.id}`} className="flex items-center gap-3 py-2.5 text-sm hover:bg-slate-50">
+                      <StageBadge label={dailyTypeLabel[r.type]} accent={dailyTypeAccent[r.type]} withDot={false} />
+                      <span className="flex-1 text-slate-800">{r.title}{r.eyfs_areas && r.eyfs_areas.length > 0 && <span className="ml-2 text-xs text-slate-400">{r.eyfs_areas.join(", ")}</span>}</span>
+                      <span className="text-xs text-slate-400">{fmtDate(r.date)}</span>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -310,6 +317,14 @@ export default function ChildDetailClient({ id }: { id: string }) {
             )}
           </div>
         </div>
+      )}
+
+      {showLog && child && (
+        <DailyLogForm
+          child={{ id: child.id, name: `${child.first_name} ${child.last_name}`, branch_slug: child.branch_slug }}
+          onClose={() => setShowLog(false)}
+          onSaved={() => { setShowLog(false); void load(); }}
+        />
       )}
 
       <style jsx>{`

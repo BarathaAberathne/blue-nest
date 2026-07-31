@@ -26,7 +26,8 @@ const (
 	// Staff / HR (Phase 2)
 	PermStaffManage Permission = "staff.manage" // staff records + staff attendance
 	// Daily records / safeguarding (Phase 3)
-	PermDailyLogsManage Permission = "daily_logs.manage" // observations, incidents, safeguarding, medication, meals
+	PermDailyLogsManage  Permission = "daily_logs.manage"  // create/edit observations, incidents, safeguarding, medication, meals
+	PermDailyLogsApprove Permission = "daily_logs.approve" // four-eyes review: approve/reject a submitted log (approvers only)
 )
 
 // AllPermissions is the full set, granted to super_admin/admin.
@@ -34,7 +35,7 @@ var AllPermissions = []Permission{
 	PermDashboardView, PermStoreManage, PermBlogManage, PermEnquiriesManage,
 	PermProcurementView, PermProcurementManage, PermSuppliersManage,
 	PermFinanceView, PermAuditView, PermBranchesManage, PermBranchAdmin, PermUsersManage,
-	PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage,
+	PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove,
 }
 
 // rolePermissions maps each role to its capability set. Customers/staff have no
@@ -47,13 +48,13 @@ var rolePermissions = map[Role][]Permission{
 		PermDashboardView, PermStoreManage, PermBlogManage, PermEnquiriesManage,
 		PermProcurementView, PermProcurementManage, PermSuppliersManage,
 		PermFinanceView, PermAuditView, PermBranchesManage,
-		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage,
+		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove,
 	},
 	RoleBranchManager: {
 		PermDashboardView, PermStoreManage, PermBlogManage, PermEnquiriesManage,
 		PermProcurementView, PermProcurementManage, PermSuppliersManage,
 		PermFinanceView, PermAuditView, PermBranchesManage,
-		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage,
+		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove,
 	},
 	// Director (Managing Director): broad executive oversight across the whole
 	// back office — same reach as a general manager, minus account management.
@@ -61,7 +62,7 @@ var rolePermissions = map[Role][]Permission{
 		PermDashboardView, PermStoreManage, PermBlogManage, PermEnquiriesManage,
 		PermProcurementView, PermProcurementManage, PermSuppliersManage,
 		PermFinanceView, PermAuditView, PermBranchesManage,
-		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage,
+		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove,
 	},
 	RoleFinance: {
 		PermDashboardView, PermFinanceView, PermProcurementView, PermAuditView,
@@ -78,17 +79,17 @@ var rolePermissions = map[Role][]Permission{
 	RoleRegionalManager: {
 		PermDashboardView, PermBranchesManage, PermEnquiriesManage,
 		PermFinanceView, PermAuditView,
-		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage,
+		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove,
 	},
 	// Deputy Manager: assists one branch — same operational reach as a branch
 	// manager minus finance/payroll approval.
 	RoleDeputyManager: {
 		PermDashboardView, PermBranchesManage, PermEnquiriesManage,
-		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage,
+		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove,
 	},
 	// ── Enterprise catalogue (B3) — sensible starting sets, editable by super
 	// admin via the Permission Builder. ────────────────────────────────────────
-	RoleEYFSLead:          {PermDashboardView, PermChildrenManage, PermAttendanceManage, PermDailyLogsManage},
+	RoleEYFSLead:          {PermDashboardView, PermChildrenManage, PermAttendanceManage, PermDailyLogsManage, PermDailyLogsApprove},
 	RoleSENCO:             {PermDashboardView, PermChildrenManage, PermDailyLogsManage},
 	RoleOfficeAdmin:       {PermDashboardView, PermEnquiriesManage, PermChildrenManage, PermAttendanceManage},
 	RoleFinanceOfficer:    {PermDashboardView, PermFinanceView, PermProcurementView, PermAuditView},

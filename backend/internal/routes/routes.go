@@ -473,6 +473,12 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Put("/admin/daily-records/{id}", adminDailyH.Update)
 				r.Patch("/admin/daily-records/{id}/status", adminDailyH.SetStatus)
 				r.Delete("/admin/daily-records/{id}", adminDailyH.Delete)
+				// Four-eyes approval — approvers only (managers/deputies/EYFS/admin).
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequirePermission(models.PermDailyLogsApprove))
+					r.Post("/admin/daily-records/{id}/approve", adminDailyH.Approve)
+					r.Post("/admin/daily-records/{id}/reject", adminDailyH.Reject)
+				})
 			})
 
 			// Organisations (tenants) — platform operator only (cross-tenant).
