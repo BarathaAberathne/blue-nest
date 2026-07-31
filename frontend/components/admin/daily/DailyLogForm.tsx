@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ImagePlus, X, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
-import { DAILY_TYPES, EYFS_AREAS, MEAL_TYPES, EATEN_OPTIONS, SEVERITIES, typeFields } from "@/lib/dailyLog";
-import type { Branch, DailyRecordInput, DailyRecordType } from "@/types";
+import { DAILY_TYPES, EYFS_AREAS, MEAL_TYPES, EATEN_OPTIONS, SEVERITIES, REPORTED_TO_OPTIONS, typeFields } from "@/lib/dailyLog";
+import type { Branch, DailyRecordInput, DailyRecordType, Staff } from "@/types";
 
 // A modal for submitting a daily log. When `child` is given the child/branch are
 // fixed (child-profile "Add daily log"); otherwise a branch + free-text child
@@ -31,18 +31,32 @@ export default function DailyLogForm({
     child_id: child?.id,
     branch_slug: child?.branch_slug || defaultBranch,
     title: "", detail: "", severity: "low", eyfs_areas: [], next_steps: "",
-    action_taken: "", reported_to: "", medication: "", dose: "", admin_time: "",
+    action_taken: "", first_aid: "", witnesses: [], other_staff: [], parents_notified: "",
+    other_notes: "", reported_to: [], medication: "", dose: "", admin_time: "",
     administered_by: "", parent_consent: false, meal_type: "lunch", eaten: "all", menu: "",
     attachments: [],
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [staff, setStaff] = useState<Staff[]>([]);
+
+  // Staff for the Witnesses / Other-staff-present pickers (branch-scoped).
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token || !form.branch_slug) { setStaff([]); return; }
+    let alive = true;
+    api.adminGetStaff(token, { branch: form.branch_slug }).then((s) => { if (alive) setStaff(s ?? []); }).catch(() => { if (alive) setStaff([]); });
+    return () => { alive = false; };
+  }, [form.branch_slug]);
+  const staffNames = useMemo(() => staff.map((s) => `${s.first_name} ${s.last_name}`), [staff]);
 
   const f = useMemo(() => typeFields(type), [type]);
   const set = (patch: Partial<DailyRecordInput>) => setForm((p) => ({ ...p, ...patch }));
   const pickType = (t: DailyRecordType) => { setType(t); set({ type: t }); };
   const toggleEyfs = (area: string) => set({ eyfs_areas: (form.eyfs_areas ?? []).includes(area) ? (form.eyfs_areas ?? []).filter((a) => a !== area) : [...(form.eyfs_areas ?? []), area] });
+  const toggleArr = (field: "witnesses" | "other_staff" | "reported_to", v: string) =>
+    set({ [field]: (form[field] ?? []).includes(v) ? (form[field] ?? []).filter((x) => x !== v) : [...(form[field] ?? []), v] } as Partial<DailyRecordInput>);
 
   const uploadImages = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -64,6 +78,10 @@ export default function DailyLogForm({
   const save = async () => {
     const token = getAccessToken();
     if (!token || !form.title.trim() || !form.branch_slug) { setError("Title and branch are required."); return; }
+    const labels: Record<string, string> = { first_aid: "First aid administered", parents_notified: "When and how parents were notified" };
+    for (const req of f.required ?? []) {
+      if (!String(form[req] ?? "").trim()) { setError(`${labels[req]} is required.`); return; }
+    }
     setSaving(true); setError(null);
     try {
       await api.adminCreateDailyRecord(token, { ...form, type });
@@ -144,8 +162,30 @@ export default function DailyLogForm({
             </div>
           )}
 
-          <label className="block"><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">{f.detailLabel}</span>
+          <label className="block"><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">{f.detailLabel}{type === "incident" ? " *" : ""}</span>
             <textarea value={form.detail} onChange={(e) => set({ detail: e.target.value })} rows={3} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
+
+          {f.firstAid && (
+            <label className="block"><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">First aid administered *</span>
+              <input value={form.first_aid} onChange={(e) => set({ first_aid: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
+          )}
+          {(f.witnesses || f.otherStaff) && staffNames.length === 0 && (
+            <p className="text-xs text-slate-400">Select a branch to choose witnesses / staff present.</p>
+          )}
+          {f.witnesses && staffNames.length > 0 && (
+            <div><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">Witnesses</span>
+              <div className="flex flex-wrap gap-1.5">{staffNames.map((n) => { const on = (form.witnesses ?? []).includes(n); return <button type="button" key={n} onClick={() => toggleArr("witnesses", n)} className={`rounded-full px-2.5 py-1 text-xs font-medium ${on ? "bg-sky-100 text-sky-700" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>{n}</button>; })}</div>
+            </div>
+          )}
+          {f.otherStaff && staffNames.length > 0 && (
+            <div><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">Other staff present</span>
+              <div className="flex flex-wrap gap-1.5">{staffNames.map((n) => { const on = (form.other_staff ?? []).includes(n); return <button type="button" key={n} onClick={() => toggleArr("other_staff", n)} className={`rounded-full px-2.5 py-1 text-xs font-medium ${on ? "bg-teal-100 text-teal-700" : "border border-slate-200 text-slate-600 hover:bg-slate-50"}`}>{n}</button>; })}</div>
+            </div>
+          )}
+          {f.parentsNotified && (
+            <label className="block"><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">When and how were parents notified *</span>
+              <textarea value={form.parents_notified} onChange={(e) => set({ parents_notified: e.target.value })} rows={2} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
+          )}
 
           {f.eyfs && (
             <div><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">EYFS areas</span>
@@ -166,8 +206,19 @@ export default function DailyLogForm({
               <textarea value={form.action_taken} onChange={(e) => set({ action_taken: e.target.value })} rows={2} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
           )}
           {f.reportedTo && (
-            <label className="block"><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">Reported to</span>
-              <input value={form.reported_to} onChange={(e) => set({ reported_to: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" placeholder="e.g. DSL / LADO" /></label>
+            <div><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">Reported to <span className="normal-case text-slate-400">(not visible to parents)</span></span>
+              <div className="flex flex-wrap gap-3">
+                {REPORTED_TO_OPTIONS.map((o) => (
+                  <label key={o} className="flex items-center gap-1.5 text-sm text-slate-700">
+                    <input type="checkbox" checked={(form.reported_to ?? []).includes(o)} onChange={() => toggleArr("reported_to", o)} /> {o}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          {f.otherNotes && (
+            <label className="block"><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">Other notes</span>
+              <textarea value={form.other_notes} onChange={(e) => set({ other_notes: e.target.value })} rows={2} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
           )}
 
           {/* Attachments */}

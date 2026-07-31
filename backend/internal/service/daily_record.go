@@ -74,7 +74,18 @@ func (s *dailyRecordService) apply(ctx context.Context, rec *models.DailyRecord,
 	rec.Eaten = strings.TrimSpace(req.Eaten)
 	rec.Menu = strings.TrimSpace(req.Menu)
 	rec.ActionTaken = strings.TrimSpace(req.ActionTaken)
-	rec.ReportedTo = strings.TrimSpace(req.ReportedTo)
+	rec.FirstAid = strings.TrimSpace(req.FirstAid)
+	rec.ParentsNotified = strings.TrimSpace(req.ParentsNotified)
+	rec.OtherNotes = strings.TrimSpace(req.OtherNotes)
+	if req.Witnesses != nil {
+		rec.Witnesses = req.Witnesses
+	}
+	if req.OtherStaff != nil {
+		rec.OtherStaff = req.OtherStaff
+	}
+	if req.ReportedTo != nil {
+		rec.ReportedTo = req.ReportedTo
+	}
 	rec.AdministeredBy = strings.TrimSpace(req.AdministeredBy)
 	rec.AdminTime = strings.TrimSpace(req.AdminTime)
 	rec.ParentConsent = req.ParentConsent

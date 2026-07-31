@@ -66,8 +66,14 @@ type DailyRecord struct {
 	Eaten    string `bson:"eaten,omitempty"     json:"eaten,omitempty"`     // all|most|some|none
 	Menu     string `bson:"menu,omitempty"      json:"menu,omitempty"`      // what was served
 	// Incident / safeguarding
-	ActionTaken string `bson:"action_taken,omitempty" json:"action_taken,omitempty"`
-	ReportedTo  string `bson:"reported_to,omitempty"  json:"reported_to,omitempty"` // safeguarding
+	ActionTaken     string   `bson:"action_taken,omitempty"     json:"action_taken,omitempty"`
+	FirstAid        string   `bson:"first_aid,omitempty"        json:"first_aid,omitempty"`        // first aid administered (incident)
+	Witnesses       []string `bson:"witnesses,omitempty"        json:"witnesses,omitempty"`        // staff who witnessed
+	OtherStaff      []string `bson:"other_staff,omitempty"      json:"other_staff,omitempty"`      // other staff present
+	ParentsNotified string   `bson:"parents_notified,omitempty" json:"parents_notified,omitempty"` // when + how parents were notified
+	OtherNotes      string   `bson:"other_notes,omitempty"      json:"other_notes,omitempty"`
+	// Statutory reporting (RIDDOR / Ofsted / LADO / DSL). Not shown to parents.
+	ReportedTo []string `bson:"reported_to,omitempty" json:"reported_to,omitempty"`
 	// Medication
 	AdministeredBy string `bson:"administered_by,omitempty" json:"administered_by,omitempty"`
 	AdminTime      string `bson:"admin_time,omitempty"      json:"admin_time,omitempty"` // HH:MM
@@ -108,10 +114,15 @@ type DailyRecordRequest struct {
 	Dose           string   `json:"dose"`
 	MealType       string   `json:"meal_type"`
 	Eaten          string   `json:"eaten"`
-	Menu           string   `json:"menu"`
-	ActionTaken    string   `json:"action_taken"`
-	ReportedTo     string   `json:"reported_to"`
-	AdministeredBy string   `json:"administered_by"`
+	Menu            string   `json:"menu"`
+	ActionTaken     string   `json:"action_taken"`
+	FirstAid        string   `json:"first_aid"`
+	Witnesses       []string `json:"witnesses"`
+	OtherStaff      []string `json:"other_staff"`
+	ParentsNotified string   `json:"parents_notified"`
+	OtherNotes      string   `json:"other_notes"`
+	ReportedTo      []string `json:"reported_to"`
+	AdministeredBy  string   `json:"administered_by"`
 	AdminTime      string   `json:"admin_time"`
 	ParentConsent  bool     `json:"parent_consent"`
 	Attachments    []string `json:"attachments"`

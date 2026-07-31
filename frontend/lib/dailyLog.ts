@@ -27,6 +27,9 @@ export const EYFS_AREAS = [
 export const MEAL_TYPES = ["breakfast", "lunch", "snack", "tea"];
 export const EATEN_OPTIONS = ["all", "most", "some", "none"];
 export const SEVERITIES = ["low", "medium", "high"];
+// Statutory bodies an incident/safeguarding record may be reported to (not
+// shown to parents).
+export const REPORTED_TO_OPTIONS = ["RIDDOR", "Ofsted", "LADO", "DSL"];
 
 // Approval-status display.
 export const approvalLabel: Record<string, string> = {
@@ -36,16 +39,30 @@ export const approvalAccent: Record<string, AccentName> = {
   "": "green", pending: "amber", approved: "green", rejected: "red",
 };
 
-// Which fields each type shows (used by the form + detail view).
-export function typeFields(t: DailyRecordType): {
+// Which fields each type shows (used by the form + detail view). `required`
+// lists the extra fields (beyond title) the incident/safeguarding form enforces.
+export interface TypeFields {
   detailLabel: string;
-  severity?: boolean; eyfs?: boolean; nextSteps?: boolean; actionTaken?: boolean; reportedTo?: boolean;
-  medication?: boolean; meal?: boolean;
-} {
+  severity?: boolean; eyfs?: boolean; nextSteps?: boolean; actionTaken?: boolean;
+  reportedTo?: boolean; firstAid?: boolean; witnesses?: boolean; otherStaff?: boolean;
+  parentsNotified?: boolean; otherNotes?: boolean; medication?: boolean; meal?: boolean;
+  required?: ("first_aid" | "parents_notified")[];
+}
+
+export function typeFields(t: DailyRecordType): TypeFields {
   switch (t) {
     case "observation": return { detailLabel: "What happened", eyfs: true, nextSteps: true };
-    case "incident": return { detailLabel: "What happened", severity: true, actionTaken: true };
-    case "safeguarding": return { detailLabel: "Concern", severity: true, actionTaken: true, reportedTo: true };
+    case "incident": return {
+      detailLabel: "Nature of accident / incident",
+      severity: true, firstAid: true, witnesses: true, otherStaff: true,
+      parentsNotified: true, reportedTo: true, actionTaken: true, otherNotes: true,
+      required: ["first_aid", "parents_notified"],
+    };
+    case "safeguarding": return {
+      detailLabel: "Concern",
+      severity: true, witnesses: true, otherStaff: true, parentsNotified: true,
+      reportedTo: true, actionTaken: true, otherNotes: true,
+    };
     case "medication": return { detailLabel: "Notes", medication: true };
     case "meal": return { detailLabel: "Notes", meal: true };
     default: return { detailLabel: "Detail" };

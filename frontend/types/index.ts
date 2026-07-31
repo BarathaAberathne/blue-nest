@@ -1508,7 +1508,12 @@ export interface DailyRecord {
   eaten?: string;
   menu?: string;
   action_taken?: string;
-  reported_to?: string;
+  first_aid?: string;
+  witnesses?: string[];
+  other_staff?: string[];
+  parents_notified?: string;
+  other_notes?: string;
+  reported_to?: string[];
   administered_by?: string;
   admin_time?: string;
   parent_consent?: boolean;
@@ -1543,7 +1548,12 @@ export interface DailyRecordInput {
   eaten?: string;
   menu?: string;
   action_taken?: string;
-  reported_to?: string;
+  first_aid?: string;
+  witnesses?: string[];
+  other_staff?: string[];
+  parents_notified?: string;
+  other_notes?: string;
+  reported_to?: string[];
   administered_by?: string;
   admin_time?: string;
   parent_consent?: boolean;

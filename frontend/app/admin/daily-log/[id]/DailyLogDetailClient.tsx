@@ -91,9 +91,14 @@ export default function DailyLogDetailClient({ id }: { id: string }) {
 
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={f.detailLabel} value={rec.detail} />
+          {f.firstAid && <Field label="First aid administered" value={rec.first_aid} />}
+          {f.witnesses && <Field label="Witnesses" value={(rec.witnesses ?? []).join(", ")} />}
+          {f.otherStaff && <Field label="Other staff present" value={(rec.other_staff ?? []).join(", ")} />}
+          {f.parentsNotified && <Field label="Parents notified" value={rec.parents_notified} />}
           {f.nextSteps && <Field label="Next steps" value={rec.next_steps} />}
           {f.actionTaken && <Field label="Action taken" value={rec.action_taken} />}
-          {f.reportedTo && <Field label="Reported to" value={rec.reported_to} />}
+          {f.reportedTo && <Field label="Reported to (not visible to parents)" value={(rec.reported_to ?? []).join(", ")} />}
+          {f.otherNotes && <Field label="Other notes" value={rec.other_notes} />}
           {f.medication && <>
             <Field label="Medication" value={rec.medication} />
             <Field label="Dose" value={rec.dose} />
