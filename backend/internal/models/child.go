@@ -62,6 +62,11 @@ type Child struct {
 	Guardians    []Guardian         `bson:"guardians,omitempty"  json:"guardians,omitempty"`
 	FundingType  string             `bson:"funding_type"         json:"funding_type"` // FundingNone | Funding15h | Funding30h
 	Sessions     []ChildSession     `bson:"sessions,omitempty"   json:"sessions,omitempty"`
+	// AllergyTags/DietaryTags hold configurable taxonomy codes (allergy_type /
+	// dietary_label lists); Allergies/DietaryReqs remain as free-text notes
+	// alongside them. Additive — legacy records keep their free-text values.
+	AllergyTags  []string           `bson:"allergy_tags,omitempty" json:"allergy_tags,omitempty"`
+	DietaryTags  []string           `bson:"dietary_tags,omitempty" json:"dietary_tags,omitempty"`
 	Allergies    string             `bson:"allergies,omitempty"    json:"allergies,omitempty"`
 	DietaryReqs  string             `bson:"dietary_reqs,omitempty" json:"dietary_reqs,omitempty"`
 	MedicalNotes string             `bson:"medical_notes,omitempty" json:"medical_notes,omitempty"`
@@ -100,6 +105,8 @@ type ChildRequest struct {
 	Guardians    []Guardian     `json:"guardians"`
 	FundingType  string         `json:"funding_type"`
 	Sessions     []ChildSession `json:"sessions"`
+	AllergyTags  []string       `json:"allergy_tags"`
+	DietaryTags  []string       `json:"dietary_tags"`
 	Allergies    string         `json:"allergies"`
 	DietaryReqs  string         `json:"dietary_reqs"`
 	MedicalNotes string         `json:"medical_notes"`

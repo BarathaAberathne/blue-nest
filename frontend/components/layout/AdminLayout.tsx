@@ -15,6 +15,8 @@ import {
   CalendarRange,
   ChevronsLeft,
   ClipboardList,
+  CalendarDays,
+  ListChecks,
   DoorOpen,
   ExternalLink,
   Inbox,
@@ -60,10 +62,14 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    // Ordered to mirror the natural setup hierarchy: organisation → branch → rooms.
     heading: "Organisation",
     items: [
-      { label: "Branches", href: "/admin/branches", icon: Building2, permission: "branches.manage" },
       { label: "Settings", href: "/admin/organisation", icon: SlidersHorizontal, permission: "dashboard.view", roles: ["super_admin"] },
+      { label: "Branches", href: "/admin/branches", icon: Building2, permission: "branches.manage" },
+      { label: "Rooms",    href: "/admin/rooms",     icon: DoorOpen, permission: "children.manage" },
+      { label: "Lists",    href: "/admin/lists",     icon: ListChecks, permission: "branches.manage" },
+      { label: "Term dates", href: "/admin/terms",   icon: CalendarDays, permission: "branches.manage" },
     ],
   },
   {
@@ -72,8 +78,6 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Children",         href: "/admin/children",   icon: Baby, permission: "children.manage" },
       { label: "Child Attendance", href: "/admin/attendance", icon: CalendarCheck, permission: "attendance.manage" },
       { label: "Daily Log",        href: "/admin/daily-log",  icon: NotebookPen, permission: "daily_logs.manage" },
-      { label: "Rooms",            href: "/admin/rooms",      icon: DoorOpen, permission: "children.manage" },
-      { label: "Room Planner",     href: "/admin/room-planner", icon: CalendarRange, permission: "children.manage" },
     ],
   },
   {
@@ -83,6 +87,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Rota",               href: "/admin/rota",               icon: CalendarClock, permission: "staff.manage" },
       { label: "Attendance",         href: "/admin/staff-attendance",   icon: UserCheck, permission: "staff.manage" },
       { label: "Attendance Devices", href: "/admin/attendance-devices", icon: MonitorSmartphone, permission: "staff.manage" },
+      { label: "Room Planner",       href: "/admin/room-planner",       icon: CalendarRange, permission: "children.manage" },
     ],
   },
   {

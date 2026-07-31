@@ -45,26 +45,61 @@ func (s *roleService) ensureSeededForOrg(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	have := make(map[models.Role]bool, len(existing))
+	byName := make(map[models.Role]models.RoleDefinition, len(existing))
 	for _, d := range existing {
-		have[d.Name] = true
+		byName[d.Name] = d
 	}
 	defaults := models.DefaultRolePermissions()
 	for _, role := range models.BuiltInRoles() {
-		if have[role] {
-			continue
-		}
 		perms := defaults[role]
 		if perms == nil {
 			perms = []models.Permission{} // never store null (staff/customer have no perms)
 		}
-		if err := s.repo.Upsert(ctx, models.RoleDefinition{
-			Name: role, Label: models.RoleLabel(role), Permissions: perms, IsCustom: false,
-		}); err != nil {
-			return err
+		cur, ok := byName[role]
+		if !ok {
+			if err := s.repo.Upsert(ctx, models.RoleDefinition{
+				Name: role, Label: models.RoleLabel(role), Permissions: perms, IsCustom: false,
+			}); err != nil {
+				return err
+			}
+			continue
+		}
+		// A built-in role already exists: additively grant any newly-introduced
+		// default permissions (so a feature that adds a permission — e.g.
+		// daily_logs.approve — reaches built-in roles on the next boot without a
+		// manual Permission-Builder edit). Union only: never removes a
+		// permission an admin added; custom roles are left untouched.
+		if cur.IsCustom {
+			continue
+		}
+		merged := unionPermissions(cur.Permissions, perms)
+		if len(merged) != len(cur.Permissions) {
+			cur.Permissions = merged
+			if err := s.repo.Upsert(ctx, cur); err != nil {
+				return err
+			}
 		}
 	}
 	return s.refresh(ctx)
+}
+
+// unionPermissions merges two permission slices, de-duplicated, preserving order.
+func unionPermissions(a, b []models.Permission) []models.Permission {
+	seen := make(map[models.Permission]bool, len(a)+len(b))
+	out := make([]models.Permission, 0, len(a)+len(b))
+	for _, p := range a {
+		if !seen[p] {
+			seen[p] = true
+			out = append(out, p)
+		}
+	}
+	for _, p := range b {
+		if !seen[p] {
+			seen[p] = true
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // refresh loads the caller's organisation's role definitions into the models

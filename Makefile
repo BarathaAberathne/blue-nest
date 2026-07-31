@@ -3,7 +3,7 @@
         docker-up docker-down docker-build docker-logs docker-restart docker-stop \
         dev-backend dev-frontend run-backend run-frontend \
         mongo-shell setup \
-        seed seed-products seed-branches seed-catalogue seed-users seed-children seed-staff seed-daily seed-gbp seed-famly seed-all \
+        seed seed-products seed-branches seed-catalogue seed-users seed-taxonomy seed-children seed-staff seed-daily seed-gbp seed-famly seed-all \
         wait-api \
         test-e2e test-e2e-regression \
         staging-up staging-verify staging-logs staging-down staging-clean \
@@ -333,6 +333,19 @@ seed-users:
 	  cd backend && go run ./cmd/seedusers; \
 	fi
 
+# Seeds the configurable lookup lists (session slots, allergy/dietary tags) with
+# org-wide defaults for every org. REQUIRED on first deploy of the taxonomy
+# feature so pickers populate and existing children's session codes resolve.
+seed-taxonomy:
+	@echo "→ Seeding configurable lists (taxonomy defaults)..."
+	@if docker compose ps backend --status running --quiet 2>/dev/null | grep -q .; then \
+	  echo "  using running backend container (production-style)"; \
+	  docker compose -f docker-compose.yml -f docker-compose.prod.yml exec backend ./seedtaxonomy; \
+	else \
+	  echo "  no backend container running → falling back to local Go toolchain"; \
+	  cd backend && go run ./cmd/seedtaxonomy; \
+	fi
+
 seed-children:
 	@echo "→ Seeding nursery rooms, children & today's attendance..."
 	cd backend && SEED_ALLOW_DROP=1 go run ./cmd/seedchildren
@@ -367,7 +380,7 @@ seed-gbp:
 	@echo "→ Seeding Google Business Profile digests & reviews..."
 	cd backend && SEED_ALLOW_DROP=1 go run ./cmd/seedgbp
 
-seed-all: seed-products seed-branches seed-catalogue seed-users seed-children seed-staff seed-daily seed-gbp
+seed-all: seed-products seed-branches seed-catalogue seed-users seed-taxonomy seed-children seed-staff seed-daily seed-gbp
 	@echo "✓ All seeds complete"
 
 # One-off migration: assign human-readable refs (SR-/PO-/ORD-) to records created

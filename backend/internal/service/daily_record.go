@@ -9,14 +9,19 @@ import (
 
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/repository"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type DailyRecordService interface {
 	List(ctx context.Context, f repository.DailyRecordFilter) ([]models.DailyRecord, error)
 	GetByID(ctx context.Context, id string) (*models.DailyRecord, error)
-	Create(ctx context.Context, req models.DailyRecordRequest) (*models.DailyRecord, error)
+	Create(ctx context.Context, req models.DailyRecordRequest, actorID, actorName string) (*models.DailyRecord, error)
 	Update(ctx context.Context, id string, req models.DailyRecordRequest) (*models.DailyRecord, error)
 	SetStatus(ctx context.Context, id string, status models.DailyRecordStatus) (*models.DailyRecord, error)
+	// Approve/Reject are the four-eyes review gate — the actor must NOT be the
+	// record's author (submitter). Reject requires a reason.
+	Approve(ctx context.Context, id, actorID, actorName string) (*models.DailyRecord, error)
+	Reject(ctx context.Context, id, actorID, actorName, reason string) (*models.DailyRecord, error)
 	Delete(ctx context.Context, id string) error
 	// Stats aggregates today's KPI tiles. Empty branch = org-wide (org-wide
 	// roles); a branch-scoped caller passes their branch so counts never
@@ -67,6 +72,26 @@ func (s *dailyRecordService) apply(ctx context.Context, rec *models.DailyRecord,
 	rec.Dose = strings.TrimSpace(req.Dose)
 	rec.MealType = strings.TrimSpace(req.MealType)
 	rec.Eaten = strings.TrimSpace(req.Eaten)
+	rec.Menu = strings.TrimSpace(req.Menu)
+	rec.ActionTaken = strings.TrimSpace(req.ActionTaken)
+	rec.FirstAid = strings.TrimSpace(req.FirstAid)
+	rec.ParentsNotified = strings.TrimSpace(req.ParentsNotified)
+	rec.OtherNotes = strings.TrimSpace(req.OtherNotes)
+	if req.Witnesses != nil {
+		rec.Witnesses = req.Witnesses
+	}
+	if req.OtherStaff != nil {
+		rec.OtherStaff = req.OtherStaff
+	}
+	if req.ReportedTo != nil {
+		rec.ReportedTo = req.ReportedTo
+	}
+	rec.AdministeredBy = strings.TrimSpace(req.AdministeredBy)
+	rec.AdminTime = strings.TrimSpace(req.AdminTime)
+	rec.ParentConsent = req.ParentConsent
+	if req.Attachments != nil {
+		rec.Attachments = req.Attachments
+	}
 	if req.Date != "" {
 		rec.Date = req.Date
 	}
@@ -90,7 +115,7 @@ func (s *dailyRecordService) apply(ctx context.Context, rec *models.DailyRecord,
 	return nil
 }
 
-func (s *dailyRecordService) Create(ctx context.Context, req models.DailyRecordRequest) (*models.DailyRecord, error) {
+func (s *dailyRecordService) Create(ctx context.Context, req models.DailyRecordRequest, actorID, actorName string) (*models.DailyRecord, error) {
 	if strings.TrimSpace(string(req.Type)) == "" {
 		return nil, errors.New("record type is required")
 	}
@@ -100,6 +125,11 @@ func (s *dailyRecordService) Create(ctx context.Context, req models.DailyRecordR
 	rec := &models.DailyRecord{
 		Date:   time.Now().Format("2006-01-02"),
 		Status: defaultStatus(req.Type),
+		// Four-eyes: every new log starts pending until a DIFFERENT approver
+		// signs it off (see Approve). Author recorded for the self-approval guard.
+		ApprovalStatus:  models.ApprovalPending,
+		SubmittedBy:     actorID,
+		SubmittedByName: actorName,
 	}
 	if err := s.apply(ctx, rec, req); err != nil {
 		return nil, err
@@ -170,6 +200,49 @@ func (s *dailyRecordService) SetStatus(ctx context.Context, id string, status mo
 	return s.repo.UpdateStatus(ctx, id, status)
 }
 
+func (s *dailyRecordService) Approve(ctx context.Context, id, actorID, actorName string) (*models.DailyRecord, error) {
+	rec, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if rec.ApprovalStatus == models.ApprovalApproved {
+		return rec, nil // idempotent
+	}
+	// Four-eyes: an approver cannot sign off their own submission.
+	if rec.SubmittedBy != "" && rec.SubmittedBy == actorID {
+		return nil, errors.New("you cannot approve a log you submitted — it needs a second approver")
+	}
+	now := time.Now()
+	return s.repo.SetApproval(ctx, id, bson.M{
+		"approval_status":  models.ApprovalApproved,
+		"approved_by":      actorID,
+		"approved_by_name": actorName,
+		"approved_at":      now,
+		"rejection_reason": "",
+	})
+}
+
+func (s *dailyRecordService) Reject(ctx context.Context, id, actorID, actorName, reason string) (*models.DailyRecord, error) {
+	if strings.TrimSpace(reason) == "" {
+		return nil, errors.New("a reason is required to reject a log")
+	}
+	rec, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if rec.SubmittedBy != "" && rec.SubmittedBy == actorID {
+		return nil, errors.New("you cannot review a log you submitted")
+	}
+	now := time.Now()
+	return s.repo.SetApproval(ctx, id, bson.M{
+		"approval_status":  models.ApprovalRejected,
+		"approved_by":      actorID,
+		"approved_by_name": actorName,
+		"approved_at":      now,
+		"rejection_reason": strings.TrimSpace(reason),
+	})
+}
+
 func (s *dailyRecordService) Delete(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
 }
@@ -182,6 +255,9 @@ func (s *dailyRecordService) Stats(ctx context.Context, date, branch string) (*m
 
 	count := func(f repository.DailyRecordFilter) int {
 		f.Branch = branch
+		// KPIs count only records that passed four-eyes approval (incl. legacy);
+		// pending/rejected submissions are drafts, not the permanent record.
+		f.Approval = models.ApprovalApproved
 		n, err := s.repo.Count(ctx, f)
 		if err != nil {
 			return 0

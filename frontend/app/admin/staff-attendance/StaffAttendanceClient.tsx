@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock, LogOut, Pencil, Search, Timer, UserCheck, UserMinus, UserX } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken, getAuthUser, isOrgWideRole } from "@/lib/auth";
@@ -124,8 +124,13 @@ export default function StaffAttendanceClient() {
         (r.job_title ?? "").toLowerCase().includes(q) ||
         (r.room_name ?? "").toLowerCase().includes(q)
       );
+    }).sort((a, b) => {
+      // Grouped by branch (alphabetical), staff alphabetical within.
+      const ba = branchName.get(a.branch_slug) ?? a.branch_slug, bb = branchName.get(b.branch_slug) ?? b.branch_slug;
+      const byBranch = ba.localeCompare(bb, undefined, { sensitivity: "base" });
+      return byBranch !== 0 ? byBranch : a.staff_name.localeCompare(b.staff_name, undefined, { sensitivity: "base" });
     });
-  }, [rows, query, statusFilter]);
+  }, [rows, query, statusFilter, branchName]);
 
   const rate = summary?.attendance_rate ?? 0;
   const allBranches = branch === "" && (summary?.branches?.length ?? 0) > 0;
@@ -223,13 +228,17 @@ export default function StaffAttendanceClient() {
               <tr><td colSpan={10} className="px-4 py-6 text-slate-400">Loading…</td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={10} className="px-4 py-8 text-center text-sm text-slate-400">No staff match this selection.</td></tr>
-            ) : filtered.map((r) => {
+            ) : filtered.map((r, i) => {
               const anyBusy = busy === `in-${r.staff_id}` || busy === `out-${r.staff_id}`;
+              const showHeader = i === 0 || filtered[i - 1].branch_slug !== r.branch_slug;
               return (
-                <tr key={r.staff_id} className="hover:bg-slate-50">
+                <Fragment key={r.staff_id}>
+                {showHeader && (
+                  <tr className="bg-slate-50/70"><td colSpan={10} className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">{branchName.get(r.branch_slug) ?? r.branch_slug}</td></tr>
+                )}
+                <tr className="hover:bg-slate-50">
                   <td className="px-4 py-3">
                     <div className="font-medium text-slate-900">{r.staff_name}</div>
-                    {branch === "" && <div className="text-xs text-slate-400">{branchName.get(r.branch_slug) ?? r.branch_slug}</div>}
                   </td>
                   <td className="px-4 py-3 text-slate-500">{r.job_title || "—"}</td>
                   <td className="px-4 py-3 text-slate-500">{r.room_name || "—"}</td>
@@ -256,6 +265,7 @@ export default function StaffAttendanceClient() {
                     </div>
                   </td>
                 </tr>
+                </Fragment>
               );
             })}
           </tbody>
