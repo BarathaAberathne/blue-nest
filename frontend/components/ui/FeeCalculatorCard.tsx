@@ -14,12 +14,15 @@ const DISCOUNTS: { id: DiscountId; label: string; rate: number }[] = [
   { id: "staff",   label: "Staff −50%",    rate: 0.50 },
 ];
 
-// Year-basis pill: term-time (38) or full-year (52). Default 52 preserves
-// the original behaviour (monthly = weekly * 52/12 = weekly * 4.33).
+// Year-basis pill: term-time only (38 funded weeks) or all year round
+// (38 funded term weeks + 14 full-fee holiday weeks). Funding is a term-time
+// entitlement, so holiday weeks are billed at the standard unfunded rate — the
+// full-year monthly figure blends the two.
 type YearWeeks = 38 | 52;
+const TERM_WEEKS = 38; // government-funded term-time weeks in a year
 const YEAR_WEEKS_OPTIONS: { id: YearWeeks; label: string }[] = [
-  { id: 38, label: "38 wks · term" },
-  { id: 52, label: "52 wks · full year" },
+  { id: 38, label: "38 wks · term time" },
+  { id: 52, label: "52 wks · all year" },
 ];
 
 // Funding option. TFC is information-only — does not reduce the fee.
@@ -30,9 +33,10 @@ const FUNDINGS: { id: FundingId; label: string }[] = [
   { id: "30h",  label: "30h funded"      },
   { id: "tfc",  label: "Tax-Free info"   },
 ];
-// Hours/week each option is worth at the 38-week term-time basis.
-// Stretching across 52 weeks scales these down proportionally.
-const FUNDING_HOURS_AT_38W: Record<FundingId, number> = {
+// Weekly funded-hours allowance, applied in full during the 38 term weeks.
+// Funding is a term-time entitlement — it is NOT stretched across the year;
+// holiday weeks carry no funding and are billed at the full fee.
+const FUNDING_HOURS_PER_WEEK: Record<FundingId, number> = {
   none: 0, "15h": 15, "30h": 30, tfc: 0,
 };
 
@@ -92,13 +96,15 @@ function getAvailableAgeGroups(branch: BranchProp): AgeGroupId[] {
 }
 
 interface Quote {
-  gross: number;                 // weekly cost without funding (used for "standard" view)
-  grossWithFunding: number;      // weekly cost after applying funded-session rates
-  fundingOffset: number;         // gross - grossWithFunding (>=0; 0 for TFC and none)
-  discountAmount: number;        // discount applied to grossWithFunding
-  weekly: number;                // net weekly = grossWithFunding - discountAmount
-  monthly: number;               // weekly * yearWeeks / 12
-  fundedSessions: number;        // sessions/week covered by funding
+  gross: number;                 // full weekly cost without funding (also the holiday-week rate)
+  termWeekly: number;            // net weekly during term time (funded), after discount
+  holidayWeekly: number;         // net weekly during holidays (full fee), after discount
+  fundingOffset: number;         // avg weekly saving from funding vs full fee (>=0)
+  discountAmount: number;        // avg weekly discount (display)
+  weekly: number;                // blended average net weekly = annual / yearWeeks
+  monthly: number;               // annual net / 12
+  fundedSessions: number;        // sessions/week covered by funding (term time)
+  holidayWeeks: number;          // full-fee holiday weeks billed (0 on the term-time basis)
 }
 
 function computeQuote(
@@ -119,19 +125,20 @@ function computeQuote(
   // throwing. The UI's `safeAgeGroup` guard normally prevents this.
   if (!ageGroupData) {
     return {
-      gross: 0, grossWithFunding: 0, fundingOffset: 0,
-      discountAmount: 0, weekly: 0, monthly: 0, fundedSessions: 0,
+      gross: 0, termWeekly: 0, holidayWeekly: 0, fundingOffset: 0,
+      discountAmount: 0, weekly: 0, monthly: 0, fundedSessions: 0, holidayWeeks: 0,
     };
   }
 
   const rates         = ageGroupData[session];
   const baseStandard  = days === 5 ? rates.weekly : rates.daily * days;
   const earlyBirdCost = earlyBird ? branchData.earlyBird * days : 0;
-  const gross         = baseStandard + earlyBirdCost;
+  const gross         = baseStandard + earlyBirdCost; // full unfunded weekly (= holiday-week rate)
 
-  // Funded-session bookkeeping. When the parent picks 52-week stretching,
-  // the per-week funded allowance shrinks (15h × 38/52 ≈ 10.96h, 30h ≈ 21.92h).
-  const fundedHoursPerWeek = FUNDING_HOURS_AT_38W[funding] * (38 / yearWeeks);
+  // Funding is a TERM-TIME entitlement: the full weekly allowance is used
+  // during the 38 term weeks (never stretched). Holiday weeks carry no funding
+  // and are billed at the full standard fee.
+  const fundedHoursPerWeek = FUNDING_HOURS_PER_WEEK[funding];
   const sessionHours       = SESSION_HOURS[session];
   const fundedSessions     = Math.min(
     days,
@@ -139,29 +146,42 @@ function computeQuote(
   );
   const extraSessions = days - fundedSessions;
 
-  // Replace funded sessions with the standard/funded per-session fee
+  // Funded sessions are charged at the standard/funded per-session fee
   // (meals/extras still chargeable, encoded in this lower rate). When NO
   // sessions are funded (funding "none" or "tfc"), fall back to the
   // weekly-bundle rate so the default quote matches the standard fee
   // sheet exactly (5 days × daily is usually slightly more than weekly).
-  const stdFunded     = branchData.stdFunded;
-  const fundedRate    = ageGroup === "3-5"
+  const stdFunded       = branchData.stdFunded;
+  const fundedRate      = ageGroup === "3-5"
     ? stdFunded.above3[session]
     : stdFunded.below3[session];
-  const fundedBase    = fundedSessions === 0
+  const fundedBase      = fundedSessions === 0
     ? baseStandard
     : fundedSessions * fundedRate + extraSessions * rates.daily;
-  const grossWithFunding = fundedBase + earlyBirdCost;
+  const termWeeklyGross = fundedBase + earlyBirdCost; // funded weekly, during term
 
-  // TFC is info-only: it never reduces the fee here. fundedSessions=0 for "none" and "tfc".
-  const fundingOffset = Math.max(0, gross - grossWithFunding);
+  // Year basis: 38 = term-time only (no holidays billed); 52 = all year
+  // (38 funded term weeks + the remaining full-fee holiday weeks).
+  const termWeeks    = Math.min(yearWeeks, TERM_WEEKS);
+  const holidayWeeks = yearWeeks - termWeeks;
 
-  const discountRate   = DISCOUNTS.find((d) => d.id === discount)!.rate;
-  const discountAmount = grossWithFunding * discountRate;
-  const weekly         = grossWithFunding - discountAmount;
-  const monthly        = weekly * yearWeeks / 12;
+  const discountRate = DISCOUNTS.find((d) => d.id === discount)!.rate;
+  const keep         = 1 - discountRate;
 
-  return { gross, grossWithFunding, fundingOffset, discountAmount, weekly, monthly, fundedSessions };
+  const termWeekly    = termWeeklyGross * keep;   // net funded weekly (term time)
+  const holidayWeekly = gross * keep;             // net full-fee weekly (holidays)
+
+  // Blend term-time + holiday weeks across the year, then average.
+  const annualGross    = termWeeks * termWeeklyGross + holidayWeeks * gross;
+  const annualNet      = annualGross * keep;
+  const monthly        = annualNet / 12;
+  const weekly         = yearWeeks > 0 ? annualNet / yearWeeks : 0; // blended avg net/week
+
+  // Savings expressed per average week for the footer notes.
+  const discountAmount = yearWeeks > 0 ? (annualGross - annualNet) / yearWeeks : 0;
+  const fundingOffset  = Math.max(0, holidayWeekly - weekly); // avg weekly saving vs full fee
+
+  return { gross, termWeekly, holidayWeekly, fundingOffset, discountAmount, weekly, monthly, fundedSessions, holidayWeeks };
 }
 
 // Eligibility / informational copy shown beneath the Funding chips.
@@ -174,10 +194,10 @@ const FUNDING_INFO: Record<string, string> = {
   "tfc_3-5": "Tax-Free Childcare can save up to 20% on top of nursery fees (up to £2,000/yr/child). Apply at childcarechoices.gov.uk.",
   "15h_0-2": "Funded hours typically begin at 9 months for eligible working families. Please confirm eligibility with our team.",
   "15h_2-3": "Universal 15h applies from age 3. Two-year-olds may receive 15h with extra support. Please confirm with our team.",
-  "15h_3-5": "Funded hours normally cover 38 weeks. Stretching across 52 weeks reduces the weekly hours funded. Meals & extras still chargeable.",
+  "15h_3-5": "Funded hours cover the 38 term-time weeks. Choosing 'all year' adds the holiday weeks at the standard (unfunded) rate. Meals & extras still chargeable.",
   "30h_0-2": "30h funding from 9 months for eligible working parents. Please confirm eligibility with our team.",
   "30h_2-3": "30h funding for eligible working parents. Universal 15h applies from age 3. Confirm eligibility with our team.",
-  "30h_3-5": "Funded hours normally cover 38 weeks. Stretching across 52 weeks reduces the weekly hours funded. Meals & extras still chargeable.",
+  "30h_3-5": "Funded hours cover the 38 term-time weeks. Choosing 'all year' adds the holiday weeks at the standard (unfunded) rate. Meals & extras still chargeable.",
 };
 
 function fmt(n: number) {
@@ -243,7 +263,7 @@ export default function FeeCalculatorCard({
   const quote = computeQuote(
     branch, safeAgeGroup, session, days, earlyBird, discount, yearWeeks, funding,
   );
-  const { gross, fundingOffset, discountAmount, weekly, monthly } = quote;
+  const { gross, fundingOffset, discountAmount, weekly, monthly, termWeekly, holidayWeekly, holidayWeeks } = quote;
 
   const fundingInfo = FUNDING_INFO[`${funding}_${safeAgeGroup}`] ?? "";
 
@@ -424,7 +444,9 @@ export default function FeeCalculatorCard({
         <div className="flex flex-col gap-2 rounded-[1.25rem] bg-[rgba(127,216,210,0.12)] px-4 py-3.5 ring-1 ring-[rgba(127,216,210,0.25)]">
           <div className="flex items-baseline justify-between gap-4">
             <div>
-              <p className="text-[0.62rem] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">Weekly</p>
+              <p className="text-[0.62rem] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">
+                {holidayWeeks > 0 ? "Avg / week" : "Weekly"}
+              </p>
               <p className="font-heading text-[2rem] leading-none text-[var(--ink)]">{fmt(weekly)}</p>
             </div>
             <div className="text-right">
@@ -457,6 +479,12 @@ export default function FeeCalculatorCard({
               aria-hidden={fundingOffset <= 0}
             >
               Funded hours saving {fmt(fundingOffset)}/wk · estimated only
+            </p>
+            <p
+              className={`text-[0.65rem] text-[var(--muted)] ${holidayWeeks > 0 ? "" : "invisible"}`}
+              aria-hidden={holidayWeeks <= 0}
+            >
+              All year: 38 term wks {fmt(termWeekly)}/wk + {holidayWeeks} holiday wks {fmt(holidayWeekly)}/wk (full fee)
             </p>
           </div>
         </div>

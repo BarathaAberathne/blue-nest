@@ -41,10 +41,10 @@ const faqJsonLd = {
     },
     {
       "@type": "Question",
-      name: "Can funded hours be stretched across all 52 weeks?",
+      name: "Do funded hours cover the school holidays?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Funded hours are normally provided across 38 term-time weeks. Many of our families choose to stretch them across 52 weeks for full-year cover, which reduces the weekly funded hours but spreads them through the holidays. The calculator lets you pick either basis.",
+        text: "Government-funded hours are a term-time entitlement covering 38 weeks. If your child attends all year round, the remaining holiday weeks are charged at our standard (unfunded) rate. Our fee calculator works this out for you — pick 'term time' for the 38-week basis or 'all year' to include the full-fee holiday weeks.",
       },
     },
     {
