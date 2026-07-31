@@ -61,6 +61,9 @@ type Staff struct {
 	Status            StaffStatus        `bson:"status"                 json:"status"`
 	StartDate         string             `bson:"start_date,omitempty"   json:"start_date,omitempty"` // YYYY-MM-DD
 	ContractHours     float64            `bson:"contract_hours,omitempty" json:"contract_hours,omitempty"`
+	// TermTimeOnly marks a staff member contracted for term time only (works
+	// during term dates, not school holidays) — see the terms collection.
+	TermTimeOnly      bool               `bson:"term_time_only,omitempty" json:"term_time_only"`
 	Qualifications    []string           `bson:"qualifications,omitempty" json:"qualifications,omitempty"`
 	DBSNumber         string             `bson:"dbs_number,omitempty"   json:"dbs_number,omitempty"`
 	DBSExpiry         string             `bson:"dbs_expiry,omitempty"   json:"dbs_expiry,omitempty"` // YYYY-MM-DD
@@ -97,6 +100,7 @@ type StaffRequest struct {
 	Status            StaffStatus        `json:"status"`
 	StartDate         string             `json:"start_date"`
 	ContractHours     float64            `json:"contract_hours"`
+	TermTimeOnly      *bool              `json:"term_time_only"`
 	Qualifications    []string           `json:"qualifications"`
 	DBSNumber         string             `json:"dbs_number"`
 	DBSExpiry         string             `json:"dbs_expiry"`

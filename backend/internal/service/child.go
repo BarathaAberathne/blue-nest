@@ -193,6 +193,12 @@ func applyChild(c *models.Child, req models.ChildRequest) {
 	if req.Sessions != nil {
 		c.Sessions = req.Sessions
 	}
+	if req.AllergyTags != nil {
+		c.AllergyTags = req.AllergyTags
+	}
+	if req.DietaryTags != nil {
+		c.DietaryTags = req.DietaryTags
+	}
 	if s := strings.TrimSpace(req.Allergies); s != "" {
 		c.Allergies = s
 	}

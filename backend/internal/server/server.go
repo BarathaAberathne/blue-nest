@@ -74,6 +74,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	purchaseCartRepo := repository.NewPurchaseCartRepository(db)
 	orderTemplateRepo := repository.NewOrderTemplateRepository(db)
 	supplierRepo := repository.NewSupplierRepository(db)
+	taxonomyRepo := repository.NewTaxonomyRepository(db)
+	termRepo := repository.NewTermRepository(db)
 	dashboardLayoutRepo := repository.NewDashboardLayoutRepository(db)
 	dashboardProfileRepo := repository.NewDashboardProfileRepository(db)
 	roomRepo := repository.NewRoomRepository(db)
@@ -106,7 +108,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	// project the current room (no stored scalar, no sync).
 	staffRoomAssignSvc := service.NewStaffRoomAssignmentService(staffRoomAssignRepo, staffRepo, roomRepo)
 	childRoomAssignSvc := service.NewChildRoomAssignmentService(childRoomAssignRepo, childRepo, roomRepo, staffRoomAssignRepo, attendanceRepo)
-	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo, staffRoomAssignRepo)
+	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo, staffRoomAssignRepo, termRepo)
 	orgSvc := service.NewOrganisationService(orgRepo, authSvc)
 	// Resolve the default tenant for public/unauthenticated requests. Empty until
 	// the tenancy migration creates it — then public data is scoped to that org.
@@ -135,6 +137,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Catalogue:         service.NewCatalogueService(catalogueRepo),
 		OrderTemplates:    service.NewOrderTemplateService(orderTemplateRepo),
 		Suppliers:         service.NewSupplierService(supplierRepo),
+		Taxonomy:          service.NewTaxonomyService(taxonomyRepo),
+		Terms:             service.NewTermService(termRepo),
 		Procurement:       service.NewProcurementAnalyticsService(orderRequestRepo, purchaseCartRepo),
 		DashboardLayouts:  service.NewDashboardLayoutService(dashboardLayoutRepo),
 		DashboardProfiles: service.NewDashboardProfileService(dashboardProfileRepo),

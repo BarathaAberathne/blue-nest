@@ -17,6 +17,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o bin/backfillrefs ./cmd/backfillrefs
 RUN CGO_ENABLED=0 GOOS=linux go build -o bin/seedfamly ./cmd/seedfamly
 RUN CGO_ENABLED=0 GOOS=linux go build -o bin/migratetenancy ./cmd/migratetenancy
 RUN CGO_ENABLED=0 GOOS=linux go build -o bin/migrateroomassignments ./cmd/migrateroomassignments
+RUN CGO_ENABLED=0 GOOS=linux go build -o bin/seedtaxonomy ./cmd/seedtaxonomy
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
 FROM alpine:3.19
@@ -31,6 +32,7 @@ COPY --from=builder /app/bin/backfillrefs .
 COPY --from=builder /app/bin/seedfamly .
 COPY --from=builder /app/bin/migratetenancy .
 COPY --from=builder /app/bin/migrateroomassignments .
+COPY --from=builder /app/bin/seedtaxonomy .
 
 # Bake the seed images (backend/uploads/products/*) into the image so a fresh
 # `docker compose up` always has them, even when the uploads_data volume is

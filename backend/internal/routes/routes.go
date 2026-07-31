@@ -52,6 +52,8 @@ type Services struct {
 	BranchOverview    service.BranchOverviewService
 	GBP               service.GBPService
 	Roles             service.RoleService
+	Taxonomy          service.TaxonomyService
+	Terms             service.TermService
 }
 
 type Repos struct {
@@ -121,6 +123,11 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		branchH := handler.NewBranchHandler(svc.Branches)
 		r.Get("/branches", branchH.List)
 		r.Get("/branches/{slug}", branchH.Get)
+
+		// ── Configurable lists (public read) — the application form needs the
+		// session-type slots (?category=session_type&branch=<slug>).
+		taxonomyPublicH := handler.NewTaxonomyHandler(svc.Taxonomy)
+		r.Get("/taxonomy", taxonomyPublicH.List)
 
 		// ── Contact / Enquiries (public) ──────────────────────────────────
 		contactH := handler.NewContactHandler(svc.Enquiries)
@@ -434,7 +441,28 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				})
 			})
 
-			// Nursery — daily records (observations, incidents, safeguarding, medication, meals).
+			// Configurable lists (taxonomy) + term dates. Reads are open to any
+				// back-office role so every picker (child sessions/allergy/dietary,
+				// term-time) resolves; mutations are gated to branch management.
+				func() {
+					adminTaxonomyH := adminHandler.NewAdminTaxonomyHandler(svc.Taxonomy, svc.Audit)
+					adminTermH := adminHandler.NewAdminTermHandler(svc.Terms, svc.Audit)
+					r.Get("/admin/taxonomy", adminTaxonomyH.List)
+					r.Get("/admin/taxonomy/{id}", adminTaxonomyH.Get)
+					r.Get("/admin/terms", adminTermH.List)
+					r.Get("/admin/terms/{id}", adminTermH.Get)
+					r.Group(func(r chi.Router) {
+						r.Use(middleware.RequirePermission(models.PermBranchesManage))
+						r.Post("/admin/taxonomy", adminTaxonomyH.Create)
+						r.Put("/admin/taxonomy/{id}", adminTaxonomyH.Update)
+						r.Delete("/admin/taxonomy/{id}", adminTaxonomyH.Delete)
+						r.Post("/admin/terms", adminTermH.Create)
+						r.Put("/admin/terms/{id}", adminTermH.Update)
+						r.Delete("/admin/terms/{id}", adminTermH.Delete)
+					})
+				}()
+
+				// Nursery — daily records (observations, incidents, safeguarding, medication, meals).
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermDailyLogsManage))
 				adminDailyH := adminHandler.NewAdminDailyRecordHandler(svc.DailyRecords, svc.Audit)
@@ -445,6 +473,12 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Put("/admin/daily-records/{id}", adminDailyH.Update)
 				r.Patch("/admin/daily-records/{id}/status", adminDailyH.SetStatus)
 				r.Delete("/admin/daily-records/{id}", adminDailyH.Delete)
+				// Four-eyes approval — approvers only (managers/deputies/EYFS/admin).
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequirePermission(models.PermDailyLogsApprove))
+					r.Post("/admin/daily-records/{id}/approve", adminDailyH.Approve)
+					r.Post("/admin/daily-records/{id}/reject", adminDailyH.Reject)
+				})
 			})
 
 			// Organisations (tenants) — platform operator only (cross-tenant).

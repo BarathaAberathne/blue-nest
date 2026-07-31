@@ -32,14 +32,15 @@ func (h *AdminDailyRecordHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	limit, _ := strconv.ParseInt(q.Get("limit"), 10, 64)
 	filter := repository.DailyRecordFilter{
-		Type:    q.Get("type"),
-		ChildID: q.Get("child"),
-		Branch:  branch,
-		Status:  q.Get("status"),
-		Date:    q.Get("date"),
-		Since:   q.Get("since"),
-		Q:       q.Get("q"),
-		Limit:   limit,
+		Type:     q.Get("type"),
+		ChildID:  q.Get("child"),
+		Branch:   branch,
+		Status:   q.Get("status"),
+		Approval: q.Get("approval"), // approved | pending | rejected | "" (any)
+		Date:     q.Get("date"),
+		Since:    q.Get("since"),
+		Q:        q.Get("q"),
+		Limit:    limit,
 	}
 	items, err := h.svc.List(r.Context(), filter)
 	if err != nil {
@@ -87,13 +88,64 @@ func (h *AdminDailyRecordHandler) Create(w http.ResponseWriter, r *http.Request)
 		response.Forbidden(w, "outside your branch scope")
 		return
 	}
-	created, err := h.svc.Create(r.Context(), req)
+	a := actor(r)
+	created, err := h.svc.Create(r.Context(), req, a.ID, a.Name)
 	if err != nil {
 		response.BadRequest(w, err.Error())
 		return
 	}
-	h.audit.Record(r, "create", "daily_record", created.ID.Hex(), "Logged "+string(created.Type)+": "+created.Title, nil)
+	h.audit.Record(r, "submit", "daily_record", created.ID.Hex(), "Submitted "+string(created.Type)+" for approval: "+created.Title, nil)
 	response.Created(w, created)
+}
+
+// Approve signs off a submitted log (four-eyes — the service rejects
+// self-approval). Gated by daily_logs.approve.
+func (h *AdminDailyRecordHandler) Approve(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	existing, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "record not found")
+		return
+	}
+	if !inScope(r, existing.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	a := actor(r)
+	updated, err := h.svc.Approve(r.Context(), id, a.ID, a.Name)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "approve", "daily_record", id, "Approved "+string(updated.Type)+": "+updated.Title, nil)
+	response.OK(w, updated)
+}
+
+// Reject sends a submitted log back with a required reason.
+func (h *AdminDailyRecordHandler) Reject(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	existing, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "record not found")
+		return
+	}
+	if !inScope(r, existing.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	var body models.DailyRejectRequest
+	if err := validator.DecodeJSON(r, &body); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	a := actor(r)
+	updated, err := h.svc.Reject(r.Context(), id, a.ID, a.Name, body.Reason)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "reject", "daily_record", id, "Rejected "+string(updated.Type)+": "+updated.Title, map[string]any{"reason": body.Reason})
+	response.OK(w, updated)
 }
 
 func (h *AdminDailyRecordHandler) Update(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Download, KeyRound, Plus, Search, ShieldCheck, UserCheck, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
@@ -61,16 +61,23 @@ export default function StaffClient() {
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return staff.filter((s) => {
+    const filtered = staff.filter((s) => {
       if (branchFilter && s.branch_slug !== branchFilter) return false;
       if (statusFilter && s.status !== statusFilter) return false;
       if (needle) {
-        const hay = `${s.first_name} ${s.last_name} ${s.ref ?? ""} ${s.job_title ?? ""}`.toLowerCase();
+        // Room is searchable too (resolved room_name projection).
+        const hay = `${s.first_name} ${s.last_name} ${s.ref ?? ""} ${s.job_title ?? ""} ${s.room_name ?? ""}`.toLowerCase();
         if (!hay.includes(needle)) return false;
       }
       return true;
     });
-  }, [staff, branchFilter, statusFilter, q]);
+    // Alphabetical by name, grouped by branch (branch order first, then name).
+    return filtered.sort((a, b) => {
+      const byBranch = branchName(a.branch_slug).localeCompare(branchName(b.branch_slug), undefined, { sensitivity: "base" });
+      if (byBranch !== 0) return byBranch;
+      return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, undefined, { sensitivity: "base" });
+    });
+  }, [staff, branchFilter, statusFilter, q, branchName]);
 
   const exportCsv = () => {
     const header = ["Ref", "First name", "Last name", "Job title", "Type", "Branch", "Status", "DBS expiry", "Email"];
@@ -180,16 +187,21 @@ export default function StaffClient() {
 
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500"><tr>{["Ref", "Name", "Role", "Type", "Branch", "DBS", "Status"].map((h) => <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>)}</tr></thead>
+          <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500"><tr>{["Ref", "Name", "Role", "Type", "Branch", "Room", "DBS", "Status"].map((h) => <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>)}</tr></thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={7} className="px-4 py-6 text-slate-400">Loading…</td></tr>
+              <tr><td colSpan={8} className="px-4 py-6 text-slate-400">Loading…</td></tr>
             ) : rows.length === 0 ? (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">No staff match.</td></tr>
-            ) : rows.map((s) => {
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-400">No staff match.</td></tr>
+            ) : rows.map((s, i) => {
               const dbs = dbsExpiry(s.dbs_expiry);
+              const showHeader = i === 0 || rows[i - 1].branch_slug !== s.branch_slug;
               return (
-                <tr key={s.id} className="hover:bg-slate-50">
+                <Fragment key={s.id}>
+                {showHeader && (
+                  <tr className="bg-slate-50/70"><td colSpan={8} className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">{branchName(s.branch_slug)}</td></tr>
+                )}
+                <tr className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-mono text-xs text-slate-500"><Link href={`/admin/staff/${s.id}`} className="hover:text-teal-600">{s.ref ?? "—"}</Link></td>
                   <td className="px-4 py-3 font-medium text-slate-900">
                     <Link href={`/admin/staff/${s.id}`} className="hover:text-teal-600">{s.first_name} {s.last_name}</Link>
@@ -198,9 +210,11 @@ export default function StaffClient() {
                   <td className="px-4 py-3 text-slate-500">{s.job_title || "—"}</td>
                   <td className="px-4 py-3"><StageBadge label={staffTypeLabel[s.staff_type]} accent={staffTypeAccent[s.staff_type]} withDot={false} /></td>
                   <td className="px-4 py-3 text-slate-500">{branchName(s.branch_slug)}</td>
+                  <td className="px-4 py-3 text-slate-500">{s.room_name || "—"}</td>
                   <td className="px-4 py-3">{dbs ? <StageBadge label={dbs.label} accent={dbs.accent} withDot={false} /> : <span className="text-slate-400">—</span>}</td>
                   <td className="px-4 py-3"><StageBadge label={staffStatusLabel[s.status]} accent={staffStatusAccent[s.status]} withDot /></td>
                 </tr>
+                </Fragment>
               );
             })}
           </tbody>
@@ -244,6 +258,12 @@ export default function StaffClient() {
               <Field label="Phone"><input value={form.phone} onChange={(e) => setField({ phone: e.target.value })} className="inp" /></Field>
               <Field label="Start date"><input type="date" value={form.start_date} onChange={(e) => setField({ start_date: e.target.value })} className="inp" /></Field>
               <Field label="Contract hours / week"><input type="number" min={0} value={form.contract_hours} onChange={(e) => setField({ contract_hours: Number(e.target.value) })} className="inp" /></Field>
+              <Field label="Term-time only">
+                <label className="mt-1 flex items-center gap-2 text-sm text-slate-700">
+                  <input type="checkbox" checked={form.term_time_only ?? false} onChange={(e) => setField({ term_time_only: e.target.checked })} />
+                  Contracted for term dates only
+                </label>
+              </Field>
               <Field label="DBS number"><input value={form.dbs_number} onChange={(e) => setField({ dbs_number: e.target.value })} className="inp" /></Field>
               <Field label="DBS expiry"><input type="date" value={form.dbs_expiry} onChange={(e) => setField({ dbs_expiry: e.target.value })} className="inp" /></Field>
               <Field label="Paediatric first aid expiry"><input type="date" value={form.first_aid_expiry} onChange={(e) => setField({ first_aid_expiry: e.target.value })} className="inp" /></Field>

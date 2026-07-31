@@ -14,7 +14,11 @@ const GENDERS       = ["Male", "Female", "Prefer not to say"];
 const DAYS          = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 const DAYS_FULL     = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
-const SESSION_TYPES = [
+type SessionType = { key: string; label: string; time: string };
+
+// Fallback only — the live options come from the configurable session-type list
+// (fetched below), so admins curate them without a code change.
+const SESSION_TYPES_FALLBACK: SessionType[] = [
   { key: "full_time",  label: "Full Time",    time: "8am – 6pm"    },
   { key: "morning",    label: "Morning",      time: "8am – 1pm"    },
   { key: "afternoon",  label: "Afternoon",    time: "1pm – 6pm"    },
@@ -158,11 +162,14 @@ function SignaturePad({
 function SessionsGrid({
   sessions,
   toggle,
+  types,
 }: {
   sessions: Record<string, Set<string>>;
   toggle: (day: string, key: string) => void;
+  types: SessionType[];
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const SESSION_TYPES = types;
 
   return (
     <>
@@ -258,6 +265,18 @@ export default function ApplicationFormClient() {
   const [hasSignature, setHasSignature] = useState(false);
   const [attempted,    setAttempted]    = useState(false);
   const [sessions, setSessions] = useState<Record<string, Set<string>>>({});
+  // Live session options from the configurable list (org-wide), fallback to the
+  // static marketing set if unavailable.
+  const [sessionTypes, setSessionTypes] = useState<SessionType[]>(SESSION_TYPES_FALLBACK);
+  useEffect(() => {
+    api.getTaxonomy("session_type")
+      .then((terms) => {
+        if (terms && terms.length) {
+          setSessionTypes(terms.map((t) => ({ key: t.code, label: t.label, time: t.start_time && t.end_time ? `${t.start_time} – ${t.end_time}` : "" })));
+        }
+      })
+      .catch(() => { /* keep fallback */ });
+  }, []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const submitted = status === "success";
@@ -298,7 +317,7 @@ export default function ApplicationFormClient() {
     // Flatten the day×type matrix into a list the backend can serialise.
     const sessionsList = DAYS_FULL.flatMap((day) =>
       Array.from(sessions[day] ?? []).map((typeKey) => {
-        const meta = SESSION_TYPES.find((s) => s.key === typeKey);
+        const meta = sessionTypes.find((s) => s.key === typeKey);
         return { day, type: typeKey, label: meta?.label ?? typeKey, time: meta?.time ?? "" };
       }),
     );
@@ -512,7 +531,7 @@ export default function ApplicationFormClient() {
 
                     <div>
                       <GroupLabel color="#7fd8d2">Sessions Required</GroupLabel>
-                      <SessionsGrid sessions={sessions} toggle={toggleSession} />
+                      <SessionsGrid sessions={sessions} toggle={toggleSession} types={sessionTypes} />
                     </div>
 
                     <div className="h-px bg-[rgba(90,74,66,0.07)]" />
