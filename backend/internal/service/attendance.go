@@ -27,10 +27,13 @@ type AttendanceService interface {
 type attendanceService struct {
 	repo     repository.AttendanceRepository
 	children repository.ChildRepository
+	// childRooms is the canonical child→room source used to snapshot which
+	// room a child was in onto their attendance record.
+	childRooms repository.ChildRoomAssignmentRepository
 }
 
-func NewAttendanceService(repo repository.AttendanceRepository, children repository.ChildRepository) AttendanceService {
-	return &attendanceService{repo: repo, children: children}
+func NewAttendanceService(repo repository.AttendanceRepository, children repository.ChildRepository, childRooms repository.ChildRoomAssignmentRepository) AttendanceService {
+	return &attendanceService{repo: repo, children: children, childRooms: childRooms}
 }
 
 func today() string { return time.Now().Format("2006-01-02") }
@@ -55,6 +58,11 @@ func (s *attendanceService) Register(ctx context.Context, date, branch string) (
 	for _, r := range records {
 		byChild[r.ChildID] = r
 	}
+	// Current room per child from the canonical assignment model (one query).
+	roomByChild := map[string]string{}
+	if s.childRooms != nil {
+		roomByChild = CurrentChildRooms(ctx, s.childRooms, branch)
+	}
 	out := make([]models.AttendanceRecord, 0, len(kids))
 	for _, c := range kids {
 		id := c.ID.Hex()
@@ -66,7 +74,7 @@ func (s *attendanceService) Register(ctx context.Context, date, branch string) (
 			ChildID:    id,
 			ChildName:  strings.TrimSpace(c.FirstName + " " + c.LastName),
 			BranchSlug: c.BranchSlug,
-			RoomID:     c.RoomID,
+			RoomID:     roomByChild[id],
 			Date:       date,
 			Status:     models.AttExpected,
 		})
@@ -91,11 +99,15 @@ func (s *attendanceService) baseRecord(ctx context.Context, childID, date string
 	if err != nil {
 		return models.AttendanceRecord{}, errors.New("child not found")
 	}
+	roomID := ""
+	if s.childRooms != nil {
+		roomID = CurrentChildRooms(ctx, s.childRooms, child.BranchSlug)[childID]
+	}
 	return models.AttendanceRecord{
 		ChildID:    childID,
 		ChildName:  strings.TrimSpace(child.FirstName + " " + child.LastName),
 		BranchSlug: child.BranchSlug,
-		RoomID:     child.RoomID,
+		RoomID:     roomID,
 		Date:       date,
 	}, nil
 }
@@ -232,12 +244,18 @@ func (s *attendanceService) TodayStats(ctx context.Context, date, branch string)
 			if r.CheckIn != nil && r.CheckOut == nil {
 				stats.CheckedIn++
 			}
-		case models.AttAbsent, models.AttSick, models.AttHoliday:
-			stats.Absent++
 		}
 		if r.LatePickup {
 			stats.LatePickups++
 		}
+	}
+	// Absent = every expected child who is not present, so no-shows are visible
+	// — not only children with an explicit absent/sick/holiday record.
+	// Previously a child who simply never checked in was invisible in the absent
+	// figure even though the rate reflected it, and it diverged from the staff
+	// summary, where absent is the residual expected − present.
+	if stats.Absent = stats.Expected - stats.Present; stats.Absent < 0 {
+		stats.Absent = 0
 	}
 	stats.AttendanceRate = clamp100(percent(stats.Present, stats.Expected))
 

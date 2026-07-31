@@ -43,6 +43,7 @@ RemoveJson harrow org_id
 RemoveJson harrow created_at
 RemoveJson harrow updated_at
 RemoveJson harrow managers
+RemoveJson harrow ref
 
 When Put /api/v1/admin/branches/harrow Into updated Using session.accessToken
 ${harrow}

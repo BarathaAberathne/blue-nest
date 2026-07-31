@@ -920,9 +920,16 @@ export interface Room {
   id: string;
   branch_slug: string;
   name: string;
+  code?: string;
+  description?: string;
   age_range?: string;
+  min_age_months?: number;
+  max_age_months?: number;
   capacity: number;
   staff_ratio?: number;
+  status?: "active" | "inactive";
+  opening_date?: string;
+  closing_date?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -930,9 +937,94 @@ export interface Room {
 export interface RoomInput {
   branch_slug: string;
   name: string;
+  code?: string;
+  description?: string;
   age_range?: string;
+  min_age_months?: number;
+  max_age_months?: number;
   capacity?: number;
   staff_ratio?: number;
+  opening_date?: string;
+  closing_date?: string;
+}
+
+// ── Room allocations (authoritative assignment model) ────────────────────────
+
+export type AssignmentStatus = "active" | "scheduled" | "ended";
+
+export interface StaffRoomAssignment {
+  id: string;
+  branch_slug: string;
+  room_id: string;
+  staff_id: string;
+  role_in_room?: string;
+  is_primary: boolean;
+  start_date: string;
+  end_date?: string;
+  status: AssignmentStatus;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+  room_name?: string;
+  staff_name?: string;
+}
+
+export interface StaffRoomAssignmentInput {
+  staff_id: string;
+  room_id: string;
+  role_in_room?: string;
+  is_primary?: boolean;
+  start_date?: string;
+  end_date?: string;
+}
+
+export interface ChildRoomAssignment {
+  id: string;
+  branch_slug: string;
+  child_id: string;
+  room_id: string;
+  start_date: string;
+  end_date?: string;
+  status: AssignmentStatus;
+  transfer_reason?: string;
+  notes?: string;
+  override_reason?: string;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+  room_name?: string;
+  child_name?: string;
+}
+
+export interface ChildRoomAssignmentInput {
+  child_id: string;
+  room_id: string;
+  start_date?: string;
+  notes?: string;
+  override_reason?: string;
+}
+
+export interface ChildTransferInput {
+  room_id: string;
+  effective_date?: string;
+  reason: string;
+  notes?: string;
+  override_reason?: string;
+}
+
+export interface RoomCapacitySummary {
+  room_id: string;
+  room_name: string;
+  branch_slug: string;
+  status: "active" | "inactive";
+  capacity: number;
+  allocated_children: number;
+  future_children: number;
+  available_spaces: number;
+  over_capacity: boolean;
+  staff_allocated: number;
+  present_children: number;
+  occupancy_rate: number;
 }
 
 export type ChildStatus = "active" | "waitlist" | "left";
@@ -980,7 +1072,8 @@ export interface ChildInput {
   dob?: string;
   gender?: string;
   branch_slug: string;
-  room_id?: string;
+  // Room placement is managed via the child-room-assignment endpoints, not on
+  // the child record — it is deliberately NOT part of the write DTO.
   status?: ChildStatus;
   start_date?: string;
   guardians?: Guardian[];
@@ -1122,7 +1215,8 @@ export interface StaffInput {
   email?: string;
   phone?: string;
   branch_slug: string;
-  room_id?: string;
+  // Room allocation is managed via the staff-room-assignment endpoints, not on
+  // the staff record — it is deliberately NOT part of the write DTO.
   job_title?: string;
   staff_type?: StaffType;
   status?: StaffStatus;
@@ -1153,6 +1247,9 @@ export interface StaffStats {
   on_leave: number;
   training: number;
   sick: number;
+  dependant_sick: number;
+  unpaid_leave: number;
+  maternity: number;
   late_arrival: number;
   agency: number;
   absent: number;
@@ -1162,6 +1259,7 @@ export interface StaffStats {
 
 export type StaffAttendanceStatus =
   | "expected" | "present" | "absent" | "leave" | "sick"
+  | "dependant_sick" | "unpaid_leave" | "maternity"
   | "training" | "meeting" | "remote";
 
 export interface AttendanceCorrection {
@@ -1215,6 +1313,12 @@ export interface AttendanceDaySummary {
   clocked_out: number;
   absent: number;
   on_leave: number;
+  annual_leave: number;
+  sick: number;
+  dependant_sick: number;
+  unpaid_leave: number;
+  maternity: number;
+  other_away: number;
   late: number;
   overtime_minutes: number;
   missing_clockout: number;
@@ -1231,7 +1335,10 @@ export interface StaffAbsenceSummary {
   worked_hours: number;
   late_days: number;
   sick_days: number;
+  dependant_sick_days: number;
   leave_days: number;
+  unpaid_leave_days: number;
+  maternity_days: number;
   training_days: number;
   absent_days: number;
   attendance_rate: number;

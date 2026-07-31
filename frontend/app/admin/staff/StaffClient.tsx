@@ -10,10 +10,10 @@ import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { dbsExpiry, staffStatusAccent, staffStatusLabel, staffTypeAccent, staffTypeLabel } from "@/lib/staff";
-import type { Branch, Staff, StaffInput, StaffStats } from "@/types";
+import type { Branch, Room, Staff, StaffInput, StaffStats } from "@/types";
 
 const emptyForm: StaffInput = {
-  first_name: "", last_name: "", email: "", phone: "", branch_slug: "", room_id: "",
+  first_name: "", last_name: "", email: "", phone: "", branch_slug: "",
   job_title: "", staff_type: "permanent", status: "active", start_date: "", contract_hours: 40,
   qualifications: [], dbs_number: "", dbs_expiry: "", first_aid_expiry: "",
   enable_login: false, login_role: "staff", login_password: "",
@@ -34,16 +34,21 @@ export default function StaffClient() {
   const [q, setQ] = useState("");
 
   const [form, setForm] = useState<StaffInput>(emptyForm);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  // Optional room to allocate the new staff member to on create — a first-class
+  // staff-room-assignment call, not a field on the staff record.
+  const [newRoomId, setNewRoomId] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
-    const [s, b, st] = await Promise.allSettled([api.adminGetStaff(token), api.getBranches(), api.adminGetStaffStats(token)]);
+    const [s, b, st, r] = await Promise.allSettled([api.adminGetStaff(token), api.getBranches(), api.adminGetStaffStats(token), api.adminGetRooms(token)]);
     if (s.status === "fulfilled") setStaff((s.value as Staff[]) ?? []);
     if (b.status === "fulfilled") setBranches((b.value as Branch[]) ?? []);
     if (st.status === "fulfilled") setStats(st.value as StaffStats);
+    if (r.status === "fulfilled") setRooms((r.value as Room[]) ?? []);
     setLoading(false);
   };
   useEffect(() => { void load(); }, []);
@@ -82,8 +87,15 @@ export default function StaffClient() {
 
   const openCreate = () => {
     setForm({ ...emptyForm, branch_slug: branchFilter || branches[0]?.slug || "" });
+    setNewRoomId("");
     setShowForm(true);
   };
+
+  // Rooms selectable for the new staff member — the chosen branch's active rooms.
+  const roomsForBranch = useMemo(
+    () => rooms.filter((r) => r.branch_slug === form.branch_slug && r.status !== "inactive"),
+    [rooms, form.branch_slug],
+  );
 
   const save = async () => {
     const token = getAccessToken();
@@ -92,7 +104,27 @@ export default function StaffClient() {
     }
     setSaving(true); setError(null);
     try {
-      await api.adminCreateStaff(token, form);
+      const created = await api.adminCreateStaff(token, form);
+      // Allocate the room, if one was picked, via the canonical assignment
+      // endpoint (the same one the staff/room profiles use). If the allocation
+      // is rejected (inactive room / cross-branch / duplicate), roll the
+      // just-created staff record back so the whole create is atomic — the user
+      // saw an error, so nothing should persist. Single-node Mongo has no
+      // multi-doc transactions; compensating rollback is the established
+      // pattern here (see docs/rooms/room-allocation-design.md).
+      if (newRoomId && created?.id) {
+        try {
+          await api.adminCreateStaffRoomAssignment(token, { staff_id: created.id, room_id: newRoomId, is_primary: true });
+        } catch (assignErr) {
+          const reason = assignErr instanceof Error ? assignErr.message : "Room allocation failed";
+          try {
+            await api.adminDeleteStaff(token, created.id);
+          } catch {
+            throw new Error(`${reason}. The staff member was created but could not be placed — open the profile to assign a valid room.`);
+          }
+          throw new Error(`${reason}. The staff member was not created — pick a valid room, or leave it unassigned.`);
+        }
+      }
       setShowForm(false);
       await load();
     } catch (err) {
@@ -187,9 +219,15 @@ export default function StaffClient() {
               <Field label="Last name *"><input value={form.last_name} onChange={(e) => setField({ last_name: e.target.value })} className="inp" /></Field>
               <Field label="Job title"><input value={form.job_title} onChange={(e) => setField({ job_title: e.target.value })} placeholder="e.g. Room Leader" className="inp" /></Field>
               <Field label="Branch *">
-                <select value={form.branch_slug} onChange={(e) => setField({ branch_slug: e.target.value })} className="inp bg-white">
+                <select value={form.branch_slug} onChange={(e) => { setField({ branch_slug: e.target.value }); setNewRoomId(""); }} className="inp bg-white">
                   <option value="">Select branch…</option>
                   {branches.map((b) => <option key={b.slug} value={b.slug}>{branchShortName(b)}</option>)}
+                </select>
+              </Field>
+              <Field label="Room (optional)">
+                <select value={newRoomId} onChange={(e) => setNewRoomId(e.target.value)} className="inp bg-white" disabled={!form.branch_slug}>
+                  <option value="">No room yet</option>
+                  {roomsForBranch.map((r) => <option key={r.id} value={r.id}>{r.name}{r.code ? ` (${r.code})` : ""}</option>)}
                 </select>
               </Field>
               <Field label="Employment type">

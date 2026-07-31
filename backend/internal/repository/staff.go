@@ -121,7 +121,6 @@ func (r *staffRepository) Update(ctx context.Context, id string, s models.Staff)
 		"email":              s.Email,
 		"phone":              s.Phone,
 		"branch_slug":        s.BranchSlug,
-		"room_id":            s.RoomID,
 		"job_title":          s.JobTitle,
 		"staff_type":         s.StaffType,
 		"status":             s.Status,

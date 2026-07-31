@@ -109,14 +109,18 @@ func main() {
 	roomsCol := db.Collection("rooms")
 	childrenCol := db.Collection("children")
 	attCol := db.Collection("attendance")
-	for _, c := range []*mongo.Collection{roomsCol, childrenCol, attCol} {
+	childRoomCol := db.Collection("child_room_assignments")
+	// child_room_assignments is dropped alongside children — the canonical
+	// room placements belong to these children, so re-seeding must not leave
+	// orphaned assignments referencing deleted child ids.
+	for _, c := range []*mongo.Collection{roomsCol, childrenCol, attCol, childRoomCol} {
 		if err := c.Drop(ctx); err != nil {
 			log.Fatalf("drop %s: %v", c.Name(), err)
 		}
 	}
-	log.Println("Cleared rooms / children / attendance")
+	log.Println("Cleared rooms / children / attendance / child room assignments")
 
-	var roomDocs, childDocs, attDocs []interface{}
+	var roomDocs, childDocs, attDocs, childRoomDocs []interface{}
 	var seq int64
 	totalChildren, totalCapacity, totalPresent := 0, 0, 0
 
@@ -184,7 +188,6 @@ func main() {
 					DOB:         dob,
 					Gender:      gender,
 					BranchSlug:  p.slug,
-					RoomID:      roomHex,
 					Status:      models.ChildActive,
 					StartDate:   now.AddDate(0, -rng.Intn(24), 0).Format("2006-01-02"),
 					FundingType: funding,
@@ -204,6 +207,19 @@ func main() {
 					UpdatedAt: now,
 				}
 				childDocs = append(childDocs, child)
+
+				// Canonical child→room placement (the single source of truth).
+				childRoomDocs = append(childRoomDocs, models.ChildRoomAssignment{
+					ID:         primitive.NewObjectID(),
+					BranchSlug: p.slug,
+					ChildID:    childID.Hex(),
+					RoomID:     roomHex,
+					StartDate:  child.StartDate,
+					Status:     models.AssignmentActive,
+					CreatedBy:  "seed:children",
+					CreatedAt:  now,
+					UpdatedAt:  now,
+				})
 
 				// today's attendance: fill up to the branch present target.
 				status := models.AttAbsent
@@ -248,6 +264,11 @@ func main() {
 	}
 	if _, err := attCol.InsertMany(ctx, attDocs); err != nil {
 		log.Fatalf("insert attendance: %v", err)
+	}
+	if len(childRoomDocs) > 0 {
+		if _, err := childRoomCol.InsertMany(ctx, childRoomDocs); err != nil {
+			log.Fatalf("insert child room assignments: %v", err)
+		}
 	}
 
 	// keep the CHD counter ahead of the seeded refs so live-created children

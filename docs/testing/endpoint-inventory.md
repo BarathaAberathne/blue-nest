@@ -190,3 +190,22 @@ webhooks (`/webhooks/stripe`, `/integrations/gbp/digest`), the health
 check, CSV/image multipart uploads, completing a real Stripe payment, and
 kiosk-facing custom-header routes (tracked as a real engine follow-up: a
 future `Header <name> <value>` command).
+
+## Room allocation (authoritative assignment model — added with the Rooms feature)
+
+These endpoints back the staff→room and child→room assignment model
+(`docs/rooms/room-allocation-design.md`). Both the room profile and the
+staff/child profiles call the same service, so allocation logic is never
+duplicated per controller.
+
+- [x] `PATCH /admin/rooms/{id}/status` (activate/deactivate) → `SUI-CHILDROOM-001` (A07), `RoomsClient`/`RoomDetailClient`
+- [x] `GET /admin/rooms/{id}/capacity`, `GET /admin/rooms/capacity?branch=` → `SUI-CAPACITY-001`
+- [x] `GET /admin/rooms/{id}/staff`, `POST /admin/staff-room-assignments`, `PATCH /admin/staff-room-assignments/{id}`, `GET /admin/staff/{id}/room-assignments` → `SUI-STAFFROOM-001`
+- [x] `GET /admin/rooms/{id}/children`, `POST /admin/child-room-assignments`, `PATCH /admin/child-room-assignments/{id}`, `GET /admin/children/{id}/room-assignments`, `POST /admin/children/{id}/transfer-room` → `SUI-CHILDROOM-001`
+- [x] Audit entries (allocate_staff / transfer_child / …) → `SUI-ROOMAUDIT-001`
+- [x] One-write / retry-safe / single-active-placement invariants → `SUI-ROOMNET-001`
+
+Also covered by Go unit tests in `internal/service/room_assignment_test.go`
+(capacity, age, transfer rollback, primary uniqueness, cross-branch,
+inactive, scheduled activation) and the migration in
+`cmd/migrateroomassignments`.

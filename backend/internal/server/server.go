@@ -80,6 +80,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	childRepo := repository.NewChildRepository(db)
 	attendanceRepo := repository.NewAttendanceRepository(db)
 	staffRepo := repository.NewStaffRepository(db)
+	staffRoomAssignRepo := repository.NewStaffRoomAssignmentRepository(db)
+	childRoomAssignRepo := repository.NewChildRoomAssignmentRepository(db)
 	staffAttendanceRepo := repository.NewStaffAttendanceRepository(db)
 	kioskDeviceRepo := repository.NewKioskDeviceRepository(db)
 	shiftRepo := repository.NewShiftRepository(db)
@@ -99,7 +101,12 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 
 	// Services
 	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays)
-	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo)
+	// Room allocation is the single source of truth for staff/child rooms; the
+	// staff/child/attendance/kiosk services READ from these assignment repos to
+	// project the current room (no stored scalar, no sync).
+	staffRoomAssignSvc := service.NewStaffRoomAssignmentService(staffRoomAssignRepo, staffRepo, roomRepo)
+	childRoomAssignSvc := service.NewChildRoomAssignmentService(childRoomAssignRepo, childRepo, roomRepo, staffRoomAssignRepo, attendanceRepo)
+	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo, staffRoomAssignRepo)
 	orgSvc := service.NewOrganisationService(orgRepo, authSvc)
 	// Resolve the default tenant for public/unauthenticated requests. Empty until
 	// the tenancy migration creates it — then public data is scoped to that org.
@@ -131,14 +138,16 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Procurement:       service.NewProcurementAnalyticsService(orderRequestRepo, purchaseCartRepo),
 		DashboardLayouts:  service.NewDashboardLayoutService(dashboardLayoutRepo),
 		DashboardProfiles: service.NewDashboardProfileService(dashboardProfileRepo),
-		Rooms:             service.NewRoomService(roomRepo),
-		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo),
-		Attendance:        service.NewAttendanceService(attendanceRepo, childRepo),
-		Staff:             service.NewStaffService(staffRepo, counterRepo, authSvc),
+		Rooms:             service.NewRoomServiceWithGuards(roomRepo, staffRoomAssignRepo, childRoomAssignRepo),
+		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo, childRoomAssignSvc),
+		Attendance:        service.NewAttendanceService(attendanceRepo, childRepo, childRoomAssignRepo),
+		Staff:             service.NewStaffService(staffRepo, counterRepo, authSvc, staffRoomAssignSvc, roomRepo),
+		StaffRoomAssign:   staffRoomAssignSvc,
+		ChildRoomAssign:   childRoomAssignSvc,
 		StaffAttendance:   staffAttSvc,
-		Kiosk:             service.NewKioskService(kioskDeviceRepo, staffRepo, staffAttendanceRepo, branchRepo, roomRepo, staffAttSvc),
+		Kiosk:             service.NewKioskService(kioskDeviceRepo, staffRepo, staffAttendanceRepo, branchRepo, roomRepo, staffRoomAssignRepo, staffAttSvc),
 		Shifts:            service.NewShiftService(shiftRepo, staffRepo, roomRepo),
-		DailyRecords:      service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo),
+		DailyRecords:      service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo, childRoomAssignRepo),
 		BranchOverview:    service.NewBranchOverviewService(childRepo, roomRepo, attendanceRepo, staffRepo, staffAttendanceRepo, dailyRecordRepo, enquiryRepo),
 		GBP:               service.NewGBPService(gbpRepo, branchRepo),
 		Roles:             service.NewRoleService(roleRepo),

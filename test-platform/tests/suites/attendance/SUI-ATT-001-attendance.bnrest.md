@@ -68,6 +68,7 @@ Call CatchError ../../cases/childatt/CHILDATT-TC-002-REG-duplicate-checkout-reje
 Call CatchError ../../cases/childatt/CHILDATT-TC-004b-recheckin-clears-stale-checkout.bnrest.md
 Call CatchError ../../cases/childatt/CHILDATT-TC-004c-unknown-child-rejected.bnrest.md
 Call CatchError ../../cases/childatt/CHILDATT-TC-003-unscheduled-day-not-flagged.bnrest.md
+Call CatchError ../../cases/childatt/CHILDATT-TC-005-noshow-counts-absent.bnrest.md
 Call CatchError ../../cases/staffatt/STAFFATT-TC-002-REG-clockout-without-clockin-rejected.bnrest.md
 Call CatchError ../../cases/staffatt/STAFFATT-TC-001-clock-in.bnrest.md
 Call CatchError ../../cases/staffatt/STAFFATT-TC-001-REG-duplicate-clockin-rejected.bnrest.md
@@ -75,6 +76,7 @@ Call CatchError ../../cases/staffatt/STAFFATT-TC-002-clock-out-and-correct-exist
 Call CatchError ../../cases/staffatt/STAFFATT-TC-002b-REG-duplicate-clockout-rejected.bnrest.md
 Call CatchError ../../cases/staffatt/STAFFATT-TC-003-correction-backfills-missing-day.bnrest.md
 Call CatchError ../../cases/staffatt/STAFFATT-TC-004-mark-absent-clears-times.bnrest.md
+Call CatchError ../../cases/staffatt/STAFFATT-TC-005-leave-taxonomy-breakdown.bnrest.md
 Call CatchError ../../cases/staffatt/STAFFATT-TC-004b-summary-payload-well-formed.bnrest.md
 Call CatchError ../../cases/staffatt/STAFFATT-TC-004c-unknown-staff-rejected.bnrest.md
 Call CatchError ../../cases/staffatt/STAFFATT-TC-003c-missing-clockout-flagged-for-past-open-shift.bnrest.md

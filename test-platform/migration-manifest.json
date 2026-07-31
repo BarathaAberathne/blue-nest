@@ -476,109 +476,15 @@
   },
   {
     "legacyClass": "ChildRoomSuite",
-    "legacyMethod": "tc_childroom_002_assignRoom",
-    "legacyId": "TC-CHILDROOM-002",
-    "legacyDisplayName": "TC-CHILDROOM-002: Assigning the child to a room succeeds and the room is reflected on the child",
-    "legacyTags": [
-      "golden-path"
-    ],
-    "newTestId": "CHILDROOM-TC-002",
-    "plannedSuite": "SUI-ASSIGN-001",
-    "plannedSuiteTitle": "Child and Staff Assignment",
-    "plannedCollection": "COL-FUNC-001",
-    "newFile": "test-platform/tests/cases/childroom/CHILDROOM-TC-002-assign-room.bnrest.md",
-    "migrationStatus": "completed",
-    "parityStatus": "verified"
-  },
-  {
-    "legacyClass": "ChildRoomSuite",
-    "legacyMethod": "tc_childroom_002_reg_roomOnlyUpdatePreservesDob",
-    "legacyId": "TC-CHILDROOM-002-REG",
-    "legacyDisplayName": "TC-CHILDROOM-002-REG (regression): a room-only update payload does NOT wipe the child's date of birth",
-    "legacyTags": [
-      "regression"
-    ],
-    "newTestId": "CHILDROOM-TC-002-REG",
-    "plannedSuite": "SUI-ASSIGN-001",
-    "plannedSuiteTitle": "Child and Staff Assignment",
-    "plannedCollection": "COL-FUNC-001",
-    "newFile": "test-platform/tests/cases/childroom/CHILDROOM-TC-002-REG-room-only-preserves-dob.bnrest.md",
-    "migrationStatus": "completed",
-    "parityStatus": "verified"
-  },
-  {
-    "legacyClass": "ChildRoomSuite",
-    "legacyMethod": "tc_childroom_002_reg_roomOnlyUpdatePreservesName",
-    "legacyId": "TC-CHILDROOM-002-REG-b",
-    "legacyDisplayName": "TC-CHILDROOM-002-REG-b (regression): a room-only update also preserves first/last name",
-    "legacyTags": [
-      "regression"
-    ],
-    "newTestId": "CHILDROOM-TC-002-REG-b",
-    "plannedSuite": "SUI-ASSIGN-001",
-    "plannedSuiteTitle": "Child and Staff Assignment",
-    "plannedCollection": "COL-FUNC-001",
-    "newFile": "test-platform/tests/cases/childroom/CHILDROOM-TC-002-REG-b-room-only-preserves-name.bnrest.md",
-    "migrationStatus": "completed",
-    "parityStatus": "verified"
-  },
-  {
-    "legacyClass": "ChildRoomSuite",
-    "legacyMethod": "tc_childroom_002c_roomCanBeUnassigned",
-    "legacyId": "TC-CHILDROOM-002c",
-    "legacyDisplayName": "TC-CHILDROOM-002c: room_id CAN still be explicitly cleared (legitimate unassign, not part of the regression fix)",
-    "legacyTags": [],
-    "newTestId": "CHILDROOM-TC-002c",
-    "plannedSuite": "SUI-ASSIGN-001",
-    "plannedSuiteTitle": "Child and Staff Assignment",
-    "plannedCollection": "COL-FUNC-001",
-    "newFile": "test-platform/tests/cases/childroom/CHILDROOM-TC-002c-room-can-be-unassigned.bnrest.md",
-    "migrationStatus": "completed",
-    "parityStatus": "verified"
-  },
-  {
-    "legacyClass": "ChildRoomSuite",
     "legacyMethod": "tc_childroom_001_roomAgeRangesArePresent",
     "legacyId": "TC-CHILDROOM-001",
     "legacyDisplayName": "TC-CHILDROOM-001: Existing Harrow rooms carry sane, non-overlapping age ranges for the recommendation logic",
     "legacyTags": [],
     "newTestId": "CHILDROOM-TC-001",
-    "plannedSuite": "SUI-ASSIGN-001",
-    "plannedSuiteTitle": "Child and Staff Assignment",
+    "plannedSuite": "SUI-CHILDROOM-001",
+    "plannedSuiteTitle": "Child Room Allocation and Transfer",
     "plannedCollection": "COL-FUNC-001",
     "newFile": "test-platform/tests/cases/childroom/CHILDROOM-TC-001-room-age-ranges-present.bnrest.md",
-    "migrationStatus": "completed",
-    "parityStatus": "verified"
-  },
-  {
-    "legacyClass": "ChildRoomSuite",
-    "legacyMethod": "tc_childroom_003_overCapacityAssignmentNotEnforced",
-    "legacyId": "TC-CHILDROOM-003",
-    "legacyDisplayName": "TC-CHILDROOM-003 (regression, documents a real gap): assigning a second child to a full (capacity-1) room is accepted, not rejected",
-    "legacyTags": [
-      "regression"
-    ],
-    "newTestId": "CHILDROOM-TC-003",
-    "plannedSuite": "SUI-ASSIGN-001",
-    "plannedSuiteTitle": "Child and Staff Assignment",
-    "plannedCollection": "COL-FUNC-001",
-    "newFile": "test-platform/tests/cases/childroom/CHILDROOM-TC-003-over-capacity-not-enforced.bnrest.md",
-    "migrationStatus": "completed",
-    "parityStatus": "verified"
-  },
-  {
-    "legacyClass": "ChildRoomSuite",
-    "legacyMethod": "tc_childroom_004_ageMismatchAssignmentNotEnforced",
-    "legacyId": "TC-CHILDROOM-004",
-    "legacyDisplayName": "TC-CHILDROOM-004 (regression, documents a real gap): assigning a child whose age doesn't match the room's age_range is accepted, not flagged",
-    "legacyTags": [
-      "regression"
-    ],
-    "newTestId": "CHILDROOM-TC-004",
-    "plannedSuite": "SUI-ASSIGN-001",
-    "plannedSuiteTitle": "Child and Staff Assignment",
-    "plannedCollection": "COL-FUNC-001",
-    "newFile": "test-platform/tests/cases/childroom/CHILDROOM-TC-004-age-mismatch-not-enforced.bnrest.md",
     "migrationStatus": "completed",
     "parityStatus": "verified"
   },
@@ -592,8 +498,8 @@
       "safeguarding"
     ],
     "newTestId": "CHILDROOM-TC-004-REG",
-    "plannedSuite": "SUI-ASSIGN-001",
-    "plannedSuiteTitle": "Child and Staff Assignment",
+    "plannedSuite": "SUI-CHILDROOM-001",
+    "plannedSuiteTitle": "Child Room Allocation and Transfer",
     "plannedCollection": "COL-FUNC-001",
     "newFile": "test-platform/tests/cases/childroom/CHILDROOM-TC-004-REG-preserves-safety-fields.bnrest.md",
     "migrationStatus": "completed",
@@ -1027,72 +933,6 @@
     "newFile": "test-platform/tests/cases/reg/REG-TC-004-registration-not-atomic-gap-lock.bnrest.md",
     "migrationStatus": "completed",
     "parityStatus": "verified"
-  },
-  {
-    "legacyClass": "ConcurrencySuite",
-    "legacyMethod": "tc_con_001_concurrentEnquiryEditsBothPersist",
-    "legacyId": "TC-CON-001",
-    "legacyDisplayName": "TC-CON-001 (regression, documents a real gap): two concurrent, non-conflicting edits to the same enquiry BOTH persist, with no versioning to detect a real conflict",
-    "legacyTags": [
-      "regression"
-    ],
-    "newTestId": "CONCURRENCY-TC-001",
-    "plannedSuite": "SUI-NET-001",
-    "plannedSuiteTitle": "Network and Endpoint Validation",
-    "plannedCollection": "COL-FUNC-001",
-    "newFile": "test-platform/tests/cases/concurrency/CONCURRENCY-TC-001.bnrest.md",
-    "migrationStatus": "not-migrated",
-    "parityStatus": "n/a-platform-limitation",
-    "note": "Deliberately NOT migrated: this engine's Markdown test grammar has no primitive for firing genuinely simultaneous/concurrent HTTP requests (every .bnrest.md case is a strictly sequential Given/When/Then list; see SUI-NET-001's own documentation of this platform limitation). Re-running as sequential calls would not exercise a real race and would misrepresent the test. TC-CON-002's non-concurrent half (capacity never enforced) is already covered by CHILDROOM-TC-003. Tracked as a real follow-up: a future Concurrent/Race engine primitive."
-  },
-  {
-    "legacyClass": "ConcurrencySuite",
-    "legacyMethod": "tc_con_001b_concurrentSameFieldEditIsSilentLastWriteWins",
-    "legacyId": "TC-CON-001b",
-    "legacyDisplayName": "TC-CON-001b (regression, documents a real gap): two concurrent edits to the SAME field on the same enquiry both succeed \u2014 silent last-write-wins, no conflict reported",
-    "legacyTags": [
-      "regression"
-    ],
-    "newTestId": "CONCURRENCY-TC-001b",
-    "plannedSuite": "SUI-NET-001",
-    "plannedSuiteTitle": "Network and Endpoint Validation",
-    "plannedCollection": "COL-FUNC-001",
-    "newFile": "test-platform/tests/cases/concurrency/CONCURRENCY-TC-001b.bnrest.md",
-    "migrationStatus": "not-migrated",
-    "parityStatus": "n/a-platform-limitation",
-    "note": "Deliberately NOT migrated: this engine's Markdown test grammar has no primitive for firing genuinely simultaneous/concurrent HTTP requests (every .bnrest.md case is a strictly sequential Given/When/Then list; see SUI-NET-001's own documentation of this platform limitation). Re-running as sequential calls would not exercise a real race and would misrepresent the test. TC-CON-002's non-concurrent half (capacity never enforced) is already covered by CHILDROOM-TC-003. Tracked as a real follow-up: a future Concurrent/Race engine primitive."
-  },
-  {
-    "legacyClass": "ConcurrencySuite",
-    "legacyMethod": "tc_con_002_concurrentRoomAssignmentExceedsCapacity",
-    "legacyId": "TC-CON-002",
-    "legacyDisplayName": "TC-CON-002 (regression, documents a real gap): two children assigned concurrently to the SAME capacity-1 room both succeed \u2014 capacity is exceeded, no losing user",
-    "legacyTags": [
-      "regression"
-    ],
-    "newTestId": "CONCURRENCY-TC-002",
-    "plannedSuite": "SUI-NET-001",
-    "plannedSuiteTitle": "Network and Endpoint Validation",
-    "plannedCollection": "COL-FUNC-001",
-    "newFile": "test-platform/tests/cases/concurrency/CONCURRENCY-TC-002.bnrest.md",
-    "migrationStatus": "not-migrated",
-    "parityStatus": "n/a-platform-limitation",
-    "note": "Deliberately NOT migrated: this engine's Markdown test grammar has no primitive for firing genuinely simultaneous/concurrent HTTP requests (every .bnrest.md case is a strictly sequential Given/When/Then list; see SUI-NET-001's own documentation of this platform limitation). Re-running as sequential calls would not exercise a real race and would misrepresent the test. TC-CON-002's non-concurrent half (capacity never enforced) is already covered by CHILDROOM-TC-003. Tracked as a real follow-up: a future Concurrent/Race engine primitive."
-  },
-  {
-    "legacyClass": "ConcurrencySuite",
-    "legacyMethod": "tc_con_003_concurrentClockInStaysSingleRecord",
-    "legacyId": "TC-CON-003",
-    "legacyDisplayName": "TC-CON-003: Two concurrent clock-ins for the same staff member/date can never produce more than one attendance record",
-    "legacyTags": [],
-    "newTestId": "CONCURRENCY-TC-003",
-    "plannedSuite": "SUI-NET-001",
-    "plannedSuiteTitle": "Network and Endpoint Validation",
-    "plannedCollection": "COL-FUNC-001",
-    "newFile": "test-platform/tests/cases/concurrency/CONCURRENCY-TC-003.bnrest.md",
-    "migrationStatus": "not-migrated",
-    "parityStatus": "n/a-platform-limitation",
-    "note": "Deliberately NOT migrated: this engine's Markdown test grammar has no primitive for firing genuinely simultaneous/concurrent HTTP requests (every .bnrest.md case is a strictly sequential Given/When/Then list; see SUI-NET-001's own documentation of this platform limitation). Re-running as sequential calls would not exercise a real race and would misrepresent the test. TC-CON-002's non-concurrent half (capacity never enforced) is already covered by CHILDROOM-TC-003. Tracked as a real follow-up: a future Concurrent/Race engine primitive."
   },
   {
     "legacyClass": "RoomSuite",
@@ -1611,70 +1451,6 @@
     "plannedSuiteTitle": "Network and Endpoint Validation",
     "plannedCollection": "COL-FUNC-001",
     "newFile": "test-platform/tests/cases/dailylog/LOG-TC-EXIT6-duplicate-debounce-vs-distinct.bnrest.md",
-    "migrationStatus": "completed",
-    "parityStatus": "verified"
-  },
-  {
-    "legacyClass": "RoomStaffSuite",
-    "legacyMethod": "tc_roomstaff_001_staffLinkedToRoom",
-    "legacyId": "TC-ROOMSTAFF-001",
-    "legacyDisplayName": "TC-ROOMSTAFF-001: Assigning a staff member's room_id links them to that room (there is no separate 'leader' designation)",
-    "legacyTags": [
-      "golden-path"
-    ],
-    "newTestId": "ROOMSTAFF-TC-001",
-    "plannedSuite": "SUI-ASSIGN-001",
-    "plannedSuiteTitle": "Child and Staff Assignment",
-    "plannedCollection": "COL-FUNC-001",
-    "newFile": "test-platform/tests/cases/roomstaff/ROOMSTAFF-TC-001-staff-linked-to-room.bnrest.md",
-    "migrationStatus": "completed",
-    "parityStatus": "verified"
-  },
-  {
-    "legacyClass": "RoomStaffSuite",
-    "legacyMethod": "tc_roomstaff_002_noMaxStaffPerRoomEnforced",
-    "legacyId": "TC-ROOMSTAFF-002",
-    "legacyDisplayName": "TC-ROOMSTAFF-002 (regression, documents a real gap): multiple staff can be assigned the same room with no maximum enforced",
-    "legacyTags": [
-      "regression"
-    ],
-    "newTestId": "ROOMSTAFF-TC-002",
-    "plannedSuite": "SUI-ASSIGN-001",
-    "plannedSuiteTitle": "Child and Staff Assignment",
-    "plannedCollection": "COL-FUNC-001",
-    "newFile": "test-platform/tests/cases/roomstaff/ROOMSTAFF-TC-002-no-max-staff-per-room.bnrest.md",
-    "migrationStatus": "completed",
-    "parityStatus": "verified"
-  },
-  {
-    "legacyClass": "RoomStaffSuite",
-    "legacyMethod": "tc_roomstaff_003_inactiveStaffAssignmentNotGated",
-    "legacyId": "TC-ROOMSTAFF-003",
-    "legacyDisplayName": "TC-ROOMSTAFF-003 (regression, documents a real gap): an INACTIVE staff member can still be assigned to a room",
-    "legacyTags": [
-      "regression"
-    ],
-    "newTestId": "ROOMSTAFF-TC-003",
-    "plannedSuite": "SUI-ASSIGN-001",
-    "plannedSuiteTitle": "Child and Staff Assignment",
-    "plannedCollection": "COL-FUNC-001",
-    "newFile": "test-platform/tests/cases/roomstaff/ROOMSTAFF-TC-003-inactive-staff-not-gated.bnrest.md",
-    "migrationStatus": "completed",
-    "parityStatus": "verified"
-  },
-  {
-    "legacyClass": "RoomStaffSuite",
-    "legacyMethod": "tc_roomstaff_003b_nonexistentRoomIdAccepted",
-    "legacyId": "TC-ROOMSTAFF-003b",
-    "legacyDisplayName": "TC-ROOMSTAFF-003b (regression, documents a real gap): a room_id for a room that doesn't exist is accepted, not rejected",
-    "legacyTags": [
-      "regression"
-    ],
-    "newTestId": "ROOMSTAFF-TC-003b",
-    "plannedSuite": "SUI-ASSIGN-001",
-    "plannedSuiteTitle": "Child and Staff Assignment",
-    "plannedCollection": "COL-FUNC-001",
-    "newFile": "test-platform/tests/cases/roomstaff/ROOMSTAFF-TC-003b-nonexistent-room-accepted.bnrest.md",
     "migrationStatus": "completed",
     "parityStatus": "verified"
   },

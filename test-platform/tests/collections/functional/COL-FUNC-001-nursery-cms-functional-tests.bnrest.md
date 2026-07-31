@@ -46,7 +46,6 @@ Call CatchError ../../suites/reg/SUI-REG-001-child-registration.bnrest.md
 Call CatchError ../../suites/key/SUI-KEYPERSON-001-key-person-allocation.bnrest.md
 Call CatchError ../../suites/enquiry/SUI-ENQUIRY-001-enquiry-lifecycle.bnrest.md
 Call CatchError ../../suites/visit/SUI-VISIT-001-visit-booking.bnrest.md
-Call CatchError ../../suites/assign/SUI-ASSIGN-001-child-and-staff-assignment.bnrest.md
 Call CatchError ../../suites/attendance/SUI-ATT-001-attendance.bnrest.md
 Call CatchError ../../suites/dailylog/SUI-LOG-001-daily-logs.bnrest.md
 Call CatchError ../../suites/schedule/SUI-KPI-001-schedule-and-capacity.bnrest.md
@@ -58,5 +57,10 @@ Call CatchError ../../suites/kiosk/SUI-KIOSK-001-kiosk.bnrest.md
 Call CatchError ../../suites/store/SUI-STORE-001-store.bnrest.md
 Call CatchError ../../suites/procurement/SUI-PROCUREMENT-001-procurement.bnrest.md
 Call CatchError ../../suites/useraccount/SUI-USERACCOUNT-001-user-account.bnrest.md
+Call CatchError ../../suites/staffroom/SUI-STAFFROOM-001-staff-room-allocation.bnrest.md
+Call CatchError ../../suites/childroom/SUI-CHILDROOM-001-child-room-allocation.bnrest.md
+Call CatchError ../../suites/capacity/SUI-CAPACITY-001-room-capacity.bnrest.md
+Call CatchError ../../suites/roomaudit/SUI-ROOMAUDIT-001-room-audit.bnrest.md
+Call CatchError ../../suites/roomnet/SUI-ROOMNET-001-room-network.bnrest.md
 Call CatchError ../../suites/auth/SUI-AUTH-001-authentication.bnrest.md
 ```

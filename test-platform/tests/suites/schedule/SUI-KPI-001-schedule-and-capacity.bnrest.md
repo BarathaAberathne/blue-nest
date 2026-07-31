@@ -54,6 +54,13 @@ Call ../../utils/child/CHILD-UTIL-003-create-child-direct.bnrest.md With Json In
   "dob": "2023-01-01"
 }
 
+Call ../../utils/childroom/CHILDROOM-UTIL-001-allocate-child.bnrest.md With Json Into placement
+{
+  "accessToken": "${adminSession.accessToken}",
+  "childId": "${child.id}",
+  "roomId": "${room.id}"
+}
+
 Body
 Call CatchError ../../cases/schedule/SCHEDULE-TC-001-mon-wed-fri-pattern.bnrest.md
 Call CatchError ../../cases/schedule/SCHEDULE-TC-002-schedule-change-moves-occupancy.bnrest.md

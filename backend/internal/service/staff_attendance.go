@@ -67,14 +67,15 @@ type StaffAttendanceService interface {
 }
 
 type staffAttendanceService struct {
-	repo   repository.StaffAttendanceRepository
-	staff  repository.StaffRepository
-	shifts repository.ShiftRepository // optional; enables shift-based late/overtime
-	rooms  repository.RoomRepository  // optional; resolves room names for the register
+	repo        repository.StaffAttendanceRepository
+	staff       repository.StaffRepository
+	shifts      repository.ShiftRepository                    // optional; enables shift-based late/overtime
+	rooms       repository.RoomRepository                     // optional; resolves room names for the register
+	staffRooms  repository.StaffRoomAssignmentRepository // canonical staff→room source for the register's room column
 }
 
-func NewStaffAttendanceService(repo repository.StaffAttendanceRepository, staff repository.StaffRepository, shifts repository.ShiftRepository, rooms repository.RoomRepository) StaffAttendanceService {
-	return &staffAttendanceService{repo: repo, staff: staff, shifts: shifts, rooms: rooms}
+func NewStaffAttendanceService(repo repository.StaffAttendanceRepository, staff repository.StaffRepository, shifts repository.ShiftRepository, rooms repository.RoomRepository, staffRooms repository.StaffRoomAssignmentRepository) StaffAttendanceService {
+	return &staffAttendanceService{repo: repo, staff: staff, shifts: shifts, rooms: rooms, staffRooms: staffRooms}
 }
 
 // roomNames builds an id→name map for a branch (or all branches when empty),
@@ -115,6 +116,11 @@ func (s *staffAttendanceService) Register(ctx context.Context, date, branch stri
 		byStaff[r.StaffID] = r
 	}
 	roomName := s.roomNames(ctx, branch)
+	// Primary room per staff from the canonical assignment model (one query).
+	primaryRoom := map[string]string{}
+	if s.staffRooms != nil {
+		primaryRoom = PrimaryStaffRooms(ctx, s.staffRooms, branch)
+	}
 	out := make([]models.StaffAttendanceRecord, 0, len(people))
 	for _, p := range people {
 		id := p.ID.Hex()
@@ -129,7 +135,7 @@ func (s *staffAttendanceService) Register(ctx context.Context, date, branch stri
 			}
 		}
 		rec.JobTitle = p.JobTitle
-		rec.RoomName = roomName[p.RoomID]
+		rec.RoomName = roomName[primaryRoom[id]]
 		out = append(out, rec)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].StaffName < out[j].StaffName })
@@ -354,9 +360,15 @@ func (s *staffAttendanceService) PeriodSummary(ctx context.Context, staffID, fro
 			}
 		case r.Status == models.StaffAttSick:
 			sum.SickDays++
+		case r.Status == models.StaffAttDependantSick:
+			sum.DependantSickDays++
 		case r.Status == models.StaffAttLeave:
 			sum.LeaveDays++
-		case models.IsAway(r.Status): // training / meeting / remote (sick + leave handled above)
+		case r.Status == models.StaffAttUnpaidLeave:
+			sum.UnpaidLeaveDays++
+		case r.Status == models.StaffAttMaternity:
+			sum.MaternityDays++
+		case models.IsAway(r.Status): // training / meeting / remote (specific kinds handled above)
 			sum.TrainingDays++
 		case r.Status == models.StaffAttAbsent:
 			sum.AbsentDays++
@@ -443,9 +455,15 @@ func (s *staffAttendanceService) TodayStats(ctx context.Context, date, branch st
 			}
 		case rec.Status == models.StaffAttSick:
 			stats.Sick++
+		case rec.Status == models.StaffAttDependantSick:
+			stats.DependantSick++
+		case rec.Status == models.StaffAttUnpaidLeave:
+			stats.UnpaidLeave++
+		case rec.Status == models.StaffAttMaternity:
+			stats.Maternity++
 		case rec.Status == models.StaffAttTraining:
 			stats.Training++
-		case models.IsAway(rec.Status): // leave / meeting / remote (sick+training handled above)
+		case models.IsAway(rec.Status): // annual leave / meeting / remote (others handled above)
 			stats.OnLeave++
 		case rec.Status == models.StaffAttAbsent:
 			stats.Absent++
@@ -493,6 +511,20 @@ func summarize(date string, rows []models.StaffAttendanceRecord) models.Attendan
 		}
 		if models.IsAway(r.Status) {
 			s.OnLeave++
+			switch models.AwayCategory(r.Status) {
+			case models.LeaveAnnual:
+				s.AnnualLeave++
+			case models.LeaveSick:
+				s.Sick++
+			case models.LeaveDependant:
+				s.DependantSick++
+			case models.LeaveUnpaid:
+				s.UnpaidLeave++
+			case models.LeaveMaternity:
+				s.Maternity++
+			case models.LeaveOtherAway:
+				s.OtherAway++
+			}
 		}
 		if r.LateArrival {
 			s.Late++

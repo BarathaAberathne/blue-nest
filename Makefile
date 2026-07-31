@@ -11,7 +11,8 @@
         build-bnrest-cli test-legacy test-new test-all test-api test-smoke test-regression \
         test-parity test-validate test-discover test-changed test-map test-report test-ui \
         test-docker test-clean \
-        test-suite test-case test-collection test-tag test-owner test-file
+        test-suite test-case test-collection test-tag test-owner test-file \
+        migrate-tenancy migrate-room-assignments
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 all: build
@@ -391,6 +392,23 @@ migrate-tenancy:
 	else \
 	  echo "  no backend container running → falling back to local Go toolchain"; \
 	  cd backend && go run ./cmd/migratetenancy; \
+	fi
+
+# Room-allocation migration: map legacy child.room_id / staff.room_id values
+# into the authoritative assignment collections, then verify parity.
+# Idempotent + non-destructive — see docs/rooms/room-allocation-migration-plan.md.
+migrate-room-assignments:
+	@echo "→ Room-allocation migration (legacy room_id → assignment records)..."
+	@if docker compose ps backend --status running --quiet 2>/dev/null | grep -q .; then \
+	  echo "  using running backend container"; \
+	  docker compose exec backend ./migrateroomassignments; \
+	  echo "→ Verifying migration parity..."; \
+	  docker compose exec backend ./migrateroomassignments -verify; \
+	else \
+	  echo "  no backend container running → falling back to local Go toolchain"; \
+	  cd backend && go run ./cmd/migrateroomassignments; \
+	  echo "→ Verifying migration parity..."; \
+	  cd backend && go run ./cmd/migrateroomassignments -verify; \
 	fi
 
 # ── Frontend image optimisation ──────────────────────────────────────────────

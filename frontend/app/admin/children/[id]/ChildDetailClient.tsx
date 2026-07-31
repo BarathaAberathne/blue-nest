@@ -8,6 +8,8 @@ import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StageBadge from "@/components/admin/ui/StageBadge";
+import ChildRoomAllocations from "@/components/admin/rooms/ChildRoomAllocations";
+import { usePermissions } from "@/lib/usePermissions";
 import { ageLabel, childStatusAccent, fmtDate, fundingLabel } from "@/lib/child";
 import { dailyTypeAccent, dailyTypeLabel } from "@/lib/daily";
 import type { Branch, Child, ChildInput, ChildSession, DailyRecord, Guardian, Room } from "@/types";
@@ -31,6 +33,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<ChildInput | null>(null);
   const [saving, setSaving] = useState(false);
+  const { has } = usePermissions();
 
   const load = async () => {
     const token = getAccessToken();
@@ -50,13 +53,12 @@ export default function ChildDetailClient({ id }: { id: string }) {
 
   const branchName = useMemo(() => new Map(branches.map((b) => [b.slug, branchShortName(b)])), [branches]);
   const roomName = useMemo(() => new Map(rooms.map((r) => [r.id, r.name])), [rooms]);
-  const roomsForBranch = useMemo(() => rooms.filter((r) => r.branch_slug === (form?.branch_slug ?? child?.branch_slug)), [rooms, form, child]);
 
   const startEdit = () => {
     if (!child) return;
     setForm({
       first_name: child.first_name, last_name: child.last_name, dob: child.dob ?? "", gender: child.gender ?? "",
-      branch_slug: child.branch_slug, room_id: child.room_id ?? "", status: child.status, start_date: child.start_date ?? "",
+      branch_slug: child.branch_slug, status: child.status, start_date: child.start_date ?? "",
       funding_type: child.funding_type, allergies: child.allergies ?? "", dietary_reqs: child.dietary_reqs ?? "",
       medical_notes: child.medical_notes ?? "", guardians: child.guardians ?? [],
       sessions: child.sessions ?? [],
@@ -178,6 +180,17 @@ export default function ChildDetailClient({ id }: { id: string }) {
             )}
           </div>
 
+          {/* Room placement — current room, transfer with capacity/age
+              warnings, and full history. Sole writer of the child's room. */}
+          <div className="lg:col-span-3">
+            <ChildRoomAllocations
+              childId={child.id}
+              branchSlug={child.branch_slug}
+              canManage={has("children.manage")}
+              onChange={() => { void load(); }}
+            />
+          </div>
+
           <div className="card p-5 lg:col-span-3">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">Recent daily records</h2>
@@ -209,16 +222,12 @@ export default function ChildDetailClient({ id }: { id: string }) {
             </select>
           </Field>
           <Field label="Branch">
-            <select value={form.branch_slug} onChange={(e) => setField({ branch_slug: e.target.value, room_id: "" })} className="inp bg-white">
+            <select value={form.branch_slug} onChange={(e) => setField({ branch_slug: e.target.value })} className="inp bg-white">
               {branches.map((b) => <option key={b.slug} value={b.slug}>{branchShortName(b)}</option>)}
             </select>
           </Field>
-          <Field label="Room">
-            <select value={form.room_id} onChange={(e) => setField({ room_id: e.target.value })} className="inp bg-white">
-              <option value="">Unassigned</option>
-              {roomsForBranch.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </select>
-          </Field>
+          {/* Room is managed by the Room Placement panel (transfer + history),
+              not this edit form — a single authoritative writer per the design. */}
           <Field label="Status">
             <select value={form.status} onChange={(e) => setField({ status: e.target.value as ChildInput["status"] })} className="inp bg-white">
               <option value="active">Active</option><option value="waitlist">Waitlist</option><option value="left">Left</option>
