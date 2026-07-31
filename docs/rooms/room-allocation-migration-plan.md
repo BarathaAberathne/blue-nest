@@ -107,6 +107,55 @@ There is a brief window between steps 2 and 4 where rooms read as
 unassigned — keep it short by running the migration immediately after the
 containers are healthy.
 
+### Exact commands (droplet)
+
+Prod runs on `deploy@165.232.47.89`, app at `~/app`, compose services
+`backend` / `frontend` / `mongodb` (prod overlay enables Mongo auth). The
+migration binary is baked into the backend image (`backend/Dockerfile`)
+and reaches Mongo over the compose network using the container's own
+authed `MONGODB_URI`, so it needs no extra credentials; only the backup
+does.
+
+```bash
+ssh deploy@165.232.47.89
+cd ~/app
+
+# ① Back up first (rollback path — the migration $unsets legacy room_id)
+docker compose exec -T mongodb sh -c \
+  'mongodump --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" \
+   --authenticationDatabase admin --db blue_nest_montessori --archive' \
+  > ~/pre-room-migration-$(date +%F).archive
+ls -lh ~/pre-room-migration-*.archive          # confirm non-empty
+
+# ② Pull main + build on the box (the --build bakes in the migration binary)
+git fetch origin main && git reset --hard origin/main
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --force-recreate
+#   (frontend Next build is memory-heavy on 4 GB — add swap first if it OOMs)
+
+# ③ Wait for healthy
+docker compose ps
+
+# ④ Migrate, then verify (or: make migrate-room-assignments — now execs the container)
+docker compose exec backend ./migrateroomassignments
+docker compose exec backend ./migrateroomassignments -verify
+```
+
+Gate (⑤): the migrate log must show real `children: … migrated=<N>` (not
+`invalid-room=<N>`) and the verify log must end with **`VERIFY OK`**. Any
+`MISMATCH …` line or non-zero exit → **stop; the release is not done.**
+Then spot-check the live admin UI (a child shows its room, `/admin/rota`
+groups by classroom, `/admin/staff-attendance` shows the leave breakdown).
+
+**Rollback** (only if the gate fails and can't be resolved):
+
+```bash
+git reset --hard <previous-main-SHA>
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --force-recreate
+docker compose exec -T mongodb sh -c \
+  'mongorestore --username "$MONGO_INITDB_ROOT_USERNAME" --password "$MONGO_INITDB_ROOT_PASSWORD" \
+   --authenticationDatabase admin --drop --archive' < ~/pre-room-migration-<DATE>.archive
+```
+
 ⚠️ **Never run `make seed-children` / `seed-famly` on prod** — they drop
 `child_room_assignments` (and reseed children). This is covered by the
 standing "no seeds on prod" rule; it matters more now that those
