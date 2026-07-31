@@ -10,12 +10,24 @@ import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { ageLabel, childStatusAccent, fundingLabel } from "@/lib/child";
-import type { Branch, Child, ChildInput, ChildStats, Room } from "@/types";
+import type { Branch, Child, ChildInput, ChildSession, ChildStats, Room } from "@/types";
+
+// Weekly-session controls, matched to the child edit form so a session pattern
+// can be captured at registration time — not only when editing an existing child.
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+const SESSION_TYPES: { value: string; label: string }[] = [
+  { value: "", label: "Not attending" },
+  { value: "am", label: "AM (8–1pm)" },
+  { value: "pm", label: "PM (1–6pm)" },
+  { value: "school", label: "School (9–4pm)" },
+  { value: "full", label: "Full day (8am–6pm)" },
+];
 
 const emptyForm: ChildInput = {
-  first_name: "", last_name: "", dob: "", gender: "", branch_slug: "", room_id: "",
+  first_name: "", last_name: "", dob: "", gender: "", branch_slug: "",
   status: "active", start_date: "", funding_type: "none", allergies: "", dietary_reqs: "", medical_notes: "",
   guardians: [{ name: "", relation: "Mother", email: "", phone: "", primary: true }],
+  sessions: [],
 };
 
 export default function ChildrenClient() {
@@ -31,6 +43,9 @@ export default function ChildrenClient() {
   const [q, setQ] = useState("");
 
   const [form, setForm] = useState<ChildInput>(emptyForm);
+  // Optional room to place the new child in on create — a first-class
+  // child-room-assignment call, not a field on the child record.
+  const [newRoomId, setNewRoomId] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -92,6 +107,7 @@ export default function ChildrenClient() {
   };
 
   const openCreate = () => {
+    setNewRoomId("");
     setForm({ ...emptyForm, branch_slug: branchFilter || branches[0]?.slug || "", guardians: [{ name: "", relation: "Mother", email: "", phone: "", primary: true }] });
     setShowForm(true);
   };
@@ -104,7 +120,28 @@ export default function ChildrenClient() {
     setSaving(true); setError(null);
     try {
       const payload: ChildInput = { ...form, guardians: (form.guardians ?? []).filter((g) => g.name.trim()) };
-      await api.adminCreateChild(token, payload);
+      const created = await api.adminCreateChild(token, payload);
+      // Place the child in the chosen room via the canonical assignment
+      // endpoint (the same one the room/child profiles use). If the placement
+      // is rejected (age range / capacity), roll the just-created child back so
+      // the whole create is atomic — the user saw an error, so nothing should
+      // persist. Single-node Mongo has no multi-doc transactions; compensating
+      // rollback is the established pattern here (see the transfer semantics in
+      // docs/rooms/room-allocation-design.md).
+      if (newRoomId && created?.id) {
+        try {
+          await api.adminCreateChildRoomAssignment(token, { child_id: created.id, room_id: newRoomId });
+        } catch (assignErr) {
+          const reason = assignErr instanceof Error ? assignErr.message : "Room allocation failed";
+          try {
+            await api.adminDeleteChild(token, created.id);
+          } catch {
+            // Rollback failed too — the child exists but is unplaced. Say so plainly.
+            throw new Error(`${reason}. The child was created but could not be placed — open the child to assign a valid room.`);
+          }
+          throw new Error(`${reason}. The child was not created — pick a valid room, or leave it unassigned.`);
+        }
+      }
       setShowForm(false);
       await load();
     } catch (err) {
@@ -115,6 +152,14 @@ export default function ChildrenClient() {
   const setField = (patch: Partial<ChildInput>) => setForm((f) => ({ ...f, ...patch }));
   const setGuardian = (patch: Partial<NonNullable<ChildInput["guardians"]>[number]>) =>
     setForm((f) => ({ ...f, guardians: [{ ...(f.guardians?.[0] ?? { name: "", primary: true }), ...patch }] }));
+
+  const sessionFor = (day: string) => form.sessions?.find((s) => s.day === day)?.type ?? "";
+  const setSession = (day: string, type: string) =>
+    setForm((f) => {
+      const rest = (f.sessions ?? []).filter((s) => s.day !== day);
+      const next: ChildSession[] = type ? [...rest, { day, type }] : rest;
+      return { ...f, sessions: next.sort((a, b) => WEEKDAYS.indexOf(a.day) - WEEKDAYS.indexOf(b.day)) };
+    });
 
   return (
     <>
@@ -200,13 +245,13 @@ export default function ChildrenClient() {
                 </select>
               </Field>
               <Field label="Branch *">
-                <select value={form.branch_slug} onChange={(e) => setField({ branch_slug: e.target.value, room_id: "" })} className="inp bg-white">
+                <select value={form.branch_slug} onChange={(e) => { setField({ branch_slug: e.target.value }); setNewRoomId(""); }} className="inp bg-white">
                   <option value="">Select branch…</option>
                   {branches.map((b) => <option key={b.slug} value={b.slug}>{branchShortName(b)}</option>)}
                 </select>
               </Field>
               <Field label="Room">
-                <select value={form.room_id} onChange={(e) => setField({ room_id: e.target.value })} className="inp bg-white" disabled={!form.branch_slug}>
+                <select value={newRoomId} onChange={(e) => setNewRoomId(e.target.value)} className="inp bg-white" disabled={!form.branch_slug}>
                   <option value="">Unassigned</option>
                   {roomsForBranch.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
@@ -237,6 +282,19 @@ export default function ChildrenClient() {
               <Field label="Allergies"><input value={form.allergies} onChange={(e) => setField({ allergies: e.target.value })} className="inp" /></Field>
               <Field label="Dietary requirements"><input value={form.dietary_reqs} onChange={(e) => setField({ dietary_reqs: e.target.value })} className="inp" /></Field>
               <div className="sm:col-span-2"><Field label="Medical notes"><textarea value={form.medical_notes} onChange={(e) => setField({ medical_notes: e.target.value })} rows={2} className="inp" /></Field></div>
+              <div className="sm:col-span-2">
+                <label className="mb-2 block text-xs font-medium text-slate-500">Weekly sessions</label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-5">
+                  {WEEKDAYS.map((day) => (
+                    <label key={day} className="text-sm">
+                      <span className="mb-1 block text-xs font-medium text-slate-500">{day}</span>
+                      <select value={sessionFor(day)} onChange={(e) => setSession(day, e.target.value)} className="inp bg-white">
+                        {SESSION_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      </select>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
             <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-4">
               <button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>

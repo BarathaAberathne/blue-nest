@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { DoorOpen, Pencil, Plus, Trash2, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
@@ -9,7 +10,7 @@ import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import type { Branch, Room, RoomInput } from "@/types";
 
-const emptyForm: RoomInput = { branch_slug: "", name: "", age_range: "", capacity: 0, staff_ratio: 0 };
+const emptyForm: RoomInput = { branch_slug: "", name: "", code: "", age_range: "", min_age_months: 0, max_age_months: 0, capacity: 0, staff_ratio: 0 };
 
 export default function RoomsClient() {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -51,7 +52,11 @@ export default function RoomsClient() {
   const openCreate = () => { setEditing(null); setForm({ ...emptyForm, branch_slug: branchFilter || branches[0]?.slug || "" }); setShowForm(true); };
   const openEdit = (r: Room) => {
     setEditing(r);
-    setForm({ branch_slug: r.branch_slug, name: r.name, age_range: r.age_range ?? "", capacity: r.capacity ?? 0, staff_ratio: r.staff_ratio ?? 0 });
+    setForm({
+      branch_slug: r.branch_slug, name: r.name, code: r.code ?? "", age_range: r.age_range ?? "",
+      min_age_months: r.min_age_months ?? 0, max_age_months: r.max_age_months ?? 0,
+      capacity: r.capacity ?? 0, staff_ratio: r.staff_ratio ?? 0,
+    });
     setShowForm(true);
   };
 
@@ -70,11 +75,19 @@ export default function RoomsClient() {
   };
 
   const remove = async (r: Room) => {
-    if (!window.confirm(`Delete room “${r.name}”? Children in this room keep their record but lose the room link.`)) return;
+    if (!window.confirm(`Delete room “${r.name}”? Rooms with active allocations can't be deleted — deactivate them instead.`)) return;
     const token = getAccessToken();
     if (!token) return;
     try { await api.adminDeleteRoom(token, r.id); await load(); }
     catch (err) { setError(err instanceof Error ? err.message : "Failed to delete room"); }
+  };
+
+  const toggleStatus = async (r: Room) => {
+    const token = getAccessToken();
+    if (!token) return;
+    const next = r.status === "inactive" ? "active" : "inactive";
+    try { await api.adminSetRoomStatus(token, r.id, next); await load(); }
+    catch (err) { setError(err instanceof Error ? err.message : "Failed to change room status"); }
   };
 
   const setField = (patch: Partial<RoomInput>) => setForm((f) => ({ ...f, ...patch }));
@@ -107,21 +120,29 @@ export default function RoomsClient() {
 
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500"><tr>{["Room", "Branch", "Age range", "Capacity", "Ratio", ""].map((h) => <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>)}</tr></thead>
+          <thead className="bg-slate-50 text-xs uppercase tracking-wider text-slate-500"><tr>{["Room", "Code", "Branch", "Age range", "Capacity", "Ratio", "Status", ""].map((h) => <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>)}</tr></thead>
           <tbody className="divide-y divide-slate-100">
             {loading ? (
-              <tr><td colSpan={6} className="px-4 py-6 text-slate-400">Loading…</td></tr>
+              <tr><td colSpan={8} className="px-4 py-6 text-slate-400">Loading…</td></tr>
             ) : rows.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-400">No rooms yet — add your first.</td></tr>
+              <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-400">No rooms yet — add your first.</td></tr>
             ) : rows.map((r) => (
               <tr key={r.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-medium text-slate-900">{r.name}</td>
+                <td className="px-4 py-3 font-medium text-slate-900">
+                  <Link href={`/admin/rooms/${r.id}`} className="hover:text-teal-600 hover:underline">{r.name}</Link>
+                </td>
+                <td className="px-4 py-3 text-slate-500">{r.code || "—"}</td>
                 <td className="px-4 py-3"><StageBadge label={branchName(r.branch_slug)} accent="slate" withDot={false} /></td>
                 <td className="px-4 py-3 text-slate-500">{r.age_range || "—"}</td>
                 <td className="px-4 py-3 text-slate-700">{r.capacity}</td>
                 <td className="px-4 py-3 text-slate-500">{r.staff_ratio ? `1:${r.staff_ratio}` : "—"}</td>
+                <td className="px-4 py-3">
+                  <StageBadge label={r.status === "inactive" ? "Inactive" : "Active"} accent={r.status === "inactive" ? "slate" : "teal"} withDot={false} />
+                </td>
                 <td className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-end gap-3">
+                    <Link href={`/admin/rooms/${r.id}`} className="text-xs font-medium text-teal-600 hover:underline">Manage</Link>
+                    <button type="button" onClick={() => toggleStatus(r)} className="text-xs text-slate-500 hover:text-slate-800">{r.status === "inactive" ? "Activate" : "Deactivate"}</button>
                     <button type="button" onClick={() => openEdit(r)} aria-label="Edit" className="text-slate-400 hover:text-teal-600"><Pencil className="h-4 w-4" /></button>
                     <button type="button" onClick={() => remove(r)} aria-label="Delete" className="text-slate-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
                   </div>
@@ -147,7 +168,10 @@ export default function RoomsClient() {
                   {branches.map((b) => <option key={b.slug} value={b.slug}>{branchShortName(b)}</option>)}
                 </select>
               </Field>
-              <Field label="Age range"><input value={form.age_range} onChange={(e) => setField({ age_range: e.target.value })} placeholder="e.g. 2–3 years" className="inp" /></Field>
+              <Field label="Code"><input value={form.code ?? ""} onChange={(e) => setField({ code: e.target.value })} placeholder="e.g. NEST-1" className="inp" /></Field>
+              <Field label="Age range (label)"><input value={form.age_range} onChange={(e) => setField({ age_range: e.target.value })} placeholder="e.g. 2–3 years" className="inp" /></Field>
+              <Field label="Min age (months)"><input type="number" min={0} value={form.min_age_months ?? 0} onChange={(e) => setField({ min_age_months: Number(e.target.value) })} placeholder="0 = no limit" className="inp" /></Field>
+              <Field label="Max age (months)"><input type="number" min={0} value={form.max_age_months ?? 0} onChange={(e) => setField({ max_age_months: Number(e.target.value) })} placeholder="0 = no limit" className="inp" /></Field>
               <Field label="Capacity"><input type="number" min={0} value={form.capacity} onChange={(e) => setField({ capacity: Number(e.target.value) })} className="inp" /></Field>
               <Field label="Staff ratio (1:x)"><input type="number" min={0} value={form.staff_ratio} onChange={(e) => setField({ staff_ratio: Number(e.target.value) })} placeholder="e.g. 4" className="inp" /></Field>
             </div>

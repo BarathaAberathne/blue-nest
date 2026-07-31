@@ -47,6 +47,7 @@ RemoveJson harrow org_id
 RemoveJson harrow created_at
 RemoveJson harrow updated_at
 RemoveJson harrow managers
+RemoveJson harrow ref
 
 CopyJson harrow $.opening_hours[0].open Into originalOpen
 CopyJson harrow $.opening_hours[0].close Into originalClose

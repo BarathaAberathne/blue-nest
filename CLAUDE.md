@@ -402,6 +402,34 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   branch's data. Org-wide roles (super_admin/admin/director, `isOrgWideRole`) keep the all-branches view; the
   UI hides "All branches" + pins the selector for scoped users. Rota + attendance + devices now source their
   branch dropdown from the scoped `GET /admin/branches`, not the public list.
+  **Leave & absence taxonomy (delivered):** attendance statuses now distinguish the real leave kinds —
+  `leave` (annual), `sick` (own sickness), `dependant_sick` (staff's own child/dependant sick), `unpaid_leave`
+  (no-pay), `maternity`, and `absent` (= **unauthorised** absence) — plus the work-away set (`training`/
+  `meeting`/`remote`). `models.AwayCategory` is the single classifier; `models.IsAway` is unchanged (all leave
+  kinds are accounted-for away, never counted absent). The attendance-hub `summary` (`AttendanceDaySummary`),
+  the staff dashboard `StaffStats`, and the per-staff `StaffAbsenceSummary` all now break these out per type
+  (the hub keeps `on_leave` as the total-away and renders a **Leave & absence breakdown** strip beneath the
+  KPI tiles), so sickness/maternity are never hidden inside a single "on leave" number. **Child attendance
+  `absent` is now the residual `expected − present`** (`attendanceService.TodayStats`), so a child who never
+  checks in is counted absent — matching the staff summary — instead of only children with an explicit
+  absent/sick/holiday record. Keep any new KPI consistent with `models.IsWorking`/`IsAway`/`AwayCategory`.
+
+- **Room allocation (canonical model, delivered on `feature/room-allocation`):** there is exactly **one**
+  source of truth for who is in which room — the effective-dated assignment collections
+  `staff_room_assignments` / `child_room_assignments` (`models.room_assignment.go`, repo/service/handler under
+  `RequirePermission(staff.manage|children.manage)`). The old stored `staff.room_id`/`child.room_id` scalars
+  were **removed**; `room_id`/`room_name` remain on API responses only as a **computed projection**
+  (`bson:"-"`, resolved live from the active assignment at read time, like `Child.KeyPersonName`) consumed by
+  the rota grouping, attendance/kiosk registers, capacity-forecast, and the child/staff list+detail UI.
+  `PUT /admin/staff|children/{id}` **no longer accept `room_id`** (dropped from the DTO; `DisallowUnknownFields`
+  rejects it) — allocation goes only through the assignment endpoints, and the create screens issue a second
+  canonical `POST …-room-assignments` call when a room is picked (with **compensating rollback**: if the
+  allocation is rejected on age/capacity, the just-created child/staff is deleted so the create stays atomic).
+  Rooms gained `min_age_months`/`max_age_months`/`status`; allocation enforces same-branch + active + capacity
+  + age, each overridable only with a stored `override_reason` (audit-logged). Transfers close the old row and
+  open a new one (future-dated → `scheduled`, lazily activated). Migration `cmd/migrateroomassignments`
+  (`make migrate-room-assignments`, idempotent + `-verify`). Full design in `docs/rooms/*` and the
+  consolidation rationale in `docs/architecture/duplicate-implementation-audit.md`.
 
 Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (CSV/Excel/PDF) +
 notifications. Then Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.

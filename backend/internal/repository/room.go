@@ -68,12 +68,19 @@ func (r *roomRepository) Update(ctx context.Context, id string, room models.Room
 		return nil, err
 	}
 	update := bson.M{"$set": bson.M{
-		"branch_slug": room.BranchSlug,
-		"name":        room.Name,
-		"age_range":   room.AgeRange,
-		"capacity":    room.Capacity,
-		"staff_ratio": room.StaffRatio,
-		"updated_at":  time.Now(),
+		"branch_slug":    room.BranchSlug,
+		"name":           room.Name,
+		"code":           room.Code,
+		"description":    room.Description,
+		"age_range":      room.AgeRange,
+		"min_age_months": room.MinAgeMonths,
+		"max_age_months": room.MaxAgeMonths,
+		"capacity":       room.Capacity,
+		"staff_ratio":    room.StaffRatio,
+		"status":         room.Status,
+		"opening_date":   room.OpeningDate,
+		"closing_date":   room.ClosingDate,
+		"updated_at":     time.Now(),
 	}}
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
 	var out models.Room

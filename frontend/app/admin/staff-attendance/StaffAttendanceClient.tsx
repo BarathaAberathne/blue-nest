@@ -30,7 +30,27 @@ const toHM = (iso?: string) => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
 
-const STATUS_OPTIONS = ["present", "absent", "leave", "sick", "training", "meeting", "remote"] as const;
+// Attendance statuses a manager can mark, with human labels. The leave/absence
+// taxonomy is explicit so sickness, dependant care, unpaid and maternity leave
+// are each recorded (and reported) distinctly rather than lumped as "on leave".
+const STATUS_OPTIONS = [
+  "present", "absent", "leave", "sick", "dependant_sick",
+  "unpaid_leave", "maternity", "training", "meeting", "remote",
+] as const;
+const STATUS_LABEL: Record<string, string> = {
+  expected: "Expected",
+  present: "Present",
+  absent: "Unauthorised absence",
+  leave: "Annual leave",
+  sick: "Sick leave",
+  dependant_sick: "Dependant / child sick",
+  unpaid_leave: "Unpaid (no-pay) leave",
+  maternity: "Maternity leave",
+  training: "Training",
+  meeting: "Meeting",
+  remote: "Remote",
+};
+const statusLabel = (s: string) => STATUS_LABEL[s] ?? s;
 
 export default function StaffAttendanceClient() {
   const [rows, setRows] = useState<StaffAttendanceRecord[]>([]);
@@ -131,13 +151,36 @@ export default function StaffAttendanceClient() {
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-8">
         <StatCard label="Currently in" value={summary?.currently_in ?? "—"} icon={UserCheck} accent="green" />
         <StatCard label="Clocked out" value={summary?.clocked_out ?? "—"} icon={LogOut} accent="slate" />
-        <StatCard label="Absent" value={summary?.absent ?? "—"} icon={UserX} accent="red" />
-        <StatCard label="On leave" value={summary?.on_leave ?? "—"} icon={UserMinus} accent="sky" />
+        <StatCard label="Unauthorised absent" value={summary?.absent ?? "—"} icon={UserX} accent="red" />
+        <StatCard label="Away (leave)" value={summary?.on_leave ?? "—"} icon={UserMinus} accent="sky" />
         <StatCard label="Late" value={summary?.late ?? "—"} icon={Clock} accent="amber" />
         <StatCard label="Overtime" value={summary ? fmtMins(summary.overtime_minutes) : "—"} icon={Timer} accent="violet" />
         <StatCard label="Missing clock-out" value={summary?.missing_clockout ?? "—"} icon={AlertTriangle} accent="orange" />
         <StatCard label="Attendance" value={summary ? `${rate}%` : "—"} sub={summary ? `avg in ${summary.avg_arrival || "—"}` : undefined} accent="blue" progress={rate} />
       </div>
+
+      {/* Leave & absence breakdown — so "Away (leave)" is never a black box that
+          hides sickness or maternity behind a single number. */}
+      {summary && summary.on_leave > 0 && (
+        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">Leave &amp; absence breakdown</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {[
+              { label: "Annual leave", value: summary.annual_leave },
+              { label: "Sick leave", value: summary.sick },
+              { label: "Dependant / child sick", value: summary.dependant_sick },
+              { label: "Unpaid (no-pay)", value: summary.unpaid_leave },
+              { label: "Maternity", value: summary.maternity },
+              { label: "Training / other", value: summary.other_away },
+            ].map((b) => (
+              <div key={b.label} className="rounded-lg bg-slate-50 px-3 py-2">
+                <p className="text-lg font-bold text-slate-900">{b.value ?? 0}</p>
+                <p className="text-xs text-slate-500">{b.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {allBranches && (
         <div className="card mb-6 overflow-x-auto">
@@ -167,7 +210,7 @@ export default function StaffAttendanceClient() {
         </div>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
           <option value="">All statuses</option>
-          {(["expected", ...STATUS_OPTIONS] as string[]).map((s) => <option key={s} value={s}>{s}</option>)}
+          {(["expected", ...STATUS_OPTIONS] as string[]).map((s) => <option key={s} value={s}>{statusLabel(s)}</option>)}
         </select>
         <span className="ml-auto text-xs text-slate-400">{filtered.length} of {rows.length} staff</span>
       </div>
@@ -201,7 +244,7 @@ export default function StaffAttendanceClient() {
                   <td className="px-4 py-3 font-medium text-slate-700">{fmtHours(r.worked_minutes)}</td>
                   <td className="px-4 py-3 text-slate-500">{fmtMins(r.late_minutes)}</td>
                   <td className="px-4 py-3 text-slate-500">{fmtMins(r.overtime_minutes)}</td>
-                  <td className="px-4 py-3"><StageBadge label={r.status} accent={staffAttendanceAccent[r.status]} withDot /></td>
+                  <td className="px-4 py-3"><StageBadge label={statusLabel(r.status)} accent={staffAttendanceAccent[r.status]} withDot /></td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap items-center gap-1.5">
                       {!r.clock_in ? (
@@ -270,7 +313,7 @@ function CorrectionModal({ record, onClose, onSaved }: { record: StaffAttendance
           <label className="block">
             <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">Status</span>
             <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
-              {[record.status === "expected" ? "expected" : null, ...STATUS_OPTIONS].filter(Boolean).map((s) => <option key={s as string} value={s as string}>{s}</option>)}
+              {[record.status === "expected" ? "expected" : null, ...STATUS_OPTIONS].filter(Boolean).map((s) => <option key={s as string} value={s as string}>{statusLabel(s as string)}</option>)}
             </select>
           </label>
           <div className="grid grid-cols-2 gap-3">

@@ -57,7 +57,6 @@ type Child struct {
 	DOB          string             `bson:"dob"                  json:"dob"` // YYYY-MM-DD
 	Gender       string             `bson:"gender,omitempty"     json:"gender,omitempty"`
 	BranchSlug   string             `bson:"branch_slug"          json:"branch_slug"`
-	RoomID       string             `bson:"room_id,omitempty"    json:"room_id,omitempty"`
 	Status       ChildStatus        `bson:"status"               json:"status"`
 	StartDate    string             `bson:"start_date,omitempty" json:"start_date,omitempty"`
 	Guardians    []Guardian         `bson:"guardians,omitempty"  json:"guardians,omitempty"`
@@ -75,6 +74,13 @@ type Child struct {
 
 	// KeyPersonName is resolved from the staff record for display; never stored.
 	KeyPersonName string `bson:"-" json:"key_person_name,omitempty"`
+
+	// RoomID/RoomName are a COMPUTED read projection of the child's current
+	// active room, resolved from the canonical child_room_assignments at read
+	// time (never stored, never written). Room placement is managed only
+	// through the assignment / transfer endpoints.
+	RoomID   string `bson:"-" json:"room_id,omitempty"`
+	RoomName string `bson:"-" json:"room_name,omitempty"`
 }
 
 // ChildKeyPersonRequest assigns (or clears, with an empty staff_id) a child's
@@ -84,12 +90,11 @@ type ChildKeyPersonRequest struct {
 }
 
 type ChildRequest struct {
-	FirstName    string         `json:"first_name" validate:"required"`
-	LastName     string         `json:"last_name"  validate:"required"`
-	DOB          string         `json:"dob"`
-	Gender       string         `json:"gender"`
+	FirstName  string `json:"first_name" validate:"required"`
+	LastName   string `json:"last_name"  validate:"required"`
+	DOB        string `json:"dob"`
+	Gender     string `json:"gender"`
 	BranchSlug   string         `json:"branch_slug" validate:"required"`
-	RoomID       string         `json:"room_id"`
 	Status       ChildStatus    `json:"status"`
 	StartDate    string         `json:"start_date"`
 	Guardians    []Guardian     `json:"guardians"`

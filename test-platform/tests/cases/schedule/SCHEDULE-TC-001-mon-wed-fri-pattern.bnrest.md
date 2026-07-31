@@ -25,7 +25,6 @@ see `SUI-KPI-001`.
 Given Put /api/v1/admin/children/${child.id} Into updated Using adminSession.accessToken
 {
   "branch_slug": "${branch.slug}",
-  "room_id": "${room.id}",
   "sessions": [
     {"day": "Mon", "type": "full"},
     {"day": "Wed", "type": "full"},

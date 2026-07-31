@@ -196,10 +196,11 @@ func upsertChild(ctx context.Context, db *mongo.Database, slug, first, last, dob
 	now := time.Now()
 	set := bson.M{"first_name": first, "last_name": last, "dob": dob,
 		"branch_slug": slug, "status": string(models.ChildActive), "funding_type": "none", "updated_at": now}
-	if roomID != "" {
-		set["room_id"] = roomID
+	childID := upsert(ctx, db.Collection("children"), filter, set, now)
+	// Room placement is the canonical assignment model, not a stored scalar.
+	if childID != "" && roomID != "" {
+		upsertChildRoomAssignment(ctx, db, slug, childID, roomID, now)
 	}
-	upsert(ctx, db.Collection("children"), filter, set, now)
 }
 
 func upsertStaff(ctx context.Context, db *mongo.Database, slug, first, last, jobTitle, roomID string) {
@@ -208,10 +209,42 @@ func upsertStaff(ctx context.Context, db *mongo.Database, slug, first, last, job
 	set := bson.M{"first_name": first, "last_name": last,
 		"branch_slug": slug, "job_title": jobTitle, "staff_type": string(models.StaffPermanent),
 		"status": string(models.StaffActive), "updated_at": now}
-	if roomID != "" {
-		set["room_id"] = roomID
+	staffID := upsert(ctx, db.Collection("staff"), filter, set, now)
+	if staffID != "" && roomID != "" {
+		upsertStaffRoomAssignment(ctx, db, slug, staffID, roomID, now)
 	}
-	upsert(ctx, db.Collection("staff"), filter, set, now)
+}
+
+// upsertChildRoomAssignment idempotently ensures ONE active canonical
+// placement for the child in the given room (natural key: child + active).
+func upsertChildRoomAssignment(ctx context.Context, db *mongo.Database, slug, childID, roomID string, now time.Time) {
+	if dryRun {
+		return
+	}
+	filter := bson.M{"child_id": childID, "status": string(models.AssignmentActive)}
+	set := bson.M{"child_id": childID, "room_id": roomID, "branch_slug": slug,
+		"status": string(models.AssignmentActive), "start_date": now.Format("2006-01-02"), "updated_at": now}
+	update := bson.M{"$set": set, "$setOnInsert": bson.M{"created_at": now, "created_by": "seed:famly"}}
+	opts := options.Update().SetUpsert(true)
+	if _, err := db.Collection("child_room_assignments").UpdateOne(ctx, filter, update, opts); err != nil {
+		log.Printf("  upsert child_room_assignment failed: %v", err)
+	}
+}
+
+// upsertStaffRoomAssignment idempotently ensures the staff member's primary
+// active canonical assignment for the given room.
+func upsertStaffRoomAssignment(ctx context.Context, db *mongo.Database, slug, staffID, roomID string, now time.Time) {
+	if dryRun {
+		return
+	}
+	filter := bson.M{"staff_id": staffID, "room_id": roomID, "status": string(models.AssignmentActive)}
+	set := bson.M{"staff_id": staffID, "room_id": roomID, "branch_slug": slug, "is_primary": true,
+		"status": string(models.AssignmentActive), "start_date": now.Format("2006-01-02"), "updated_at": now}
+	update := bson.M{"$set": set, "$setOnInsert": bson.M{"created_at": now, "created_by": "seed:famly"}}
+	opts := options.Update().SetUpsert(true)
+	if _, err := db.Collection("staff_room_assignments").UpdateOne(ctx, filter, update, opts); err != nil {
+		log.Printf("  upsert staff_room_assignment failed: %v", err)
+	}
 }
 
 // upsert applies $set + $setOnInsert(created_at); returns the doc _id hex.

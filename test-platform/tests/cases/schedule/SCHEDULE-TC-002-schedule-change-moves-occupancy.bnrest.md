@@ -30,7 +30,6 @@ first, so it is fully self-contained.
 Given Put /api/v1/admin/children/${child.id} Into initial Using adminSession.accessToken
 {
   "branch_slug": "${branch.slug}",
-  "room_id": "${room.id}",
   "sessions": [
     {"day": "Mon", "type": "full"},
     {"day": "Wed", "type": "full"},
@@ -42,7 +41,6 @@ Then AssertStatus initial 200
 When Put /api/v1/admin/children/${child.id} Into moved Using adminSession.accessToken
 {
   "branch_slug": "${branch.slug}",
-  "room_id": "${room.id}",
   "sessions": [
     {"day": "Mon", "type": "full"},
     {"day": "Wed", "type": "full"},

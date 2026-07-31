@@ -21,7 +21,7 @@ Replaces legacy `ChildRoomSuite.tc_exitcriteria_duplicateChildRejected` —
 a regression lock on `childService.duplicateChild` for the **direct**
 `POST /admin/children` path (distinct from `REG-TC-003`'s idempotency lock
 on the enquiry-linked `EnsureFromEnquiry` path). Reads the shared
-`adminSession`/`branch` suite fixtures — see `SUI-ASSIGN-001`.
+`adminSession`/`branch` suite fixtures — see `SUI-NET-001`.
 
 ```bnrest
 Set dupSuffix = random()

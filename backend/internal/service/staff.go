@@ -32,10 +32,15 @@ type staffService struct {
 	repo     repository.StaffRepository
 	counters repository.CounterRepository
 	accounts StaffAccounts
+	// roomAssignments is the canonical staff→room model; the staff service
+	// only READS from it to project the computed Staff.RoomID (nil-safe for
+	// unit tests). rooms resolves the room name for that projection.
+	roomAssignments StaffRoomAssignmentService
+	rooms           repository.RoomRepository
 }
 
-func NewStaffService(repo repository.StaffRepository, counters repository.CounterRepository, accounts StaffAccounts) StaffService {
-	return &staffService{repo: repo, counters: counters, accounts: accounts}
+func NewStaffService(repo repository.StaffRepository, counters repository.CounterRepository, accounts StaffAccounts, roomAssignments StaffRoomAssignmentService, rooms repository.RoomRepository) StaffService {
+	return &staffService{repo: repo, counters: counters, accounts: accounts, roomAssignments: roomAssignments, rooms: rooms}
 }
 
 // provisionLogin creates or links the person's login account and returns its id.
@@ -82,18 +87,71 @@ func (s *staffService) provisionLogin(ctx context.Context, st *models.Staff, req
 }
 
 func (s *staffService) List(ctx context.Context, f repository.StaffFilter) ([]models.Staff, error) {
-	return s.repo.FindAll(ctx, f)
+	staff, err := s.repo.FindAll(ctx, f)
+	if err != nil {
+		return nil, err
+	}
+	// Project the computed primary room from the canonical assignment model
+	// (one batched query — no stored scalar, no N+1).
+	if s.roomAssignments != nil {
+		primary := s.roomAssignments.PrimaryRoomsByBranch(ctx, f.Branch)
+		names := s.roomNameMap(ctx, f.Branch)
+		for i := range staff {
+			if rid, ok := primary[staff[i].ID.Hex()]; ok {
+				staff[i].RoomID = rid
+				staff[i].RoomName = names[rid]
+			}
+		}
+	}
+	return staff, nil
 }
 func (s *staffService) GetByID(ctx context.Context, id string) (*models.Staff, error) {
-	return s.repo.FindByID(ctx, id)
+	st, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	s.resolveRoom(ctx, st)
+	return st, nil
+}
+
+// resolveRoom fills the transient RoomID/RoomName from the staff member's
+// current primary active assignment in the canonical model.
+func (s *staffService) resolveRoom(ctx context.Context, st *models.Staff) {
+	if st == nil || s.roomAssignments == nil {
+		return
+	}
+	rid := s.roomAssignments.PrimaryRoom(ctx, st.ID.Hex())
+	if rid == "" {
+		return
+	}
+	st.RoomID = rid
+	if s.rooms != nil {
+		if room, err := s.rooms.FindByID(ctx, rid); err == nil && room != nil {
+			st.RoomName = room.Name
+		}
+	}
+}
+
+func (s *staffService) roomNameMap(ctx context.Context, branch string) map[string]string {
+	out := map[string]string{}
+	if s.rooms == nil {
+		return out
+	}
+	rooms, err := s.rooms.FindAll(ctx, branch)
+	if err != nil {
+		return out
+	}
+	for _, r := range rooms {
+		out[r.ID.Hex()] = r.Name
+	}
+	return out
 }
 
 // applyStaff copies a StaffRequest onto a Staff record for both Create and
 // Update. Most fields only overwrite when the request actually supplies a
-// non-empty value — a partial update (e.g. "just change room_id") must never
-// silently wipe email/phone/job_title/DBS/First-Aid data, the same
-// data-loss pattern already fixed for children's applyChild. RoomID stays
-// unconditional: clearing it is the legitimate "unassign from room" action.
+// non-empty value — a partial update must never silently wipe
+// email/phone/job_title/DBS/First-Aid data. Room placement is not a field
+// here; it is managed only through the staff-room-assignment endpoints.
 func applyStaff(st *models.Staff, req models.StaffRequest) {
 	if v := strings.TrimSpace(req.FirstName); v != "" {
 		st.FirstName = v
@@ -110,7 +168,8 @@ func applyStaff(st *models.Staff, req models.StaffRequest) {
 	if v := strings.TrimSpace(req.BranchSlug); v != "" {
 		st.BranchSlug = v
 	}
-	st.RoomID = strings.TrimSpace(req.RoomID)
+	// Room placement is NOT a field here — it is managed solely through the
+	// staff-room-assignment endpoints (the canonical model).
 	if v := strings.TrimSpace(req.JobTitle); v != "" {
 		st.JobTitle = v
 	}
@@ -186,6 +245,8 @@ func (s *staffService) Create(ctx context.Context, req models.StaffRequest) (*mo
 	if err := s.repo.Create(ctx, st); err != nil {
 		return nil, err
 	}
+	// Room placement is a first-class operation via the staff-room-assignment
+	// endpoint — the create flow issues that as a separate canonical call.
 	return st, nil
 }
 
@@ -214,9 +275,21 @@ func (s *staffService) Update(ctx context.Context, id string, req models.StaffRe
 			return nil, err
 		}
 	}
-	return s.repo.Update(ctx, id, *existing)
+	updated, err := s.repo.Update(ctx, id, *existing)
+	if err != nil {
+		return nil, err
+	}
+	// RoomID/RoomName are transient — re-project so an edit response still
+	// carries the staff member's current room.
+	s.resolveRoom(ctx, updated)
+	return updated, nil
 }
 
 func (s *staffService) Delete(ctx context.Context, id string) error {
+	// End any live room assignments first so no active row dangles on a
+	// removed staff member (and their rooms stay cleanly deletable).
+	if s.roomAssignments != nil {
+		s.roomAssignments.EndAllForStaff(ctx, id, "staff-deleted")
+	}
 	return s.repo.Delete(ctx, id)
 }

@@ -11,12 +11,19 @@ type StaffAttendanceStatus string
 const (
 	StaffAttExpected StaffAttendanceStatus = "expected" // active staff, not yet marked
 	StaffAttPresent  StaffAttendanceStatus = "present"
-	StaffAttAbsent   StaffAttendanceStatus = "absent"
-	StaffAttLeave    StaffAttendanceStatus = "leave" // annual leave / holiday
-	StaffAttSick     StaffAttendanceStatus = "sick"
-	StaffAttTraining StaffAttendanceStatus = "training"
-	StaffAttMeeting  StaffAttendanceStatus = "meeting"
-	StaffAttRemote   StaffAttendanceStatus = "remote"
+	StaffAttAbsent   StaffAttendanceStatus = "absent" // unauthorised / unexplained absence
+	// Leave & absence taxonomy. StaffAttLeave is annual leave / holiday; the
+	// remaining leave kinds are accounted-for away states that must be reported
+	// distinctly (not lumped together) so a manager can tell annual leave from
+	// sickness, dependant care, unpaid leave and maternity.
+	StaffAttLeave         StaffAttendanceStatus = "leave"          // annual leave / holiday
+	StaffAttSick          StaffAttendanceStatus = "sick"           // staff member's own sickness
+	StaffAttDependantSick StaffAttendanceStatus = "dependant_sick" // caring for their own sick child/dependant
+	StaffAttUnpaidLeave   StaffAttendanceStatus = "unpaid_leave"   // no-pay leave
+	StaffAttMaternity     StaffAttendanceStatus = "maternity"      // maternity / paternity / adoption leave
+	StaffAttTraining      StaffAttendanceStatus = "training"
+	StaffAttMeeting       StaffAttendanceStatus = "meeting"
+	StaffAttRemote        StaffAttendanceStatus = "remote"
 )
 
 // DBSExpiryWarnDays is how many days before a DBS check expires it starts being
@@ -27,17 +34,52 @@ const DBSExpiryWarnDays = 90
 // who must NOT be counted absent (annual leave, sickness, training, off-site
 // meeting, remote work).
 var awayStatuses = map[StaffAttendanceStatus]bool{
-	StaffAttLeave:    true,
-	StaffAttSick:     true,
-	StaffAttTraining: true,
-	StaffAttMeeting:  true,
-	StaffAttRemote:   true,
+	StaffAttLeave:         true,
+	StaffAttSick:          true,
+	StaffAttDependantSick: true,
+	StaffAttUnpaidLeave:   true,
+	StaffAttMaternity:     true,
+	StaffAttTraining:      true,
+	StaffAttMeeting:       true,
+	StaffAttRemote:        true,
 }
 
 // IsAway reports whether a status is an accounted-for absence (so it is neither
 // "present/attended" nor "absent"). The single source of truth for the away set,
 // shared by every staff/attendance KPI.
 func IsAway(s StaffAttendanceStatus) bool { return awayStatuses[s] }
+
+// Leave/absence category keys — the single source of truth for the KPI
+// breakdowns so the attendance-hub summary, the staff stats and the per-staff
+// absence card all bucket a status the same way.
+const (
+	LeaveAnnual    = "annual_leave"
+	LeaveSick      = "sick"
+	LeaveDependant = "dependant_sick"
+	LeaveUnpaid    = "unpaid_leave"
+	LeaveMaternity = "maternity"
+	LeaveOtherAway = "other_away" // training / meeting / remote — accounted-for but not "leave"
+)
+
+// AwayCategory maps an accounted-for away status to its KPI bucket, or "" when
+// the status is not an away status.
+func AwayCategory(s StaffAttendanceStatus) string {
+	switch s {
+	case StaffAttLeave:
+		return LeaveAnnual
+	case StaffAttSick:
+		return LeaveSick
+	case StaffAttDependantSick:
+		return LeaveDependant
+	case StaffAttUnpaidLeave:
+		return LeaveUnpaid
+	case StaffAttMaternity:
+		return LeaveMaternity
+	case StaffAttTraining, StaffAttMeeting, StaffAttRemote:
+		return LeaveOtherAway
+	}
+	return ""
+}
 
 // IsWorking reports whether this record counts as present/attended for the day:
 // an explicit "present" status OR any clock-in (kiosk or manual). Shared by the
@@ -160,8 +202,16 @@ type AttendanceDaySummary struct {
 	Attended        int                         `json:"attended"` // working (present) count — the rate numerator
 	CurrentlyIn     int                         `json:"currently_in"`
 	ClockedOut      int                         `json:"clocked_out"`
-	Absent          int                         `json:"absent"`
-	OnLeave         int                         `json:"on_leave"`
+	Absent          int                         `json:"absent"`   // unauthorised / unexplained absence
+	OnLeave         int                         `json:"on_leave"` // total accounted-for away (sum of the breakdown below)
+	// Leave & absence breakdown — so "on leave" is never a black box that hides
+	// sickness or maternity behind a single number.
+	AnnualLeave     int                         `json:"annual_leave"`
+	Sick            int                         `json:"sick"`
+	DependantSick   int                         `json:"dependant_sick"`
+	UnpaidLeave     int                         `json:"unpaid_leave"`
+	Maternity       int                         `json:"maternity"`
+	OtherAway       int                         `json:"other_away"` // training / meeting / remote
 	Late            int                         `json:"late"`
 	OvertimeMinutes int                         `json:"overtime_minutes"`
 	MissingClockOut int                         `json:"missing_clockout"`
@@ -180,12 +230,15 @@ type StaffAbsenceSummary struct {
 	To             string `json:"to"`   // YYYY-MM-DD inclusive
 	WorkedDays     int    `json:"worked_days"`
 	WorkedHours    int    `json:"worked_hours"` // whole hours worked in the period
-	LateDays       int    `json:"late_days"`
-	SickDays       int    `json:"sick_days"`
-	LeaveDays      int    `json:"leave_days"`      // annual leave / holiday
-	TrainingDays   int    `json:"training_days"`   // training / meeting / remote
-	AbsentDays     int    `json:"absent_days"`     // explicit unexplained absence
-	AttendanceRate int    `json:"attendance_rate"` // worked ÷ (worked + away + absent), %
+	LateDays          int `json:"late_days"`
+	SickDays          int `json:"sick_days"`
+	DependantSickDays int `json:"dependant_sick_days"` // dependant / child sickness
+	LeaveDays         int `json:"leave_days"`          // annual leave / holiday
+	UnpaidLeaveDays   int `json:"unpaid_leave_days"`   // no-pay leave
+	MaternityDays     int `json:"maternity_days"`      // maternity / paternity / adoption
+	TrainingDays      int `json:"training_days"`       // training / meeting / remote
+	AbsentDays        int `json:"absent_days"`         // unauthorised / unexplained absence
+	AttendanceRate    int `json:"attendance_rate"`     // worked ÷ (worked + away + absent), %
 }
 
 // AttendanceCorrectionRequest is a manager's manual edit to a record. Each
