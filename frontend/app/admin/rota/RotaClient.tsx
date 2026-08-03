@@ -123,13 +123,17 @@ export default function RotaClient() {
     setEdit({ row, date, shift: sh, roomId: sh?.room_id ?? row.staff?.room_id ?? (row.roomId === COVER_KEY ? "" : row.roomId), start: sh?.start_time ?? "08:00", end: sh?.end_time ?? "16:00" });
   };
 
-  const save = async () => {
-    if (!edit) return;
+  // `override` lets a preset tag save its own times directly on double-click,
+  // without waiting for the async setEdit state update to land first.
+  const save = async (override?: { start: string; end: string }) => {
+    if (!edit || saving) return;
     const token = getAccessToken();
     if (!token) return;
-    if (edit.end <= edit.start) { setError("End time must be after start time."); return; }
+    const start = override?.start ?? edit.start;
+    const end = override?.end ?? edit.end;
+    if (end <= start) { setError("End time must be after start time."); return; }
     setSaving(true); setError(null);
-    const base = { room_id: edit.roomId || undefined, date: edit.date, start_time: edit.start, end_time: edit.end };
+    const base = { room_id: edit.roomId || undefined, date: edit.date, start_time: start, end_time: end };
     const body = edit.row.external
       ? { ...base, external: true, staff_name: edit.row.name, branch_slug: branch }
       : { ...base, staff_id: edit.row.staff!.id };
@@ -254,10 +258,11 @@ export default function RotaClient() {
                 <div><label className="mb-1 block text-xs font-medium text-slate-600">Start</label><input type="time" value={edit.start} onChange={(e) => setEdit({ ...edit, start: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></div>
                 <div><label className="mb-1 block text-xs font-medium text-slate-600">End</label><input type="time" value={edit.end} onChange={(e) => setEdit({ ...edit, end: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></div>
               </div>
+              <p className="text-[0.7rem] text-slate-400">Quick times — click to fill, double-click to save.</p>
               <div className="flex flex-wrap gap-1.5">
                 {PRESETS.map((p) => {
                   const [s, e] = p.split("-");
-                  return <button key={p} onClick={() => setEdit({ ...edit, start: s, end: e })} className={`rounded-full border px-2.5 py-1 text-xs font-medium ${edit.start === s && edit.end === e ? "border-teal-400 bg-teal-50 text-teal-700" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}>{p}</button>;
+                  return <button key={p} onClick={() => setEdit({ ...edit, start: s, end: e })} onDoubleClick={() => save({ start: s, end: e })} title="Click to select · double-click to save" className={`rounded-full border px-2.5 py-1 text-xs font-medium ${edit.start === s && edit.end === e ? "border-teal-400 bg-teal-50 text-teal-700" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}>{p}</button>;
                 })}
               </div>
             </div>
@@ -265,7 +270,7 @@ export default function RotaClient() {
               {edit.shift ? <button onClick={remove} disabled={saving} className="inline-flex items-center gap-1.5 text-sm font-medium text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /> Remove</button> : <span />}
               <div className="flex gap-2">
                 <button onClick={() => setEdit(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
-                <button onClick={save} disabled={saving} className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">{saving ? "Saving…" : "Save shift"}</button>
+                <button onClick={() => save()} disabled={saving} className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">{saving ? "Saving…" : "Save shift"}</button>
               </div>
             </div>
           </div>
