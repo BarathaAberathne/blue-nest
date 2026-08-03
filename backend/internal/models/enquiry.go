@@ -16,7 +16,10 @@ const (
 	EnquiryStatusAwaitingReply  = "awaiting_reply"
 	EnquiryStatusBookedVisit    = "booked_visit"
 	EnquiryStatusVisitCompleted = "visit_completed"
-	EnquiryStatusRegistered     = "registered"
+	// Between visit and registration: the family/place is waiting on a
+	// confirmation before it becomes a firm registration.
+	EnquiryStatusPendingConfirmation = "pending_confirmation"
+	EnquiryStatusRegistered          = "registered"
 	EnquiryStatusCancelled      = "cancelled"
 	EnquiryStatusLost           = "lost"
 	EnquiryStatusSpam           = "spam"
@@ -30,6 +33,7 @@ var EnquiryStatuses = []string{
 	EnquiryStatusAwaitingReply,
 	EnquiryStatusBookedVisit,
 	EnquiryStatusVisitCompleted,
+	EnquiryStatusPendingConfirmation,
 	EnquiryStatusRegistered,
 	EnquiryStatusCancelled,
 	EnquiryStatusLost,

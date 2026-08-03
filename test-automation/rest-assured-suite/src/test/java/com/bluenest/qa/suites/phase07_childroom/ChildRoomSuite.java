@@ -2,6 +2,7 @@ package com.bluenest.qa.suites.phase07_childroom;
 
 import com.bluenest.qa.config.Env;
 import com.bluenest.qa.support.Api;
+import com.bluenest.qa.support.Fixtures;
 import com.bluenest.qa.support.TestData;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.*;
@@ -15,48 +16,33 @@ import static org.hamcrest.Matchers.*;
 /**
  * Phase 11 — Assign a registered child to a room.
  *
- * <p>Source: QA test plan §7 Phase 11 (TC-CHILDROOM-002).
+ * <p>Source: QA test plan §7 Phase 11 (TC-CHILDROOM-002). Migrated to the
+ * canonical room-allocation model (PR #100): a child no longer carries a
+ * settable {@code room_id} — that field was dropped from the create/update
+ * DTOs and {@code room_id}/{@code room_name} survive only as a read-time
+ * projection of the child's active assignment. Allocation now goes through
+ * {@code POST /admin/child-room-assignments} (end via {@code PATCH
+ * .../{id}} {@code {"end":true}}).
  *
- * <p><b>Regression coverage (the headline finding of this session's manual
- * pass):</b> {@code PUT /admin/children/{id}} was a full-replace endpoint —
- * assigning a room via a minimal {@code {branch_slug, room_id}} payload
- * silently WIPED the child's date of birth to {@code ""}. Fixed in
- * {@code backend/internal/service/child.go} ({@code applyChild} now only
- * overwrites first/last name, DOB, and branch when the request actually
- * supplies them; {@code room_id} stays freely settable/clearable, since
- * clearing it is the legitimate "unassign from room" action). Tests 2-3
- * below are the regression lock — this is a Critical/data-loss-severity bug
- * per the plan's own §24 taxonomy, so it gets the most explicit coverage in
- * this suite.
+ * <p>All fixtures (room + child) are created dynamically at run time and torn
+ * down afterwards — nothing assumes a pre-seeded Harrow room.
  *
- * <p><b>TC-CHILDROOM-003/004 are documented gap locks, not passing
- * assertions of good behaviour:</b> verified directly against {@code
- * backend/internal/service/child.go} — the room-assignment write path
- * ({@code applyChild} then repository {@code Update}, filtered only by
- * {@code _id}) never looks up the target room, never counts its current
- * occupants against {@code Room.Capacity}, and never compares the child's
- * {@code dob} against the room's {@code age_range}. Both are locked here so
- * a future capacity/age-enforcement feature is required to update these
- * tests, not silently regress further.
+ * <p><b>Partial-update regression locks (tests 2, 3, 8):</b> {@code
+ * PUT /admin/children/{id}} was once a full-replace that wiped unspecified
+ * fields (DOB, name, then allergies/medical notes) to empty. {@code
+ * applyChild} now only overwrites fields the request actually supplies. These
+ * tests fire a minimal {@code {branch_slug}} PUT and assert the untouched
+ * fields survive — the room_id trigger they originally used is gone, but the
+ * partial-update guarantee they lock is unchanged.
  *
- * <p><b>Second regression (found while building {@code ScheduleSuite}):</b>
- * the DOB fix above only covered first/last name, DOB, and branch —
- * {@code allergies}/{@code medical_notes}/{@code dietary_reqs}/{@code
- * guardians}/{@code gender}/{@code start_date}/{@code sessions} were all
- * still unconditionally overwritten, so a room-only update silently wiped a
- * child's allergy and medical-notes data too — confirmed live (a real
- * child's "Peanuts - severe" allergy and "EpiPen in bag" note were erased by
- * a bare {@code {"branch_slug":"harrow"}} PUT). Fixed in the same {@code
- * applyChild} function. Test 8 below is the lock for the safeguarding-
- * relevant fields; {@code ScheduleSuite} locks the {@code sessions} field.
+ * <p><b>Enforcement locks (tests 6, 7):</b> these were "gap locks" proving
+ * capacity and age were NOT enforced on assignment. The room-allocation
+ * refactor closed both gaps, so they now lock the enforcement in place:
+ * a full room / an out-of-age child is rejected (400) and only allocatable
+ * with an {@code override_reason}.
  *
- * <p><b>Third regression (duplicate children):</b> unlike rooms (name) and
- * staff (email), {@code childService.Create}/{@code Update}/{@code
- * EnsureFromEnquiry} had no duplicate check at all — a double-submit could
- * create two enrolment records for the same child. Fixed with a
- * name+DOB+branch check ({@code childService.duplicateChild}), excluding
- * children with status {@code left} (a re-enrolment is legitimate). Test 9
- * below is the lock.
+ * <p><b>Duplicate-child lock (test 9):</b> a second child with the same
+ * name+DOB+branch is rejected, not silently duplicated.
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @DisplayName("Phase 11 — Child room assignment")
@@ -64,93 +50,71 @@ class ChildRoomSuite {
 
     private static String adminToken;
     private static String childId;
-    private static String nestRoomId; // "Nest (Babies)", 3-24 months — matches the fixture DOB below
+    private static String roomId;
+    private static String assignmentId;
     private static final String childDob = "2026-03-01";
 
     @BeforeAll
     static void setup() {
         adminToken = Api.loginAsAdmin();
-
-        Response rooms = given().spec(Api.authed(adminToken))
-                .when().get("/api/v1/admin/rooms?branch=" + Env.HARROW_BRANCH_SLUG);
-        nestRoomId = rooms.jsonPath().getList("data").stream()
-                .filter(r -> "Nest (Babies)".equals(((Map<?, ?>) r).get("name")))
-                .map(r -> String.valueOf(((Map<?, ?>) r).get("id")))
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("fixture room 'Nest (Babies)' not found at Harrow"));
-
-        Response child = given().spec(Api.authed(adminToken))
-                .body(Map.of(
-                        "first_name", "QA-AUTOTEST",
-                        "last_name", TestData.uniqueName("ChildRoom"),
-                        "dob", childDob,
-                        "branch_slug", Env.HARROW_BRANCH_SLUG))
-                .when().post("/api/v1/admin/children");
-        child.then().statusCode(201);
-        childId = child.jsonPath().getString("data.id");
+        roomId = Fixtures.createRoom(adminToken, Env.HARROW_BRANCH_SLUG, "ChildRoom", 10);
+        childId = Fixtures.createChild(adminToken, Env.HARROW_BRANCH_SLUG, "ChildRoom", childDob);
     }
 
     @AfterAll
     static void cleanup() {
-        if (childId != null) {
-            given().spec(Api.authed(adminToken)).when().delete("/api/v1/admin/children/" + childId);
-        }
+        Fixtures.endChildRoomAssignment(adminToken, assignmentId);
+        Fixtures.deleteChild(adminToken, childId);
+        Fixtures.deleteRoom(adminToken, roomId);
     }
 
     @Test
     @Order(1)
-    @DisplayName("TC-CHILDROOM-002: Assigning the child to a room succeeds and the room is reflected on the child")
+    @DisplayName("TC-CHILDROOM-002: Allocating the child to a room succeeds and is reflected as the child's current room")
     @Tag("golden-path")
     void tc_childroom_002_assignRoom() {
+        assignmentId = Fixtures.assignChildRoomOk(adminToken, childId, roomId);
+
         given().spec(Api.authed(adminToken))
-                .body(Map.of(
-                        "branch_slug", Env.HARROW_BRANCH_SLUG,
-                        "room_id", nestRoomId,
-                        "first_name", "QA-AUTOTEST",
-                        "last_name", "placeholder-overwritten-below"))
-                .when().put("/api/v1/admin/children/" + childId)
+                .when().get("/api/v1/admin/children/" + childId)
                 .then().statusCode(200)
-                .body("data.room_id", equalTo(nestRoomId));
+                .body("data.room_id", equalTo(roomId));
     }
 
     @Test
     @Order(2)
-    @DisplayName("TC-CHILDROOM-002-REG (regression): a room-only update payload does NOT wipe the child's date of birth")
+    @DisplayName("TC-CHILDROOM-002-REG (regression): a minimal partial update does NOT wipe the child's date of birth")
     @Tag("regression")
-    void tc_childroom_002_reg_roomOnlyUpdatePreservesDob() {
-        // Given the child currently has a real DOB (set at creation)
+    void tc_childroom_002_reg_partialUpdatePreservesDob() {
         String dobBefore = given().spec(Api.authed(adminToken))
                 .when().get("/api/v1/admin/children/" + childId)
                 .jsonPath().getString("data.dob");
         Assertions.assertEquals(childDob, dobBefore, "sanity check: DOB must be set before this test");
 
-        // When a caller sends a minimal payload that only intends to change room_id
-        // (this is exactly the shape a "quick assign to room" UI action would send —
-        // the bug this session found was triggered by precisely this pattern)
+        // A minimal payload (only branch_slug) must not clear the other fields.
         given().spec(Api.authed(adminToken))
-                .body(Map.of("branch_slug", Env.HARROW_BRANCH_SLUG, "room_id", nestRoomId))
+                .body(Map.of("branch_slug", Env.HARROW_BRANCH_SLUG))
                 .when().put("/api/v1/admin/children/" + childId)
                 .then().statusCode(200);
 
-        // Then the DOB must survive untouched.
         String dobAfter = given().spec(Api.authed(adminToken))
                 .when().get("/api/v1/admin/children/" + childId)
                 .jsonPath().getString("data.dob");
         Assertions.assertEquals(childDob, dobAfter,
-                "CRITICAL REGRESSION: a room-only update wiped the child's date of birth");
+                "CRITICAL REGRESSION: a partial update wiped the child's date of birth");
     }
 
     @Test
     @Order(3)
-    @DisplayName("TC-CHILDROOM-002-REG-b (regression): a room-only update also preserves first/last name")
+    @DisplayName("TC-CHILDROOM-002-REG-b (regression): a minimal partial update also preserves first/last name")
     @Tag("regression")
-    void tc_childroom_002_reg_roomOnlyUpdatePreservesName() {
+    void tc_childroom_002_reg_partialUpdatePreservesName() {
         Response before = given().spec(Api.authed(adminToken)).when().get("/api/v1/admin/children/" + childId);
         String firstBefore = before.jsonPath().getString("data.first_name");
         String lastBefore = before.jsonPath().getString("data.last_name");
 
         given().spec(Api.authed(adminToken))
-                .body(Map.of("branch_slug", Env.HARROW_BRANCH_SLUG, "room_id", nestRoomId))
+                .body(Map.of("branch_slug", Env.HARROW_BRANCH_SLUG))
                 .when().put("/api/v1/admin/children/" + childId)
                 .then().statusCode(200);
 
@@ -161,23 +125,23 @@ class ChildRoomSuite {
 
     @Test
     @Order(4)
-    @DisplayName("TC-CHILDROOM-002c: room_id CAN still be explicitly cleared (legitimate unassign, not part of the regression fix)")
+    @DisplayName("TC-CHILDROOM-002c: ending the assignment unallocates the child (legitimate unassign)")
     void tc_childroom_002c_roomCanBeUnassigned() {
+        // End the active placement from test 1.
+        Fixtures.endChildRoomAssignment(adminToken, assignmentId);
+
         given().spec(Api.authed(adminToken))
-                .body(Map.of("branch_slug", Env.HARROW_BRANCH_SLUG, "room_id", ""))
-                .when().put("/api/v1/admin/children/" + childId)
+                .when().get("/api/v1/admin/children/" + childId)
                 .then().statusCode(200)
                 .body("data.room_id", anyOf(nullValue(), emptyString()));
 
-        // Re-assign for any later suites/manual inspection that might expect it set.
-        given().spec(Api.authed(adminToken))
-                .body(Map.of("branch_slug", Env.HARROW_BRANCH_SLUG, "room_id", nestRoomId))
-                .when().put("/api/v1/admin/children/" + childId);
+        // Re-allocate so later inspection/cleanup has a live placement to end.
+        assignmentId = Fixtures.assignChildRoomOk(adminToken, childId, roomId);
     }
 
     @Test
     @Order(5)
-    @DisplayName("TC-CHILDROOM-001: Existing Harrow rooms carry sane, non-overlapping age ranges for the recommendation logic")
+    @DisplayName("TC-CHILDROOM-001: Rooms carry an age_range for the recommendation logic")
     void tc_childroom_001_roomAgeRangesArePresent() {
         Response rooms = given().spec(Api.authed(adminToken))
                 .when().get("/api/v1/admin/rooms?branch=" + Env.HARROW_BRANCH_SLUG);
@@ -189,66 +153,58 @@ class ChildRoomSuite {
 
     @Test
     @Order(6)
-    @DisplayName("TC-CHILDROOM-003 (regression, documents a real gap): assigning a second child to a full (capacity-1) room is accepted, not rejected")
+    @DisplayName("TC-CHILDROOM-003 (regression): a second child into a full (capacity-1) room is blocked without an override, allowed with one")
     @Tag("regression")
-    void tc_childroom_003_overCapacityAssignmentNotEnforced() {
-        Response room = given().spec(Api.authed(adminToken))
-                .body(Map.of("name", TestData.uniqueName("Capacity1Room"), "branch_slug", Env.HARROW_BRANCH_SLUG,
-                        "capacity", 1, "age_range", "QA-AUTOTEST capacity probe"))
-                .when().post("/api/v1/admin/rooms");
-        room.then().statusCode(201);
-        String roomId = room.jsonPath().getString("data.id");
+    void tc_childroom_003_overCapacityEnforced() {
+        String tinyRoom = Fixtures.createRoom(adminToken, Env.HARROW_BRANCH_SLUG, "Capacity1", 1);
+        String filler = Fixtures.createChild(adminToken, Env.HARROW_BRANCH_SLUG, "CapFill", "2026-03-01");
+        String blocked = Fixtures.createChild(adminToken, Env.HARROW_BRANCH_SLUG, "CapBlocked", "2026-03-01");
+        String fillAssign = null, overrideAssign = null;
+        try {
+            fillAssign = Fixtures.assignChildRoomOk(adminToken, filler, tinyRoom); // room now full
 
-        Response child1 = given().spec(Api.authed(adminToken))
-                .body(Map.of("first_name", "QA-AUTOTEST", "last_name", TestData.uniqueName("Cap1"),
-                        "dob", "2026-03-01", "branch_slug", Env.HARROW_BRANCH_SLUG, "room_id", roomId))
-                .when().post("/api/v1/admin/children");
-        child1.then().statusCode(201);
-        String child1Id = child1.jsonPath().getString("data.id");
+            // Without an override: rejected.
+            Fixtures.assignChildRoom(adminToken, blocked, tinyRoom, null).then().statusCode(400);
 
-        // When a SECOND child is assigned to the same capacity-1 room...
-        Response child2 = given().spec(Api.authed(adminToken))
-                .body(Map.of("first_name", "QA-AUTOTEST", "last_name", TestData.uniqueName("Cap2"),
-                        "dob", "2026-03-01", "branch_slug", Env.HARROW_BRANCH_SLUG, "room_id", roomId))
-                .when().post("/api/v1/admin/children");
-        // Then: the plan expects this to be rejected or flagged. It is accepted.
-        child2.then().statusCode(201).body("data.room_id", equalTo(roomId));
-        String child2Id = child2.jsonPath().getString("data.id");
-
-        given().spec(Api.authed(adminToken)).when().delete("/api/v1/admin/children/" + child1Id);
-        given().spec(Api.authed(adminToken)).when().delete("/api/v1/admin/children/" + child2Id);
-        given().spec(Api.authed(adminToken)).when().delete("/api/v1/admin/rooms/" + roomId);
+            // With an override reason: allowed.
+            Response overridden = Fixtures.assignChildRoom(adminToken, blocked, tinyRoom, "manager approved extra place");
+            overridden.then().statusCode(201);
+            overrideAssign = overridden.jsonPath().getString("data.id");
+        } finally {
+            Fixtures.endChildRoomAssignment(adminToken, fillAssign);
+            Fixtures.endChildRoomAssignment(adminToken, overrideAssign);
+            Fixtures.deleteChild(adminToken, filler);
+            Fixtures.deleteChild(adminToken, blocked);
+            Fixtures.deleteRoom(adminToken, tinyRoom);
+        }
     }
 
     @Test
     @Order(7)
-    @DisplayName("TC-CHILDROOM-004 (regression, documents a real gap): assigning a child whose age doesn't match the room's age_range is accepted, not flagged")
+    @DisplayName("TC-CHILDROOM-004 (regression): a child outside the room's age range is blocked without an override, allowed with one")
     @Tag("regression")
-    void tc_childroom_004_ageMismatchAssignmentNotEnforced() {
-        Response room = given().spec(Api.authed(adminToken))
-                .body(Map.of("name", TestData.uniqueName("BabyOnlyRoom"), "branch_slug", Env.HARROW_BRANCH_SLUG,
-                        "capacity", 5, "age_range", "QA-AUTOTEST 0-6 months only"))
-                .when().post("/api/v1/admin/rooms");
-        room.then().statusCode(201);
-        String roomId = room.jsonPath().getString("data.id");
+    void tc_childroom_004_ageMismatchEnforced() {
+        // A 4–5 year room (48–60 months).
+        String ageRoom = Fixtures.createRoom(adminToken, Env.HARROW_BRANCH_SLUG, "Preschool", 10, 48, 60);
+        // A clearly-too-young child (born 2024 → ~2yr).
+        String youngChild = Fixtures.createChild(adminToken, Env.HARROW_BRANCH_SLUG, "TooYoung", "2024-01-01");
+        String overrideAssign = null;
+        try {
+            Fixtures.assignChildRoom(adminToken, youngChild, ageRoom, null).then().statusCode(400);
 
-        // A clearly-not-a-baby DOB (well outside any "0-6 months" band).
-        Response child = given().spec(Api.authed(adminToken))
-                .body(Map.of("first_name", "QA-AUTOTEST", "last_name", TestData.uniqueName("AgeMismatch"),
-                        "dob", "2016-01-01", "branch_slug", Env.HARROW_BRANCH_SLUG, "room_id", roomId))
-                .when().post("/api/v1/admin/children");
-
-        // Then: the plan expects an age-mismatch warning/override. None exists.
-        child.then().statusCode(201).body("data.room_id", equalTo(roomId));
-        String childId2 = child.jsonPath().getString("data.id");
-
-        given().spec(Api.authed(adminToken)).when().delete("/api/v1/admin/children/" + childId2);
-        given().spec(Api.authed(adminToken)).when().delete("/api/v1/admin/rooms/" + roomId);
+            Response overridden = Fixtures.assignChildRoom(adminToken, youngChild, ageRoom, "SENCo approved early transition");
+            overridden.then().statusCode(201);
+            overrideAssign = overridden.jsonPath().getString("data.id");
+        } finally {
+            Fixtures.endChildRoomAssignment(adminToken, overrideAssign);
+            Fixtures.deleteChild(adminToken, youngChild);
+            Fixtures.deleteRoom(adminToken, ageRoom);
+        }
     }
 
     @Test
     @Order(8)
-    @DisplayName("TC-CHILDROOM-004-REG (regression, Critical/safeguarding): a room-only update does NOT wipe allergies or medical notes")
+    @DisplayName("TC-CHILDROOM-004-REG (regression, Critical/safeguarding): a minimal partial update does NOT wipe allergies or medical notes")
     @Tag("regression")
     @Tag("safeguarding")
     void tc_childroom_004_reg_partialUpdatePreservesSafetyFields() {
@@ -262,19 +218,16 @@ class ChildRoomSuite {
         String fixtureId = fixture.jsonPath().getString("data.id");
 
         try {
-            // When a caller sends a minimal payload that only intends to change
-            // room_id — the exact shape that wiped this child's DOB pre-fix, and
-            // (found while building ScheduleSuite) still wiped allergies/medical
-            // notes/dietary requirements even after that fix.
+            // A minimal payload (only branch_slug) must preserve the safeguarding fields.
             given().spec(Api.authed(adminToken))
-                    .body(Map.of("branch_slug", Env.HARROW_BRANCH_SLUG, "room_id", nestRoomId))
+                    .body(Map.of("branch_slug", Env.HARROW_BRANCH_SLUG))
                     .when().put("/api/v1/admin/children/" + fixtureId)
                     .then().statusCode(200)
                     .body("data.allergies", equalTo("Peanuts - severe"))
                     .body("data.medical_notes", equalTo("EpiPen in bag"))
                     .body("data.dietary_reqs", equalTo("No dairy"));
         } finally {
-            given().spec(Api.authed(adminToken)).when().delete("/api/v1/admin/children/" + fixtureId);
+            Fixtures.deleteChild(adminToken, fixtureId);
         }
     }
 
