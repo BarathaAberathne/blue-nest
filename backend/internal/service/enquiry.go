@@ -153,6 +153,7 @@ var openPipelineEnquiryStatuses = []string{
 	models.EnquiryStatusAwaitingReply,
 	models.EnquiryStatusBookedVisit,
 	models.EnquiryStatusVisitCompleted,
+	models.EnquiryStatusPendingConfirmation,
 }
 
 // mergeIfDuplicate looks for an enquiry still in the open pipeline for
@@ -571,6 +572,8 @@ func statusLabel(s string) string {
 		return "Booked visit"
 	case models.EnquiryStatusVisitCompleted:
 		return "Visit completed"
+	case models.EnquiryStatusPendingConfirmation:
+		return "Pending confirmation"
 	case models.EnquiryStatusRegistered:
 		return "Registered"
 	case models.EnquiryStatusCancelled:
@@ -586,7 +589,7 @@ func statusLabel(s string) string {
 
 // ── Dashboard stats ──────────────────────────────────────────────────────────
 
-// statusRank maps a status to its funnel stage (0 New … 4 Registered). Off-funnel
+// statusRank maps a status to its funnel stage (0 New … 5 Registered). Off-funnel
 // terminal states (cancelled/lost/spam) rank 0 — their historical stage is read
 // from the activity log instead.
 func statusRank(s string) int {
@@ -597,8 +600,10 @@ func statusRank(s string) int {
 		return 2
 	case models.EnquiryStatusVisitCompleted:
 		return 3
-	case models.EnquiryStatusRegistered:
+	case models.EnquiryStatusPendingConfirmation:
 		return 4
+	case models.EnquiryStatusRegistered:
+		return 5
 	default:
 		return 0
 	}
@@ -644,7 +649,7 @@ func (s *enquiryService) Stats(ctx context.Context, branch string) (*models.Enqu
 	type branchAgg struct{ total, thisMonth, newCount, booked, registered, lost, overdue int }
 	branchCmp := map[string]*branchAgg{}
 
-	funnel := make([]int, 5) // reached counts per stage
+	funnel := make([]int, 6) // reached counts per stage (0 New … 5 Registered)
 	var respSum time.Duration
 	var respCount, qualified int
 
@@ -762,7 +767,8 @@ func (s *enquiryService) Stats(ctx context.Context, branch string) (*models.Enqu
 		{Label: "Contacted", Value: funnel[1]},
 		{Label: "Booked visit", Value: funnel[2]},
 		{Label: "Visit completed", Value: funnel[3]},
-		{Label: "Registered", Value: funnel[4]},
+		{Label: "Pending confirmation", Value: funnel[4]},
+		{Label: "Registered", Value: funnel[5]},
 	}
 
 	for branch, c := range branchCmp {

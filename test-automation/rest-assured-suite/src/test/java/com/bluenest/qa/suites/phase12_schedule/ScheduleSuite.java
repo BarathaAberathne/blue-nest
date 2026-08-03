@@ -2,8 +2,8 @@ package com.bluenest.qa.suites.phase12_schedule;
 
 import com.bluenest.qa.config.Env;
 import com.bluenest.qa.support.Api;
+import com.bluenest.qa.support.Fixtures;
 import com.bluenest.qa.support.JsonUtil;
-import com.bluenest.qa.support.TestData;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.*;
 
@@ -39,33 +39,24 @@ class ScheduleSuite {
     private static String adminToken;
     private static String roomId;
     private static String childId;
+    private static String assignmentId;
 
     @BeforeAll
     static void setup() {
         adminToken = Api.loginAsAdmin();
-        Response room = given().spec(Api.authed(adminToken))
-                .body(Map.of("name", TestData.uniqueName("ScheduleRoom"), "branch_slug", Env.HARROW_BRANCH_SLUG,
-                        "capacity", 10, "age_range", "QA-AUTOTEST schedule probe"))
-                .when().post("/api/v1/admin/rooms");
-        room.then().statusCode(201);
-        roomId = room.jsonPath().getString("data.id");
-
-        Response child = given().spec(Api.authed(adminToken))
-                .body(Map.of("first_name", "QA-AUTOTEST", "last_name", TestData.uniqueName("Schedule"),
-                        "dob", "2023-01-01", "branch_slug", Env.HARROW_BRANCH_SLUG, "room_id", roomId))
-                .when().post("/api/v1/admin/children");
-        child.then().statusCode(201);
-        childId = child.jsonPath().getString("data.id");
+        // Dedicated, freshly-created room so the forecast's per-day counts are
+        // unambiguous, plus its own child allocated to it via the canonical
+        // assignment endpoint (room_id is no longer a child field).
+        roomId = Fixtures.createRoom(adminToken, Env.HARROW_BRANCH_SLUG, "ScheduleRoom", 10);
+        childId = Fixtures.createChild(adminToken, Env.HARROW_BRANCH_SLUG, "Schedule", "2023-01-01");
+        assignmentId = Fixtures.assignChildRoomOk(adminToken, childId, roomId);
     }
 
     @AfterAll
     static void cleanup() {
-        if (childId != null) {
-            given().spec(Api.authed(adminToken)).when().delete("/api/v1/admin/children/" + childId);
-        }
-        if (roomId != null) {
-            given().spec(Api.authed(adminToken)).when().delete("/api/v1/admin/rooms/" + roomId);
-        }
+        Fixtures.endChildRoomAssignment(adminToken, assignmentId);
+        Fixtures.deleteChild(adminToken, childId);
+        Fixtures.deleteRoom(adminToken, roomId);
     }
 
     private static Map<String, Object> dayEntry(String day) {
@@ -95,7 +86,7 @@ class ScheduleSuite {
                 Map.of("day", "Fri", "type", "full"));
 
         given().spec(Api.authed(adminToken))
-                .body(Map.of("branch_slug", Env.HARROW_BRANCH_SLUG, "room_id", roomId, "sessions", sessions))
+                .body(Map.of("branch_slug", Env.HARROW_BRANCH_SLUG, "sessions", sessions))
                 .when().put("/api/v1/admin/children/" + childId)
                 .then().statusCode(200)
                 .body("data.sessions", hasSize(3));
@@ -123,7 +114,7 @@ class ScheduleSuite {
                 Map.of("day", "Thu", "type", "full")); // Fri -> Thu
 
         given().spec(Api.authed(adminToken))
-                .body(Map.of("branch_slug", Env.HARROW_BRANCH_SLUG, "room_id", roomId, "sessions", sessions))
+                .body(Map.of("branch_slug", Env.HARROW_BRANCH_SLUG, "sessions", sessions))
                 .when().put("/api/v1/admin/children/" + childId)
                 .then().statusCode(200)
                 .body("data.sessions.day", containsInAnyOrder("Mon", "Wed", "Thu"));

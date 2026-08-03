@@ -381,6 +381,7 @@ export type EnquiryStatus =
   | "awaiting_reply"
   | "booked_visit"
   | "visit_completed"
+  | "pending_confirmation"
   | "registered"
   | "cancelled"
   | "lost"
@@ -393,6 +394,7 @@ export const ENQUIRY_STATUSES: EnquiryStatus[] = [
   "awaiting_reply",
   "booked_visit",
   "visit_completed",
+  "pending_confirmation",
   "registered",
   "cancelled",
   "lost",
@@ -407,6 +409,7 @@ export const ENQUIRY_STATUS_LABELS: Record<EnquiryStatus, string> = {
   awaiting_reply: "Awaiting reply",
   booked_visit: "Booked visit",
   visit_completed: "Visit completed",
+  pending_confirmation: "Pending confirmation",
   registered: "Registered",
   cancelled: "Cancelled",
   lost: "Not proceeding",

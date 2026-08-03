@@ -30,6 +30,7 @@ export default function PipelineSummary({
         { label: "Contacted", value: count((e) => e.status === "contacted"), accent: "amber" as const },
         { label: "Awaiting", value: count((e) => e.status === "awaiting_reply"), accent: "violet" as const },
         { label: "Visit", value: count((e) => e.status === "booked_visit" || e.status === "visit_completed"), accent: "teal" as const },
+        { label: "Confirmation", value: count((e) => e.status === "pending_confirmation"), accent: "orange" as const },
         { label: "Registered", value: registered, accent: "green" as const },
       ],
       conversion: qualified > 0 ? Math.round((registered / qualified) * 1000) / 10 : 0,
