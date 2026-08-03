@@ -11,6 +11,10 @@ const (
 	NotifDailyLogSubmitted = "daily_log_submitted" // → approvers: a log needs review
 	NotifDailyLogApproved  = "daily_log_approved"  // → author: their log was approved
 	NotifDailyLogRejected  = "daily_log_rejected"  // → author: their log was rejected
+
+	NotifLeaveRequested = "leave_requested" // → approvers: a leave request needs review
+	NotifLeaveApproved  = "leave_approved"  // → applicant: their leave was approved
+	NotifLeaveDeclined  = "leave_declined"  // → applicant: their leave was declined
 )
 
 // Notification is one in-app message addressed to a single user (recipient).

@@ -89,6 +89,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	shiftRepo := repository.NewShiftRepository(db)
 	dailyRecordRepo := repository.NewDailyRecordRepository(db)
 	notificationRepo := repository.NewNotificationRepository(db)
+	leaveRequestRepo := repository.NewLeaveRequestRepository(db)
 	gbpRepo := repository.NewGBPRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
 	orgRepo := repository.NewOrganisationRepository(db)
@@ -151,6 +152,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		StaffRoomAssign:   staffRoomAssignSvc,
 		ChildRoomAssign:   childRoomAssignSvc,
 		StaffAttendance:   staffAttSvc,
+		LeaveRequests:     service.NewLeaveRequestService(leaveRequestRepo, staffRepo, userRepo, staffAttSvc, notifSvc),
 		Kiosk:             service.NewKioskService(kioskDeviceRepo, staffRepo, staffAttendanceRepo, branchRepo, roomRepo, staffRoomAssignRepo, staffAttSvc),
 		Shifts:            service.NewShiftService(shiftRepo, staffRepo, roomRepo),
 		DailyRecords:      service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo, childRoomAssignRepo, userRepo, notifSvc),

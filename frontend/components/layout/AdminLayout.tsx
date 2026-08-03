@@ -32,6 +32,7 @@ import {
   Tag,
   Truck,
   CalendarClock,
+  Plane,
   MonitorSmartphone,
   UserCheck,
   Users,
@@ -87,6 +88,8 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Rota",               href: "/admin/rota",               icon: CalendarClock, permission: "staff.manage" },
       { label: "Attendance",         href: "/admin/staff-attendance",   icon: UserCheck, permission: "staff.manage" },
       { label: "Attendance Devices", href: "/admin/attendance-devices", icon: MonitorSmartphone, permission: "staff.manage" },
+      { label: "Leave Requests",     href: "/admin/leave",              icon: CalendarDays, permission: "leave.approve" },
+      { label: "My Leave",           href: "/admin/my-leave",           icon: Plane, permission: "dashboard.view" },
       { label: "Room Planner",       href: "/admin/room-planner",       icon: CalendarRange, permission: "children.manage" },
     ],
   },
@@ -124,7 +127,10 @@ const NAV_SECTIONS: NavSection[] = [
 
 // Staff (practitioners) get a restricted portal — only their own supply requests.
 const STAFF_SECTIONS: NavSection[] = [
-  { heading: null, items: [{ label: "My Supply Requests", href: "/admin/my-requests", icon: ClipboardList, permission: "dashboard.view" }] },
+  { heading: null, items: [
+    { label: "My Supply Requests", href: "/admin/my-requests", icon: ClipboardList, permission: "dashboard.view" },
+    { label: "My Leave", href: "/admin/my-leave", icon: Plane, permission: "dashboard.view" },
+  ] },
 ];
 
 const allItems = (sections: NavSection[]) => sections.flatMap((s) => s.items);
@@ -203,7 +209,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     // Confine staff to their own supply-requests area — they can't reach
     // management pages even by typing the URL.
-    if (isStaff && !pathname.startsWith("/admin/my-requests")) {
+    if (isStaff && !pathname.startsWith("/admin/my-requests") && !pathname.startsWith("/admin/my-leave")) {
       router.push("/admin/my-requests");
       return;
     }
