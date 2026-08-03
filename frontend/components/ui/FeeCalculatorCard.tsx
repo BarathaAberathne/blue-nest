@@ -9,7 +9,7 @@ import feeData from "@/lib/fee-data.json";
 
 type DiscountId = "none" | "sibling" | "staff";
 const DISCOUNTS: { id: DiscountId; label: string; rate: number }[] = [
-  { id: "none",    label: "No discount",   rate: 0    },
+  { id: "none",    label: "None",          rate: 0    },
   { id: "sibling", label: "Sibling −10%",  rate: 0.10 },
   { id: "staff",   label: "Staff −50%",    rate: 0.50 },
 ];
@@ -20,18 +20,18 @@ const DISCOUNTS: { id: DiscountId; label: string; rate: number }[] = [
 // full-year monthly figure blends the two.
 type YearWeeks = 38 | 52;
 const TERM_WEEKS = 38; // government-funded term-time weeks in a year
-const YEAR_WEEKS_OPTIONS: { id: YearWeeks; label: string }[] = [
-  { id: 38, label: "38 wks · term time" },
-  { id: 52, label: "52 wks · all year" },
+const YEAR_WEEKS_OPTIONS: { id: YearWeeks; title: string; sub: string }[] = [
+  { id: 38, title: "Term time only", sub: "38 weeks — funded weeks only" },
+  { id: 52, title: "All year round", sub: "52 weeks — holidays at full fee" },
 ];
 
 // Funding option. TFC is information-only — does not reduce the fee.
 type FundingId = "none" | "15h" | "30h" | "tfc";
 const FUNDINGS: { id: FundingId; label: string }[] = [
-  { id: "none", label: "No funding"      },
-  { id: "15h",  label: "15h funded"      },
-  { id: "30h",  label: "30h funded"      },
-  { id: "tfc",  label: "Tax-Free info"   },
+  { id: "none", label: "None"      },
+  { id: "15h",  label: "15 hrs"    },
+  { id: "30h",  label: "30 hrs"    },
+  { id: "tfc",  label: "Tax-Free"  },
 ];
 // Weekly funded-hours allowance, applied in full during the 38 term weeks.
 // Funding is a term-time entitlement — it is NOT stretched across the year;
@@ -77,11 +77,30 @@ const AGE_GROUPS: { id: AgeGroupId; label: string; icon: typeof Baby }[] = [
   { id: "3-5", label: "3–5 yrs",        icon: GraduationCap },
 ];
 
-const SESSIONS: { id: SessionId; label: string; note: string }[] = [
-  { id: "full_day",  label: "Full Day",   note: "8:00am–6:00pm" },
-  { id: "morning",   label: "Morning",    note: "8:00am–1:00pm" },
-  { id: "afternoon", label: "Afternoon",  note: "1:00pm–6:00pm" },
-  { id: "school",    label: "School Day", note: "9:00am–4:00pm" },
+// Per-day scheduling: parents pick a session (or a day off) for each weekday,
+// rather than just a day-count — so mixed weeks (e.g. two full days + one
+// morning) price correctly.
+type Weekday = "mon" | "tue" | "wed" | "thu" | "fri";
+type DayChoice = SessionId | "off";
+type DaySchedule = Record<Weekday, DayChoice>;
+
+const WEEKDAYS: { id: Weekday; label: string }[] = [
+  { id: "mon", label: "Mon" },
+  { id: "tue", label: "Tue" },
+  { id: "wed", label: "Wed" },
+  { id: "thu", label: "Thu" },
+  { id: "fri", label: "Fri" },
+];
+
+// Options offered in each day's dropdown ("off" = not attending that day).
+// Labels carry the real drop-off–pick-up times in AM/PM so parents can see
+// exactly what each session means.
+const DAY_OPTIONS: { id: DayChoice; label: string; short: string }[] = [
+  { id: "off",       label: "Not attending",                short: "Off" },
+  { id: "full_day",  label: "Full Day · 8:00 AM – 6:00 PM",   short: "Full Day" },
+  { id: "morning",   label: "Morning · 8:00 AM – 1:00 PM",    short: "Morning" },
+  { id: "afternoon", label: "Afternoon · 1:00 PM – 6:00 PM",  short: "Afternoon" },
+  { id: "school",    label: "School Day · 9:00 AM – 4:00 PM", short: "School" },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -104,14 +123,14 @@ interface Quote {
   weekly: number;                // blended average net weekly = annual / yearWeeks
   monthly: number;               // annual net / 12
   fundedSessions: number;        // sessions/week covered by funding (term time)
+  bookedDays: number;            // number of weekdays with a booked session
   holidayWeeks: number;          // full-fee holiday weeks billed (0 on the term-time basis)
 }
 
 function computeQuote(
   branch: BranchProp,
   ageGroup: AgeGroupId,
-  session: SessionId,
-  days: number,
+  schedule: DaySchedule,
   earlyBird: boolean,
   discount: DiscountId,
   yearWeeks: YearWeeks,
@@ -120,45 +139,57 @@ function computeQuote(
   const branchData   = getBranchData(branch);
   const ageGroupData = branchData.ageGroups[ageGroup as keyof typeof branchData.ageGroups];
 
-  // Defensive: if a branch happens to be missing the chosen age band
-  // (e.g. Pinner has no 0-2 row), bail out with a zero quote instead of
-  // throwing. The UI's `safeAgeGroup` guard normally prevents this.
-  if (!ageGroupData) {
+  // Booked sessions, in weekday order (days off skipped).
+  const booked      = WEEKDAYS.map((d) => schedule[d.id]).filter((c): c is SessionId => c !== "off");
+  const bookedDays  = booked.length;
+  const holidayWks  = yearWeeks - Math.min(yearWeeks, TERM_WEEKS);
+
+  // Defensive: missing age band (e.g. Pinner has no 0-2 row) or an empty week
+  // — bail out with a zero quote instead of throwing.
+  if (!ageGroupData || bookedDays === 0) {
     return {
-      gross: 0, termWeekly: 0, holidayWeekly: 0, fundingOffset: 0,
-      discountAmount: 0, weekly: 0, monthly: 0, fundedSessions: 0, holidayWeeks: 0,
+      gross: 0, termWeekly: 0, holidayWeekly: 0, fundingOffset: 0, discountAmount: 0,
+      weekly: 0, monthly: 0, fundedSessions: 0, bookedDays, holidayWeeks: holidayWks,
     };
   }
 
-  const rates         = ageGroupData[session];
-  const baseStandard  = days === 5 ? rates.weekly : rates.daily * days;
-  const earlyBirdCost = earlyBird ? branchData.earlyBird * days : 0;
-  const gross         = baseStandard + earlyBirdCost; // full unfunded weekly (= holiday-week rate)
+  const stdFunded = ageGroup === "3-5" ? branchData.stdFunded.above3 : branchData.stdFunded.below3;
+  const items = booked.map((s) => ({
+    hours:      SESSION_HOURS[s],
+    daily:      ageGroupData[s].daily,
+    fundedRate: stdFunded[s],
+  }));
 
-  // Funding is a TERM-TIME entitlement: the full weekly allowance is used
-  // during the 38 term weeks (never stretched). Holiday weeks carry no funding
-  // and are billed at the full standard fee.
-  const fundedHoursPerWeek = FUNDING_HOURS_PER_WEEK[funding];
-  const sessionHours       = SESSION_HOURS[session];
-  const fundedSessions     = Math.min(
-    days,
-    Math.floor(fundedHoursPerWeek / sessionHours),
-  );
-  const extraSessions = days - fundedSessions;
+  // Full unfunded weekly (= the holiday-week rate). Preserve the 5-day weekly
+  // bundle price only when all five days are the SAME session (the fee sheet's
+  // block rate); mixed weeks are summed per booked day.
+  const uniformFullWeek = bookedDays === 5 && booked.every((s) => s === booked[0]);
+  const sumDailies      = items.reduce((t, it) => t + it.daily, 0);
+  const baseStandard    = uniformFullWeek ? ageGroupData[booked[0]].weekly : sumDailies;
+  const earlyBirdCost   = earlyBird ? branchData.earlyBird * bookedDays : 0;
+  const gross           = baseStandard + earlyBirdCost;
 
-  // Funded sessions are charged at the standard/funded per-session fee
-  // (meals/extras still chargeable, encoded in this lower rate). When NO
-  // sessions are funded (funding "none" or "tfc"), fall back to the
-  // weekly-bundle rate so the default quote matches the standard fee
-  // sheet exactly (5 days × daily is usually slightly more than weekly).
-  const stdFunded       = branchData.stdFunded;
-  const fundedRate      = ageGroup === "3-5"
-    ? stdFunded.above3[session]
-    : stdFunded.below3[session];
-  const fundedBase      = fundedSessions === 0
+  // Funding is a TERM-TIME entitlement: the full weekly hours allowance is used
+  // during the 38 term weeks (never stretched; holidays are full-fee). Allocate
+  // that budget across the booked sessions, funding whole sessions, biggest £
+  // saving first so the parent gets the most value. With identical sessions
+  // this reduces to floor(budget / sessionHours).
+  let budget = FUNDING_HOURS_PER_WEEK[funding];
+  const funded = new Array(items.length).fill(false);
+  const order  = items.map((it, i) => ({ i, saving: it.daily - it.fundedRate }))
+                      .sort((a, b) => b.saving - a.saving);
+  for (const { i } of order) {
+    if (budget >= items[i].hours) { funded[i] = true; budget -= items[i].hours; }
+  }
+  const fundedSessions = funded.filter(Boolean).length;
+
+  // Funded sessions charged at the top-up rate, the rest at full daily. When
+  // nothing is funded, fall back to baseStandard so the weekly bundle still
+  // applies to a uniform full week.
+  const termFundedBase  = fundedSessions === 0
     ? baseStandard
-    : fundedSessions * fundedRate + extraSessions * rates.daily;
-  const termWeeklyGross = fundedBase + earlyBirdCost; // funded weekly, during term
+    : items.reduce((t, it, i) => t + (funded[i] ? it.fundedRate : it.daily), 0);
+  const termWeeklyGross = termFundedBase + earlyBirdCost; // funded weekly, during term
 
   // Year basis: 38 = term-time only (no holidays billed); 52 = all year
   // (38 funded term weeks + the remaining full-fee holiday weeks).
@@ -181,7 +212,7 @@ function computeQuote(
   const discountAmount = yearWeeks > 0 ? (annualGross - annualNet) / yearWeeks : 0;
   const fundingOffset  = Math.max(0, holidayWeekly - weekly); // avg weekly saving vs full fee
 
-  return { gross, termWeekly, holidayWeekly, fundingOffset, discountAmount, weekly, monthly, fundedSessions, holidayWeeks };
+  return { gross, termWeekly, holidayWeekly, fundingOffset, discountAmount, weekly, monthly, fundedSessions, bookedDays, holidayWeeks };
 }
 
 // Eligibility / informational copy shown beneath the Funding chips.
@@ -243,8 +274,9 @@ export default function FeeCalculatorCard({
 }) {
   const [branch, setBranch]       = useState<BranchProp>(defaultBranch);
   const [ageGroup, setAgeGroup]   = useState<AgeGroupId>("2-3");
-  const [session, setSession]     = useState<SessionId>("full_day");
-  const [days, setDays]           = useState(5);
+  const [schedule, setSchedule]   = useState<DaySchedule>({
+    mon: "full_day", tue: "full_day", wed: "full_day", thu: "full_day", fri: "full_day",
+  });
   const [earlyBird, setEarlyBird] = useState(false);
   const [discount, setDiscount]   = useState<DiscountId>("none");
   const [yearWeeks, setYearWeeks] = useState<YearWeeks>(52);
@@ -260,10 +292,14 @@ export default function FeeCalculatorCard({
     if (!avail.includes(ageGroup)) setAgeGroup(avail[0]);
   }
 
+  const setDay     = (day: Weekday, choice: DayChoice) => setSchedule((s) => ({ ...s, [day]: choice }));
+  const setAllDays = (choice: DayChoice) =>
+    setSchedule({ mon: choice, tue: choice, wed: choice, thu: choice, fri: choice });
+
   const quote = computeQuote(
-    branch, safeAgeGroup, session, days, earlyBird, discount, yearWeeks, funding,
+    branch, safeAgeGroup, schedule, earlyBird, discount, yearWeeks, funding,
   );
-  const { gross, fundingOffset, discountAmount, weekly, monthly, termWeekly, holidayWeekly, holidayWeeks } = quote;
+  const { gross, fundingOffset, discountAmount, weekly, monthly, termWeekly, holidayWeekly, holidayWeeks, bookedDays } = quote;
 
   const fundingInfo = FUNDING_INFO[`${funding}_${safeAgeGroup}`] ?? "";
 
@@ -296,7 +332,7 @@ export default function FeeCalculatorCard({
 
         {/* Branch */}
         <div>
-          <p className="mb-2 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Branch</p>
+          <p className="mb-2 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Which nursery?</p>
           <div className="flex flex-wrap gap-1.5">
             {ALL_BRANCHES.map((b) => (
               <Chip key={b} value={b} selected={branch === b} onClick={handleBranchChange} small>
@@ -324,55 +360,67 @@ export default function FeeCalculatorCard({
           </div>
         </div>
 
-        {/* Session */}
-        <div>
-          <p className="mb-2 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Session</p>
-          <div className="flex flex-wrap gap-2">
-            {SESSIONS.map((s) => (
-              <Chip key={s.id} value={s.id} selected={session === s.id} onClick={setSession}>
-                {s.label}
-                <span className="ml-1 font-normal opacity-65">{s.note}</span>
-              </Chip>
-            ))}
-          </div>
-        </div>
-
-        {/* Days slider */}
+        {/* Weekly schedule — a session (or day off) per weekday */}
         <div>
           <p className="mb-2 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
-            Days per week —{" "}
+            Weekly schedule —{" "}
             <span className="font-extrabold text-[var(--ink)]">
-              {days} day{days !== 1 ? "s" : ""}
+              {bookedDays} day{bookedDays !== 1 ? "s" : ""}
             </span>
           </p>
-          <div className="px-2">
-            <input
-              type="range"
-              min={1}
-              max={5}
-              step={1}
-              value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
-              className="w-full accent-[#6ecfc9]"
-              aria-label="Days per week"
-            />
+          <p className="mb-2 text-[0.62rem] leading-snug text-[var(--muted)]">
+            Choose a session for each day your child attends — times shown are drop-off to pick-up.
+          </p>
+
+          {/* Quick presets: set every weekday at once */}
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {DAY_OPTIONS.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => setAllDays(o.id)}
+                className="rounded-full bg-[rgba(127,216,210,0.12)] px-2.5 py-1 text-[0.6rem] font-bold text-[var(--ink)] transition-colors hover:bg-[rgba(127,216,210,0.28)]"
+              >
+                {o.id === "off" ? "Clear all" : `All ${o.short}`}
+              </button>
+            ))}
           </div>
-          <div className="mt-3 flex justify-between text-[0.6rem] text-[var(--muted)]">
-            {[1, 2, 3, 4, 5].map((d) => <span key={d}>{d}d</span>)}
+
+          {/* Per-day session selectors */}
+          <div className="space-y-1.5">
+            {WEEKDAYS.map((d) => (
+              <div key={d.id} className="flex items-center gap-2">
+                <span className="w-9 shrink-0 text-[0.72rem] font-bold text-[var(--ink)]">{d.label}</span>
+                <select
+                  value={schedule[d.id]}
+                  onChange={(e) => setDay(d.id, e.target.value as DayChoice)}
+                  aria-label={`${d.label} session`}
+                  className={`flex-1 cursor-pointer rounded-lg border px-2 py-1.5 text-xs font-semibold outline-none transition-colors ${
+                    schedule[d.id] === "off"
+                      ? "border-[rgba(90,74,66,0.12)] bg-[rgba(90,74,66,0.03)] text-[var(--muted)]"
+                      : "border-[rgba(127,216,210,0.5)] bg-[rgba(127,216,210,0.1)] text-[var(--ink)]"
+                  }`}
+                >
+                  {DAY_OPTIONS.map((o) => (
+                    <option key={o.id} value={o.id}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Early bird toggle */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Early bird</p>
-            <p className="text-[0.6rem] text-[var(--muted)]">+£{getBranchData(branch).earlyBird}/day · 7:30am–8:00am drop-off</p>
+            <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Early drop-off</p>
+            <p className="text-[0.6rem] text-[var(--muted)]">+£{getBranchData(branch).earlyBird}/day · 7:30 AM – 8:00 AM</p>
           </div>
           <button
             type="button"
             role="switch"
             aria-checked={earlyBird}
-            aria-label="Toggle early bird 7:30am drop-off"
+            aria-label="Toggle early drop-off 7:30 AM"
             onClick={() => setEarlyBird((v) => !v)}
             className={`relative h-6 w-11 shrink-0 rounded-full overflow-hidden transition-colors duration-200 ${
               earlyBird ? "bg-[#6ecfc9]" : "bg-[rgba(90,74,66,0.15)]"
@@ -398,27 +446,12 @@ export default function FeeCalculatorCard({
           </div>
         </div>
 
-        {/* Year basis */}
+        {/* Government funding */}
         <div>
-          <p className="mb-2 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Annual basis</p>
-          <div className="flex flex-wrap gap-1.5">
-            {YEAR_WEEKS_OPTIONS.map((y) => (
-              <Chip
-                key={y.id}
-                value={String(y.id) as "38" | "52"}
-                selected={yearWeeks === y.id}
-                onClick={(v) => setYearWeeks(Number(v) as YearWeeks)}
-                small
-              >
-                {y.label}
-              </Chip>
-            ))}
-          </div>
-        </div>
-
-        {/* Funding */}
-        <div>
-          <p className="mb-2 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Funding</p>
+          <p className="mb-1 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Government funding</p>
+          <p className="mb-2 text-[0.62rem] leading-snug text-[var(--muted)]">
+            Funded hours are a term-time entitlement, applied to your booked sessions.
+          </p>
           <div className="flex flex-wrap gap-1.5">
             {FUNDINGS.map((f) => (
               <Chip key={f.id} value={f.id} selected={funding === f.id} onClick={setFunding} small>
@@ -440,53 +473,94 @@ export default function FeeCalculatorCard({
           </p>
         </div>
 
-        {/* Result */}
-        <div className="flex flex-col gap-2 rounded-[1.25rem] bg-[rgba(127,216,210,0.12)] px-4 py-3.5 ring-1 ring-[rgba(127,216,210,0.25)]">
-          <div className="flex items-baseline justify-between gap-4">
-            <div>
-              <p className="text-[0.62rem] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">
-                {holidayWeeks > 0 ? "Avg / week" : "Weekly"}
-              </p>
-              <p className="font-heading text-[2rem] leading-none text-[var(--ink)]">{fmt(weekly)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[0.62rem] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">Monthly est.</p>
-              <p className="font-heading text-[1.35rem] leading-none text-[#3aada9]">{fmt(monthly)}</p>
-            </div>
+        {/* Weeks per year — the term-time vs all-year distinction, spelled out */}
+        <div>
+          <p className="mb-1 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Weeks per year</p>
+          <p className="mb-2 text-[0.62rem] leading-snug text-[var(--muted)]">
+            Funding covers 38 term-time weeks. Pick &ldquo;all year round&rdquo; if your child also attends in
+            the school holidays — those weeks are charged at the full (unfunded) rate.
+          </p>
+          <div className="grid gap-1.5">
+            {YEAR_WEEKS_OPTIONS.map((y) => (
+              <button
+                key={y.id}
+                type="button"
+                onClick={() => setYearWeeks(y.id)}
+                aria-pressed={yearWeeks === y.id}
+                className={`rounded-xl border px-3 py-2 text-left transition-colors ${
+                  yearWeeks === y.id
+                    ? "border-[#6ecfc9] bg-[rgba(110,207,201,0.16)]"
+                    : "border-[rgba(90,74,66,0.12)] bg-white/60 hover:bg-[rgba(127,216,210,0.10)]"
+                }`}
+              >
+                <span className="block text-[0.8rem] font-bold text-[var(--ink)]">{y.title}</span>
+                <span className="block text-[0.62rem] text-[var(--muted)]">{y.sub}</span>
+              </button>
+            ))}
           </div>
-          {/*
-            Notes footer — both rows are always rendered so the card's
-            height never changes when Early Bird or a discount is toggled.
-            Inactive rows use `invisible` (paint hidden, layout preserved)
-            instead of unmounting, which would cause a vertical shift in
-            the surrounding hero pane.
-          */}
-          <div className="flex flex-col gap-1 border-t border-[rgba(127,216,210,0.25)] pt-2">
-            <p
-              className={`text-[0.65rem] text-[#3aada9] ${earlyBird ? "" : "invisible"}`}
-              aria-hidden={!earlyBird}
-            >
-              Includes early bird (£{getBranchData(branch).earlyBird}/day × {days} day{days !== 1 ? "s" : ""})
+        </div>
+
+        {/* Result — lead with the monthly fee, then show plainly how it's built up */}
+        <div className="rounded-[1.25rem] bg-[rgba(127,216,210,0.12)] px-4 py-4 ring-1 ring-[rgba(127,216,210,0.25)]">
+          <p className="text-[0.62rem] font-bold uppercase tracking-[0.15em] text-[var(--muted)]">Estimated fee</p>
+          <p className="mt-0.5 font-heading text-[2.5rem] leading-none text-[var(--ink)]">
+            {fmt(monthly)}
+            <span className="ml-1 text-[1rem] text-[var(--muted)]">/ month</span>
+          </p>
+          <p className="mt-1 text-[0.68rem] text-[var(--muted)]">
+            about {fmt(weekly)} per week, averaged across the year
+          </p>
+
+          {bookedDays === 0 ? (
+            <p className="mt-3 border-t border-[rgba(127,216,210,0.25)] pt-2.5 text-[0.68rem] text-[var(--muted)]">
+              Pick at least one session above to see a fee.
             </p>
-            <p
-              className={`text-[0.65rem] text-[#3aada9] ${discountAmount > 0 ? "" : "invisible"}`}
-              aria-hidden={discountAmount <= 0}
-            >
-              {DISCOUNTS.find((d) => d.id === discount)!.label} applied (saving {fmt(discountAmount)}/wk)
-            </p>
-            <p
-              className={`text-[0.65rem] text-[#3aada9] ${fundingOffset > 0 ? "" : "invisible"}`}
-              aria-hidden={fundingOffset <= 0}
-            >
-              Funded hours saving {fmt(fundingOffset)}/wk · estimated only
-            </p>
-            <p
-              className={`text-[0.65rem] text-[var(--muted)] ${holidayWeeks > 0 ? "" : "invisible"}`}
-              aria-hidden={holidayWeeks <= 0}
-            >
-              All year: 38 term wks {fmt(termWeekly)}/wk + {holidayWeeks} holiday wks {fmt(holidayWeekly)}/wk (full fee)
-            </p>
-          </div>
+          ) : (
+            <div className="mt-3 space-y-1.5 border-t border-[rgba(127,216,210,0.25)] pt-2.5 text-[0.7rem]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[var(--muted)]">Booked</span>
+                <span className="font-semibold text-[var(--ink)]">
+                  {bookedDays} day{bookedDays !== 1 ? "s" : ""}/week · {holidayWeeks > 0 ? "all year" : "term time"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[var(--muted)]">Term-time weeks (38)</span>
+                <span className="font-semibold text-[var(--ink)]">{fmt(termWeekly)}/wk</span>
+              </div>
+              {/*
+                Rendered even on the term-time basis (then `invisible`) so the
+                card — and therefore the hero pane it sizes — keeps a constant
+                height when switching between "Term time only" and "All year
+                round". Only this row differs between the two, so reserving it
+                is enough to stop the hero resizing on that toggle.
+              */}
+              <div
+                className={`flex items-center justify-between gap-3 ${holidayWeeks > 0 ? "" : "invisible"}`}
+                aria-hidden={holidayWeeks <= 0}
+              >
+                <span className="text-[var(--muted)]">Holiday weeks ({holidayWeeks}) · full fee</span>
+                <span className="font-semibold text-[var(--ink)]">{fmt(holidayWeekly)}/wk</span>
+              </div>
+              {earlyBird && (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[var(--muted)]">Early drop-off ×{bookedDays}</span>
+                  <span className="font-semibold text-[var(--ink)]">+{fmt(getBranchData(branch).earlyBird * bookedDays)}/wk</span>
+                </div>
+              )}
+              {fundingOffset > 0 && (
+                <div className="flex items-center justify-between gap-3 text-[#3aada9]">
+                  <span>Government funding saves</span>
+                  <span className="font-semibold">≈ {fmt(fundingOffset)}/wk</span>
+                </div>
+              )}
+              {discountAmount > 0 && (
+                <div className="flex items-center justify-between gap-3 text-[#3aada9]">
+                  <span>{DISCOUNTS.find((d) => d.id === discount)!.label} discount saves</span>
+                  <span className="font-semibold">{fmt(discountAmount)}/wk</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* CTA */}
@@ -494,7 +568,7 @@ export default function FeeCalculatorCard({
           href={
             `/contact?enquiry=fee-enquiry` +
             `&q_branch=${branch}&q_age=${encodeURIComponent(safeAgeGroup)}` +
-            `&q_session=${session}&q_days=${days}&q_eb=${earlyBird}` +
+            `&q_schedule=${encodeURIComponent(WEEKDAYS.map((d) => schedule[d.id]).join(","))}&q_days=${bookedDays}&q_eb=${earlyBird}` +
             `&q_gross=${gross.toFixed(2)}&q_weekly=${weekly.toFixed(2)}&q_monthly=${monthly.toFixed(2)}` +
             `&q_discount=${discount}&q_discount_amount=${discountAmount.toFixed(2)}` +
             `&q_year_weeks=${yearWeeks}&q_funding=${funding}&q_offset=${fundingOffset.toFixed(2)}`
