@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, Plane } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
-import type { LeaveRequest, LeaveType } from "@/types";
+import type { LeaveBalance, LeaveRequest, LeaveType } from "@/types";
 
 const TYPE_OPTIONS: { value: LeaveType; label: string }[] = [
   { value: "leave", label: "Annual leave" },
@@ -31,6 +31,7 @@ function fmt(d: string) {
 export default function MyLeaveClient() {
   const token = typeof window !== "undefined" ? getAccessToken() : "";
   const [items, setItems] = useState<LeaveRequest[]>([]);
+  const [balance, setBalance] = useState<LeaveBalance | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -47,6 +48,7 @@ export default function MyLeaveClient() {
       .then((r) => setItems(r ?? []))
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load leave"))
       .finally(() => setLoading(false));
+    api.getMyLeaveBalance(token).then((b) => setBalance(b)).catch(() => { /* non-blocking */ });
   }, [token]);
 
   useEffect(() => { load(); }, [load]);
@@ -96,6 +98,22 @@ export default function MyLeaveClient() {
       </div>
 
       {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>}
+
+      {/* Annual allowance balance */}
+      {balance && balance.allowance > 0 && (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Allowance", value: balance.allowance, tone: "text-slate-900" },
+            { label: "Taken + pending", value: balance.taken + balance.pending, tone: "text-amber-600" },
+            { label: "Remaining", value: balance.remaining, tone: "text-emerald-600" },
+          ].map((c) => (
+            <div key={c.label} className="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+              <p className={`font-heading text-3xl leading-none ${c.tone}`}>{c.value}</p>
+              <p className="mt-1 text-xs text-slate-500">{c.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Apply form */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

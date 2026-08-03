@@ -704,8 +704,17 @@ export interface LeaveRequest {
   reviewed_by?: string;
   reviewed_at?: string;
   decline_reason?: string;
+  overlaps?: number; // other staff at the same branch off on overlapping dates
   created_at: string;
   updated_at: string;
+}
+
+export interface LeaveBalance {
+  year: number;
+  allowance: number;
+  taken: number;
+  pending: number;
+  remaining: number;
 }
 
 export interface LeaveRequestInput {
@@ -1304,6 +1313,7 @@ export interface Staff {
   status: StaffStatus;
   start_date?: string;
   contract_hours?: number;
+  annual_leave_days?: number;
   term_time_only?: boolean;
   qualifications?: string[];
   dbs_number?: string;
@@ -1329,6 +1339,7 @@ export interface StaffInput {
   status?: StaffStatus;
   start_date?: string;
   contract_hours?: number;
+  annual_leave_days?: number;
   term_time_only?: boolean;
   qualifications?: string[];
   dbs_number?: string;

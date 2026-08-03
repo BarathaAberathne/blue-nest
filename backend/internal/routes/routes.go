@@ -196,6 +196,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			// Staff self-service leave/holiday (apply / my requests / cancel).
 			leaveSelfH := adminHandler.NewAdminLeaveHandler(svc.LeaveRequests, svc.Audit)
 			r.Get("/leave-requests/me", leaveSelfH.Mine)
+			r.Get("/leave-requests/balance", leaveSelfH.Balance)
 			r.Post("/leave-requests", leaveSelfH.Apply)
 			r.Patch("/leave-requests/{id}/cancel", leaveSelfH.Cancel)
 
@@ -292,6 +293,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Use(middleware.RequirePermission(models.PermLeaveApprove))
 				leaveAdminH := adminHandler.NewAdminLeaveHandler(svc.LeaveRequests, svc.Audit)
 				r.Get("/admin/leave-requests", leaveAdminH.List)
+				r.Post("/admin/leave-requests", leaveAdminH.Apply) // manager files for a staff member (staff_id in body)
 				r.Post("/admin/leave-requests/{id}/approve", leaveAdminH.Approve)
 				r.Post("/admin/leave-requests/{id}/decline", leaveAdminH.Decline)
 			})

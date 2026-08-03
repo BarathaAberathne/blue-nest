@@ -54,6 +54,20 @@ func (h *AdminLeaveHandler) Apply(w http.ResponseWriter, r *http.Request) {
 	response.Created(w, lr)
 }
 
+// Balance returns the caller's own annual-leave balance (zeroed if their login
+// isn't linked to a staff record yet).
+func (h *AdminLeaveHandler) Balance(w http.ResponseWriter, r *http.Request) {
+	bal, err := h.svc.BalanceForUser(r.Context(), actorID(r))
+	if err != nil {
+		response.InternalError(w, "failed to load leave balance")
+		return
+	}
+	if bal == nil {
+		bal = &models.LeaveBalance{}
+	}
+	response.OK(w, bal)
+}
+
 // Cancel withdraws the caller's own pending request.
 func (h *AdminLeaveHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")

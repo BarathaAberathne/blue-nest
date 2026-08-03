@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -20,6 +21,9 @@ type LeaveRequestService interface {
 	Cancel(ctx context.Context, id, actorUserID string) (*models.LeaveRequest, error)
 	Approve(ctx context.Context, id, actorUserID, actorName string) (*models.LeaveRequest, error)
 	Decline(ctx context.Context, id, reason, actorUserID, actorName string) (*models.LeaveRequest, error)
+	// BalanceForUser returns the caller's own annual-leave balance (nil if the
+	// user has no linked staff record).
+	BalanceForUser(ctx context.Context, actorUserID string) (*models.LeaveBalance, error)
 }
 
 type leaveRequestService struct {
@@ -74,6 +78,48 @@ func (s *leaveRequestService) approversFor(ctx context.Context, branch string) [
 	return ids
 }
 
+// balanceForStaff computes a staff member's annual-leave position for the leave
+// year containing today. Only annual leave counts against the allowance.
+func (s *leaveRequestService) balanceForStaff(ctx context.Context, st *models.Staff) (*models.LeaveBalance, error) {
+	allowance := models.DefaultAnnualLeaveDays
+	if st.AnnualLeaveDays > 0 {
+		allowance = st.AnnualLeaveDays
+	}
+	yearStart, yearEnd, year := models.LeaveYearContains(time.Now())
+	reqs, err := s.repo.FindByStaffID(ctx, st.ID.Hex())
+	if err != nil {
+		return nil, err
+	}
+	taken, pending := 0, 0
+	for _, r := range reqs {
+		if r.Type != models.LeaveTypeAnnual {
+			continue
+		}
+		if r.StartDate < yearStart || r.StartDate > yearEnd { // bucket by start date
+			continue
+		}
+		switch r.Status {
+		case models.LeaveApproved:
+			taken += r.Days
+		case models.LeavePending:
+			pending += r.Days
+		}
+	}
+	remaining := allowance - taken - pending
+	if remaining < 0 {
+		remaining = 0
+	}
+	return &models.LeaveBalance{Year: year, Allowance: allowance, Taken: taken, Pending: pending, Remaining: remaining}, nil
+}
+
+func (s *leaveRequestService) BalanceForUser(ctx context.Context, actorUserID string) (*models.LeaveBalance, error) {
+	st := s.staffForUser(ctx, actorUserID)
+	if st == nil {
+		return nil, nil
+	}
+	return s.balanceForStaff(ctx, st)
+}
+
 func (s *leaveRequestService) Apply(ctx context.Context, in models.LeaveRequestCreate, actorUserID, actorName string) (*models.LeaveRequest, error) {
 	t := strings.TrimSpace(in.Type)
 	if t == "" {
@@ -97,6 +143,18 @@ func (s *leaveRequestService) Apply(ctx context.Context, in models.LeaveRequestC
 	}
 	if st == nil {
 		return nil, errors.New("no staff record is linked to your account — ask an admin to link your login before requesting leave")
+	}
+
+	// Annual leave is capped at the remaining allowance; other leave types
+	// (sickness, unpaid, maternity, dependant) don't draw on the annual balance.
+	if t == models.LeaveTypeAnnual {
+		bal, err := s.balanceForStaff(ctx, st)
+		if err != nil {
+			return nil, err
+		}
+		if days > bal.Remaining {
+			return nil, fmt.Errorf("this request (%d days) exceeds the remaining annual allowance (%d of %d days left)", days, bal.Remaining, bal.Allowance)
+		}
 	}
 
 	lr := &models.LeaveRequest{
@@ -146,6 +204,24 @@ func (s *leaveRequestService) List(ctx context.Context, f models.LeaveRequestFil
 	if err != nil {
 		return nil, err
 	}
+	// Coverage/clash signal: count OTHER staff at the same branch whose
+	// approved/pending leave overlaps each request's dates (computed over the
+	// full set before filtering so the count is accurate).
+	overlaps := func(lr models.LeaveRequest) int {
+		n := 0
+		for _, o := range all {
+			if o.ID == lr.ID || o.StaffID == lr.StaffID || o.BranchSlug != lr.BranchSlug {
+				continue
+			}
+			if o.Status != models.LeavePending && o.Status != models.LeaveApproved {
+				continue
+			}
+			if lr.StartDate <= o.EndDate && o.StartDate <= lr.EndDate { // ranges overlap
+				n++
+			}
+		}
+		return n
+	}
 	out := make([]models.LeaveRequest, 0, len(all))
 	for _, lr := range all {
 		if f.Branch != "" && lr.BranchSlug != f.Branch {
@@ -157,6 +233,7 @@ func (s *leaveRequestService) List(ctx context.Context, f models.LeaveRequestFil
 		if f.StaffID != "" && lr.StaffID != f.StaffID {
 			continue
 		}
+		lr.Overlaps = overlaps(lr)
 		out = append(out, lr)
 	}
 	return out, nil
