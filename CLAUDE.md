@@ -464,6 +464,30 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   `lib/group.ts` (`sortByName`/`groupByBranch`) — lists sort alphabetically, grouped by branch; the
   children + staff tables render per-branch section headers (the same helper extends to the remaining lists).
 
+- **Leave / holiday requests (HR module, Phase 1 DELIVERED):** staff apply for time off and a
+  **different** manager (four-eyes) approves or declines it. `models/leave_request.go`
+  (`LeaveRequest`: staff_id/branch/type/start/end/days/reason/status + reviewer + timestamps; statuses
+  `pending → approved | declined | cancelled`; `LeaveType` values are identical to the attendance leave
+  statuses — `leave`(annual)/`unpaid_leave`/`maternity`/`dependant_sick`/`sick` — so approval maps 1:1)
+  → repo (`leave_requests`, tenant-scoped) → `service.LeaveRequestService` (Apply/ListMine/List/Cancel/
+  Approve/Decline) → `handler/admin/leave_requests.go` → routes. **On approval** the booked **weekdays**
+  (Mon–Fri; `models.Weekdays`/`CountWeekdays`) are written to the staff-attendance register via
+  `StaffAttendanceService.Mark` (best-effort), so approved leave flows straight into the register/roster/
+  KPIs. **Four-eyes**: the reviewer's user id must differ from the applicant's (`RequestedByID`); the
+  applicant resolves to their `Staff` record via `Staff.UserID` (self-service) or a manager may file with
+  an explicit `staff_id`. **Notifications** reuse the in-app module (apply → approvers with `leave.approve`
+  in the branch; approve/decline → the applicant). New permission `PermLeaveApprove` (`leave.approve`),
+  granted to the management/HR roles (added to `AllPermissions` too, so it reconciles onto built-in DB
+  roles on boot — see the daily-log role-reconcile note). Routes: staff self-service under the staff group
+  (`GET /leave-requests/me`, `POST /leave-requests`, `PATCH /leave-requests/{id}/cancel`); management under
+  `RequirePermission(leave.approve)` (`GET /admin/leave-requests` branch-scoped via `policy.EffectiveBranch`,
+  `POST /admin/leave-requests/{id}/approve|decline`). Frontend: staff **My Leave** (`/admin/my-leave`, in the
+  Staff Portal nav + confinement allowlist) to apply/track/cancel; manager **Leave Requests** (`/admin/leave`,
+  HR nav) to approve/decline (decline needs a reason). Tests: `SUI-LEAVE-001` (bnrest, in `COL-FUNC-001`)
+  covers apply/queue/self-approve-block/cancel/bad-range; `leave_request_test.go` covers the weekday maths.
+  **Planned next:** leave balances/allowances (e.g. 28 days/yr), a team calendar + clash/coverage checks,
+  and manager-filed-for-others in the UI.
+
 Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (CSV/Excel/PDF) +
 notifications. Then Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 
