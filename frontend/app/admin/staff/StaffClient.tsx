@@ -14,7 +14,7 @@ import type { Branch, Room, Staff, StaffInput, StaffStats } from "@/types";
 
 const emptyForm: StaffInput = {
   first_name: "", last_name: "", email: "", phone: "", branch_slug: "",
-  job_title: "", staff_type: "permanent", status: "active", start_date: "", contract_hours: 40,
+  job_title: "", staff_type: "permanent", status: "active", start_date: "", contract_hours: 40, annual_leave_days: 28,
   qualifications: [], dbs_number: "", dbs_expiry: "", first_aid_expiry: "",
   enable_login: false, login_role: "staff", login_password: "",
 };
@@ -258,6 +258,7 @@ export default function StaffClient() {
               <Field label="Phone"><input value={form.phone} onChange={(e) => setField({ phone: e.target.value })} className="inp" /></Field>
               <Field label="Start date"><input type="date" value={form.start_date} onChange={(e) => setField({ start_date: e.target.value })} className="inp" /></Field>
               <Field label="Contract hours / week"><input type="number" min={0} value={form.contract_hours} onChange={(e) => setField({ contract_hours: Number(e.target.value) })} className="inp" /></Field>
+              <Field label="Annual leave days"><input type="number" min={0} value={form.annual_leave_days} onChange={(e) => setField({ annual_leave_days: Number(e.target.value) })} className="inp" /></Field>
               <Field label="Term-time only">
                 <label className="mt-1 flex items-center gap-2 text-sm text-slate-700">
                   <input type="checkbox" checked={form.term_time_only ?? false} onChange={(e) => setField({ term_time_only: e.target.checked })} />

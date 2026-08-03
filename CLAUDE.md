@@ -464,7 +464,7 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   `lib/group.ts` (`sortByName`/`groupByBranch`) — lists sort alphabetically, grouped by branch; the
   children + staff tables render per-branch section headers (the same helper extends to the remaining lists).
 
-- **Leave / holiday requests (HR module, Phase 1 DELIVERED):** staff apply for time off and a
+- **Leave / holiday requests (HR module, Phases 1–4 DELIVERED):** staff apply for time off and a
   **different** manager (four-eyes) approves or declines it. `models/leave_request.go`
   (`LeaveRequest`: staff_id/branch/type/start/end/days/reason/status + reviewer + timestamps; statuses
   `pending → approved | declined | cancelled`; `LeaveType` values are identical to the attendance leave
@@ -485,8 +485,17 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   Staff Portal nav + confinement allowlist) to apply/track/cancel; manager **Leave Requests** (`/admin/leave`,
   HR nav) to approve/decline (decline needs a reason). Tests: `SUI-LEAVE-001` (bnrest, in `COL-FUNC-001`)
   covers apply/queue/self-approve-block/cancel/bad-range; `leave_request_test.go` covers the weekday maths.
-  **Planned next:** leave balances/allowances (e.g. 28 days/yr), a team calendar + clash/coverage checks,
-  and manager-filed-for-others in the UI.
+  **Phase 2 (balances) DELIVERED:** per-staff annual allowance (`Staff.AnnualLeaveDays`, 0 = org default
+  `models.DefaultAnnualLeaveDays` = 28), editable on the staff detail/create forms; a UK leave-year
+  (Apr–Mar) balance (`models.LeaveBalance`, `LeaveYearContains`) exposed at `GET /leave-requests/balance`
+  and shown as a card on My Leave; **only annual leave draws on the allowance** and `Apply` blocks an
+  annual request that exceeds the remaining balance (other leave types are exempt). **Phase 3 (calendar/
+  clash) DELIVERED:** the admin list computes a transient `Overlaps` count (other staff at the same branch
+  with approved/pending leave on overlapping dates) surfaced as a coverage warning on each request, plus a
+  chronological **Team schedule** tab. **Phase 4 (manager-filed) DELIVERED:** `POST /admin/leave-requests`
+  (under `leave.approve`) reuses `Apply` so a manager files leave for a staff member (staff picker) — still
+  pending until a *different* manager approves (four-eyes). **Planned next:** a full month-grid calendar
+  view, a hard clash-block option on approval (currently a warning), and carry-over/pro-rata allowances.
 
 Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (CSV/Excel/PDF) +
 notifications. Then Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
