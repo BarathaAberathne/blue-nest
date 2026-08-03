@@ -257,11 +257,13 @@ func TestStatsComputation(t *testing.T) {
 		t.Errorf("Harrow should appear once in by_branch, got %d entries", branchSeen["Harrow"])
 	}
 
-	// Funnel reached-counts: New, Contacted, Booked, Visit completed, Registered.
-	if len(st.Funnel) != 5 {
-		t.Fatalf("funnel length = %d, want 5", len(st.Funnel))
+	// Funnel reached-counts: New, Contacted, Booked, Visit completed,
+	// Pending confirmation, Registered. The registered enquiry (rank 5) counts
+	// every earlier stage including Pending confirmation, so stages 3–5 are 1.
+	if len(st.Funnel) != 6 {
+		t.Fatalf("funnel length = %d, want 6", len(st.Funnel))
 	}
-	wantFunnel := []int{4, 2, 2, 1, 1}
+	wantFunnel := []int{4, 2, 2, 1, 1, 1}
 	for i, w := range wantFunnel {
 		if st.Funnel[i].Value != w {
 			t.Errorf("funnel[%d] (%s) = %d, want %d", i, st.Funnel[i].Label, st.Funnel[i].Value, w)
