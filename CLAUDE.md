@@ -485,11 +485,15 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   Staff Portal nav + confinement allowlist) to apply/track/cancel; manager **Leave Requests** (`/admin/leave`,
   HR nav) to approve/decline (decline needs a reason). Tests: `SUI-LEAVE-001` (bnrest, in `COL-FUNC-001`)
   covers apply/queue/self-approve-block/cancel/bad-range; `leave_request_test.go` covers the weekday maths.
-  **Phase 2 (balances) DELIVERED:** per-staff annual allowance (`Staff.AnnualLeaveDays`, 0 = org default
-  `models.DefaultAnnualLeaveDays` = 28), editable on the staff detail/create forms; a UK leave-year
-  (Apr–Mar) balance (`models.LeaveBalance`, `LeaveYearContains`) exposed at `GET /leave-requests/balance`
-  and shown as a card on My Leave; **only annual leave draws on the allowance** and `Apply` blocks an
-  annual request that exceeds the remaining balance (other leave types are exempt). **Phase 3 (calendar/
+  **Phase 2 (balances) DELIVERED:** **per-type** allowances/balances — annual (`Staff.AnnualLeaveDays`,
+  0 = org default `models.DefaultAnnualLeaveDays` = 28) and **paid sick** (`Staff.SickLeaveDays`, 0 =
+  uncapped), both editable on the staff detail/create forms; a UK leave-year (Apr–Mar) balance per capped
+  type (`models.LeaveBalance` + `service.allowanceForType`/`balanceForType`), exposed at
+  `GET /leave-requests/balance` as a **map keyed by leave type** and shown on My Leave both as per-type
+  summary cards and **inline in the request wizard for the selected type** (updates as the type changes;
+  uncapped types read "not deducted from an allowance"). Capped types are limited to the remaining balance
+  (`Apply` blocks over-allowance; annual + configured sick); other types are uncapped. `Apply` also
+  **rejects a request overlapping the person's own existing pending/approved leave** (no double-booking). **Phase 3 (calendar/
   clash) DELIVERED:** the admin list computes a transient `Overlaps` count (other staff at the same branch
   with approved/pending leave on overlapping dates) surfaced as a coverage warning on each request, plus a
   chronological **Team schedule** tab. **Phase 4 (manager-filed) DELIVERED:** `POST /admin/leave-requests`

@@ -62,6 +62,7 @@ type Staff struct {
 	StartDate         string             `bson:"start_date,omitempty"   json:"start_date,omitempty"` // YYYY-MM-DD
 	ContractHours     float64            `bson:"contract_hours,omitempty" json:"contract_hours,omitempty"`
 	AnnualLeaveDays   int                `bson:"annual_leave_days,omitempty" json:"annual_leave_days,omitempty"` // 0 = use org default (28)
+	SickLeaveDays     int                `bson:"sick_leave_days,omitempty" json:"sick_leave_days,omitempty"`   // 0 = uncapped (no paid-sick allowance tracked)
 	// TermTimeOnly marks a staff member contracted for term time only (works
 	// during term dates, not school holidays) — see the terms collection.
 	TermTimeOnly      bool               `bson:"term_time_only,omitempty" json:"term_time_only"`
@@ -102,6 +103,7 @@ type StaffRequest struct {
 	StartDate         string             `json:"start_date"`
 	ContractHours     float64            `json:"contract_hours"`
 	AnnualLeaveDays   int                `json:"annual_leave_days"`
+	SickLeaveDays     int                `json:"sick_leave_days"`
 	TermTimeOnly      *bool              `json:"term_time_only"`
 	Qualifications    []string           `json:"qualifications"`
 	DBSNumber         string             `json:"dbs_number"`

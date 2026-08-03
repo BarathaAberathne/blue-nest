@@ -710,12 +710,17 @@ export interface LeaveRequest {
 }
 
 export interface LeaveBalance {
+  type: LeaveType;
   year: number;
   allowance: number;
   taken: number;
   pending: number;
   remaining: number;
 }
+
+// Per-type balances keyed by leave type (only capped types appear: annual
+// always, sick when a paid-sick allowance is configured).
+export type LeaveBalances = Partial<Record<LeaveType, LeaveBalance>>;
 
 export interface LeaveRequestInput {
   staff_id?: string;
@@ -1314,6 +1319,7 @@ export interface Staff {
   start_date?: string;
   contract_hours?: number;
   annual_leave_days?: number;
+  sick_leave_days?: number;
   term_time_only?: boolean;
   qualifications?: string[];
   dbs_number?: string;
@@ -1340,6 +1346,7 @@ export interface StaffInput {
   start_date?: string;
   contract_hours?: number;
   annual_leave_days?: number;
+  sick_leave_days?: number;
   term_time_only?: boolean;
   qualifications?: string[];
   dbs_number?: string;

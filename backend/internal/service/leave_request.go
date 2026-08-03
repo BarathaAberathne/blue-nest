@@ -21,9 +21,9 @@ type LeaveRequestService interface {
 	Cancel(ctx context.Context, id, actorUserID string) (*models.LeaveRequest, error)
 	Approve(ctx context.Context, id, actorUserID, actorName string) (*models.LeaveRequest, error)
 	Decline(ctx context.Context, id, reason, actorUserID, actorName string) (*models.LeaveRequest, error)
-	// BalanceForUser returns the caller's own annual-leave balance (nil if the
-	// user has no linked staff record).
-	BalanceForUser(ctx context.Context, actorUserID string) (*models.LeaveBalance, error)
+	// BalancesForUser returns the caller's per-type leave balances (keyed by
+	// leave type; empty if the user has no linked staff record).
+	BalancesForUser(ctx context.Context, actorUserID string) (map[string]models.LeaveBalance, error)
 }
 
 type leaveRequestService struct {
@@ -78,13 +78,32 @@ func (s *leaveRequestService) approversFor(ctx context.Context, branch string) [
 	return ids
 }
 
-// balanceForStaff computes a staff member's annual-leave position for the leave
-// year containing today. Only annual leave counts against the allowance.
-func (s *leaveRequestService) balanceForStaff(ctx context.Context, st *models.Staff) (*models.LeaveBalance, error) {
-	allowance := models.DefaultAnnualLeaveDays
-	if st.AnnualLeaveDays > 0 {
-		allowance = st.AnnualLeaveDays
+// allowanceForType returns the annual allowance for a leave type and whether it
+// is capped for this staff member: annual leave is always capped (org default
+// when unset); sick leave only when a paid-sick allowance is configured; the
+// other types (unpaid/maternity/dependant) are uncapped.
+func (s *leaveRequestService) allowanceForType(st *models.Staff, t string) (allowance int, capped bool) {
+	switch t {
+	case models.LeaveTypeAnnual:
+		a := models.DefaultAnnualLeaveDays
+		if st.AnnualLeaveDays > 0 {
+			a = st.AnnualLeaveDays
+		}
+		return a, true
+	case models.LeaveTypeSick:
+		if st.SickLeaveDays > 0 {
+			return st.SickLeaveDays, true
+		}
+		return 0, false
+	default:
+		return 0, false
 	}
+}
+
+// balanceForType computes a staff member's position for one capped leave type in
+// the leave year containing today.
+func (s *leaveRequestService) balanceForType(ctx context.Context, st *models.Staff, t string) (*models.LeaveBalance, error) {
+	allowance, _ := s.allowanceForType(st, t)
 	yearStart, yearEnd, year := models.LeaveYearContains(time.Now())
 	reqs, err := s.repo.FindByStaffID(ctx, st.ID.Hex())
 	if err != nil {
@@ -92,10 +111,7 @@ func (s *leaveRequestService) balanceForStaff(ctx context.Context, st *models.St
 	}
 	taken, pending := 0, 0
 	for _, r := range reqs {
-		if r.Type != models.LeaveTypeAnnual {
-			continue
-		}
-		if r.StartDate < yearStart || r.StartDate > yearEnd { // bucket by start date
+		if r.Type != t || r.StartDate < yearStart || r.StartDate > yearEnd { // bucket by start date
 			continue
 		}
 		switch r.Status {
@@ -109,15 +125,31 @@ func (s *leaveRequestService) balanceForStaff(ctx context.Context, st *models.St
 	if remaining < 0 {
 		remaining = 0
 	}
-	return &models.LeaveBalance{Year: year, Allowance: allowance, Taken: taken, Pending: pending, Remaining: remaining}, nil
+	return &models.LeaveBalance{Type: t, Year: year, Allowance: allowance, Taken: taken, Pending: pending, Remaining: remaining}, nil
 }
 
-func (s *leaveRequestService) BalanceForUser(ctx context.Context, actorUserID string) (*models.LeaveBalance, error) {
+// balancesForStaff returns one balance per capped leave type (keyed by type).
+func (s *leaveRequestService) balancesForStaff(ctx context.Context, st *models.Staff) (map[string]models.LeaveBalance, error) {
+	out := map[string]models.LeaveBalance{}
+	for _, t := range models.LeaveTypes {
+		if _, capped := s.allowanceForType(st, t); !capped {
+			continue
+		}
+		b, err := s.balanceForType(ctx, st, t)
+		if err != nil {
+			return nil, err
+		}
+		out[t] = *b
+	}
+	return out, nil
+}
+
+func (s *leaveRequestService) BalancesForUser(ctx context.Context, actorUserID string) (map[string]models.LeaveBalance, error) {
 	st := s.staffForUser(ctx, actorUserID)
 	if st == nil {
-		return nil, nil
+		return map[string]models.LeaveBalance{}, nil
 	}
-	return s.balanceForStaff(ctx, st)
+	return s.balancesForStaff(ctx, st)
 }
 
 func (s *leaveRequestService) Apply(ctx context.Context, in models.LeaveRequestCreate, actorUserID, actorName string) (*models.LeaveRequest, error) {
@@ -145,15 +177,28 @@ func (s *leaveRequestService) Apply(ctx context.Context, in models.LeaveRequestC
 		return nil, errors.New("no staff record is linked to your account — ask an admin to link your login before requesting leave")
 	}
 
-	// Annual leave is capped at the remaining allowance; other leave types
-	// (sickness, unpaid, maternity, dependant) don't draw on the annual balance.
-	if t == models.LeaveTypeAnnual {
-		bal, err := s.balanceForStaff(ctx, st)
+	// Reject a request that overlaps the staff member's own existing open leave
+	// (pending or approved) — no double-booking the same dates.
+	if existing, err := s.repo.FindByStaffID(ctx, st.ID.Hex()); err == nil {
+		for _, e := range existing {
+			if e.Status != models.LeavePending && e.Status != models.LeaveApproved {
+				continue
+			}
+			if in.StartDate <= e.EndDate && e.StartDate <= in.EndDate {
+				return nil, fmt.Errorf("this overlaps existing %s leave (%s → %s) already booked for this person", string(e.Status), e.StartDate, e.EndDate)
+			}
+		}
+	}
+
+	// Capped leave types (annual, and sick when a paid-sick allowance is set)
+	// are limited to the remaining allowance; other types are uncapped.
+	if allowance, capped := s.allowanceForType(st, t); capped {
+		bal, err := s.balanceForType(ctx, st, t)
 		if err != nil {
 			return nil, err
 		}
 		if days > bal.Remaining {
-			return nil, fmt.Errorf("this request (%d days) exceeds the remaining annual allowance (%d of %d days left)", days, bal.Remaining, bal.Allowance)
+			return nil, fmt.Errorf("this request (%d days) exceeds the remaining %s allowance (%d of %d days left)", days, leaveTypeLabel(t), bal.Remaining, allowance)
 		}
 	}
 
