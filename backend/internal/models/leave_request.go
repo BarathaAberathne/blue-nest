@@ -100,12 +100,12 @@ type LeaveRequest struct {
 	UpdatedAt     time.Time          `bson:"updated_at"                json:"updated_at"`
 
 	// Overlaps is a computed, transient count of OTHER staff at the same branch
-	// whose approved/pending leave overlaps this request's dates — a coverage /
+	// whose approved/pending leave overlaps this request's dates - a coverage /
 	// clash signal for the approver. Never stored.
 	Overlaps int `bson:"-" json:"overlaps"`
 }
 
-// LeaveRequestCreate is the apply payload. StaffID is optional — a manager may
+// LeaveRequestCreate is the apply payload. StaffID is optional - a manager may
 // file for a staff member; a staff member leaves it blank to apply for self.
 type LeaveRequestCreate struct {
 	StaffID   string `json:"staff_id"`

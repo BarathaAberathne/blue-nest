@@ -173,11 +173,11 @@ func (s *leaveRequestService) Apply(ctx context.Context, in models.LeaveRequestC
 		st = s.staffForUser(ctx, actorUserID)
 	}
 	if st == nil {
-		return nil, errors.New("no staff record is linked to your account — ask an admin to link your login before requesting leave")
+		return nil, errors.New("no staff record is linked to your account - ask an admin to link your login before requesting leave")
 	}
 
 	// Reject a request that overlaps the staff member's own existing open leave
-	// (pending or approved) — no double-booking the same dates.
+	// (pending or approved) - no double-booking the same dates.
 	if existing, err := s.repo.FindByStaffID(ctx, st.ID.Hex()); err == nil {
 		for _, e := range existing {
 			if e.Status != models.LeavePending && e.Status != models.LeaveApproved {
@@ -321,7 +321,7 @@ func (s *leaveRequestService) Approve(ctx context.Context, id, actorUserID, acto
 		return nil, err
 	}
 
-	// Write the booked weekdays onto the attendance register (best-effort — a
+	// Write the booked weekdays onto the attendance register (best-effort - a
 	// failed day never blocks the approval; managers can re-mark if needed).
 	status := models.LeaveTypeToAttendanceStatus(lr.Type)
 	for _, d := range models.Weekdays(lr.StartDate, lr.EndDate) {

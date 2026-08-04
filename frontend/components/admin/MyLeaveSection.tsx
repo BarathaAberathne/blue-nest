@@ -29,7 +29,7 @@ function fmt(d: string) {
 }
 
 /**
- * Self-service leave — balances, a request wizard (with the selected type's
+ * Self-service leave - balances, a request wizard (with the selected type's
  * remaining shown live), and the caller's own requests. Approval stays a
  * four-eyes manager action elsewhere; this is the applicant's view. Rendered
  * inside the My Profile hub's Leave tab.
@@ -98,7 +98,7 @@ export default function MyLeaveSection() {
     <div className="space-y-6">
       {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>}
 
-      {/* Balances — one card per leave type. Capped types (annual, and sick when
+      {/* Balances - one card per leave type. Capped types (annual, and sick when
           an allowance is set) show remaining vs allowance; the rest show usage. */}
       {Object.keys(balances).length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -162,7 +162,7 @@ export default function MyLeaveSection() {
               if (sb?.capped) {
                 const over = workingDays > sb.remaining;
                 return <p className={`text-xs ${over ? "text-rose-600" : "text-slate-400"}`}>
-                  {sb.remaining} of {sb.allowance} {TYPE_LABEL[type]?.toLowerCase()} days left{over ? " — exceeds your allowance" : ""}
+                  {sb.remaining} of {sb.allowance} {TYPE_LABEL[type]?.toLowerCase()} days left{over ? " - exceeds your allowance" : ""}
                 </p>;
               }
               return <p className="text-xs text-slate-400">{TYPE_LABEL[type]} isn&rsquo;t deducted from an allowance</p>;

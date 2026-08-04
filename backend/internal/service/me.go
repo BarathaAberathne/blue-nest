@@ -34,7 +34,7 @@ func NewMeService(staff repository.StaffRepository, attendance StaffAttendanceSe
 	return &meService{staff: staff, attendance: attendance, attRepo: attRepo, shifts: shifts}
 }
 
-var errNoStaffProfile = errors.New("no staff profile is linked to your account — ask an admin to link your login")
+var errNoStaffProfile = errors.New("no staff profile is linked to your account - ask an admin to link your login")
 
 // staffForUser resolves the Staff record linked to a login user (Staff.UserID).
 func (s *meService) staffForUser(ctx context.Context, userID string) (*models.Staff, error) {

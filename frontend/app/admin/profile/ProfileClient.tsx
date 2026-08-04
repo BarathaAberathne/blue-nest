@@ -26,7 +26,7 @@ function fmtDate(d: string) {
   const dt = new Date(d + "T00:00:00");
   return Number.isNaN(dt.getTime()) ? d : dt.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 }
-function hrs(mins?: number) { return mins ? `${Math.round((mins / 60) * 10) / 10}h` : "—"; }
+function hrs(mins?: number) { return mins ? `${Math.round((mins / 60) * 10) / 10}h` : "-"; }
 function daysUntil(d?: string) {
   if (!d) return null;
   const t = new Date(d + "T00:00:00").getTime();
@@ -203,7 +203,7 @@ function Read({ label, value }: { label: string; value?: string }) {
   return (
     <div>
       <dt className="text-xs font-medium text-slate-500">{label}</dt>
-      <dd className="text-slate-800">{value || <span className="text-slate-400">—</span>}</dd>
+      <dd className="text-slate-800">{value || <span className="text-slate-400">-</span>}</dd>
     </div>
   );
 }
@@ -307,8 +307,8 @@ function AttendanceTab() {
                 <tr key={r.id} className="border-b border-slate-50 last:border-0">
                   <td className="px-5 py-2 text-slate-700">{fmtDate(r.date)}</td>
                   <td className="px-3 py-2">{ATT_LABEL[r.status] ?? r.status}{r.late_arrival ? <span className="ml-1 text-xs text-amber-600">(late)</span> : ""}</td>
-                  <td className="px-3 py-2 tabular-nums text-slate-600">{r.clock_in ? new Date(r.clock_in).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
-                  <td className="px-3 py-2 tabular-nums text-slate-600">{r.clock_out ? new Date(r.clock_out).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
+                  <td className="px-3 py-2 tabular-nums text-slate-600">{r.clock_in ? new Date(r.clock_in).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "-"}</td>
+                  <td className="px-3 py-2 tabular-nums text-slate-600">{r.clock_out ? new Date(r.clock_out).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "-"}</td>
                   <td className="px-5 py-2 tabular-nums text-slate-600">{hrs(r.worked_minutes)}</td>
                 </tr>
               ))}
@@ -325,11 +325,26 @@ function AttendanceTab() {
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
+// Every date (inclusive) covered by an APPROVED leave request - the shared
+// "on leave" set used to paint those days red in the calendar.
+function expandApprovedLeave(reqs: { status: string; start_date: string; end_date: string }[]): Set<string> {
+  const set = new Set<string>();
+  for (const r of reqs) {
+    if (r.status !== "approved") continue;
+    const start = new Date(r.start_date + "T00:00:00");
+    const end = new Date(r.end_date + "T00:00:00");
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) continue;
+    for (const d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) set.add(ymd(d));
+  }
+  return set;
+}
+
 function RotaTab() {
   const token = typeof window !== "undefined" ? getAccessToken() : "";
   const now = new Date();
   const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() }); // m: 0–11
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [leaveDates, setLeaveDates] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -344,6 +359,10 @@ function RotaTab() {
       .then((s) => setShifts(s ?? []))
       .catch((e) => setErr(e instanceof Error ? e.message : "Failed to load rota"))
       .finally(() => setLoading(false));
+    // Overlay the caller's own approved leave (shown in red).
+    api.getMyLeaveRequests(token)
+      .then((reqs) => setLeaveDates(expandApprovedLeave(reqs ?? [])))
+      .catch(() => { /* non-blocking */ });
   }, [token, monthStart, monthEnd]);
 
   // 6-week grid starting on the Monday on/before the 1st.
@@ -376,13 +395,15 @@ function RotaTab() {
           const ds = ymd(d);
           const inMonth = d.getMonth() === cursor.m;
           const isToday = ds === todayStr;
+          const onLeave = leaveDates.has(ds);
           const dayShifts = byDay(ds);
           return (
-            <div key={i} className={`min-h-[76px] bg-white p-1 text-left align-top ${inMonth ? "" : "bg-slate-50/60"}`}>
+            <div key={i} className={`min-h-[76px] p-1 text-left align-top ${onLeave ? "bg-rose-50" : inMonth ? "bg-white" : "bg-slate-50/60"}`}>
               <div className={`mb-1 text-right text-xs ${isToday ? "font-bold text-teal-700" : inMonth ? "text-slate-500" : "text-slate-300"}`}>
                 {isToday ? <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-teal-600 text-white">{d.getDate()}</span> : d.getDate()}
               </div>
               <div className="space-y-0.5">
+                {onLeave && <div className="truncate rounded bg-rose-100 px-1 py-0.5 text-[0.65rem] font-semibold text-rose-700">On leave</div>}
                 {dayShifts.map((s) => (
                   <div key={s.id} title={`${s.start_time}–${s.end_time}${s.room_name ? " · " + s.room_name : ""}${s.notes ? " · " + s.notes : ""}`}
                     className="truncate rounded bg-teal-50 px-1 py-0.5 text-[0.65rem] font-semibold text-teal-800">

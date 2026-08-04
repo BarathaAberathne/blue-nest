@@ -28,7 +28,7 @@ function enquiryQuery(params?: EnquiryListParams): string {
 
 // Resolve the API origin. An explicit absolute NEXT_PUBLIC_API_URL always wins
 // (prod serves the API from a separate host). In dev/Docker it's
-// http://localhost:8080 — correct for the machine running the stack, but wrong
+// http://localhost:8080 - correct for the machine running the stack, but wrong
 // for any OTHER device: a kiosk tablet on the LAN would call its own localhost.
 // So when the page is served from a non-localhost host and the API was
 // configured for localhost, fall back to the SAME ORIGIN and let Next's
@@ -56,7 +56,7 @@ type ApiEnvelope<T> = {
   message?: string;
 };
 
-// Deduplicates concurrent refresh calls — only one in-flight at a time.
+// Deduplicates concurrent refresh calls - only one in-flight at a time.
 let refreshPromise: Promise<string | null> | null = null;
 
 async function tryRefreshToken(): Promise<string | null> {
@@ -99,7 +99,7 @@ async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T>
   }
 
   let res = await fetch(`${apiBase()}${path}`, { ...init, headers }).catch((err: unknown) => {
-    console.error(`[api] Network error — ${init.method ?? "GET"} ${apiBase()}${path}:`, err);
+    console.error(`[api] Network error - ${init.method ?? "GET"} ${apiBase()}${path}:`, err);
     throw err;
   });
 
@@ -198,9 +198,9 @@ export const api = {
   // Contact / Enquiries
   submitEnquiry: (body: unknown) =>
     apiFetch("/api/v1/contact", { method: "POST", body: JSON.stringify(body) }),
-  // Returns the full matching set (no pagination) — used by the pipeline and
+  // Returns the full matching set (no pagination) - used by the pipeline and
   // follow-up views. Pass params for server-side filtering/sorting.
-  // ── Kiosk (entrance tablet — device token, not a user JWT) ─────────────────
+  // ── Kiosk (entrance tablet - device token, not a user JWT) ─────────────────
   kioskSession: (deviceToken: string) =>
     apiFetch<KioskSession>("/api/v1/kiosk/session", { method: "POST", headers: { "X-Kiosk-Token": deviceToken } }),
   kioskSearch: (deviceToken: string, q: string) =>
@@ -239,7 +239,7 @@ export const api = {
 
   adminCreateEnquiry: (token: string, body: EnquiryCreateInput) =>
     apiFetch<Enquiry>("/api/v1/admin/enquiries", { method: "POST", body: JSON.stringify(body), token }),
-  // Paginated table view — returns one page plus the total.
+  // Paginated table view - returns one page plus the total.
   adminGetEnquiriesPaged: (token: string, params?: EnquiryListParams) =>
     apiFetch<EnquiryPage>(`/api/v1/admin/enquiries/page${enquiryQuery(params)}`, { token }),
   adminGetEnquiryTasks: (token: string) =>
@@ -299,7 +299,7 @@ export const api = {
       child_age_group?: string;
       room_allocation?: string;
       funding_type?: string;
-      // Child identity — required for registration to actually create the
+      // Child identity - required for registration to actually create the
       // Child record (see AdminEnquiryHandler.Register); omitted, the enquiry
       // is still marked registered but no child is created.
       child_first_name?: string;
@@ -391,7 +391,7 @@ export const api = {
     return apiFetch<AuditLog[]>(`/api/v1/admin/audit-logs${suffix}`, { token });
   },
 
-  // Order / supply requests — staff
+  // Order / supply requests - staff
   createOrderRequest: (token: string, body: unknown) =>
     apiFetch<OrderRequest>("/api/v1/order-requests", { method: "POST", body: JSON.stringify(body), token }),
   getMyOrderRequests: (token: string) =>
@@ -401,7 +401,7 @@ export const api = {
   cancelOrderRequest: (token: string, id: string) =>
     apiFetch<OrderRequest>(`/api/v1/order-requests/${id}/cancel`, { method: "PATCH", token }),
 
-  // Staff leave / holiday — self-service (staff) + management review.
+  // Staff leave / holiday - self-service (staff) + management review.
   getMyLeaveRequests: (token: string) =>
     apiFetch<LeaveRequest[]>("/api/v1/leave-requests/me", { token }),
   getMyLeaveBalance: (token: string) =>
@@ -453,7 +453,7 @@ export const api = {
   deleteOrderTemplate: (token: string, id: string) =>
     apiFetch(`/api/v1/order-templates/${id}`, { method: "DELETE", token }),
 
-  // Order / supply requests — admin
+  // Order / supply requests - admin
   adminGetOrderRequests: (token: string) =>
     apiFetch<OrderRequest[]>("/api/v1/admin/order-requests", { token }),
   adminGetOrderRequest: (token: string, id: string) =>
@@ -506,7 +506,7 @@ export const api = {
   adminDeleteDashboardProfile: (token: string, slug: string) =>
     apiFetch<void>(`/api/v1/admin/dashboard-profiles/${encodeURIComponent(slug)}`, { method: "DELETE", token }),
 
-  // Suppliers (managed vendor directory — admin CRUD)
+  // Suppliers (managed vendor directory - admin CRUD)
   adminGetSuppliers: (token: string) =>
     apiFetch<Supplier[]>("/api/v1/admin/suppliers", { token }),
   adminGetSupplier: (token: string, id: string) =>
@@ -567,7 +567,7 @@ export const api = {
       token,
     }),
 
-  // Nursery — rooms
+  // Nursery - rooms
   // ── Configurable taxonomy (lists) ──────────────────────────────────────────
   // With a branch → picker mode (active branch + org-wide terms); without → the
   // management view (every term in the category, all branches).
@@ -579,7 +579,7 @@ export const api = {
     apiFetch<TaxonomyTerm>(`/api/v1/admin/taxonomy/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
   adminDeleteTaxonomy: (token: string, id: string) =>
     apiFetch<void>(`/api/v1/admin/taxonomy/${id}`, { method: "DELETE", token }),
-  // Public read (unauthenticated) — the application form's session picker.
+  // Public read (unauthenticated) - the application form's session picker.
   getTaxonomy: (category: string, branch?: string) =>
     apiFetch<TaxonomyTerm[]>(`/api/v1/taxonomy?category=${encodeURIComponent(category)}${branch ? `&branch=${encodeURIComponent(branch)}` : ""}`),
 
@@ -614,7 +614,7 @@ export const api = {
   adminSetRoomStatus: (token: string, id: string, status: "active" | "inactive") =>
     apiFetch<Room>(`/api/v1/admin/rooms/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }), token }),
 
-  // Nursery — room allocations (the authoritative assignment model; both the
+  // Nursery - room allocations (the authoritative assignment model; both the
   // room profile and the staff/child profiles use these same endpoints)
   adminGetRoomCapacity: (token: string, roomId: string) =>
     apiFetch<RoomCapacitySummary>(`/api/v1/admin/rooms/${roomId}/capacity`, { token }),
@@ -643,7 +643,7 @@ export const api = {
   adminTransferChildRoom: (token: string, childId: string, body: ChildTransferInput) =>
     apiFetch<ChildRoomAssignment>(`/api/v1/admin/children/${childId}/transfer-room`, { method: "POST", body: JSON.stringify(body), token }),
 
-  // Nursery — children
+  // Nursery - children
   adminGetChildren: (token: string, params?: { branch?: string; room?: string; status?: string; q?: string }) => {
     const qs = new URLSearchParams();
     if (params) for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
@@ -674,7 +674,7 @@ export const api = {
   adminGetStaffKeyChildren: (token: string, staffId: string) =>
     apiFetch<Child[]>(`/api/v1/admin/staff/${staffId}/key-children`, { token }),
 
-  // Nursery — attendance register
+  // Nursery - attendance register
   adminGetRegister: (token: string, params?: { date?: string; branch?: string }) => {
     const qs = new URLSearchParams();
     if (params) for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
@@ -694,14 +694,14 @@ export const api = {
   adminMarkAttendance: (token: string, body: { child_id: string; date?: string; status: string; notes?: string }) =>
     apiFetch<AttendanceRecord>("/api/v1/admin/attendance/mark", { method: "PATCH", body: JSON.stringify(body), token }),
 
-  // People / HR — staff
+  // People / HR - staff
   adminGetStaff: (token: string, params?: { branch?: string; status?: string; type?: string; q?: string }) => {
     const qs = new URLSearchParams();
     if (params) for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
     const s = qs.toString();
     return apiFetch<Staff[]>(`/api/v1/admin/staff${s ? `?${s}` : ""}`, { token });
   },
-  // Organisation (own tenant) — profile + branding self-service.
+  // Organisation (own tenant) - profile + branding self-service.
   adminGetOrganisation: (token: string) =>
     apiFetch<Organisation>("/api/v1/admin/organisation", { token }),
   adminUpdateOrganisation: (token: string, body: OrgProfileInput) =>
@@ -718,7 +718,7 @@ export const api = {
   adminDeleteStaff: (token: string, id: string) =>
     apiFetch(`/api/v1/admin/staff/${id}`, { method: "DELETE", token }),
 
-  // People / HR — staff attendance register
+  // People / HR - staff attendance register
   adminGetStaffRegister: (token: string, params?: { date?: string; branch?: string }) => {
     const qs = new URLSearchParams();
     if (params) for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
@@ -746,7 +746,7 @@ export const api = {
   adminCorrectAttendance: (token: string, id: string, body: AttendanceCorrectionInput) =>
     apiFetch<StaffAttendanceRecord>(`/api/v1/admin/staff-attendance/${id}/correct`, { method: "PATCH", body: JSON.stringify(body), token }),
 
-  // Nursery — daily records (observations, incidents, safeguarding, medication, meals)
+  // Nursery - daily records (observations, incidents, safeguarding, medication, meals)
   adminGetDailyRecords: (token: string, params?: { type?: string; child?: string; branch?: string; status?: string; approval?: string; date?: string; since?: string; q?: string; limit?: number }) => {
     const qs = new URLSearchParams();
     if (params) for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") qs.set(k, String(v));

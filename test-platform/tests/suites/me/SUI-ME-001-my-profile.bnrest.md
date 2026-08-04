@@ -2,7 +2,7 @@
 id: SUI-ME-001
 number: "2.24"
 type: Test Suite
-title: My Profile hub — self-service profile, attendance, rota
+title: My Profile hub - self-service profile, attendance, rota
 owner: QA
 mode: Dependent
 status: Active

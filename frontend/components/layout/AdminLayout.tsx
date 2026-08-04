@@ -48,7 +48,7 @@ import type { Permission, UserRole } from "@/types";
 // process: Overview → Supply Requests → Purchase Orders → Suppliers → Catalogue
 // → Analytics. Each item declares the permission needed to see it, so specialist
 // roles (finance / admissions / procurement) get a tailored sidebar.
-// `roles` (optional) restricts an item to specific roles regardless of permission —
+// `roles` (optional) restricts an item to specific roles regardless of permission -
 // used for the Command Centre, which is director + super_admin only.
 type NavItem = { label: string; href: string; icon: typeof LayoutDashboard; exact?: boolean; permission: Permission; roles?: UserRole[]; feature?: string };
 type NavSection = { heading: string | null; items: NavItem[] };
@@ -124,7 +124,7 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-// Staff (practitioners) get a restricted portal — only their own supply requests.
+// Staff (practitioners) get a restricted portal - only their own supply requests.
 const STAFF_SECTIONS: NavSection[] = [
   { heading: null, items: [
     { label: "My Profile", href: "/admin/profile", icon: UserCircle, permission: "dashboard.view" },
@@ -187,7 +187,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     ? NAV_SECTIONS.map((s) => ({ ...s, items: s.items.filter(canSee) })).filter((s) => s.items.length > 0)
     : STAFF_SECTIONS;
 
-  // Exactly one item is highlighted — the active item resolved from the visible
+  // Exactly one item is highlighted - the active item resolved from the visible
   // sections. Highlighting by href (not a naive per-item startsWith) is what
   // stops "/admin/staff" lighting up on "/admin/staff-attendance".
   const activeHref = activeNavItem(navSections, pathname)?.href;
@@ -195,7 +195,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // First page the user is actually allowed to open (their landing page).
   const firstAllowedHref = navSections.flatMap((s) => s.items)[0]?.href ?? "/admin/dashboard";
   // The active nav item for the current path (drives the highlight, the page
-  // title and the permission gate — one boundary-aware, longest-match resolver).
+  // title and the permission gate - one boundary-aware, longest-match resolver).
   const currentItem = activeNavItem(NAV_SECTIONS, pathname);
 
   useEffect(() => {
@@ -206,7 +206,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.push("/account");
       return;
     }
-    // Confine staff to their own supply-requests area — they can't reach
+    // Confine staff to their own supply-requests area - they can't reach
     // management pages even by typing the URL.
     if (isStaff && !pathname.startsWith("/admin/my-requests") && !pathname.startsWith("/admin/profile")) {
       router.push("/admin/my-requests");
@@ -242,7 +242,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           sidebarOpen ? "w-56" : "w-[78px]"
         }`}
       >
-        {/* Brand — per-tenant name, logo and accent colour */}
+        {/* Brand - per-tenant name, logo and accent colour */}
         <div className="flex items-center gap-3 px-4 py-5">
           {org?.branding?.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
