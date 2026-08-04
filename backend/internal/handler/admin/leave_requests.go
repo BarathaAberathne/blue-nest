@@ -54,18 +54,15 @@ func (h *AdminLeaveHandler) Apply(w http.ResponseWriter, r *http.Request) {
 	response.Created(w, lr)
 }
 
-// Balance returns the caller's own annual-leave balance (zeroed if their login
-// isn't linked to a staff record yet).
+// Balance returns the caller's per-type leave balances (keyed by leave type;
+// empty if their login isn't linked to a staff record yet).
 func (h *AdminLeaveHandler) Balance(w http.ResponseWriter, r *http.Request) {
-	bal, err := h.svc.BalanceForUser(r.Context(), actorID(r))
+	balances, err := h.svc.BalancesForUser(r.Context(), actorID(r))
 	if err != nil {
 		response.InternalError(w, "failed to load leave balance")
 		return
 	}
-	if bal == nil {
-		bal = &models.LeaveBalance{}
-	}
-	response.OK(w, bal)
+	response.OK(w, balances)
 }
 
 // Cancel withdraws the caller's own pending request.

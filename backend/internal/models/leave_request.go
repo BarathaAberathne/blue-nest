@@ -42,7 +42,8 @@ const DefaultAnnualLeaveDays = 28
 // LeaveBalance is a staff member's annual-leave position for the current leave
 // year. Only annual leave (LeaveTypeAnnual) counts against the allowance.
 type LeaveBalance struct {
-	Year      int `json:"year"`      // the leave year's starting calendar year (Apr–Mar)
+	Type      string `json:"type"`      // leave type this balance is for
+	Year      int    `json:"year"`      // the leave year's starting calendar year (Apr–Mar)
 	Allowance int `json:"allowance"` // working days entitled this year
 	Taken     int `json:"taken"`     // approved annual-leave days this year
 	Pending   int `json:"pending"`   // pending annual-leave days this year

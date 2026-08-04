@@ -119,6 +119,7 @@ export default function RotaClient() {
   const hiddenCount = useMemo(() => (hasClassroomStaff ? staff.filter((m) => !m.room_id).length : 0), [staff, hasClassroomStaff]);
 
   const openCell = (row: Row, date: string) => {
+    setError(null);
     const sh = cellShift(row, date);
     setEdit({ row, date, shift: sh, roomId: sh?.room_id ?? row.staff?.room_id ?? (row.roomId === COVER_KEY ? "" : row.roomId), start: sh?.start_time ?? "08:00", end: sh?.end_time ?? "16:00" });
   };
@@ -266,6 +267,7 @@ export default function RotaClient() {
                 })}
               </div>
             </div>
+            {error && <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
             <div className="mt-6 flex items-center justify-between">
               {edit.shift ? <button onClick={remove} disabled={saving} className="inline-flex items-center gap-1.5 text-sm font-medium text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /> Remove</button> : <span />}
               <div className="flex gap-2">

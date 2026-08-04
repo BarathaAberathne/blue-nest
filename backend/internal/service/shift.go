@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -40,10 +41,11 @@ type shiftService struct {
 	repo  repository.ShiftRepository
 	staff repository.StaffRepository
 	rooms repository.RoomRepository
+	leave repository.LeaveRequestRepository
 }
 
-func NewShiftService(repo repository.ShiftRepository, staff repository.StaffRepository, rooms repository.RoomRepository) ShiftService {
-	return &shiftService{repo: repo, staff: staff, rooms: rooms}
+func NewShiftService(repo repository.ShiftRepository, staff repository.StaffRepository, rooms repository.RoomRepository, leave repository.LeaveRequestRepository) ShiftService {
+	return &shiftService{repo: repo, staff: staff, rooms: rooms, leave: leave}
 }
 
 var (
@@ -112,6 +114,17 @@ func (s *shiftService) resolve(ctx context.Context, req models.ShiftRequest) (*m
 		sh.StaffID = req.StaffID
 		sh.StaffName = strings.TrimSpace(st.FirstName + " " + st.LastName)
 		sh.BranchSlug = st.BranchSlug
+
+		// Can't roster someone who is on approved leave that day.
+		if s.leave != nil {
+			if lr, err := s.leave.FindByStaffID(ctx, req.StaffID); err == nil {
+				for _, l := range lr {
+					if l.Status == models.LeaveApproved && l.StartDate <= req.Date && req.Date <= l.EndDate {
+						return nil, fmt.Errorf("%s is on approved %s (%s → %s) on %s — they can't be rostered that day", sh.StaffName, leaveTypeLabel(l.Type), l.StartDate, l.EndDate, req.Date)
+					}
+				}
+			}
+		}
 	}
 	if req.RoomID != "" {
 		if room, err := s.rooms.FindByID(ctx, req.RoomID); err == nil && room != nil {

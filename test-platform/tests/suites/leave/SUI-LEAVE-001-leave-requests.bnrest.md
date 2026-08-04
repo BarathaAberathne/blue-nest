@@ -47,7 +47,24 @@ Call ../../utils/staff/STAFF-UTIL-001-create-staff.bnrest.md With Json Into staf
   "loginPassword": ""
 }
 
+Call ../../utils/staff/STAFF-UTIL-001-create-staff.bnrest.md With Json Into mgr
+{
+  "accessToken": "${adminSession.accessToken}",
+  "firstName": "QA-AUTOTEST",
+  "lastName": "LeaveMgr-${random()}",
+  "email": "qa-autotest-leavemgr-${random()}@bluenest.test",
+  "branchSlug": "${branch.slug}",
+  "jobTitle": "",
+  "enableLogin": true,
+  "loginRole": "branch_manager",
+  "loginPassword": "QA-mgr-pass-123"
+}
+
+Call ../../utils/auth/AUTH-UTIL-001-login.bnrest.md With Json Into mgrSession
+{ "email": "${mgr.email}", "password": "QA-mgr-pass-123" }
+
 Body
 Call CatchError ../../cases/leave/LEAVE-TC-001-apply-review-cancel.bnrest.md
 Call CatchError ../../cases/leave/LEAVE-TC-002-balance-and-manager-file.bnrest.md
+Call CatchError ../../cases/leave/LEAVE-TC-003-approved-blocks-rota.bnrest.md
 ```

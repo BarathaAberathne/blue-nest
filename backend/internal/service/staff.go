@@ -186,6 +186,7 @@ func applyStaff(st *models.Staff, req models.StaffRequest) {
 		st.ContractHours = req.ContractHours
 	}
 	st.AnnualLeaveDays = req.AnnualLeaveDays
+	st.SickLeaveDays = req.SickLeaveDays
 	if req.TermTimeOnly != nil {
 		st.TermTimeOnly = *req.TermTimeOnly
 	}
