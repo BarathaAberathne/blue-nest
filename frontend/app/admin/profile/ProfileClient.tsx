@@ -1,0 +1,365 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, CalendarClock, CalendarDays, Pencil, Plane, Plus, Save, ShieldCheck, Trash2, UserCircle, X } from "lucide-react";
+import { api } from "@/lib/api";
+import { getAccessToken } from "@/lib/auth";
+import { fmtBranch } from "@/lib/enquiry";
+import MyLeaveSection from "@/components/admin/MyLeaveSection";
+import type { EmergencyContact, MeAttendance, MeProfileInput, Shift, Staff } from "@/types";
+
+type Tab = "profile" | "leave" | "attendance" | "rota";
+const TABS: { key: Tab; label: string; icon: typeof UserCircle }[] = [
+  { key: "profile", label: "Profile", icon: UserCircle },
+  { key: "leave", label: "Leave", icon: Plane },
+  { key: "attendance", label: "Attendance", icon: CalendarDays },
+  { key: "rota", label: "My Rota", icon: CalendarClock },
+];
+
+const ATT_LABEL: Record<string, string> = {
+  present: "Present", absent: "Absent", leave: "Annual leave", sick: "Sick",
+  dependant_sick: "Dependant sick", unpaid_leave: "Unpaid leave", maternity: "Maternity",
+  training: "Training", meeting: "Meeting", remote: "Remote", holiday: "Holiday",
+};
+
+function fmtDate(d: string) {
+  const dt = new Date(d + "T00:00:00");
+  return Number.isNaN(dt.getTime()) ? d : dt.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+}
+function hrs(mins?: number) { return mins ? `${Math.round((mins / 60) * 10) / 10}h` : "—"; }
+function daysUntil(d?: string) {
+  if (!d) return null;
+  const t = new Date(d + "T00:00:00").getTime();
+  if (Number.isNaN(t)) return null;
+  return Math.ceil((t - Date.now()) / 86_400_000);
+}
+
+export default function ProfileClient() {
+  const token = typeof window !== "undefined" ? getAccessToken() : "";
+  const [tab, setTab] = useState<Tab>("profile");
+  const [me, setMe] = useState<Staff | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadProfile = useCallback(() => {
+    if (!token) return;
+    setLoading(true);
+    api.getMyProfile(token)
+      .then((s) => setMe(s))
+      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load profile"))
+      .finally(() => setLoading(false));
+  }, [token]);
+  useEffect(() => { loadProfile(); }, [loadProfile]);
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div>
+        <h1 className="flex items-center gap-2 font-heading text-2xl font-bold text-slate-900">
+          <UserCircle className="h-6 w-6 text-teal-600" /> My Profile
+        </h1>
+        <p className="text-sm text-slate-500">
+          {me ? `${me.first_name} ${me.last_name} · ${me.job_title || "Staff"} · ${fmtBranch(me.branch_slug)}${me.room_name ? " · " + me.room_name : ""}` : "Your details, leave, attendance and rota."}
+        </p>
+      </div>
+
+      {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>}
+
+      <div className="flex flex-wrap gap-1.5">
+        {TABS.map((t) => (
+          <button key={t.key} type="button" onClick={() => setTab(t.key)}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${tab === t.key ? "bg-teal-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+            <t.icon className="h-4 w-4" /> {t.label}
+          </button>
+        ))}
+      </div>
+
+      {loading && !me ? (
+        <p className="py-10 text-center text-sm text-slate-400">Loading…</p>
+      ) : tab === "profile" ? (
+        me ? <ProfileTab me={me} onSaved={loadProfile} /> : <p className="py-10 text-center text-sm text-slate-400">No staff profile is linked to your account.</p>
+      ) : tab === "leave" ? (
+        <MyLeaveSection />
+      ) : tab === "attendance" ? (
+        <AttendanceTab />
+      ) : (
+        <RotaTab />
+      )}
+    </div>
+  );
+}
+
+// ── Profile tab (view + limited self-edit) ────────────────────────────────────
+
+function ProfileTab({ me, onSaved }: { me: Staff; onSaved: () => void }) {
+  const token = typeof window !== "undefined" ? getAccessToken() : "";
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [form, setForm] = useState<MeProfileInput>({});
+
+  const startEdit = () => {
+    setForm({
+      phone: me.phone ?? "", email: me.email ?? "",
+      qualifications: me.qualifications ?? [], emergency_contacts: me.emergency_contacts ?? [],
+      dbs_number: me.dbs_number ?? "", dbs_expiry: me.dbs_expiry ?? "", first_aid_expiry: me.first_aid_expiry ?? "",
+    });
+    setErr(null);
+    setEditing(true);
+  };
+
+  const save = async () => {
+    if (!token) return;
+    setSaving(true); setErr(null);
+    try { await api.updateMyProfile(token, form); setEditing(false); onSaved(); }
+    catch (e) { setErr(e instanceof Error ? e.message : "Failed to save"); }
+    finally { setSaving(false); }
+  };
+
+  const dbsDays = daysUntil(me.dbs_expiry);
+  const aidDays = daysUntil(me.first_aid_expiry);
+
+  return (
+    <div className="space-y-5">
+      {err && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{err}</div>}
+
+      {/* Certification expiry warnings */}
+      {(dbsDays !== null && dbsDays <= 60) || (aidDays !== null && aidDays <= 60) ? (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-700">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            {dbsDays !== null && dbsDays <= 60 && <p>DBS check {dbsDays < 0 ? "expired" : `expires in ${dbsDays} day${dbsDays === 1 ? "" : "s"}`}.</p>}
+            {aidDays !== null && aidDays <= 60 && <p>First-aid certificate {aidDays < 0 ? "expired" : `expires in ${aidDays} day${aidDays === 1 ? "" : "s"}`}.</p>}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Employment (read-only) */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-600">Employment</h2>
+        <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+          <Read label="Name" value={`${me.first_name} ${me.last_name}`} />
+          <Read label="Job title" value={me.job_title} />
+          <Read label="Branch" value={fmtBranch(me.branch_slug)} />
+          <Read label="Room" value={me.room_name} />
+          <Read label="Start date" value={me.start_date} />
+          <Read label="Contract hours" value={me.contract_hours ? `${me.contract_hours}h/week` : undefined} />
+          <Read label="Annual leave allowance" value={`${me.annual_leave_days || 28} days`} />
+        </dl>
+        <p className="mt-3 text-xs text-slate-400">Employment details are managed by your manager. Contact HR if anything is wrong.</p>
+      </div>
+
+      {/* Editable: contact + certifications */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-slate-600">My details</h2>
+          {!editing ? (
+            <button type="button" onClick={startEdit} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
+          ) : (
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setEditing(false)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+              <button type="button" onClick={save} disabled={saving} className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-teal-700 disabled:opacity-50"><Save className="h-3.5 w-3.5" /> {saving ? "Saving…" : "Save"}</button>
+            </div>
+          )}
+        </div>
+
+        {!editing ? (
+          <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+            <Read label="Phone" value={me.phone} />
+            <Read label="Email" value={me.email} />
+            <Read label="DBS number" value={me.dbs_number} />
+            <Read label="DBS expiry" value={me.dbs_expiry} />
+            <Read label="First-aid expiry" value={me.first_aid_expiry} />
+            <Read label="Qualifications" value={me.qualifications?.length ? me.qualifications.join(", ") : undefined} />
+            <div className="sm:col-span-2">
+              <dt className="text-xs font-medium text-slate-500">Emergency contacts</dt>
+              <dd className="mt-0.5 text-slate-800">
+                {me.emergency_contacts?.length
+                  ? me.emergency_contacts.map((c, i) => <span key={i} className="mr-3 inline-block">{c.name}{c.relation ? ` (${c.relation})` : ""}{c.phone ? ` · ${c.phone}` : ""}</span>)
+                  : <span className="text-slate-400">None</span>}
+              </dd>
+            </div>
+          </dl>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Phone"><input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="inp" /></Field>
+              <Field label="Email"><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="inp" /></Field>
+              <Field label="DBS number"><input value={form.dbs_number} onChange={(e) => setForm({ ...form, dbs_number: e.target.value })} className="inp" /></Field>
+              <Field label="DBS expiry"><input type="date" value={form.dbs_expiry} onChange={(e) => setForm({ ...form, dbs_expiry: e.target.value })} className="inp" /></Field>
+              <Field label="First-aid expiry"><input type="date" value={form.first_aid_expiry} onChange={(e) => setForm({ ...form, first_aid_expiry: e.target.value })} className="inp" /></Field>
+            </div>
+            <TagEditor label="Qualifications" tags={form.qualifications ?? []} onChange={(q) => setForm({ ...form, qualifications: q })} />
+            <ContactsEditor contacts={form.emergency_contacts ?? []} onChange={(c) => setForm({ ...form, emergency_contacts: c })} />
+          </div>
+        )}
+      </div>
+
+      <style jsx>{`.inp{width:100%;border:1px solid rgb(226 232 240);border-radius:0.5rem;padding:0.5rem 0.75rem;font-size:0.875rem}`}</style>
+    </div>
+  );
+}
+
+function Read({ label, value }: { label: string; value?: string }) {
+  return (
+    <div>
+      <dt className="text-xs font-medium text-slate-500">{label}</dt>
+      <dd className="text-slate-800">{value || <span className="text-slate-400">—</span>}</dd>
+    </div>
+  );
+}
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <label className="block text-sm"><span className="mb-1 block font-medium text-slate-600">{label}</span>{children}</label>;
+}
+
+function TagEditor({ label, tags, onChange }: { label: string; tags: string[]; onChange: (t: string[]) => void }) {
+  const [v, setV] = useState("");
+  return (
+    <div>
+      <p className="mb-1 text-sm font-medium text-slate-600">{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {tags.map((t, i) => (
+          <span key={i} className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700">
+            {t}<button type="button" onClick={() => onChange(tags.filter((_, j) => j !== i))} className="text-teal-500 hover:text-rose-600"><X className="h-3 w-3" /></button>
+          </span>
+        ))}
+      </div>
+      <div className="mt-2 flex gap-2">
+        <input value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (v.trim()) { onChange([...tags, v.trim()]); setV(""); } } }} placeholder="Add and press Enter" className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm" />
+        <button type="button" onClick={() => { if (v.trim()) { onChange([...tags, v.trim()]); setV(""); } }} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"><Plus className="h-4 w-4" /></button>
+      </div>
+    </div>
+  );
+}
+
+function ContactsEditor({ contacts, onChange }: { contacts: EmergencyContact[]; onChange: (c: EmergencyContact[]) => void }) {
+  const upd = (i: number, patch: Partial<EmergencyContact>) => onChange(contacts.map((c, j) => (j === i ? { ...c, ...patch } : c)));
+  return (
+    <div>
+      <p className="mb-1 text-sm font-medium text-slate-600">Emergency contacts</p>
+      <div className="space-y-2">
+        {contacts.map((c, i) => (
+          <div key={i} className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 p-2 sm:grid-cols-4">
+            <input value={c.name} onChange={(e) => upd(i, { name: e.target.value })} placeholder="Name" className="rounded border border-slate-200 px-2 py-1 text-sm" />
+            <input value={c.relation ?? ""} onChange={(e) => upd(i, { relation: e.target.value })} placeholder="Relation" className="rounded border border-slate-200 px-2 py-1 text-sm" />
+            <input value={c.phone ?? ""} onChange={(e) => upd(i, { phone: e.target.value })} placeholder="Phone" className="rounded border border-slate-200 px-2 py-1 text-sm" />
+            <div className="flex gap-1">
+              <input value={c.email ?? ""} onChange={(e) => upd(i, { email: e.target.value })} placeholder="Email" className="flex-1 rounded border border-slate-200 px-2 py-1 text-sm" />
+              <button type="button" onClick={() => onChange(contacts.filter((_, j) => j !== i))} className="rounded p-1 text-slate-400 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button type="button" onClick={() => onChange([...contacts, { name: "" }])} className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"><Plus className="h-4 w-4" /> Add contact</button>
+    </div>
+  );
+}
+
+// ── Attendance tab ────────────────────────────────────────────────────────────
+
+function AttendanceTab() {
+  const token = typeof window !== "undefined" ? getAccessToken() : "";
+  const [data, setData] = useState<MeAttendance | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    api.getMyAttendance(token)
+      .then((d) => setData(d))
+      .catch((e) => setErr(e instanceof Error ? e.message : "Failed to load attendance"))
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  if (loading) return <p className="py-10 text-center text-sm text-slate-400">Loading…</p>;
+  if (err) return <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{err}</div>;
+  if (!data) return null;
+  const s = data.summary;
+  const recent = [...data.records].sort((a, b) => b.date.localeCompare(a.date));
+
+  return (
+    <div className="space-y-5">
+      {s && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { label: "Worked days", value: s.worked_days },
+            { label: "Worked hours", value: `${Math.round(s.worked_hours)}h` },
+            { label: "Late days", value: s.late_days },
+            { label: "Attendance", value: `${s.attendance_rate}%` },
+          ].map((c) => (
+            <div key={c.label} className="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+              <p className="font-heading text-2xl leading-none text-slate-900">{c.value}</p>
+              <p className="mt-1 text-xs text-slate-500">{c.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-100 px-5 py-3"><h2 className="text-sm font-bold uppercase tracking-wide text-slate-600">Recent attendance</h2></div>
+        {recent.length === 0 ? (
+          <p className="px-5 py-8 text-center text-sm text-slate-400">No attendance records in this range.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-slate-100 text-left text-xs text-slate-500">
+              <th className="px-5 py-2 font-medium">Date</th><th className="px-3 py-2 font-medium">Status</th><th className="px-3 py-2 font-medium">In</th><th className="px-3 py-2 font-medium">Out</th><th className="px-5 py-2 font-medium">Worked</th>
+            </tr></thead>
+            <tbody>
+              {recent.slice(0, 40).map((r) => (
+                <tr key={r.id} className="border-b border-slate-50 last:border-0">
+                  <td className="px-5 py-2 text-slate-700">{fmtDate(r.date)}</td>
+                  <td className="px-3 py-2">{ATT_LABEL[r.status] ?? r.status}{r.late_arrival ? <span className="ml-1 text-xs text-amber-600">(late)</span> : ""}</td>
+                  <td className="px-3 py-2 tabular-nums text-slate-600">{r.clock_in ? new Date(r.clock_in).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
+                  <td className="px-3 py-2 tabular-nums text-slate-600">{r.clock_out ? new Date(r.clock_out).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
+                  <td className="px-5 py-2 tabular-nums text-slate-600">{hrs(r.worked_minutes)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Rota tab (personal upcoming shifts) ───────────────────────────────────────
+
+function RotaTab() {
+  const token = typeof window !== "undefined" ? getAccessToken() : "";
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    api.getMyRota(token)
+      .then((s) => setShifts(s ?? []))
+      .catch((e) => setErr(e instanceof Error ? e.message : "Failed to load rota"))
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  if (loading) return <p className="py-10 text-center text-sm text-slate-400">Loading…</p>;
+  if (err) return <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{err}</div>;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = shifts.filter((s) => s.date >= today).sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-5 py-3"><h2 className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-slate-600"><ShieldCheck className="h-4 w-4 text-teal-600" /> Upcoming shifts</h2></div>
+      {upcoming.length === 0 ? (
+        <p className="px-5 py-8 text-center text-sm text-slate-400">No upcoming shifts scheduled.</p>
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {upcoming.map((s) => (
+            <li key={s.id} className="flex items-center justify-between gap-3 px-5 py-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">{fmtDate(s.date)}</p>
+                <p className="text-xs text-slate-500">{s.room_name || "No room"}{s.notes ? ` · ${s.notes}` : ""}</p>
+              </div>
+              <span className="rounded-lg bg-teal-50 px-2.5 py-1 text-sm font-semibold tabular-nums text-teal-800">{s.start_time}–{s.end_time}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

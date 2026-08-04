@@ -1470,6 +1470,22 @@ export interface StaffAbsenceSummary {
   attendance_rate: number;
 }
 
+// Self-service profile hub (My Profile).
+export interface MeProfileInput {
+  phone?: string;
+  email?: string;
+  qualifications?: string[];
+  emergency_contacts?: EmergencyContact[];
+  dbs_number?: string;
+  dbs_expiry?: string;
+  first_aid_expiry?: string;
+}
+
+export interface MeAttendance {
+  records: StaffAttendanceRecord[];
+  summary: StaffAbsenceSummary;
+}
+
 export interface AttendanceCorrectionInput {
   staff_id?: string; // enables create-on-correct for staff with no record yet
   date?: string;

@@ -45,6 +45,7 @@ type Services struct {
 	Staff             service.StaffService
 	StaffAttendance   service.StaffAttendanceService
 	LeaveRequests     service.LeaveRequestService
+	Me                service.MeService
 	StaffRoomAssign   service.StaffRoomAssignmentService
 	ChildRoomAssign   service.ChildRoomAssignmentService
 	Kiosk             service.KioskService
@@ -164,6 +165,15 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/me/dashboards", dashH.List) // all named layouts
 			r.Post("/me/dashboards/activate", dashH.Activate)
 			r.Delete("/me/dashboards/{name}", dashH.Delete)
+
+			// Self-service "My Profile" hub — own staff record (view + limited
+			// self-edit), attendance history, personal rota. Leave lives at the
+			// existing /leave-requests self-service endpoints.
+			meH := adminHandler.NewMeHandler(svc.Me, svc.Audit)
+			r.Get("/me/profile", meH.Profile)
+			r.Put("/me/profile", meH.UpdateProfile)
+			r.Get("/me/attendance", meH.Attendance)
+			r.Get("/me/rota", meH.Rota)
 
 			// Cart
 			cartH := handler.NewCartHandler(svc.Cart)

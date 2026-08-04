@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, Plane } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import type { LeaveBalances, LeaveRequest, LeaveType } from "@/types";
@@ -28,7 +28,13 @@ function fmt(d: string) {
   return Number.isNaN(dt.getTime()) ? d : dt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export default function MyLeaveClient() {
+/**
+ * Self-service leave — balances, a request wizard (with the selected type's
+ * remaining shown live), and the caller's own requests. Approval stays a
+ * four-eyes manager action elsewhere; this is the applicant's view. Rendered
+ * inside the My Profile hub's Leave tab.
+ */
+export default function MyLeaveSection() {
   const token = typeof window !== "undefined" ? getAccessToken() : "";
   const [items, setItems] = useState<LeaveRequest[]>([]);
   const [balances, setBalances] = useState<LeaveBalances>({});
@@ -89,14 +95,7 @@ export default function MyLeaveClient() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 font-heading text-2xl font-bold text-slate-900">
-          <Plane className="h-6 w-6 text-teal-600" /> My Leave
-        </h1>
-        <p className="text-sm text-slate-500">Request time off and track its approval. Weekends are excluded from the day count.</p>
-      </div>
-
+    <div className="space-y-6">
       {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>}
 
       {/* Allowance balances — one card per capped leave type */}

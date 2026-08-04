@@ -37,6 +37,19 @@ const (
 // EmergencyContact is a person to reach for this staff member — next-of-kin,
 // emergencies, or day-to-day updates. Deliberately separate from Child's
 // Guardian (a different relationship, on a different entity).
+// MeProfileUpdate is the self-service subset a staff member may edit on their own
+// profile — contact details, certifications and next-of-kin. Employment fields
+// (name/branch/role/status/type/hours/allowances/PIN) stay manager-controlled.
+type MeProfileUpdate struct {
+	Phone             string             `json:"phone"`
+	Email             string             `json:"email"`
+	Qualifications    []string           `json:"qualifications"`
+	EmergencyContacts []EmergencyContact `json:"emergency_contacts"`
+	DBSNumber         string             `json:"dbs_number"`
+	DBSExpiry         string             `json:"dbs_expiry"`
+	FirstAidExpiry    string             `json:"first_aid_expiry"`
+}
+
 type EmergencyContact struct {
 	Name     string `bson:"name"               json:"name"`
 	Relation string `bson:"relation,omitempty" json:"relation,omitempty"`
