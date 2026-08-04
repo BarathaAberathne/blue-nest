@@ -1,0 +1,47 @@
+---
+id: LEAVE-TC-001
+number: 2.23.1
+type: Test Case
+title: Apply for leave, see it in the review queue, four-eyes blocks self-approval, applicant cancels
+owner: QA
+mode: Standalone
+status: Active
+tags:
+  - leave
+  - regression
+dependsOn: []
+uses: []
+fixtureScope: case
+timeoutSeconds: 30
+---
+
+# Leave request lifecycle (single-user paths)
+
+New coverage (`SUI-LEAVE-001`). Reads the shared `adminSession`/`staff`
+fixtures. A manager files leave for the staff member (staff_id supplied);
+Mon–Fri is 5 working days; the request shows in the pending queue; the SAME
+user who applied cannot approve it (four-eyes → 400); the applicant cancels
+their own pending request; and a reversed date range is rejected.
+
+```bnrest
+Given Post /api/v1/leave-requests Into applied Using adminSession.accessToken
+{ "staff_id": "${staff.id}", "type": "leave", "start_date": "2026-08-03", "end_date": "2026-08-07", "reason": "QA-AUTOTEST holiday" }
+Then AssertStatus applied 201
+And Assert applied.body.data.status == "pending"
+And Assert applied.body.data.days == 5
+
+When Get /api/v1/admin/leave-requests?status=pending Into queue Using adminSession.accessToken
+Then AssertStatus queue 200
+And AssertJson queue "$.body.data[?(@.id=='${applied.body.data.id}')].length()" == 1
+
+When Post /api/v1/admin/leave-requests/${applied.body.data.id}/approve Into selfApprove Using adminSession.accessToken
+Then AssertStatus selfApprove 400
+
+When Patch /api/v1/leave-requests/${applied.body.data.id}/cancel Into cancelled Using adminSession.accessToken
+Then AssertStatus cancelled 200
+And Assert cancelled.body.data.status == "cancelled"
+
+When Post /api/v1/leave-requests Into badRange Using adminSession.accessToken
+{ "staff_id": "${staff.id}", "type": "leave", "start_date": "2026-08-07", "end_date": "2026-08-03" }
+Then AssertStatus badRange 400
+```

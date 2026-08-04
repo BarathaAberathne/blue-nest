@@ -1,0 +1,129 @@
+package admin
+
+import (
+	"net/http"
+
+	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/policy"
+	"github.com/blue-nest-montessori/api/internal/service"
+	"github.com/blue-nest-montessori/api/pkg/response"
+	"github.com/blue-nest-montessori/api/pkg/validator"
+	"github.com/go-chi/chi/v5"
+)
+
+// AdminLeaveHandler serves both the staff self-service leave endpoints
+// (apply / my requests / cancel) and the management review endpoints
+// (list / approve / decline).
+type AdminLeaveHandler struct {
+	svc   service.LeaveRequestService
+	audit service.AuditService
+}
+
+func NewAdminLeaveHandler(svc service.LeaveRequestService, audit service.AuditService) *AdminLeaveHandler {
+	return &AdminLeaveHandler{svc: svc, audit: audit}
+}
+
+// ── Staff self-service ────────────────────────────────────────────────────────
+
+// Mine returns the caller's own leave requests.
+func (h *AdminLeaveHandler) Mine(w http.ResponseWriter, r *http.Request) {
+	list, err := h.svc.ListMine(r.Context(), actorID(r))
+	if err != nil {
+		response.InternalError(w, "failed to load leave requests")
+		return
+	}
+	response.OK(w, list)
+}
+
+// Apply submits a new leave request for the caller (or, if staff_id is set and
+// the caller is a manager, for that staff member).
+func (h *AdminLeaveHandler) Apply(w http.ResponseWriter, r *http.Request) {
+	var req models.LeaveRequestCreate
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	a := actor(r)
+	lr, err := h.svc.Apply(r.Context(), req, a.ID, a.Name)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "apply", "leave_request", lr.ID.Hex(),
+		"Applied for "+string(lr.Type)+" leave "+lr.StartDate+" → "+lr.EndDate, nil)
+	response.Created(w, lr)
+}
+
+// Balance returns the caller's per-type leave balances (keyed by leave type;
+// empty if their login isn't linked to a staff record yet).
+func (h *AdminLeaveHandler) Balance(w http.ResponseWriter, r *http.Request) {
+	balances, err := h.svc.BalancesForUser(r.Context(), actorID(r))
+	if err != nil {
+		response.InternalError(w, "failed to load leave balance")
+		return
+	}
+	response.OK(w, balances)
+}
+
+// Cancel withdraws the caller's own pending request.
+func (h *AdminLeaveHandler) Cancel(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	lr, err := h.svc.Cancel(r.Context(), id, actorID(r))
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "cancel", "leave_request", id, "Cancelled leave request", nil)
+	response.OK(w, lr)
+}
+
+// ── Management review ─────────────────────────────────────────────────────────
+
+// List returns leave requests for management, branch-scoped to the caller.
+func (h *AdminLeaveHandler) List(w http.ResponseWriter, r *http.Request) {
+	role, scope := caller(r)
+	branch, _ := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	list, err := h.svc.List(r.Context(), models.LeaveRequestFilter{
+		Branch:  branch,
+		Status:  r.URL.Query().Get("status"),
+		StaffID: r.URL.Query().Get("staff_id"),
+	})
+	if err != nil {
+		response.InternalError(w, "failed to load leave requests")
+		return
+	}
+	response.OK(w, list)
+}
+
+// Approve marks a pending request approved (four-eyes: a different reviewer).
+func (h *AdminLeaveHandler) Approve(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	a := actor(r)
+	lr, err := h.svc.Approve(r.Context(), id, a.ID, a.Name)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "approve", "leave_request", id,
+		"Approved "+lr.StaffName+"'s leave "+lr.StartDate+" → "+lr.EndDate, nil)
+	response.OK(w, lr)
+}
+
+// Decline rejects a pending request with a reason.
+func (h *AdminLeaveHandler) Decline(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var body models.LeaveDeclineRequest
+	if err := validator.DecodeJSON(r, &body); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	a := actor(r)
+	lr, err := h.svc.Decline(r.Context(), id, body.Reason, a.ID, a.Name)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "decline", "leave_request", id,
+		"Declined "+lr.StaffName+"'s leave: "+body.Reason, nil)
+	response.OK(w, lr)
+}

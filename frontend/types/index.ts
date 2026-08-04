@@ -683,7 +683,52 @@ export type Permission =
   | "attendance.manage"
   | "staff.manage"
   | "daily_logs.manage"
-  | "daily_logs.approve";
+  | "daily_logs.approve"
+  | "leave.approve";
+
+// ── Staff leave / holiday ────────────────────────────────────────────────────
+export type LeaveStatus = "pending" | "approved" | "declined" | "cancelled";
+export type LeaveType = "leave" | "unpaid_leave" | "maternity" | "dependant_sick" | "sick";
+
+export interface LeaveRequest {
+  id: string;
+  staff_id: string;
+  staff_name: string;
+  branch_slug: string;
+  type: LeaveType;
+  start_date: string;
+  end_date: string;
+  days: number;
+  reason?: string;
+  status: LeaveStatus;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  decline_reason?: string;
+  overlaps?: number; // other staff at the same branch off on overlapping dates
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeaveBalance {
+  type: LeaveType;
+  year: number;
+  allowance: number;
+  taken: number;
+  pending: number;
+  remaining: number;
+}
+
+// Per-type balances keyed by leave type (only capped types appear: annual
+// always, sick when a paid-sick allowance is configured).
+export type LeaveBalances = Partial<Record<LeaveType, LeaveBalance>>;
+
+export interface LeaveRequestInput {
+  staff_id?: string;
+  type: LeaveType;
+  start_date: string;
+  end_date: string;
+  reason?: string;
+}
 
 export interface MeOrg {
   id: string;
@@ -1273,6 +1318,8 @@ export interface Staff {
   status: StaffStatus;
   start_date?: string;
   contract_hours?: number;
+  annual_leave_days?: number;
+  sick_leave_days?: number;
   term_time_only?: boolean;
   qualifications?: string[];
   dbs_number?: string;
@@ -1298,6 +1345,8 @@ export interface StaffInput {
   status?: StaffStatus;
   start_date?: string;
   contract_hours?: number;
+  annual_leave_days?: number;
+  sick_leave_days?: number;
   term_time_only?: boolean;
   qualifications?: string[];
   dbs_number?: string;

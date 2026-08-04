@@ -56,7 +56,7 @@ const memberToInput = (m: Staff): StaffInput => ({
   first_name: m.first_name, last_name: m.last_name, email: m.email ?? "", phone: m.phone ?? "",
   branch_slug: m.branch_slug, job_title: m.job_title ?? "",
   staff_type: m.staff_type, status: m.status, start_date: m.start_date ?? "",
-  contract_hours: m.contract_hours ?? 0, qualifications: m.qualifications ?? [],
+  contract_hours: m.contract_hours ?? 0, annual_leave_days: m.annual_leave_days ?? 0, sick_leave_days: m.sick_leave_days ?? 0, qualifications: m.qualifications ?? [],
   dbs_number: m.dbs_number ?? "", dbs_expiry: m.dbs_expiry ?? "", first_aid_expiry: m.first_aid_expiry ?? "",
   emergency_contacts: m.emergency_contacts ?? [],
   enable_login: false, login_role: "staff", login_password: "",
@@ -83,7 +83,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
   const [basicEditing, setBasicEditing] = useState(false);
   const [basicForm, setBasicForm] = useState<Pick<StaffInput, "first_name" | "last_name" | "job_title" | "email" | "phone"> | null>(null);
   const [contractEditing, setContractEditing] = useState(false);
-  const [contractForm, setContractForm] = useState<Pick<StaffInput, "staff_type" | "start_date" | "contract_hours"> | null>(null);
+  const [contractForm, setContractForm] = useState<Pick<StaffInput, "staff_type" | "start_date" | "contract_hours" | "annual_leave_days" | "sick_leave_days"> | null>(null);
   const [saving, setSaving] = useState(false);
   const [pin, setPin] = useState("");
   const [pinBusy, setPinBusy] = useState(false);
@@ -200,7 +200,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
 
   const startContractEdit = () => {
     if (!member) return;
-    setContractForm({ staff_type: member.staff_type, start_date: member.start_date ?? "", contract_hours: member.contract_hours ?? 0 });
+    setContractForm({ staff_type: member.staff_type, start_date: member.start_date ?? "", contract_hours: member.contract_hours ?? 0, annual_leave_days: member.annual_leave_days ?? 0, sick_leave_days: member.sick_leave_days ?? 0 });
     setContractEditing(true);
   };
   const saveContract = async () => {
@@ -485,6 +485,8 @@ export default function StaffDetailClient({ id }: { id: string }) {
                         <ReadField icon={BadgeCheck} label="Employment type" value={staffTypeLabel[member.staff_type]} />
                         <ReadField icon={CalendarClock} label="Start date" value={member.start_date ? fmtDate(member.start_date) : undefined} />
                         <ReadField icon={Clock} label="Weekly contracted hours" value={member.contract_hours ? `${member.contract_hours}h` : undefined} />
+                        <ReadField icon={Clock} label="Annual leave allowance" value={`${member.annual_leave_days || 28} days${member.annual_leave_days ? "" : " (default)"}`} />
+                        <ReadField icon={Clock} label="Paid sick allowance" value={member.sick_leave_days ? `${member.sick_leave_days} days` : "Uncapped"} />
                       </dl>
                     ) : (
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -495,6 +497,8 @@ export default function StaffDetailClient({ id }: { id: string }) {
                         </Field>
                         <Field label="Start date"><input type="date" value={contractForm.start_date} onChange={(e) => setContractForm((f) => (f ? { ...f, start_date: e.target.value } : f))} className="inp" /></Field>
                         <Field label="Weekly contracted hours"><input type="number" min={0} value={contractForm.contract_hours} onChange={(e) => setContractForm((f) => (f ? { ...f, contract_hours: Number(e.target.value) } : f))} className="inp" /></Field>
+                        <Field label="Annual leave allowance (days, 0 = default 28)"><input type="number" min={0} value={contractForm.annual_leave_days} onChange={(e) => setContractForm((f) => (f ? { ...f, annual_leave_days: Number(e.target.value) } : f))} className="inp" /></Field>
+                        <Field label="Paid sick allowance (days, 0 = uncapped)"><input type="number" min={0} value={contractForm.sick_leave_days} onChange={(e) => setContractForm((f) => (f ? { ...f, sick_leave_days: Number(e.target.value) } : f))} className="inp" /></Field>
                       </div>
                     )}
                     <div className="mt-6 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">

@@ -44,6 +44,7 @@ type Services struct {
 	Attendance        service.AttendanceService
 	Staff             service.StaffService
 	StaffAttendance   service.StaffAttendanceService
+	LeaveRequests     service.LeaveRequestService
 	StaffRoomAssign   service.StaffRoomAssignmentService
 	ChildRoomAssign   service.ChildRoomAssignmentService
 	Kiosk             service.KioskService
@@ -192,6 +193,13 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/order-requests/{id}", orderReqH.Get)
 			r.Patch("/order-requests/{id}/cancel", orderReqH.Cancel)
 
+			// Staff self-service leave/holiday (apply / my requests / cancel).
+			leaveSelfH := adminHandler.NewAdminLeaveHandler(svc.LeaveRequests, svc.Audit)
+			r.Get("/leave-requests/me", leaveSelfH.Mine)
+			r.Get("/leave-requests/balance", leaveSelfH.Balance)
+			r.Post("/leave-requests", leaveSelfH.Apply)
+			r.Patch("/leave-requests/{id}/cancel", leaveSelfH.Cancel)
+
 			// Read-only catalogue for the staff request picker.
 			catalogueH := handler.NewCatalogueHandler(svc.Catalogue)
 			r.Get("/catalogue", catalogueH.List)
@@ -280,6 +288,16 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			})
 
 			// Procurement — supply requests, catalogue, purchase orders.
+			// Staff leave/holiday approvals (managers/HR).
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermLeaveApprove))
+				leaveAdminH := adminHandler.NewAdminLeaveHandler(svc.LeaveRequests, svc.Audit)
+				r.Get("/admin/leave-requests", leaveAdminH.List)
+				r.Post("/admin/leave-requests", leaveAdminH.Apply) // manager files for a staff member (staff_id in body)
+				r.Post("/admin/leave-requests/{id}/approve", leaveAdminH.Approve)
+				r.Post("/admin/leave-requests/{id}/decline", leaveAdminH.Decline)
+			})
+
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermProcurementManage))
 

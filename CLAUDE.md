@@ -464,6 +464,46 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   `lib/group.ts` (`sortByName`/`groupByBranch`) — lists sort alphabetically, grouped by branch; the
   children + staff tables render per-branch section headers (the same helper extends to the remaining lists).
 
+- **Leave / holiday requests (HR module, Phases 1–4 DELIVERED):** staff apply for time off and a
+  **different** manager (four-eyes) approves or declines it. `models/leave_request.go`
+  (`LeaveRequest`: staff_id/branch/type/start/end/days/reason/status + reviewer + timestamps; statuses
+  `pending → approved | declined | cancelled`; `LeaveType` values are identical to the attendance leave
+  statuses — `leave`(annual)/`unpaid_leave`/`maternity`/`dependant_sick`/`sick` — so approval maps 1:1)
+  → repo (`leave_requests`, tenant-scoped) → `service.LeaveRequestService` (Apply/ListMine/List/Cancel/
+  Approve/Decline) → `handler/admin/leave_requests.go` → routes. **On approval** the booked **weekdays**
+  (Mon–Fri; `models.Weekdays`/`CountWeekdays`) are written to the staff-attendance register via
+  `StaffAttendanceService.Mark` (best-effort), so approved leave flows straight into the register/roster/
+  KPIs. **Four-eyes**: the reviewer's user id must differ from the applicant's (`RequestedByID`); the
+  applicant resolves to their `Staff` record via `Staff.UserID` (self-service) or a manager may file with
+  an explicit `staff_id`. **Notifications** reuse the in-app module (apply → approvers with `leave.approve`
+  in the branch; approve/decline → the applicant). New permission `PermLeaveApprove` (`leave.approve`),
+  granted to the management/HR roles (added to `AllPermissions` too, so it reconciles onto built-in DB
+  roles on boot — see the daily-log role-reconcile note). Routes: staff self-service under the staff group
+  (`GET /leave-requests/me`, `POST /leave-requests`, `PATCH /leave-requests/{id}/cancel`); management under
+  `RequirePermission(leave.approve)` (`GET /admin/leave-requests` branch-scoped via `policy.EffectiveBranch`,
+  `POST /admin/leave-requests/{id}/approve|decline`). Frontend: staff **My Leave** (`/admin/my-leave`, in the
+  Staff Portal nav + confinement allowlist) to apply/track/cancel; manager **Leave Requests** (`/admin/leave`,
+  HR nav) to approve/decline (decline needs a reason). Tests: `SUI-LEAVE-001` (bnrest, in `COL-FUNC-001`)
+  covers apply/queue/self-approve-block/cancel/bad-range; `leave_request_test.go` covers the weekday maths.
+  **Phase 2 (balances) DELIVERED:** **per-type** allowances/balances — annual (`Staff.AnnualLeaveDays`,
+  0 = org default `models.DefaultAnnualLeaveDays` = 28) and **paid sick** (`Staff.SickLeaveDays`, 0 =
+  uncapped), both editable on the staff detail/create forms; a UK leave-year (Apr–Mar) balance per capped
+  type (`models.LeaveBalance` + `service.allowanceForType`/`balanceForType`), exposed at
+  `GET /leave-requests/balance` as a **map keyed by leave type** and shown on My Leave both as per-type
+  summary cards and **inline in the request wizard for the selected type** (updates as the type changes;
+  uncapped types read "not deducted from an allowance"). Capped types are limited to the remaining balance
+  (`Apply` blocks over-allowance; annual + configured sick); other types are uncapped. `Apply` also
+  **rejects a request overlapping the person's own existing pending/approved leave** (no double-booking).
+  **Rota guard:** `shiftService.resolve` (the shared create/update path) rejects rostering a staff member
+  on a date covered by their **approved** leave (`ShiftService` now takes the leave repo) — the rota
+  planner surfaces the "on approved leave" error inside the shift modal. **Phase 3 (calendar/
+  clash) DELIVERED:** the admin list computes a transient `Overlaps` count (other staff at the same branch
+  with approved/pending leave on overlapping dates) surfaced as a coverage warning on each request, plus a
+  chronological **Team schedule** tab. **Phase 4 (manager-filed) DELIVERED:** `POST /admin/leave-requests`
+  (under `leave.approve`) reuses `Apply` so a manager files leave for a staff member (staff picker) — still
+  pending until a *different* manager approves (four-eyes). **Planned next:** a full month-grid calendar
+  view, a hard clash-block option on approval (currently a warning), and carry-over/pro-rata allowances.
+
 Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (CSV/Excel/PDF) +
 notifications. Then Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 

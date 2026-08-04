@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, NotificationsResponse, User } from "@/types";
+import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, LeaveRequest, LeaveRequestInput, LeaveBalances, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, NotificationsResponse, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -400,6 +400,30 @@ export const api = {
     apiFetch<OrderRequest>(`/api/v1/order-requests/${id}`, { token }),
   cancelOrderRequest: (token: string, id: string) =>
     apiFetch<OrderRequest>(`/api/v1/order-requests/${id}/cancel`, { method: "PATCH", token }),
+
+  // Staff leave / holiday — self-service (staff) + management review.
+  getMyLeaveRequests: (token: string) =>
+    apiFetch<LeaveRequest[]>("/api/v1/leave-requests/me", { token }),
+  getMyLeaveBalance: (token: string) =>
+    apiFetch<LeaveBalances>("/api/v1/leave-requests/balance", { token }),
+  adminApplyLeaveForStaff: (token: string, body: LeaveRequestInput) =>
+    apiFetch<LeaveRequest>("/api/v1/admin/leave-requests", { method: "POST", body: JSON.stringify(body), token }),
+  applyLeaveRequest: (token: string, body: LeaveRequestInput) =>
+    apiFetch<LeaveRequest>("/api/v1/leave-requests", { method: "POST", body: JSON.stringify(body), token }),
+  cancelLeaveRequest: (token: string, id: string) =>
+    apiFetch<LeaveRequest>(`/api/v1/leave-requests/${id}/cancel`, { method: "PATCH", token }),
+  adminGetLeaveRequests: (token: string, params?: { branch?: string; status?: string; staff_id?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.branch) q.set("branch", params.branch);
+    if (params?.status) q.set("status", params.status);
+    if (params?.staff_id) q.set("staff_id", params.staff_id);
+    const qs = q.toString();
+    return apiFetch<LeaveRequest[]>(`/api/v1/admin/leave-requests${qs ? `?${qs}` : ""}`, { token });
+  },
+  adminApproveLeaveRequest: (token: string, id: string) =>
+    apiFetch<LeaveRequest>(`/api/v1/admin/leave-requests/${id}/approve`, { method: "POST", token }),
+  adminDeclineLeaveRequest: (token: string, id: string, reason: string) =>
+    apiFetch<LeaveRequest>(`/api/v1/admin/leave-requests/${id}/decline`, { method: "POST", body: JSON.stringify({ reason }), token }),
 
   // Standing-order templates (staff + management)
   getOrderTemplates: (token: string) =>
