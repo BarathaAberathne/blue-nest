@@ -217,9 +217,11 @@ make dev-frontend  # Next.js dev server (npm run dev)
 | `make docker-down` | Stop all Docker services |
 | `make docker-build` | Rebuild Docker images |
 | `make docker-logs` | Stream logs from all containers |
-| `make docker-restart` | Rebuild images and restart containers |
+| `make docker-restart` | Rebuild images and restart containers (restores the baseline if the DB is empty) |
 | `make seed-all` | Run every seed in order (products, branches, catalogue, users) — idempotent |
 | `make seed-catalogue` | Seed the supply catalogue from Gompels order CSVs in `backend/cmd/seedcatalogue/orders/` |
+| `make baseline-reset` | Drop the DB and restore the full manual-testing baseline (`deploy/baseline/`, gitignored PII) |
+| `make baseline-snapshot` | Save the current DB as the new baseline archive |
 | `make staging-up` | Build the **production images locally** and run them for pre-prod QA (http://localhost:3000) |
 | `make staging-verify` | Env-parity check + health probe of the running staging stack |
 | `make staging-logs` | Tail staging logs |

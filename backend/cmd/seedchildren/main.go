@@ -6,9 +6,9 @@
 // It DROPS and rebuilds the rooms / children / attendance collections with
 // demo data matching the approved mock counts per branch (~512 children, ~92%
 // occupancy). Deterministic (fixed RNG seed) so re-runs produce the same
-// roster. NEVER run this against an environment where cmd/seedfamly has
-// imported a real nursery's real rooms/children — it drops that data too, and
-// seedguard.RequireDrop below refuses unless explicitly confirmed.
+// roster. NEVER run this against an environment that holds a real nursery's
+// imported rooms/children — it drops that data too, and seedguard.RequireDrop
+// below refuses unless explicitly confirmed.
 package main
 
 import (

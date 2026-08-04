@@ -85,7 +85,7 @@ func main() {
 		log.Fatalf("decode organisations: %v", err)
 	}
 	if len(orgs) == 0 {
-		log.Fatalf("no organisations found — run cmd/migratetenancy first")
+		log.Fatalf("no organisations found — restore the baseline (make baseline-reset) or create the default org first")
 	}
 
 	coll := db.Collection("taxonomy_terms")

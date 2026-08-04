@@ -39,9 +39,10 @@ premium option, not the default. This keeps cross-org platform analytics + AI si
   pins the request to the caller's org from the JWT `org_id` claim (`repository.WithOrg`); `platform_super_admin`
   runs cross-org (`WithCrossOrg`); `middleware.DefaultTenant(defaultOrgID)` pins public/unauthenticated
   requests to the default org (resolved at startup from `DEFAULT_ORG_SLUG`, default `blue-nest`). `policy`
-  gains `IsPlatformOperator`; new role `RolePlatformSuperAdmin` = the only cross-tenant role. Migration
-  `cmd/migratetenancy` (idempotent) creates the first Organisation and back-stamps `org_id` onto all existing
-  rows (ran locally: 1 org + 1,682 docs). **Verified:** two-org isolation — each org's admin sees only its
+  gains `IsPlatformOperator`; new role `RolePlatformSuperAdmin` = the only cross-tenant role. The one-shot
+  tenancy migration (formerly `cmd/migratetenancy`) created the first Organisation and back-stamped `org_id`
+  onto all existing rows (applied to every environment; command since **retired**). **Verified:** two-org
+  isolation — each org's admin sees only its
   own branches/staff/children, cross-tenant fetch-by-id is 404 both ways, writes stamp the correct tenant,
   the public store serves the default tenant, and the existing Blue Nest app is intact.
 - **Phase T1 — Org-scoped configuration & customisation — IN PROGRESS.** Delivered: **org self-service**
@@ -387,7 +388,7 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   (`kiosk_devices`, per-branch tablets, tokens shown once), `Staff.PINHash` (bcrypt, `has_pin` computed).
   Admin: **HR** sidebar group (Staff · Attendance · Attendance Devices); device management at
   `/admin/attendance-devices` (create/list/toggle/delete, `staff.manage`); per-staff PIN on the staff detail
-  page. `make backfill-refs` unaffected. **Phase B** = Rota scheduling (staff→room/timeslot/day) + shift
+  page. **Phase B** = Rota scheduling (staff→room/timeslot/day) + shift
   matching (real overtime/early-departure); **C** = manager/admin dashboards + attendance table + manual
   corrections; **D** = Payroll summary from attendance; **E** = reports (CSV/Excel/PDF) + notifications.
   Future-ready: QR/NFC/biometric/GPS attach to the same clock request + PIN abstraction.
@@ -441,8 +442,9 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   allocation is rejected on age/capacity, the just-created child/staff is deleted so the create stays atomic).
   Rooms gained `min_age_months`/`max_age_months`/`status`; allocation enforces same-branch + active + capacity
   + age, each overridable only with a stored `override_reason` (audit-logged). Transfers close the old row and
-  open a new one (future-dated → `scheduled`, lazily activated). Migration `cmd/migrateroomassignments`
-  (`make migrate-room-assignments`, idempotent + `-verify`). Full design in `docs/rooms/*` and the
+  open a new one (future-dated → `scheduled`, lazily activated). The one-shot room-allocation migration
+  (formerly `cmd/migrateroomassignments`) mapped legacy `room_id` scalars into the assignment collections;
+  it is complete (local-only, never needed on prod) and the command is now **retired**. Full design in `docs/rooms/*` and the
   consolidation rationale in `docs/architecture/duplicate-implementation-audit.md`.
 
 - **Configurable taxonomy (lists) + term-time (delivered):** the "configurable, not hardcoded" rule is now
@@ -533,7 +535,8 @@ module's design record.
   collection (`repository.CounterRepository` + `models.FormatRef`, prefixes in `models/sequence.go`);
   these `ref`s are the prominent identifier on every board card / table / CSV / detail header (frontend
   `lib/ref.ts` `displayRef` falls back to an ObjectID-derived code for un-backfilled records). Legacy
-  records get refs via the idempotent **`make backfill-refs`** (`cmd/backfillrefs`, in created_at order).
+  records were given refs by the one-shot backfill (formerly `cmd/backfillrefs`, in created_at order),
+  applied everywhere and now **retired** — new records get their ref on create.
   Track/Receive **state machine** with a
   carrier **tracking-number** field (`PATCH /admin/purchase-carts/{id}/status` + `…/fulfillment`);
   Approve/Reject/Convert on the SR detail switcher and PO delivery-stage transitions + **Mark completed**.
@@ -563,9 +566,19 @@ branch — cut feature branches off it and PR back into it); `main` is prod. **N
 git branch**: `make staging-up` / `.env.staging` / `docker-compose.staging.yml` are the **local
 prod-image QA gate** (an isolated docker environment, project `bluenest-staging`) you run before
 promoting `develop → main`. Don't confuse the staging *environment* with a branch.
-- Local dev: `make dev` (or `make docker-restart`) → seeds + runs on :3000/:8080. Default admin is
-  `admin@bluenest.uk` (see `.env`). Re-run `make seed-users` after role/migration changes;
-  `make seed-catalogue` after adding Gompels order CSVs. `make seed-all` runs every seed in order.
+- Local dev: `make dev` (or `make docker-restart`) → runs on :3000/:8080. Default admin is
+  `admin@bluenest.uk` (see `.env`). `make seed-all` runs every seed in order; re-run `make seed-users`
+  after role changes, `make seed-catalogue` after adding Gompels order CSVs.
+- **Local baseline dataset (manual testing):** `docker-up`/`docker-restart` now restore a fixed, full
+  single-tenant (Blue Nest) dataset **only if the DB is empty** (`make baseline-ensure`), instead of
+  re-running the seeds; your data otherwise persists across restarts. The baseline is a gzipped
+  `mongodump` at `deploy/baseline/baseline.archive` — **gitignored** (it embeds real Famly names, same
+  PII policy as `famly-templates/`). `make baseline-reset` drops + restores the exact baseline;
+  `make baseline-snapshot` overwrites the archive from the current DB. It covers the whole lifecycle
+  (branches/rooms, real-named staff+children with room assignments, enquiries across every pipeline
+  stage, leave in every state, rota, attendance, terms, PINs, kiosk devices). Structural data comes
+  from the seeds; the operational lifecycle is layered on by `scripts/seed-baseline-lifecycle.py` (API-
+  driven, PII-free). See `deploy/baseline/README.md`.
 - Local prod-image gate: `make staging-up` builds the prod Dockerfiles and runs on 127.0.0.1:3000/8080
   (needs `.env.staging`; `COMPOSE_FILE` must be set — env-parity check via `scripts/check-env.sh`).
 - Ship: PR feature→develop (CI: Go API + Next.js). Promote develop→main via PR (if `main` has drifted

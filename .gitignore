@@ -85,3 +85,7 @@ backend/seedfamly
 # `make test-new` / `make test-map`, never source.
 /test-results/
 frontend/public/test-platform-graph.json
+
+# Local baseline snapshot for dev/manual-testing — contains real Famly names
+# (same PII policy as famly-templates/). Regenerate with `make baseline-snapshot`.
+deploy/baseline/*.archive
