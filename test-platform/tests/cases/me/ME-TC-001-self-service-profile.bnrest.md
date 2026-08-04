@@ -38,4 +38,9 @@ Then AssertStatus att 200
 
 When Get /api/v1/me/rota Into rota Using meSession.accessToken
 Then AssertStatus rota 200
+
+When Get /api/v1/leave-requests/balance Into bal Using meSession.accessToken
+Then AssertStatus bal 200
+And Assert bal.body.data.leave.capped == true
+And Assert bal.body.data.unpaid_leave.capped == false
 ```

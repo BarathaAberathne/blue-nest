@@ -103,7 +103,7 @@ func (s *leaveRequestService) allowanceForType(st *models.Staff, t string) (allo
 // balanceForType computes a staff member's position for one capped leave type in
 // the leave year containing today.
 func (s *leaveRequestService) balanceForType(ctx context.Context, st *models.Staff, t string) (*models.LeaveBalance, error) {
-	allowance, _ := s.allowanceForType(st, t)
+	allowance, capped := s.allowanceForType(st, t)
 	yearStart, yearEnd, year := models.LeaveYearContains(time.Now())
 	reqs, err := s.repo.FindByStaffID(ctx, st.ID.Hex())
 	if err != nil {
@@ -125,16 +125,15 @@ func (s *leaveRequestService) balanceForType(ctx context.Context, st *models.Sta
 	if remaining < 0 {
 		remaining = 0
 	}
-	return &models.LeaveBalance{Type: t, Year: year, Allowance: allowance, Taken: taken, Pending: pending, Remaining: remaining}, nil
+	return &models.LeaveBalance{Type: t, Capped: capped, Year: year, Allowance: allowance, Taken: taken, Pending: pending, Remaining: remaining}, nil
 }
 
-// balancesForStaff returns one balance per capped leave type (keyed by type).
+// balancesForStaff returns one balance per leave type (keyed by type). Capped
+// types (annual, and sick when an allowance is set) show remaining vs allowance;
+// the rest are uncapped and report usage (taken/pending) only.
 func (s *leaveRequestService) balancesForStaff(ctx context.Context, st *models.Staff) (map[string]models.LeaveBalance, error) {
 	out := map[string]models.LeaveBalance{}
 	for _, t := range models.LeaveTypes {
-		if _, capped := s.allowanceForType(st, t); !capped {
-			continue
-		}
 		b, err := s.balanceForType(ctx, st, t)
 		if err != nil {
 			return nil, err

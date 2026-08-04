@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, CalendarClock, CalendarDays, Pencil, Plane, Plus, Save, ShieldCheck, Trash2, UserCircle, X } from "lucide-react";
+import { AlertTriangle, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Pencil, Plane, Plus, Save, Trash2, UserCircle, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { fmtBranch } from "@/lib/enquiry";
@@ -320,46 +320,82 @@ function AttendanceTab() {
   );
 }
 
-// ── Rota tab (personal upcoming shifts) ───────────────────────────────────────
+// ── Rota tab (personal shifts as a month calendar) ────────────────────────────
+
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 function RotaTab() {
   const token = typeof window !== "undefined" ? getAccessToken() : "";
+  const now = new Date();
+  const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() }); // m: 0–11
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
+  const monthStart = `${cursor.y}-${String(cursor.m + 1).padStart(2, "0")}-01`;
+  const lastDay = new Date(cursor.y, cursor.m + 1, 0).getDate();
+  const monthEnd = `${cursor.y}-${String(cursor.m + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
   useEffect(() => {
     if (!token) return;
-    api.getMyRota(token)
+    setLoading(true);
+    api.getMyRota(token, monthStart, monthEnd)
       .then((s) => setShifts(s ?? []))
       .catch((e) => setErr(e instanceof Error ? e.message : "Failed to load rota"))
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, monthStart, monthEnd]);
 
-  if (loading) return <p className="py-10 text-center text-sm text-slate-400">Loading…</p>;
-  if (err) return <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{err}</div>;
+  // 6-week grid starting on the Monday on/before the 1st.
+  const first = new Date(cursor.y, cursor.m, 1);
+  const firstWeekday = (first.getDay() + 6) % 7; // Mon=0
+  const gridStart = new Date(cursor.y, cursor.m, 1 - firstWeekday);
+  const cells = Array.from({ length: 42 }, (_, i) => { const d = new Date(gridStart); d.setDate(gridStart.getDate() + i); return d; });
+  const todayStr = ymd(new Date());
+  const monthLabel = first.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const step = (delta: number) => setCursor((c) => { const d = new Date(c.y, c.m + delta, 1); return { y: d.getFullYear(), m: d.getMonth() }; });
 
-  const today = new Date().toISOString().slice(0, 10);
-  const upcoming = shifts.filter((s) => s.date >= today).sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
+  const byDay = (ds: string) => shifts.filter((s) => s.date === ds).sort((a, b) => a.start_time.localeCompare(b.start_time));
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 px-5 py-3"><h2 className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-slate-600"><ShieldCheck className="h-4 w-4 text-teal-600" /> Upcoming shifts</h2></div>
-      {upcoming.length === 0 ? (
-        <p className="px-5 py-8 text-center text-sm text-slate-400">No upcoming shifts scheduled.</p>
-      ) : (
-        <ul className="divide-y divide-slate-100">
-          {upcoming.map((s) => (
-            <li key={s.id} className="flex items-center justify-between gap-3 px-5 py-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-800">{fmtDate(s.date)}</p>
-                <p className="text-xs text-slate-500">{s.room_name || "No room"}{s.notes ? ` · ${s.notes}` : ""}</p>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-slate-600"><CalendarClock className="h-4 w-4 text-teal-600" /> My Rota</h2>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => step(-1)} className="rounded p-1.5 text-slate-500 hover:bg-slate-100" aria-label="Previous month"><ChevronLeft className="h-4 w-4" /></button>
+          <button type="button" onClick={() => setCursor({ y: now.getFullYear(), m: now.getMonth() })} className="px-2 text-sm font-semibold text-slate-700">{monthLabel}</button>
+          <button type="button" onClick={() => step(1)} className="rounded p-1.5 text-slate-500 hover:bg-slate-100" aria-label="Next month"><ChevronRight className="h-4 w-4" /></button>
+        </div>
+      </div>
+
+      {err && <div className="mb-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</div>}
+
+      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg bg-slate-200 text-center">
+        {WEEKDAYS.map((w) => <div key={w} className="bg-slate-50 py-1.5 text-[0.65rem] font-bold uppercase tracking-wide text-slate-500">{w}</div>)}
+        {cells.map((d, i) => {
+          const ds = ymd(d);
+          const inMonth = d.getMonth() === cursor.m;
+          const isToday = ds === todayStr;
+          const dayShifts = byDay(ds);
+          return (
+            <div key={i} className={`min-h-[76px] bg-white p-1 text-left align-top ${inMonth ? "" : "bg-slate-50/60"}`}>
+              <div className={`mb-1 text-right text-xs ${isToday ? "font-bold text-teal-700" : inMonth ? "text-slate-500" : "text-slate-300"}`}>
+                {isToday ? <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-teal-600 text-white">{d.getDate()}</span> : d.getDate()}
               </div>
-              <span className="rounded-lg bg-teal-50 px-2.5 py-1 text-sm font-semibold tabular-nums text-teal-800">{s.start_time}–{s.end_time}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+              <div className="space-y-0.5">
+                {dayShifts.map((s) => (
+                  <div key={s.id} title={`${s.start_time}–${s.end_time}${s.room_name ? " · " + s.room_name : ""}${s.notes ? " · " + s.notes : ""}`}
+                    className="truncate rounded bg-teal-50 px-1 py-0.5 text-[0.65rem] font-semibold text-teal-800">
+                    {s.start_time}–{s.end_time}{s.room_name ? ` · ${s.room_name}` : ""}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {loading && <p className="mt-2 text-center text-xs text-slate-400">Loading…</p>}
+      <p className="mt-2 text-xs text-slate-400">Your rostered shifts for the month. Days you&rsquo;re on approved leave won&rsquo;t be rostered.</p>
     </div>
   );
 }

@@ -711,6 +711,7 @@ export interface LeaveRequest {
 
 export interface LeaveBalance {
   type: LeaveType;
+  capped: boolean;
   year: number;
   allowance: number;
   taken: number;
