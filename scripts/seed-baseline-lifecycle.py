@@ -135,14 +135,21 @@ def main():
                 st, _ = call("PATCH", "/admin/attendance/mark", ADMIN, {"child_id": k["id"], "date": d(0), "status": "sick"})
                 bump("child_sick", st in (200, 201))
 
-    # leave in every state (applied by admin, approved/declined by director = four-eyes)
+    # leave in every state (applied by admin, approved/declined by director = four-eyes).
+    # Ranges are WEEKDAY-ONLY (Mon-Fri) so no request starts/ends on a weekend
+    # (weekends are non-working days anyway).
+    next_monday = TODAY + datetime.timedelta(days=(7 - TODAY.weekday()) % 7 or 7)
+    def weekday_leave_range(i):
+        start = next_monday + datetime.timedelta(days=(i // 5) * 7 + (i % 3))  # Mon/Tue/Wed of a future week
+        end = start + datetime.timedelta(days=i % 3)                            # +0..2 working days -> <= Fri
+        return start.isoformat(), end.isoformat()
     targets = [s for s in staff if s not in present][:12] or staff[:12]
     ids = []
     for i, s in enumerate(targets):
         typ = ["leave", "leave", "sick", "unpaid_leave", "dependant_sick", "maternity"][i % 6]
-        off = 1 + (i % 5)
+        start_date, end_date = weekday_leave_range(i)
         st, res = call("POST", "/admin/leave-requests", ADMIN, {
-            "staff_id": s["id"], "type": typ, "start_date": d(off), "end_date": d(off + 1 + (i % 3)),
+            "staff_id": s["id"], "type": typ, "start_date": start_date, "end_date": end_date,
             "reason": {"leave": "Family holiday", "sick": "Unwell", "unpaid_leave": "Personal",
                        "dependant_sick": "Child unwell", "maternity": "Maternity leave"}.get(typ, "")})
         bump("leave_applied", st in (200, 201))
