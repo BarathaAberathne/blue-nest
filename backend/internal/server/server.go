@@ -154,7 +154,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		StaffAttendance:   staffAttSvc,
 		LeaveRequests:     service.NewLeaveRequestService(leaveRequestRepo, staffRepo, userRepo, staffAttSvc, notifSvc),
 		Kiosk:             service.NewKioskService(kioskDeviceRepo, staffRepo, staffAttendanceRepo, branchRepo, roomRepo, staffRoomAssignRepo, staffAttSvc),
-		Shifts:            service.NewShiftService(shiftRepo, staffRepo, roomRepo),
+		Shifts:            service.NewShiftService(shiftRepo, staffRepo, roomRepo, leaveRequestRepo),
 		DailyRecords:      service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo, childRoomAssignRepo, userRepo, notifSvc),
 		Notifications:     notifSvc,
 		BranchOverview:    service.NewBranchOverviewService(childRepo, roomRepo, attendanceRepo, staffRepo, staffAttendanceRepo, dailyRecordRepo, enquiryRepo),

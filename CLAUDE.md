@@ -493,7 +493,10 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   summary cards and **inline in the request wizard for the selected type** (updates as the type changes;
   uncapped types read "not deducted from an allowance"). Capped types are limited to the remaining balance
   (`Apply` blocks over-allowance; annual + configured sick); other types are uncapped. `Apply` also
-  **rejects a request overlapping the person's own existing pending/approved leave** (no double-booking). **Phase 3 (calendar/
+  **rejects a request overlapping the person's own existing pending/approved leave** (no double-booking).
+  **Rota guard:** `shiftService.resolve` (the shared create/update path) rejects rostering a staff member
+  on a date covered by their **approved** leave (`ShiftService` now takes the leave repo) — the rota
+  planner surfaces the "on approved leave" error inside the shift modal. **Phase 3 (calendar/
   clash) DELIVERED:** the admin list computes a transient `Overlaps` count (other staff at the same branch
   with approved/pending leave on overlapping dates) surfaced as a coverage warning on each request, plus a
   chronological **Team schedule** tab. **Phase 4 (manager-filed) DELIVERED:** `POST /admin/leave-requests`
