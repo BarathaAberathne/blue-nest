@@ -1197,6 +1197,37 @@ export interface FeeConfigInput {
   stdFunded: Record<string, Record<string, number>>;
 }
 
+// ── Branch templates (reusable branch setup) ─────────────────────────────────
+export interface BranchTemplateRoom {
+  name: string;
+  code?: string;
+  age_range?: string;
+  min_age_months?: number;
+  max_age_months?: number;
+  capacity?: number;
+  staff_ratio?: number;
+}
+export interface BranchTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  rooms: BranchTemplateRoom[];
+  age_groups?: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+export interface BranchTemplateInput {
+  name: string;
+  description?: string;
+  rooms: BranchTemplateRoom[];
+  age_groups?: string[];
+}
+export interface BranchTemplateApplyResult {
+  branch_slug: string;
+  rooms_created: number;
+  skipped?: string[];
+}
+
 // ── In-app notifications ─────────────────────────────────────────────────────
 export interface AppNotification {
   id: string;

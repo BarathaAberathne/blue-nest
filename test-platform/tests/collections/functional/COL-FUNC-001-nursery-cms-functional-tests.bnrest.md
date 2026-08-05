@@ -64,6 +64,7 @@ Call CatchError ../../suites/roomaudit/SUI-ROOMAUDIT-001-room-audit.bnrest.md
 Call CatchError ../../suites/roomnet/SUI-ROOMNET-001-room-network.bnrest.md
 Call CatchError ../../suites/taxonomy/SUI-TAXONOMY-001-configurable-lists.bnrest.md
 Call CatchError ../../suites/fees/SUI-FEES-001-fee-config.bnrest.md
+Call CatchError ../../suites/branchtpl/SUI-BRANCHTPL-001-branch-templates.bnrest.md
 Call CatchError ../../suites/dailylogapproval/SUI-DAILYLOG-001-approval.bnrest.md
 Call CatchError ../../suites/leave/SUI-LEAVE-001-leave-requests.bnrest.md
 Call CatchError ../../suites/me/SUI-ME-001-my-profile.bnrest.md
