@@ -124,6 +124,10 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	if o, err := orgSvc.GetBySlug(context.Background(), defaultOrgSlug); err == nil && o != nil {
 		defaultOrgID = o.ID.Hex()
 	}
+	// Hoisted so the branch-template service can reuse the same room + branch
+	// services (apply-template creates rooms; capture-from-branch reads them).
+	roomSvc := service.NewRoomServiceWithGuards(roomRepo, staffRoomAssignRepo, childRoomAssignRepo)
+	branchSvc := service.NewBranchService(branchRepo, counterRepo)
 	svc := routes.Services{
 		Organisations:     orgSvc,
 		DefaultOrgID:      defaultOrgID,
@@ -133,7 +137,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Checkout:          service.NewCheckoutService(orderRepo, cartRepo, productRepo, branchRepo, cfg.Stripe.SecretKey, cfg.App.Env),
 		Orders:            service.NewOrderService(orderRepo),
 		Blog:              service.NewBlogService(blogRepo),
-		Branches:          service.NewBranchService(branchRepo, counterRepo),
+		Branches:          branchSvc,
 		Enquiries:         service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo),
 		Comments:          service.NewCommentService(commentRepo),
 		Audit:             service.NewAuditService(auditRepo),
@@ -143,11 +147,12 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Suppliers:         service.NewSupplierService(supplierRepo),
 		Taxonomy:          service.NewTaxonomyService(taxonomyRepo),
 		FeeConfig:         service.NewFeeConfigService(feeConfigRepo),
+		BranchTemplates:   service.NewBranchTemplateService(repository.NewBranchTemplateRepository(db), roomSvc, branchSvc),
 		Terms:             service.NewTermService(termRepo),
 		Procurement:       service.NewProcurementAnalyticsService(orderRequestRepo, purchaseCartRepo),
 		DashboardLayouts:  service.NewDashboardLayoutService(dashboardLayoutRepo),
 		DashboardProfiles: service.NewDashboardProfileService(dashboardProfileRepo),
-		Rooms:             service.NewRoomServiceWithGuards(roomRepo, staffRoomAssignRepo, childRoomAssignRepo),
+		Rooms:             roomSvc,
 		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo, childRoomAssignSvc, taxonomyRepo),
 		Attendance:        service.NewAttendanceService(attendanceRepo, childRepo, childRoomAssignRepo),
 		Staff:             service.NewStaffService(staffRepo, counterRepo, authSvc, staffRoomAssignSvc, roomRepo),

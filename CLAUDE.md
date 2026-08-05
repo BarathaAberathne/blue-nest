@@ -64,7 +64,7 @@ premium option, not the default. This keeps cross-org platform analytics + AI si
   Tailwind utilities live in the `utilities` cascade layer, which outranks `@layer` rules by specificity.
   **Still to do in T1:** per-org custom roles + permission sets (the DB-backed `roleCache` is still global —
   the `roles` collection already carries `org_id`, so this becomes org-scoped role resolution), branch
-  templates, email templates (age-group config + funding rules are now delivered — see the taxonomy + fees modules).
+  email templates (age-group config, funding rules + branch templates are now delivered — see the taxonomy, fees + branch-templates modules).
   **Note:** the `org_id` JWT claim means
   sessions issued before T0 lack it — users must re-login after deploy (or let tokens expire) to get
   org-scoped access + the org page.
@@ -497,6 +497,16 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   maps display keys → slugs e.g. "pinner green"→"pinner-green"). `FeeCalculatorCard` fetches the bundle on
   mount and **falls back to the still-bundled `lib/fee-data.json`** if the request fails, so the public
   calculator never breaks. Tests: `SUI-FEES-001` (public bundle + admin round-trip on a throwaway branch).
+
+- **Branch templates (T1, delivered):** reusable branch-setup presets so a new branch's rooms are created in
+  one step instead of by hand. `branch_templates` (`models/branch_template.go`, tenant-scoped: name +
+  description + `rooms[]` presets {name/code/age_range/min-max_age_months/capacity/staff_ratio}) with
+  repo/service/handler admin CRUD at **`/admin/branch-templates`** (`branches.manage`, Organisation nav).
+  `POST .../{id}/apply` `{branch_slug}` creates the template's rooms on the target branch (skips rooms whose
+  name already exists — non-destructive, re-runnable); `POST .../from-branch` captures an existing branch's
+  rooms into a new template. The service reuses the shared `RoomService`/`BranchService` (hoisted in
+  `server.go`), so room validation/guards apply. Tests: `SUI-BRANCHTPL-001` (create → apply to a fresh test
+  branch → rooms verified).
 
 - **Leave / holiday requests (HR module, Phases 1–4 DELIVERED):** staff apply for time off and a
   **different** manager (four-eyes) approves or declines it. `models/leave_request.go`
