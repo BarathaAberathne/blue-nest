@@ -62,10 +62,11 @@ premium option, not the default. This keeps cross-org platform analytics + AI si
   (public site + the Command Centre's own `.cc-*` palette untouched), and preserves semantic status colours
   (blue/green/amber/red). The logo gradient uses `branding.accent_color`. Unlayered is required because
   Tailwind utilities live in the `utilities` cascade layer, which outranks `@layer` rules by specificity.
-  **Still to do in T1:** per-org custom roles + permission sets (the DB-backed `roleCache` is still global —
-  the `roles` collection already carries `org_id`, so this becomes org-scoped role resolution), branch
-  email templates (age-group config, funding rules + branch templates are now delivered — see the taxonomy, fees + branch-templates modules).
-  **Note:** the `org_id` JWT claim means
+  **Delivered across T1:** org-configurable **age groups** + session/allergy/dietary lists (taxonomy module),
+  **funding rules** (fees module), **branch templates**, **email templates**, and org branding wired into the
+  live admin theme. **Still to do in T1:** per-org custom roles + permission sets (the DB-backed `roleCache`
+  is still global — the `roles` collection already carries `org_id`, so this becomes org-scoped role
+  resolution). **Note:** the `org_id` JWT claim means
   sessions issued before T0 lack it — users must re-login after deploy (or let tokens expire) to get
   org-scoped access + the org page.
 - **Phase A0 — AI service layer (backend, tenant-scoped).** A first-class `internal/service/ai` (not a
@@ -507,6 +508,18 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   rooms into a new template. The service reuses the shared `RoomService`/`BranchService` (hoisted in
   `server.go`), so room validation/guards apply. Tests: `SUI-BRANCHTPL-001` (create → apply to a fresh test
   branch → rooms verified).
+
+- **Email templates (T1, delivered):** per-org editable transactional-email copy, **opt-in**: a template
+  only overrides the built-in default once an admin customises it, so existing emails are unchanged.
+  `email_templates` (`models/email_template.go`, tenant-scoped, keyed by `key`; catalogue =
+  `EmailTemplateCatalogue`, currently `enquiry_acknowledgement`) stores an editable `subject` + `body` (the
+  message text with `{{placeholders}}`; the service wraps it in the branded Blue Nest shell so admins never
+  edit raw layout). `emailTemplateService.Render(ctx, key, vars)` substitutes placeholders (HTML-escaping
+  values into the body to prevent injection) and returns `ok=false` when no custom template exists.
+  `enquiryService` resolves the acknowledgement email **synchronously before the async send goroutine**
+  (request ctx is still valid for the org-scoped lookup) and falls back to the hardcoded copy. Admin CRUD at
+  **`/admin/email-templates`** (`branches.manage`, Organisation nav): pick a template, edit subject/body with
+  a variable reference, or revert to default. Tests: `SUI-EMAILTPL-001` (customise + revert round-trip).
 
 - **Leave / holiday requests (HR module, Phases 1–4 DELIVERED):** staff apply for time off and a
   **different** manager (four-eyes) approves or declines it. `models/leave_request.go`

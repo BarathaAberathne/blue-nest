@@ -1228,6 +1228,23 @@ export interface BranchTemplateApplyResult {
   skipped?: string[];
 }
 
+// ── Email templates (editable transactional email copy) ──────────────────────
+export interface EmailTemplate {
+  key: string;
+  label: string;
+  description: string;
+  variables: string[];
+  default_subject: string;
+  default_body: string;
+  customized: boolean;
+  subject: string;
+  body: string;
+}
+export interface EmailTemplateInput {
+  subject: string;
+  body: string;
+}
+
 // ── In-app notifications ─────────────────────────────────────────────────────
 export interface AppNotification {
   id: string;

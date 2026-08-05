@@ -25,6 +25,7 @@ import {
   LayoutTemplate,
   Library,
   LogOut,
+  Mail,
   NotebookPen,
   Package,
   PoundSterling,
@@ -75,6 +76,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Term dates", href: "/admin/terms",   icon: CalendarDays, permission: "branches.manage" },
       { label: "Fees",     href: "/admin/fees",      icon: PoundSterling, permission: "branches.manage" },
       { label: "Branch templates", href: "/admin/branch-templates", icon: LayoutTemplate, permission: "branches.manage" },
+      { label: "Email templates", href: "/admin/email-templates", icon: Mail, permission: "branches.manage" },
     ],
   },
   {

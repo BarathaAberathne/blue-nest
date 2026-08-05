@@ -128,6 +128,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	// services (apply-template creates rooms; capture-from-branch reads them).
 	roomSvc := service.NewRoomServiceWithGuards(roomRepo, staffRoomAssignRepo, childRoomAssignRepo)
 	branchSvc := service.NewBranchService(branchRepo, counterRepo)
+	emailTemplateSvc := service.NewEmailTemplateService(repository.NewEmailTemplateRepository(db))
 	svc := routes.Services{
 		Organisations:     orgSvc,
 		DefaultOrgID:      defaultOrgID,
@@ -138,7 +139,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Orders:            service.NewOrderService(orderRepo),
 		Blog:              service.NewBlogService(blogRepo),
 		Branches:          branchSvc,
-		Enquiries:         service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo),
+		Enquiries:         service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo, emailTemplateSvc),
 		Comments:          service.NewCommentService(commentRepo),
 		Audit:             service.NewAuditService(auditRepo),
 		OrderRequests:     service.NewOrderRequestService(orderRequestRepo, userRepo, counterRepo),
@@ -148,6 +149,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Taxonomy:          service.NewTaxonomyService(taxonomyRepo),
 		FeeConfig:         service.NewFeeConfigService(feeConfigRepo),
 		BranchTemplates:   service.NewBranchTemplateService(repository.NewBranchTemplateRepository(db), roomSvc, branchSvc),
+		EmailTemplates:    emailTemplateSvc,
 		Terms:             service.NewTermService(termRepo),
 		Procurement:       service.NewProcurementAnalyticsService(orderRequestRepo, purchaseCartRepo),
 		DashboardLayouts:  service.NewDashboardLayoutService(dashboardLayoutRepo),
