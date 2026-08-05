@@ -84,10 +84,12 @@ var rolePermissions = map[Role][]Permission{
 		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
 	},
 	// Deputy Manager: assists one branch — same operational reach as a branch
-	// manager minus finance/payroll approval.
+	// manager minus leave and finance/payroll approval. Leave approval is a
+	// manager/HR responsibility by default (grant it per-org in the Permission
+	// Builder if a deputy should approve leave).
 	RoleDeputyManager: {
 		PermDashboardView, PermBranchesManage, PermEnquiriesManage,
-		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
+		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove,
 	},
 	// ── Enterprise catalogue (B3) — sensible starting sets, editable by super
 	// admin via the Permission Builder. ────────────────────────────────────────
