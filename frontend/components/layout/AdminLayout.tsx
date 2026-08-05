@@ -26,6 +26,7 @@ import {
   LogOut,
   NotebookPen,
   Package,
+  PoundSterling,
   Radar,
   ShoppingBag,
   ShoppingCart,
@@ -71,6 +72,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Rooms",    href: "/admin/rooms",     icon: DoorOpen, permission: "children.manage" },
       { label: "Lists",    href: "/admin/lists",     icon: ListChecks, permission: "branches.manage" },
       { label: "Term dates", href: "/admin/terms",   icon: CalendarDays, permission: "branches.manage" },
+      { label: "Fees",     href: "/admin/fees",      icon: PoundSterling, permission: "branches.manage" },
     ],
   },
   {

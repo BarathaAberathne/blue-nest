@@ -64,7 +64,7 @@ premium option, not the default. This keeps cross-org platform analytics + AI si
   Tailwind utilities live in the `utilities` cascade layer, which outranks `@layer` rules by specificity.
   **Still to do in T1:** per-org custom roles + permission sets (the DB-backed `roleCache` is still global —
   the `roles` collection already carries `org_id`, so this becomes org-scoped role resolution), branch
-  templates, funding rules, email templates (age-group config is now delivered — see the taxonomy module).
+  templates, email templates (age-group config + funding rules are now delivered — see the taxonomy + fees modules).
   **Note:** the `org_id` JWT claim means
   sessions issued before T0 lack it — users must re-login after deploy (or let tokens expire) to get
   org-scoped access + the org page.
@@ -484,6 +484,19 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   public application-form session picker also reads the configurable list (org-wide). **Admin list ordering**:
   `lib/group.ts` (`sortByName`/`groupByBranch`) — lists sort alphabetically, grouped by branch; the
   children + staff tables render per-branch section headers (the same helper extends to the remaining lists).
+
+- **Fees & funding config (T1, delivered):** the public fee calculator's per-branch rates are no longer a
+  hardcoded frontend file. `fee_configs` (`models/fee_config.go`, tenant-scoped: one doc per branch keyed by
+  `branch_slug`, plus a ""-branch doc holding the org-wide `Meta` = extra-hour/swap/late-fee + disclaimer)
+  mirrors the old `fee-data.json` shape (`ageGroups[ageKey][session]{daily,weekly}`, `earlyBird`,
+  `stdFunded{below3,above3}`), so `computeQuote` is unchanged. Public `GET /fee-config` returns the bundle
+  (`{branches, meta}`, keyed by slug, pinned to the default tenant); admin `GET /admin/fee-config` +
+  `PUT /admin/fee-config/{branch}` + `PUT /admin/fee-config` (meta) under `branches.manage`, edited at
+  **`/admin/fees`** (branch tabs → age-group×session rate grid + early-bird + funded top-up + ancillary
+  pricing). `cmd/seedfees` (`make seed-fees`, idempotent `$setOnInsert`, embeds the canonical schedule,
+  maps display keys → slugs e.g. "pinner green"→"pinner-green"). `FeeCalculatorCard` fetches the bundle on
+  mount and **falls back to the still-bundled `lib/fee-data.json`** if the request fails, so the public
+  calculator never breaks. Tests: `SUI-FEES-001` (public bundle + admin round-trip on a throwaway branch).
 
 - **Leave / holiday requests (HR module, Phases 1–4 DELIVERED):** staff apply for time off and a
   **different** manager (four-eyes) approves or declines it. `models/leave_request.go`
