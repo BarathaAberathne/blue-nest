@@ -207,5 +207,5 @@ duplicated per controller.
 
 Also covered by Go unit tests in `internal/service/room_assignment_test.go`
 (capacity, age, transfer rollback, primary uniqueness, cross-branch,
-inactive, scheduled activation) and the migration in
-`cmd/migrateroomassignments`.
+inactive, scheduled activation). The one-shot room-allocation migration that
+converted legacy `room_id` scalars has since been retired.

@@ -50,7 +50,7 @@ type SubTab = "basic" | "quals" | "keys" | "contract" | "tags";
 // room_id is deliberately OMITTED: room allocation now lives in its own
 // authoritative model (StaffRoomAllocations panel + assignment endpoints), and
 // the request DTO treats an omitted room_id as "no change", so a profile save
-// can never touch — or silently wipe — the staff member's room. (Historic bug:
+// can never touch - or silently wipe - the staff member's room. (Historic bug:
 // docs/rooms/staff-room-field-investigation.md.)
 const memberToInput = (m: Staff): StaffInput => ({
   first_name: m.first_name, last_name: m.last_name, email: m.email ?? "", phone: m.phone ?? "",
@@ -66,6 +66,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
   const [member, setMember] = useState<Staff | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [leaveDates, setLeaveDates] = useState<Set<string>>(new Set());
   const [absence, setAbsence] = useState<StaffAbsenceSummary | null>(null);
   const [absExpanded, setAbsExpanded] = useState(false);
   const [week, setWeek] = useState(() => mondayOf(new Date()));
@@ -74,7 +75,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
   const { has } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // Three independently-scoped edit modes — each opens only the fields shown
+  // Three independently-scoped edit modes - each opens only the fields shown
   // on its own subpanel, so "Edit" on Contract can never surface the Basic
   // info / branch-assignment form and vice versa.
   const [identityEditing, setIdentityEditing] = useState(false);
@@ -92,7 +93,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
   // ── data ───────────────────────────────────────────────────────────────────
   const load = async () => {
     const token = getAccessToken();
-    if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
+    if (!token) { setError("Not authenticated - please sign in as admin."); setLoading(false); return; }
     const [s, b] = await Promise.allSettled([api.adminGetStaffMember(token, id), api.getBranches()]);
     if (s.status === "fulfilled") setMember(s.value as Staff);
     else setError("Staff member not found.");
@@ -100,11 +101,11 @@ export default function StaffDetailClient({ id }: { id: string }) {
     setLoading(false);
   };
   useEffect(() => { void load(); }, [id]);
-  // Only touches read-only display state — safe to background-refresh mid-edit
+  // Only touches read-only display state - safe to background-refresh mid-edit
   // since each of the three edit-mode forms is a separate, un-synced state.
   useAutoRefresh(load, 30_000);
 
-  // Rota shifts for this person, for the selected week — powers Scheduled hours + Calendar.
+  // Rota shifts for this person, for the selected week - powers Scheduled hours + Calendar.
   useEffect(() => {
     const token = getAccessToken();
     const branch = member?.branch_slug;
@@ -113,10 +114,24 @@ export default function StaffDetailClient({ id }: { id: string }) {
     api.adminGetShifts(token, branch, ymd(week))
       .then((all) => { if (active) setShifts((all ?? []).filter((s) => s.staff_id === id)); })
       .catch(() => { if (active) setShifts([]); });
+    // Approved leave for this person (shown red on the calendar). Non-blocking:
+    // a viewer without leave.approve still sees the shifts.
+    api.adminGetLeaveRequests(token, { staff_id: id, status: "approved" })
+      .then((reqs) => {
+        if (!active) return;
+        const set = new Set<string>();
+        for (const r of reqs ?? []) {
+          const s = new Date(r.start_date + "T00:00:00"), e = new Date(r.end_date + "T00:00:00");
+          if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) continue;
+          for (const d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) set.add(ymd(d));
+        }
+        setLeaveDates(set);
+      })
+      .catch(() => { if (active) setLeaveDates(new Set()); });
     return () => { active = false; };
   }, [member?.branch_slug, week, id]);
 
-  // Attendance/absence summary for the current calendar year — powers the
+  // Attendance/absence summary for the current calendar year - powers the
   // Absence card + attendance donut on the profile dashboard.
   const absenceRange = useMemo(() => {
     const y = new Date().getFullYear();
@@ -162,8 +177,8 @@ export default function StaffDetailClient({ id }: { id: string }) {
 
   // ── edit ─────────────────────────────────────────────────────────────────
   // Persist a field patch (used by every edit scope below, plus the
-  // Qualifications add/remove panel). Sends the whole record — the update
-  // endpoint takes a full StaffInput — with just the patch applied on top, so
+  // Qualifications add/remove panel). Sends the whole record - the update
+  // endpoint takes a full StaffInput - with just the patch applied on top, so
   // each scoped form only has to carry the handful of fields it actually edits.
   const patchStaff = async (patch: Partial<StaffInput>) => {
     const token = getAccessToken();
@@ -290,19 +305,29 @@ export default function StaffDetailClient({ id }: { id: string }) {
                 <span className="text-xs font-medium text-slate-600"><span className="text-slate-400">Week of:</span> {week.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
                 <button onClick={() => setWeek((w) => { const d = new Date(w); d.setDate(d.getDate() + 7); return d; })} className="rounded p-1 text-slate-500 hover:bg-white" aria-label="Next week"><ChevronRight className="h-4 w-4" /></button>
               </div>
-              {shifts.length === 0 ? (
+              {shifts.length === 0 && !days.some((d) => leaveDates.has(ymd(d))) ? (
                 <div className="py-6 text-center text-slate-400">
                   <CalendarDays className="mx-auto h-8 w-8 opacity-60" />
                   <p className="mt-2 text-sm">No hours scheduled</p>
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  {days.map((d) => { const list = shiftByDate.get(ymd(d)) ?? []; if (!list.length) return null; return (
-                    <div key={ymd(d)} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                      <span className="font-medium text-slate-700">{d.toLocaleDateString("en-GB", { weekday: "short" })}</span>
-                      <span className="tabular-nums text-slate-500">{list.map((s) => `${s.start_time}–${s.end_time}`).join(", ")}</span>
-                    </div>
-                  ); })}
+                  {days.map((d) => {
+                    const key = ymd(d);
+                    const list = shiftByDate.get(key) ?? [];
+                    const leave = leaveDates.has(key);
+                    if (!list.length && !leave) return null;
+                    return (
+                      <div key={key} className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${leave && !list.length ? "bg-rose-50" : "bg-slate-50"}`}>
+                        <span className="font-medium text-slate-700">{d.toLocaleDateString("en-GB", { weekday: "short" })}</span>
+                        {list.length ? (
+                          <span className="tabular-nums text-slate-500">{list.map((s) => `${s.start_time}-${s.end_time}`).join(", ")}</span>
+                        ) : (
+                          <span className="font-semibold text-rose-600">On leave</span>
+                        )}
+                      </div>
+                    );
+                  })}
                   <div className="mt-2 flex items-center justify-between border-t border-slate-100 pt-2 text-sm">
                     <span className="font-semibold text-slate-700">Weekly total</span>
                     <span className="font-bold text-teal-700">{fmtHM(weekMinutes)}</span>
@@ -311,26 +336,26 @@ export default function StaffDetailClient({ id }: { id: string }) {
               )}
             </section>
 
-            {/* Attendance & absence — real per-staff aggregation over the year */}
+            {/* Attendance & absence - real per-staff aggregation over the year */}
             <section className="card p-5" aria-labelledby="abs-h">
               <div className="mb-1 flex items-center justify-between">
                 <h2 id="abs-h" className="text-sm font-bold uppercase tracking-widest text-slate-400">Attendance</h2>
                 <span className="text-xs text-slate-400">{absenceRange.label}</span>
               </div>
-              <p className="mb-3 text-xs text-slate-400">Captured working days over the year — kiosk &amp; corrections.</p>
+              <p className="mb-3 text-xs text-slate-400">Captured working days over the year - kiosk &amp; corrections.</p>
               <div className="space-y-1">
                 <KpiRow icon={CheckCircle2} tone="green" label="Worked"
-                  value={absence ? `${absence.worked_days} days${absence.worked_hours ? ` (${absence.worked_hours}h)` : ""}` : "—"}
+                  value={absence ? `${absence.worked_days} days${absence.worked_hours ? ` (${absence.worked_hours}h)` : ""}` : "-"}
                   expandable rows={absence ? [["Late arrivals", `${absence.late_days} days`], ["Hours worked", `${absence.worked_hours}h`]] : []}
                   expanded={absExpanded} onToggle={() => setAbsExpanded((v) => !v)} />
-                <KpiRow icon={Thermometer} tone="red" label="Sick" value={absence ? `${absence.sick_days} days` : "—"} />
-                <KpiRow icon={Palmtree} tone="sky" label="Leave / holiday" value={absence ? `${absence.leave_days} days` : "—"} />
-                <KpiRow icon={GraduationCap} tone="violet" label="Training" value={absence ? `${absence.training_days} days` : "—"} />
-                <KpiRow icon={CalendarX} tone="slate" label="Absent" value={absence ? `${absence.absent_days} days` : "—"} />
+                <KpiRow icon={Thermometer} tone="red" label="Sick" value={absence ? `${absence.sick_days} days` : "-"} />
+                <KpiRow icon={Palmtree} tone="sky" label="Leave / holiday" value={absence ? `${absence.leave_days} days` : "-"} />
+                <KpiRow icon={GraduationCap} tone="violet" label="Training" value={absence ? `${absence.training_days} days` : "-"} />
+                <KpiRow icon={CalendarX} tone="slate" label="Absent" value={absence ? `${absence.absent_days} days` : "-"} />
               </div>
             </section>
 
-            {/* Attendance donut — worked vs away, real values */}
+            {/* Attendance donut - worked vs away, real values */}
             <section className="card flex flex-col items-center p-5" aria-labelledby="donut-h">
               <div className="mb-1 flex w-full items-center justify-between">
                 <h2 id="donut-h" className="text-sm font-bold uppercase tracking-widest text-slate-400">Attendance rate</h2>
@@ -340,7 +365,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
             </section>
           </div>
 
-          {/* Compliance strip — DBS + first aid (kept, condensed) */}
+          {/* Compliance strip - DBS + first aid (kept, condensed) */}
           <section className="card p-5" aria-labelledby="comp-h">
             <div className="mb-4 flex items-center justify-between">
               <h2 id="comp-h" className="text-sm font-bold uppercase tracking-widest text-slate-400">Compliance</h2>
@@ -370,7 +395,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
             </div>
           </section>
 
-          {/* Room allocations — the authoritative staff↔room model, visible and
+          {/* Room allocations - the authoritative staff↔room model, visible and
               (for staff.manage) editable in both view and edit workflows. */}
           <StaffRoomAllocations
             staffId={member.id}
@@ -412,13 +437,13 @@ export default function StaffDetailClient({ id }: { id: string }) {
                       )}
                     </div>
 
-                    {/* Login + Kiosk PIN — always shown */}
+                    {/* Login + Kiosk PIN - always shown */}
                     <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-100 px-3 py-1.5 text-xs font-bold text-teal-700"><User className="h-3.5 w-3.5" /> {member.user_id ? "Login enabled" : "No login"}</span>
                         <div className="text-sm">
                           <div className="font-semibold text-slate-800">System login</div>
-                          <div className="text-xs text-slate-500">{member.user_id ? "Can sign in to the portal (scoped to this branch)" : "HR-only record — no sign-in"}</div>
+                          <div className="text-xs text-slate-500">{member.user_id ? "Can sign in to the portal (scoped to this branch)" : "HR-only record - no sign-in"}</div>
                         </div>
                       </div>
                       <div className="mt-4 border-t border-slate-200 pt-4">
@@ -427,7 +452,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-semibold text-slate-800">Kiosk clock-in PIN</div>
                             <div className="text-xs text-slate-500">
-                              {member.has_pin ? <span className="inline-flex items-center gap-1 font-medium text-green-600"><Check className="h-3.5 w-3.5" /> PIN set</span> : <span className="font-medium text-amber-600">No PIN set — can&apos;t clock in yet</span>}
+                              {member.has_pin ? <span className="inline-flex items-center gap-1 font-medium text-green-600"><Check className="h-3.5 w-3.5" /> PIN set</span> : <span className="font-medium text-amber-600">No PIN set - can&apos;t clock in yet</span>}
                               {" "}· used at the entrance tablet
                             </div>
                           </div>
@@ -549,7 +574,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
                     {list.length ? list.map((s) => (
                       <div key={s.id} className="rounded-lg border-l-[3px] border-teal-500 bg-teal-50 px-3 py-2">
                         <div className="text-sm font-semibold text-teal-800">{s.start_time}–{s.end_time}{s.room_name ? ` · ${s.room_name}` : ""}</div>
-                        <div className="text-xs text-teal-700/80">{s.external ? "Cover" : "Rostered shift"}{s.notes ? ` — ${s.notes}` : ""}</div>
+                        <div className="text-xs text-teal-700/80">{s.external ? "Cover" : "Rostered shift"}{s.notes ? ` - ${s.notes}` : ""}</div>
                       </div>
                     )) : <p className="py-1 text-sm text-slate-400">No shifts</p>}
                   </div>
@@ -568,7 +593,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
 }
 
 // ── small components ─────────────────────────────────────────────────────────
-// ── KpiRow — a colour-separated stat row: icon chip · label · bold value,
+// ── KpiRow - a colour-separated stat row: icon chip · label · bold value,
 // optionally expandable into sub-rows (matches the reference design). ─────────
 const KPI_TONE: Record<string, string> = {
   green: "bg-green-50 text-green-600",
@@ -606,7 +631,7 @@ function KpiRow({ icon: Icon, tone, label, value, expandable, rows, expanded, on
   );
 }
 
-// ── AttendanceDonut — a real ring chart: worked days vs away, with the
+// ── AttendanceDonut - a real ring chart: worked days vs away, with the
 // attendance rate at the centre. ─────────────────────────────────────────────
 function AttendanceDonut({ summary }: { summary: StaffAbsenceSummary | null }) {
   const worked = summary?.worked_days ?? 0;
@@ -618,12 +643,12 @@ function AttendanceDonut({ summary }: { summary: StaffAbsenceSummary | null }) {
     <div className="flex flex-col items-center">
       <div className="relative h-[172px] w-[172px]">
         <svg viewBox="0 0 120 120" width="172" height="172" style={{ transform: "rotate(-90deg)" }}
-          role="img" aria-label={`Attendance ${rate}% — ${worked} worked days of ${total} recorded`}>
+          role="img" aria-label={`Attendance ${rate}% - ${worked} worked days of ${total} recorded`}>
           <circle cx="60" cy="60" r="50" fill="none" stroke="#e7ecf3" strokeWidth="16" pathLength={314} />
           {total > 0 && <circle cx="60" cy="60" r="50" fill="none" stroke="#0f9d8c" strokeWidth="16" strokeLinecap="round" strokeDasharray={`${workedLen} 314`} pathLength={314} />}
         </svg>
         <div className="absolute inset-0 grid place-content-center text-center" aria-hidden="true">
-          <span className="text-2xl font-extrabold tracking-tight text-slate-900">{total > 0 ? `${rate}%` : "—"}</span>
+          <span className="text-2xl font-extrabold tracking-tight text-slate-900">{total > 0 ? `${rate}%` : "-"}</span>
           <span className="mt-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400">Attendance</span>
         </div>
       </div>
@@ -660,7 +685,7 @@ function EmptyState({ icon: Icon, title, body }: { icon: typeof User; title: str
   );
 }
 
-// ── Contacts — emergency / next-of-kin contacts for this staff member ─────────
+// ── Contacts - emergency / next-of-kin contacts for this staff member ─────────
 const emptyContact: EmergencyContact = { name: "", relation: "", phone: "", email: "" };
 function ContactsPanel({ contacts, onSave }: { contacts: EmergencyContact[]; onSave: (next: EmergencyContact[]) => Promise<void> }) {
   const [adding, setAdding] = useState(false);
@@ -713,7 +738,7 @@ function ContactsPanel({ contacts, onSave }: { contacts: EmergencyContact[]; onS
       )}
 
       {contacts.length === 0 && !adding ? (
-        <EmptyState icon={Users} title="No emergency contacts yet" body="It's always a good idea to have contact info for the people close to this staff member — for emergencies, next-of-kin and day-to-day updates." />
+        <EmptyState icon={Users} title="No emergency contacts yet" body="It's always a good idea to have contact info for the people close to this staff member - for emergencies, next-of-kin and day-to-day updates." />
       ) : (
         <div className="space-y-3">
           {contacts.map((c, i) => (
@@ -757,7 +782,7 @@ function ContactsPanel({ contacts, onSave }: { contacts: EmergencyContact[]; onS
   );
 }
 
-// ── Qualifications — add/remove a staff member's qualifications inline ────────
+// ── Qualifications - add/remove a staff member's qualifications inline ────────
 function QualificationsPanel({ quals, onSave }: { quals: string[]; onSave: (next: string[]) => Promise<void> }) {
   const [adding, setAdding] = useState(false);
   const [value, setValue] = useState("");
@@ -819,7 +844,7 @@ function QualificationsPanel({ quals, onSave }: { quals: string[]; onSave: (next
   );
 }
 
-// ── identity edit form — branch/status/compliance/login only (name, contact,
+// ── identity edit form - branch/status/compliance/login only (name, contact,
 // job title live in Basic info's own scoped form; employment type/start date/
 // contract hours live in Contract's). Reuses the existing staff update + login
 // provisioning endpoint. ────────────────────────────────────────────────────
@@ -842,7 +867,7 @@ function IdentityEditForm({ form, member, branches, setField }: { form: StaffInp
 
       <div className="sm:col-span-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
         {member.user_id ? (
-          <p className="text-sm text-slate-600">This person has a system login. Re-tick below to change their login role — it stays scoped to this branch.</p>
+          <p className="text-sm text-slate-600">This person has a system login. Re-tick below to change their login role - it stays scoped to this branch.</p>
         ) : (
           <p className="text-sm text-slate-600">This person is an HR-only record with no login.</p>
         )}
@@ -874,7 +899,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-// ── Key children — assign/unassign the children this staff member is key person for ──
+// ── Key children - assign/unassign the children this staff member is key person for ──
 function KeyChildrenPanel({ staffId, branch }: { staffId: string; branch: string }) {
   const [list, setList] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);

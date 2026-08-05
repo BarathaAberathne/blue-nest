@@ -401,7 +401,7 @@ export const ENQUIRY_STATUSES: EnquiryStatus[] = [
   "spam",
 ];
 
-// Display labels only — the stored EnquiryStatus values never change. "lost"
+// Display labels only - the stored EnquiryStatus values never change. "lost"
 // reads as "Not proceeding" and "spam" as "Spam" for friendlier nursery wording.
 export const ENQUIRY_STATUS_LABELS: Record<EnquiryStatus, string> = {
   new: "New",
@@ -711,6 +711,7 @@ export interface LeaveRequest {
 
 export interface LeaveBalance {
   type: LeaveType;
+  capped: boolean;
   year: number;
   allowance: number;
   taken: number;
@@ -928,8 +929,8 @@ export interface PurchaseCart {
   priority?: ProcurementPriority;
   recipient_email?: string;
   lines: PurchaseCartLine[];
-  subtotal: number; // pence — estimate
-  order_total?: number; // pence — actual amount paid (post-placement); analytics uses this
+  subtotal: number; // pence - estimate
+  order_total?: number; // pence - actual amount paid (post-placement); analytics uses this
   attachments?: PurchaseCartAttachment[];
   source_request_ids: string[];
   generated_by?: string;
@@ -1124,7 +1125,7 @@ export interface ChildInput {
   gender?: string;
   branch_slug: string;
   // Room placement is managed via the child-room-assignment endpoints, not on
-  // the child record — it is deliberately NOT part of the write DTO.
+  // the child record - it is deliberately NOT part of the write DTO.
   status?: ChildStatus;
   start_date?: string;
   guardians?: Guardian[];
@@ -1339,7 +1340,7 @@ export interface StaffInput {
   phone?: string;
   branch_slug: string;
   // Room allocation is managed via the staff-room-assignment endpoints, not on
-  // the staff record — it is deliberately NOT part of the write DTO.
+  // the staff record - it is deliberately NOT part of the write DTO.
   job_title?: string;
   staff_type?: StaffType;
   status?: StaffStatus;
@@ -1468,6 +1469,22 @@ export interface StaffAbsenceSummary {
   training_days: number;
   absent_days: number;
   attendance_rate: number;
+}
+
+// Self-service profile hub (My Profile).
+export interface MeProfileInput {
+  phone?: string;
+  email?: string;
+  qualifications?: string[];
+  emergency_contacts?: EmergencyContact[];
+  dbs_number?: string;
+  dbs_expiry?: string;
+  first_aid_expiry?: string;
+}
+
+export interface MeAttendance {
+  records: StaffAttendanceRecord[];
+  summary: StaffAbsenceSummary;
 }
 
 export interface AttendanceCorrectionInput {

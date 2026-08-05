@@ -24,8 +24,8 @@ func IsValidStaffStatus(s StaffStatus) bool {
 	}
 }
 
-// StaffType distinguishes payroll categories — permanent employees vs agency /
-// bank cover — which the workforce KPIs (agency count) and ratios rely on.
+// StaffType distinguishes payroll categories - permanent employees vs agency /
+// bank cover - which the workforce KPIs (agency count) and ratios rely on.
 type StaffType string
 
 const (
@@ -34,9 +34,22 @@ const (
 	StaffBank      StaffType = "bank"
 )
 
-// EmergencyContact is a person to reach for this staff member — next-of-kin,
+// EmergencyContact is a person to reach for this staff member - next-of-kin,
 // emergencies, or day-to-day updates. Deliberately separate from Child's
 // Guardian (a different relationship, on a different entity).
+// MeProfileUpdate is the self-service subset a staff member may edit on their own
+// profile - contact details, certifications and next-of-kin. Employment fields
+// (name/branch/role/status/type/hours/allowances/PIN) stay manager-controlled.
+type MeProfileUpdate struct {
+	Phone             string             `json:"phone"`
+	Email             string             `json:"email"`
+	Qualifications    []string           `json:"qualifications"`
+	EmergencyContacts []EmergencyContact `json:"emergency_contacts"`
+	DBSNumber         string             `json:"dbs_number"`
+	DBSExpiry         string             `json:"dbs_expiry"`
+	FirstAidExpiry    string             `json:"first_aid_expiry"`
+}
+
 type EmergencyContact struct {
 	Name     string `bson:"name"               json:"name"`
 	Relation string `bson:"relation,omitempty" json:"relation,omitempty"`
@@ -64,7 +77,7 @@ type Staff struct {
 	AnnualLeaveDays   int                `bson:"annual_leave_days,omitempty" json:"annual_leave_days,omitempty"` // 0 = use org default (28)
 	SickLeaveDays     int                `bson:"sick_leave_days,omitempty" json:"sick_leave_days,omitempty"`   // 0 = uncapped (no paid-sick allowance tracked)
 	// TermTimeOnly marks a staff member contracted for term time only (works
-	// during term dates, not school holidays) — see the terms collection.
+	// during term dates, not school holidays) - see the terms collection.
 	TermTimeOnly      bool               `bson:"term_time_only,omitempty" json:"term_time_only"`
 	Qualifications    []string           `bson:"qualifications,omitempty" json:"qualifications,omitempty"`
 	DBSNumber         string             `bson:"dbs_number,omitempty"   json:"dbs_number,omitempty"`
@@ -84,7 +97,7 @@ type Staff struct {
 
 	// RoomID/RoomName are a COMPUTED read projection of the staff member's
 	// current PRIMARY active room, resolved from the canonical
-	// staff_room_assignments at read time (never stored, never written — the
+	// staff_room_assignments at read time (never stored, never written - the
 	// same pattern as Child.KeyPersonName). Room allocation is managed only
 	// through the assignment endpoints; there is no stored room scalar.
 	RoomID   string `bson:"-" json:"room_id,omitempty"`

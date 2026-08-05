@@ -5,9 +5,9 @@
 //
 // DROPS and rebuilds the staff / staff_attendance collections with demo data
 // matching the mock per-branch headcounts (~92 staff, ~90% present).
-// Deterministic (fixed RNG seed). NEVER run this against an environment where
-// cmd/seedfamly has imported a real nursery's real staff — it drops that data
-// too, and seedguard.RequireDrop below refuses unless explicitly confirmed.
+// Deterministic (fixed RNG seed). NEVER run this against an environment that
+// holds a real nursery's imported staff — it drops that data too, and
+// seedguard.RequireDrop below refuses unless explicitly confirmed.
 package main
 
 import (

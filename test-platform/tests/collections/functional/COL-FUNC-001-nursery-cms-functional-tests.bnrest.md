@@ -14,28 +14,28 @@ tags:
 
 The primary generic functional collection (see the "Critical Architecture
 Correction" in `docs/testing/test-platform-architecture.md`'s "Generic
-functional architecture" section — this replaced the earlier
+functional architecture" section - this replaced the earlier
 Harrow-specific `COL-HAR-001`, same suites, same verified results,
 generic name). Suites describe **functional areas** (Authentication,
 Branch Management, Room Management, Staff and Role Setup, …), never a
-named branch — branches/staff/children are runtime data supplied through
+named branch - branches/staff/children are runtime data supplied through
 fixtures/data profiles, not the architecture itself.
 
 `SUI-AUTH-001`, `SUI-BRANCH-001`, `SUI-ROOM-001`, `SUI-STAFF-001`,
 `SUI-REG-001` (Child Registration), `SUI-KEYPERSON-001` (Key Person
 Allocation, all-new coverage) and `SUI-ENQUIRY-001` (Enquiry Lifecycle)
-are migrated and wired in so far — see `docs/testing/test-migration-map.md`
+are migrated and wired in so far - see `docs/testing/test-migration-map.md`
 for the full rollout plan and exact per-legacy-test mapping of the
 remaining suites, all tracked in `test-platform/migration-manifest.json`.
 Genuinely environment/branch-specific tests (verifying the real, live
-Harrow branch's actual pre-existing state — not generic behaviour) live
+Harrow branch's actual pre-existing state - not generic behaviour) live
 separately in `COL-CONFIG-001` (`docs/testing/test-platform-architecture.md`
 "Exceptions"), not here.
 
 **`SUI-AUTH-001` MUST be called LAST**, not first: it now ends with
 `AUTH-TC-003` (login rate-limit regression lock), which deliberately burns
 the shared per-IP login budget (`middleware.RateLimit(10, time.Minute)` on
-both login routes) — every other suite's own `Setup` needs a fresh login
+both login routes) - every other suite's own `Setup` needs a fresh login
 to succeed first. See `SUI-AUTH-001`/`AUTH-TC-003`'s own doc comments.
 
 ```bnrest
@@ -65,5 +65,6 @@ Call CatchError ../../suites/roomnet/SUI-ROOMNET-001-room-network.bnrest.md
 Call CatchError ../../suites/taxonomy/SUI-TAXONOMY-001-configurable-lists.bnrest.md
 Call CatchError ../../suites/dailylogapproval/SUI-DAILYLOG-001-approval.bnrest.md
 Call CatchError ../../suites/leave/SUI-LEAVE-001-leave-requests.bnrest.md
+Call CatchError ../../suites/me/SUI-ME-001-my-profile.bnrest.md
 Call CatchError ../../suites/auth/SUI-AUTH-001-authentication.bnrest.md
 ```
