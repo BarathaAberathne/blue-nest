@@ -64,10 +64,13 @@ type enquiryService struct {
 	repo    repository.EnquiryRepository
 	mailer  *email.Mailer
 	adminTo string
+	// emailTemplates supplies org-customised email copy; nil-safe — when absent
+	// or no custom template exists, the built-in default email is used.
+	emailTemplates EmailTemplateService
 }
 
-func NewEnquiryService(repo repository.EnquiryRepository, mailer *email.Mailer, adminTo string) EnquiryService {
-	return &enquiryService{repo: repo, mailer: mailer, adminTo: adminTo}
+func NewEnquiryService(repo repository.EnquiryRepository, mailer *email.Mailer, adminTo string, emailTemplates EmailTemplateService) EnquiryService {
+	return &enquiryService{repo: repo, mailer: mailer, adminTo: adminTo, emailTemplates: emailTemplates}
 }
 
 func (s *enquiryService) Submit(ctx context.Context, req models.EnquiryRequest) (*models.Enquiry, error) {
@@ -118,6 +121,18 @@ func (s *enquiryService) Submit(ctx context.Context, req models.EnquiryRequest) 
 		return nil, fmt.Errorf("save enquiry: %w", err)
 	}
 
+	// Resolve the parent-acknowledgement email NOW (request ctx is still valid,
+	// so the org-scoped template lookup works); fall back to the built-in copy.
+	// The goroutine below runs after the response, when ctx may be cancelled.
+	ackSubject, ackBody := userConfirmationSubject(), userConfirmationHTML(req)
+	if s.emailTemplates != nil {
+		if subj, body, ok := s.emailTemplates.Render(ctx, models.EmailTplEnquiryAck, map[string]string{
+			"name": req.Name, "branch": formatBranch(req.Branch), "type": req.EnquiryType, "message": req.Message,
+		}); ok {
+			ackSubject, ackBody = subj, body
+		}
+	}
+
 	// Send emails asynchronously so they don't delay the HTTP response.
 	go func() {
 		if recipients := email.Recipients(s.adminTo); len(recipients) > 0 {
@@ -127,7 +142,7 @@ func (s *enquiryService) Submit(ctx context.Context, req models.EnquiryRequest) 
 			}
 		}
 		if req.Email != "" {
-			if err := s.mailer.Send([]string{req.Email}, userConfirmationSubject(), userConfirmationHTML(req)); err != nil {
+			if err := s.mailer.Send([]string{req.Email}, ackSubject, ackBody); err != nil {
 				slog.Error("failed to send user confirmation email", "error", err)
 			}
 		}

@@ -59,6 +59,7 @@ type Services struct {
 	Notifications     service.NotificationService
 	FeeConfig         service.FeeConfigService
 	BranchTemplates   service.BranchTemplateService
+	EmailTemplates    service.EmailTemplateService
 }
 
 type Repos struct {
@@ -482,6 +483,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 					adminTermH := adminHandler.NewAdminTermHandler(svc.Terms, svc.Audit)
 					adminFeeH := adminHandler.NewAdminFeeConfigHandler(svc.FeeConfig, svc.Audit)
 					adminBranchTplH := adminHandler.NewAdminBranchTemplateHandler(svc.BranchTemplates, svc.Audit)
+					adminEmailTplH := adminHandler.NewAdminEmailTemplateHandler(svc.EmailTemplates, svc.Audit)
 					r.Get("/admin/taxonomy", adminTaxonomyH.List)
 					r.Get("/admin/taxonomy/{id}", adminTaxonomyH.Get)
 					r.Get("/admin/terms", adminTermH.List)
@@ -489,6 +491,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 					r.Get("/admin/fee-config", adminFeeH.List)
 					r.Get("/admin/branch-templates", adminBranchTplH.List)
 					r.Get("/admin/branch-templates/{id}", adminBranchTplH.Get)
+					r.Get("/admin/email-templates", adminEmailTplH.List)
 					// In-app notifications - every management user reads their OWN.
 					adminNotifH := adminHandler.NewAdminNotificationHandler(svc.Notifications)
 					r.Get("/admin/notifications", adminNotifH.List)
@@ -509,6 +512,8 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 						r.Delete("/admin/branch-templates/{id}", adminBranchTplH.Delete)
 						r.Post("/admin/branch-templates/{id}/apply", adminBranchTplH.Apply)
 						r.Post("/admin/branch-templates/from-branch", adminBranchTplH.CreateFromBranch)
+						r.Put("/admin/email-templates/{key}", adminEmailTplH.Update)
+						r.Delete("/admin/email-templates/{key}", adminEmailTplH.Delete)
 					})
 				}()
 
