@@ -10,13 +10,14 @@ import type { Branch, TaxonomyTerm, TaxonomyInput } from "@/types";
 
 // The configurable lists an authorised user can curate. Add a category here (and
 // a backend TaxonomyCategory constant) to expose a new tag list.
-const CATEGORIES: { key: string; label: string; hasTimes: boolean; help: string }[] = [
-  { key: "session_type", label: "Weekly session slots", hasTimes: true, help: "The AM/PM/full-day slots children can be booked into." },
-  { key: "allergy_type", label: "Allergy types", hasTimes: false, help: "Allergy tags selectable on a child's profile." },
-  { key: "dietary_label", label: "Dietary labels", hasTimes: false, help: "Dietary tags selectable on a child's profile." },
+const CATEGORIES: { key: string; label: string; hasTimes: boolean; hasAges: boolean; help: string }[] = [
+  { key: "session_type", label: "Weekly session slots", hasTimes: true, hasAges: false, help: "The AM/PM/full-day slots children can be booked into." },
+  { key: "age_group", label: "Age groups", hasTimes: false, hasAges: true, help: "The age bands used for occupancy breakdowns and room age ranges. Bounds are in months; leave Max at 0 for an unbounded top band (e.g. 3+ years)." },
+  { key: "allergy_type", label: "Allergy types", hasTimes: false, hasAges: false, help: "Allergy tags selectable on a child's profile." },
+  { key: "dietary_label", label: "Dietary labels", hasTimes: false, hasAges: false, help: "Dietary tags selectable on a child's profile." },
 ];
 
-const blankForm: TaxonomyInput = { category: "session_type", branch_slug: "", label: "", code: "", start_time: "", end_time: "", active: true };
+const blankForm: TaxonomyInput = { category: "session_type", branch_slug: "", label: "", code: "", start_time: "", end_time: "", min_age_months: 0, max_age_months: 0, active: true };
 
 export default function ListsClient() {
   const [cat, setCat] = useState(CATEGORIES[0]);
@@ -60,7 +61,7 @@ export default function ListsClient() {
   const openAdd = () => { setEditId(null); setForm({ ...blankForm, category: cat.key }); setShowForm(true); };
   const openEdit = (t: TaxonomyTerm) => {
     setEditId(t.id);
-    setForm({ category: t.category, branch_slug: t.branch_slug ?? "", label: t.label, code: t.code, start_time: t.start_time ?? "", end_time: t.end_time ?? "", active: t.active });
+    setForm({ category: t.category, branch_slug: t.branch_slug ?? "", label: t.label, code: t.code, start_time: t.start_time ?? "", end_time: t.end_time ?? "", min_age_months: t.min_age_months ?? 0, max_age_months: t.max_age_months ?? 0, active: t.active });
     setShowForm(true);
   };
 
@@ -117,7 +118,7 @@ export default function ListsClient() {
               <div className="overflow-hidden rounded-xl border border-slate-200">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
-                    <tr><th className="px-4 py-2">Label</th><th className="px-4 py-2">Code</th>{cat.hasTimes && <th className="px-4 py-2">Times</th>}<th className="px-4 py-2">Status</th><th className="px-4 py-2 text-right">Actions</th></tr>
+                    <tr><th className="px-4 py-2">Label</th><th className="px-4 py-2">Code</th>{cat.hasTimes && <th className="px-4 py-2">Times</th>}{cat.hasAges && <th className="px-4 py-2">Age band</th>}<th className="px-4 py-2">Status</th><th className="px-4 py-2 text-right">Actions</th></tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {g.items.map((t) => (
@@ -125,6 +126,7 @@ export default function ListsClient() {
                         <td className="px-4 py-2.5 font-medium text-slate-900">{t.label}</td>
                         <td className="px-4 py-2.5 font-mono text-xs text-slate-400">{t.code}</td>
                         {cat.hasTimes && <td className="px-4 py-2.5 text-slate-500">{t.start_time && t.end_time ? `${t.start_time}–${t.end_time}` : "—"}</td>}
+                        {cat.hasAges && <td className="px-4 py-2.5 text-slate-500">{`${t.min_age_months ?? 0}–${t.max_age_months ? t.max_age_months : "∞"} mo`}</td>}
                         <td className="px-4 py-2.5">{t.active ? <span className="inline-flex items-center gap-1 text-green-600"><Check className="h-3.5 w-3.5" /> Active</span> : <span className="text-slate-400">Inactive</span>}</td>
                         <td className="px-4 py-2.5 text-right">
                           <button onClick={() => openEdit(t)} className="mr-2 text-slate-400 hover:text-teal-600" aria-label="Edit"><Pencil className="h-4 w-4" /></button>
@@ -161,6 +163,14 @@ export default function ListsClient() {
                     <input type="time" value={form.start_time} onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
                   <label className="block"><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">End</span>
                     <input type="time" value={form.end_time} onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
+                </div>
+              )}
+              {cat.hasAges && (
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block"><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">Min age (months)</span>
+                    <input type="number" min={0} value={form.min_age_months ?? 0} onChange={(e) => setForm((f) => ({ ...f, min_age_months: Number(e.target.value) }))} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
+                  <label className="block"><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">Max age (months)</span>
+                    <input type="number" min={0} value={form.max_age_months ?? 0} onChange={(e) => setForm((f) => ({ ...f, max_age_months: Number(e.target.value) }))} placeholder="0 = no upper limit" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></label>
                 </div>
               )}
               <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={form.active ?? true} onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))} /> Active (selectable)</label>

@@ -63,6 +63,8 @@ func applyTaxonomy(t *models.TaxonomyTerm, req models.TaxonomyRequest, isCreate 
 	t.Code = code
 	t.StartTime = strings.TrimSpace(req.StartTime)
 	t.EndTime = strings.TrimSpace(req.EndTime)
+	t.MinAgeMonths = req.MinAgeMonths
+	t.MaxAgeMonths = req.MaxAgeMonths
 	t.SortOrder = req.SortOrder
 	if req.Active != nil {
 		t.Active = *req.Active
@@ -80,6 +82,14 @@ func (s *taxonomyService) validate(t *models.TaxonomyTerm) error {
 	}
 	if t.Code == "" {
 		return errors.New("could not derive a code from the label")
+	}
+	if t.Category == models.TaxonomyAgeGroup {
+		if t.MinAgeMonths < 0 || t.MaxAgeMonths < 0 {
+			return errors.New("age bounds cannot be negative")
+		}
+		if t.MaxAgeMonths != 0 && t.MaxAgeMonths <= t.MinAgeMonths {
+			return errors.New("max age must be greater than min age (or 0 for an unbounded top band)")
+		}
 	}
 	return nil
 }

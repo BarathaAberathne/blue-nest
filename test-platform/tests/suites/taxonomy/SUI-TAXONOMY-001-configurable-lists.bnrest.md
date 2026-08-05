@@ -26,4 +26,5 @@ Body
 Call CatchError ../../cases/taxonomy/TAX-TC-001-session-type-crud.bnrest.md
 Call CatchError ../../cases/taxonomy/TAX-TC-002-term-crud.bnrest.md
 Call CatchError ../../cases/taxonomy/TAX-TC-003-term-time-attendance.bnrest.md
+Call CatchError ../../cases/taxonomy/TAX-TC-004-age-group-crud.bnrest.md
 ```
