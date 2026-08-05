@@ -57,6 +57,7 @@ type Services struct {
 	Taxonomy          service.TaxonomyService
 	Terms             service.TermService
 	Notifications     service.NotificationService
+	FeeConfig         service.FeeConfigService
 }
 
 type Repos struct {
@@ -131,6 +132,8 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		// session-type slots (?category=session_type&branch=<slug>).
 		taxonomyPublicH := handler.NewTaxonomyHandler(svc.Taxonomy)
 		r.Get("/taxonomy", taxonomyPublicH.List)
+		feeConfigPublicH := handler.NewFeeConfigHandler(svc.FeeConfig)
+		r.Get("/fee-config", feeConfigPublicH.Bundle)
 
 		// ── Contact / Enquiries (public) ──────────────────────────────────
 		contactH := handler.NewContactHandler(svc.Enquiries)
@@ -476,10 +479,12 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				func() {
 					adminTaxonomyH := adminHandler.NewAdminTaxonomyHandler(svc.Taxonomy, svc.Audit)
 					adminTermH := adminHandler.NewAdminTermHandler(svc.Terms, svc.Audit)
+					adminFeeH := adminHandler.NewAdminFeeConfigHandler(svc.FeeConfig, svc.Audit)
 					r.Get("/admin/taxonomy", adminTaxonomyH.List)
 					r.Get("/admin/taxonomy/{id}", adminTaxonomyH.Get)
 					r.Get("/admin/terms", adminTermH.List)
 					r.Get("/admin/terms/{id}", adminTermH.Get)
+					r.Get("/admin/fee-config", adminFeeH.List)
 					// In-app notifications - every management user reads their OWN.
 					adminNotifH := adminHandler.NewAdminNotificationHandler(svc.Notifications)
 					r.Get("/admin/notifications", adminNotifH.List)
@@ -493,6 +498,8 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 						r.Post("/admin/terms", adminTermH.Create)
 						r.Put("/admin/terms/{id}", adminTermH.Update)
 						r.Delete("/admin/terms/{id}", adminTermH.Delete)
+						r.Put("/admin/fee-config/{branch}", adminFeeH.UpdateBranch)
+						r.Put("/admin/fee-config", adminFeeH.UpdateMeta)
 					})
 				}()
 

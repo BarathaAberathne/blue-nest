@@ -1170,6 +1170,33 @@ export interface TaxonomyInput {
   active?: boolean;
 }
 
+// ── Fee / funding configuration (public fee calculator) ──────────────────────
+export interface FeeSessionRate {
+  daily: number;
+  weekly: number;
+}
+export interface FeeBranchConfig {
+  branch_slug?: string;
+  ageGroups?: Record<string, Record<string, FeeSessionRate>>;
+  earlyBird?: number;
+  stdFunded?: Record<string, Record<string, number>>;
+}
+export interface FeeMeta {
+  extraHour?: number;
+  swapSession?: number;
+  lateFeePerMinute?: number;
+  note: string;
+}
+export interface FeeConfigBundle {
+  branches: Record<string, FeeBranchConfig>;
+  meta?: FeeMeta;
+}
+export interface FeeConfigInput {
+  ageGroups: Record<string, Record<string, FeeSessionRate>>;
+  earlyBird: number;
+  stdFunded: Record<string, Record<string, number>>;
+}
+
 // ── In-app notifications ─────────────────────────────────────────────────────
 export interface AppNotification {
   id: string;
