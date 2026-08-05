@@ -32,9 +32,9 @@ import {
   Tag,
   Truck,
   CalendarClock,
-  Plane,
   MonitorSmartphone,
   UserCheck,
+  UserCircle,
   Users,
 } from "lucide-react";
 import { useAuthGuard } from "@/lib/useAuthGuard";
@@ -48,7 +48,7 @@ import type { Permission, UserRole } from "@/types";
 // process: Overview → Supply Requests → Purchase Orders → Suppliers → Catalogue
 // → Analytics. Each item declares the permission needed to see it, so specialist
 // roles (finance / admissions / procurement) get a tailored sidebar.
-// `roles` (optional) restricts an item to specific roles regardless of permission —
+// `roles` (optional) restricts an item to specific roles regardless of permission -
 // used for the Command Centre, which is director + super_admin only.
 type NavItem = { label: string; href: string; icon: typeof LayoutDashboard; exact?: boolean; permission: Permission; roles?: UserRole[]; feature?: string };
 type NavSection = { heading: string | null; items: NavItem[] };
@@ -89,7 +89,6 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Attendance",         href: "/admin/staff-attendance",   icon: UserCheck, permission: "staff.manage" },
       { label: "Attendance Devices", href: "/admin/attendance-devices", icon: MonitorSmartphone, permission: "staff.manage" },
       { label: "Leave Requests",     href: "/admin/leave",              icon: CalendarDays, permission: "leave.approve" },
-      { label: "My Leave",           href: "/admin/my-leave",           icon: Plane, permission: "dashboard.view" },
       { label: "Room Planner",       href: "/admin/room-planner",       icon: CalendarRange, permission: "children.manage" },
     ],
   },
@@ -125,11 +124,11 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
-// Staff (practitioners) get a restricted portal — only their own supply requests.
+// Staff (practitioners) get a restricted portal - only their own supply requests.
 const STAFF_SECTIONS: NavSection[] = [
   { heading: null, items: [
+    { label: "My Profile", href: "/admin/profile", icon: UserCircle, permission: "dashboard.view" },
     { label: "My Supply Requests", href: "/admin/my-requests", icon: ClipboardList, permission: "dashboard.view" },
-    { label: "My Leave", href: "/admin/my-leave", icon: Plane, permission: "dashboard.view" },
   ] },
 ];
 
@@ -188,7 +187,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     ? NAV_SECTIONS.map((s) => ({ ...s, items: s.items.filter(canSee) })).filter((s) => s.items.length > 0)
     : STAFF_SECTIONS;
 
-  // Exactly one item is highlighted — the active item resolved from the visible
+  // Exactly one item is highlighted - the active item resolved from the visible
   // sections. Highlighting by href (not a naive per-item startsWith) is what
   // stops "/admin/staff" lighting up on "/admin/staff-attendance".
   const activeHref = activeNavItem(navSections, pathname)?.href;
@@ -196,7 +195,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // First page the user is actually allowed to open (their landing page).
   const firstAllowedHref = navSections.flatMap((s) => s.items)[0]?.href ?? "/admin/dashboard";
   // The active nav item for the current path (drives the highlight, the page
-  // title and the permission gate — one boundary-aware, longest-match resolver).
+  // title and the permission gate - one boundary-aware, longest-match resolver).
   const currentItem = activeNavItem(NAV_SECTIONS, pathname);
 
   useEffect(() => {
@@ -207,9 +206,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.push("/account");
       return;
     }
-    // Confine staff to their own supply-requests area — they can't reach
+    // Confine staff to their own supply-requests area - they can't reach
     // management pages even by typing the URL.
-    if (isStaff && !pathname.startsWith("/admin/my-requests") && !pathname.startsWith("/admin/my-leave")) {
+    if (isStaff && !pathname.startsWith("/admin/my-requests") && !pathname.startsWith("/admin/profile")) {
       router.push("/admin/my-requests");
       return;
     }
@@ -243,7 +242,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           sidebarOpen ? "w-56" : "w-[78px]"
         }`}
       >
-        {/* Brand — per-tenant name, logo and accent colour */}
+        {/* Brand - per-tenant name, logo and accent colour */}
         <div className="flex items-center gap-3 px-4 py-5">
           {org?.branding?.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -353,17 +352,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           <div className="ml-auto flex items-center gap-2.5">
             {isManagement && <NotificationBell />}
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-semibold text-[var(--adm-ink-2)]">
-                {user?.first_name} {user?.last_name}
-              </p>
-              <p className="text-xs capitalize text-[var(--adm-muted)]">
-                {user?.role?.replace("_", " ")}
-              </p>
-            </div>
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[var(--adm-line)] bg-[var(--adm-accent)] text-sm font-bold text-white">
-              {initials}
-            </div>
+            <Link
+              href="/admin/profile"
+              title="My profile"
+              className="flex items-center gap-2.5 rounded-full transition-opacity hover:opacity-80"
+            >
+              <div className="hidden text-right sm:block">
+                <p className="text-sm font-semibold text-[var(--adm-ink-2)]">
+                  {user?.first_name} {user?.last_name}
+                </p>
+                <p className="text-xs capitalize text-[var(--adm-muted)]">
+                  {user?.role?.replace("_", " ")}
+                </p>
+              </div>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[var(--adm-line)] bg-[var(--adm-accent)] text-sm font-bold text-white">
+                {initials}
+              </div>
+            </Link>
           </div>
         </header>
 

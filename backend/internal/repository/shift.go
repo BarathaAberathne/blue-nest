@@ -15,6 +15,7 @@ import (
 type ShiftRepository interface {
 	Create(ctx context.Context, s *models.Shift) error
 	FindByBranchRange(ctx context.Context, branch, from, to string) ([]models.Shift, error)
+	FindByStaffRange(ctx context.Context, staffID, from, to string) ([]models.Shift, error)
 	FindByStaffDate(ctx context.Context, staffID, date string) (*models.Shift, error)
 	FindByID(ctx context.Context, id string) (*models.Shift, error)
 	Update(ctx context.Context, id string, s models.Shift) (*models.Shift, error)
@@ -41,6 +42,20 @@ func (r *shiftRepository) Create(ctx context.Context, s *models.Shift) error {
 // (dates are lexicographically comparable YYYY-MM-DD strings).
 func (r *shiftRepository) FindByBranchRange(ctx context.Context, branch, from, to string) ([]models.Shift, error) {
 	filter := bson.M{"branch_slug": branch, "date": bson.M{"$gte": from, "$lte": to}}
+	cur, err := r.col.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "date", Value: 1}, {Key: "start_time", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	var out []models.Shift
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// FindByStaffRange returns a staff member's shifts within [from, to] inclusive.
+func (r *shiftRepository) FindByStaffRange(ctx context.Context, staffID, from, to string) ([]models.Shift, error) {
+	filter := bson.M{"staff_id": staffID, "date": bson.M{"$gte": from, "$lte": to}}
 	cur, err := r.col.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "date", Value: 1}, {Key: "start_time", Value: 1}}))
 	if err != nil {
 		return nil, err

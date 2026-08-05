@@ -103,7 +103,7 @@ func (s *leaveRequestService) allowanceForType(st *models.Staff, t string) (allo
 // balanceForType computes a staff member's position for one capped leave type in
 // the leave year containing today.
 func (s *leaveRequestService) balanceForType(ctx context.Context, st *models.Staff, t string) (*models.LeaveBalance, error) {
-	allowance, _ := s.allowanceForType(st, t)
+	allowance, capped := s.allowanceForType(st, t)
 	yearStart, yearEnd, year := models.LeaveYearContains(time.Now())
 	reqs, err := s.repo.FindByStaffID(ctx, st.ID.Hex())
 	if err != nil {
@@ -125,16 +125,15 @@ func (s *leaveRequestService) balanceForType(ctx context.Context, st *models.Sta
 	if remaining < 0 {
 		remaining = 0
 	}
-	return &models.LeaveBalance{Type: t, Year: year, Allowance: allowance, Taken: taken, Pending: pending, Remaining: remaining}, nil
+	return &models.LeaveBalance{Type: t, Capped: capped, Year: year, Allowance: allowance, Taken: taken, Pending: pending, Remaining: remaining}, nil
 }
 
-// balancesForStaff returns one balance per capped leave type (keyed by type).
+// balancesForStaff returns one balance per leave type (keyed by type). Capped
+// types (annual, and sick when an allowance is set) show remaining vs allowance;
+// the rest are uncapped and report usage (taken/pending) only.
 func (s *leaveRequestService) balancesForStaff(ctx context.Context, st *models.Staff) (map[string]models.LeaveBalance, error) {
 	out := map[string]models.LeaveBalance{}
 	for _, t := range models.LeaveTypes {
-		if _, capped := s.allowanceForType(st, t); !capped {
-			continue
-		}
 		b, err := s.balanceForType(ctx, st, t)
 		if err != nil {
 			return nil, err
@@ -174,11 +173,11 @@ func (s *leaveRequestService) Apply(ctx context.Context, in models.LeaveRequestC
 		st = s.staffForUser(ctx, actorUserID)
 	}
 	if st == nil {
-		return nil, errors.New("no staff record is linked to your account — ask an admin to link your login before requesting leave")
+		return nil, errors.New("no staff record is linked to your account - ask an admin to link your login before requesting leave")
 	}
 
 	// Reject a request that overlaps the staff member's own existing open leave
-	// (pending or approved) — no double-booking the same dates.
+	// (pending or approved) - no double-booking the same dates.
 	if existing, err := s.repo.FindByStaffID(ctx, st.ID.Hex()); err == nil {
 		for _, e := range existing {
 			if e.Status != models.LeavePending && e.Status != models.LeaveApproved {
@@ -322,7 +321,7 @@ func (s *leaveRequestService) Approve(ctx context.Context, id, actorUserID, acto
 		return nil, err
 	}
 
-	// Write the booked weekdays onto the attendance register (best-effort — a
+	// Write the booked weekdays onto the attendance register (best-effort - a
 	// failed day never blocks the approval; managers can re-mark if needed).
 	status := models.LeaveTypeToAttendanceStatus(lr.Type)
 	for _, d := range models.Weekdays(lr.StartDate, lr.EndDate) {

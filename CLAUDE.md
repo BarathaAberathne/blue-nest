@@ -498,7 +498,22 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   **rejects a request overlapping the person's own existing pending/approved leave** (no double-booking).
   **Rota guard:** `shiftService.resolve` (the shared create/update path) rejects rostering a staff member
   on a date covered by their **approved** leave (`ShiftService` now takes the leave repo) — the rota
-  planner surfaces the "on approved leave" error inside the shift modal. **Phase 3 (calendar/
+  planner surfaces the "on approved leave" error inside the shift modal.
+
+- **My Profile hub (self-service, delivered):** the top-right avatar in `AdminLayout` links every user to
+  **`/admin/profile`** — a self-service equivalent of the single-staff page for the signed-in user, resolved
+  from their `Staff.UserID`. Backend `service.MeService` + `handler/admin/me.go` under the authenticated
+  group: `GET /me/profile` (own staff record with computed room projection), `PUT /me/profile` (edits only a
+  safe subset — `models.MeProfileUpdate`: phone/email/qualifications/emergency_contacts/DBS/first-aid;
+  employment fields name/branch/role/status/type/hours/**allowances**/PIN stay manager-controlled),
+  `GET /me/attendance?from&to` (own records + `StaffAbsenceSummary`), `GET /me/rota?from&to` (own shifts via
+  the new `shiftRepo.FindByStaffRange`). Frontend `app/admin/profile` tabs: **Profile** (read-only employment
+  + editable details, with DBS/first-aid expiry warnings ≤60 days), **Leave** (the extracted
+  `components/admin/MyLeaveSection` — balances + request wizard + own requests; **four-eyes approval is
+  unchanged** and still lives on the manager `/admin/leave` page), **Attendance** (summary tiles + recent
+  records), **My Rota** (upcoming shifts). The standalone `/admin/my-leave` page + its nav item were removed
+  (leave now lives under the profile); the staff-portal nav shows **My Profile** + My Supply Requests and the
+  staff-confinement allowlist now permits `/admin/profile`. Tests: bnrest `SUI-ME-001` (in `COL-FUNC-001`). **Phase 3 (calendar/
   clash) DELIVERED:** the admin list computes a transient `Overlaps` count (other staff at the same branch
   with approved/pending leave on overlapping dates) surfaced as a coverage warning on each request, plus a
   chronological **Team schedule** tab. **Phase 4 (manager-filed) DELIVERED:** `POST /admin/leave-requests`

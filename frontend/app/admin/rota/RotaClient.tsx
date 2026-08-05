@@ -13,7 +13,7 @@ const PRESETS = ["08:00-16:00", "08:00-17:00", "09:00-17:00", "07:30-18:00", "08
 
 const COVER_KEY = "__cover__"; // room bucket for external cover with no room
 
-// A rota row is one person's week — either a rostered staff member or an
+// A rota row is one person's week - either a rostered staff member or an
 // off-roster cover person (identified by name, no staff record).
 type Row = { key: string; name: string; subtitle: string; roomId: string; external: boolean; staff?: Staff };
 type EditState = { row: Row; date: string; shift?: Shift; roomId: string; start: string; end: string };
@@ -29,6 +29,7 @@ export default function RotaClient() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [leaveByStaff, setLeaveByStaff] = useState<Map<string, Set<string>>>(new Map());
   const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,14 +55,27 @@ export default function RotaClient() {
     if (!token || !branch) return;
     setLoading(true);
     try {
-      const [st, rm, sh] = await Promise.all([
+      const [st, rm, sh, lv] = await Promise.all([
         api.adminGetStaff(token, { branch, status: "active" }),
         api.adminGetRooms(token, branch),
         api.adminGetShifts(token, branch, weekKey),
+        api.adminGetLeaveRequests(token, { branch, status: "approved" }),
       ]);
       setStaff((st as Staff[]) ?? []);
       setRooms((rm as Room[]) ?? []);
       setShifts(sh ?? []);
+      // staff_id → set of approved-leave dates (shown red on the grid).
+      const lm = new Map<string, Set<string>>();
+      for (const r of lv ?? []) {
+        if (!r.staff_id) continue;
+        const set = lm.get(r.staff_id) ?? new Set<string>();
+        const s = new Date(r.start_date + "T00:00:00"), e = new Date(r.end_date + "T00:00:00");
+        if (!Number.isNaN(s.getTime()) && !Number.isNaN(e.getTime())) {
+          for (const d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) set.add(ymd(d));
+        }
+        lm.set(r.staff_id, set);
+      }
+      setLeaveByStaff(lm);
       setError(null);
     } catch { setError("Failed to load rota."); }
     finally { setLoading(false); }
@@ -75,6 +89,7 @@ export default function RotaClient() {
     return m;
   }, [shifts]);
   const cellShift = (row: Row, date: string) => byCell.get(`${row.key}|${date}`);
+  const onLeave = (row: Row, date: string) => !!row.staff && (leaveByStaff.get(row.staff.id)?.has(date) ?? false);
 
   // Off-roster cover people are derived from the week's external shifts.
   const coverRows = useMemo<Row[]>(() => {
@@ -104,9 +119,9 @@ export default function RotaClient() {
     const roomless = staffRows.filter((r) => !r.roomId);
     const hasClassroom = out.length > 0;
     // Show roomless staff when the user opts in, OR when nobody is room-assigned
-    // yet — otherwise the rota looks empty even though there are staff to roster.
+    // yet - otherwise the rota looks empty even though there are staff to roster.
     if ((showAll || !hasClassroom) && roomless.length) {
-      out.push({ id: "__office__", label: hasClassroom ? "Unassigned / office" : "Staff — no room assigned yet", icon: "office", rows: roomless.sort((a, b) => a.name.localeCompare(b.name)) });
+      out.push({ id: "__office__", label: hasClassroom ? "Unassigned / office" : "Staff - no room assigned yet", icon: "office", rows: roomless.sort((a, b) => a.name.localeCompare(b.name)) });
     }
     const coverNoRoom = coverRows.filter((r) => r.roomId === COVER_KEY);
     if (coverNoRoom.length) out.push({ id: COVER_KEY, label: "Cover & visitors", icon: "cover", rows: coverNoRoom });
@@ -204,7 +219,7 @@ export default function RotaClient() {
       {error && <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 
       <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-400">Grouped by classroom. {!hasClassroomStaff ? "No staff are assigned to a room yet — assign rooms on each staff profile." : hiddenCount > 0 && !showAll ? `${hiddenCount} management / office staff hidden.` : ""}</p>
+        <p className="text-xs text-slate-400">Grouped by classroom. {!hasClassroomStaff ? "No staff are assigned to a room yet - assign rooms on each staff profile." : hiddenCount > 0 && !showAll ? `${hiddenCount} management / office staff hidden.` : ""}</p>
         <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
           <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-teal-600" />
           Show all staff
@@ -230,7 +245,7 @@ export default function RotaClient() {
             ) : groups.length === 0 ? (
               <tr><td colSpan={8} className="px-4 py-10 text-center text-slate-400">No classroom staff at this branch. Assign staff to a room, or use <span className="font-medium">Add cover</span>.</td></tr>
             ) : groups.map((g) => (
-              <RoomGroup key={g.id} group={g} days={days} isToday={isToday} cellShift={cellShift} openCell={openCell} />
+              <RoomGroup key={g.id} group={g} days={days} isToday={isToday} cellShift={cellShift} onLeave={onLeave} openCell={openCell} />
             ))}
           </tbody>
         </table>
@@ -259,7 +274,7 @@ export default function RotaClient() {
                 <div><label className="mb-1 block text-xs font-medium text-slate-600">Start</label><input type="time" value={edit.start} onChange={(e) => setEdit({ ...edit, start: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></div>
                 <div><label className="mb-1 block text-xs font-medium text-slate-600">End</label><input type="time" value={edit.end} onChange={(e) => setEdit({ ...edit, end: e.target.value })} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" /></div>
               </div>
-              <p className="text-[0.7rem] text-slate-400">Quick times — click to fill, double-click to save.</p>
+              <p className="text-[0.7rem] text-slate-400">Quick times - click to fill, double-click to save.</p>
               <div className="flex flex-wrap gap-1.5">
                 {PRESETS.map((p) => {
                   const [s, e] = p.split("-");
@@ -286,7 +301,7 @@ export default function RotaClient() {
             <div className="mb-4 flex items-start justify-between">
               <div>
                 <h2 className="font-heading text-lg font-bold text-slate-900">Add cover</h2>
-                <p className="text-sm text-slate-500">Roster an extra person for one day — any staff member, or an external visitor.</p>
+                <p className="text-sm text-slate-500">Roster an extra person for one day - any staff member, or an external visitor.</p>
               </div>
               <button onClick={() => setCover(null)} className="rounded p-1 text-slate-400 hover:bg-slate-100" aria-label="Close"><X className="h-5 w-5" /></button>
             </div>
@@ -341,11 +356,12 @@ export default function RotaClient() {
   );
 }
 
-function RoomGroup({ group, days, isToday, cellShift, openCell }: {
+function RoomGroup({ group, days, isToday, cellShift, onLeave, openCell }: {
   group: { id: string; label: string; icon: "room" | "office" | "cover"; rows: Row[] };
   days: Date[];
   isToday: (d: Date) => boolean;
   cellShift: (row: Row, date: string) => Shift | undefined;
+  onLeave: (row: Row, date: string) => boolean;
   openCell: (row: Row, date: string) => void;
 }) {
   const Icon = group.icon === "cover" ? UserPlus : group.icon === "office" ? Users : DoorOpen;
@@ -368,13 +384,16 @@ function RoomGroup({ group, days, isToday, cellShift, openCell }: {
           {days.map((d) => {
             const key = ymd(d);
             const sh = cellShift(row, key);
+            const leave = onLeave(row, key);
             return (
-              <td key={key} className={`border-b border-l border-slate-100 p-1.5 align-top ${isToday(d) ? "bg-teal-50/40" : ""}`}>
+              <td key={key} className={`border-b border-l border-slate-100 p-1.5 align-top ${leave ? "bg-rose-50/60" : isToday(d) ? "bg-teal-50/40" : ""}`}>
                 {sh ? (
                   <button onClick={() => openCell(row, key)} className="w-full rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-2 text-left transition hover:border-teal-400">
                     <div className="text-sm font-semibold text-teal-800 tabular-nums">{sh.start_time}–{sh.end_time}</div>
                     {sh.room_name && <div className="truncate text-xs text-teal-600">{sh.room_name}</div>}
                   </button>
+                ) : leave ? (
+                  <div title="On approved leave - can't be rostered" className="flex h-full w-full items-center justify-center rounded-lg border border-rose-200 bg-rose-50 py-3 text-xs font-semibold text-rose-600">On leave</div>
                 ) : (
                   <button onClick={() => openCell(row, key)} className="flex h-full w-full items-center justify-center rounded-lg border border-dashed border-slate-200 py-3 text-slate-300 transition hover:border-teal-300 hover:text-teal-500" aria-label="Add shift"><Plus className="h-4 w-4" /></button>
                 )}

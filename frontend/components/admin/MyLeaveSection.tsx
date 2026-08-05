@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, Plane } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import type { LeaveBalances, LeaveRequest, LeaveType } from "@/types";
@@ -28,7 +28,13 @@ function fmt(d: string) {
   return Number.isNaN(dt.getTime()) ? d : dt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export default function MyLeaveClient() {
+/**
+ * Self-service leave - balances, a request wizard (with the selected type's
+ * remaining shown live), and the caller's own requests. Approval stays a
+ * four-eyes manager action elsewhere; this is the applicant's view. Rendered
+ * inside the My Profile hub's Leave tab.
+ */
+export default function MyLeaveSection() {
   const token = typeof window !== "undefined" ? getAccessToken() : "";
   const [items, setItems] = useState<LeaveRequest[]>([]);
   const [balances, setBalances] = useState<LeaveBalances>({});
@@ -89,29 +95,35 @@ export default function MyLeaveClient() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 font-heading text-2xl font-bold text-slate-900">
-          <Plane className="h-6 w-6 text-teal-600" /> My Leave
-        </h1>
-        <p className="text-sm text-slate-500">Request time off and track its approval. Weekends are excluded from the day count.</p>
-      </div>
-
+    <div className="space-y-6">
       {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{error}</div>}
 
-      {/* Allowance balances — one card per capped leave type */}
+      {/* Balances - one card per leave type. Capped types (annual, and sick when
+          an allowance is set) show remaining vs allowance; the rest show usage. */}
       {Object.keys(balances).length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {Object.values(balances).map((b) => (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {TYPE_OPTIONS.map((t) => balances[t.value]).filter((b): b is NonNullable<typeof b> => !!b).map((b) => (
             <div key={b.type} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 {TYPE_LABEL[b.type] ?? b.type} · {b.year}/{String((b.year + 1) % 100).padStart(2, "0")}
               </p>
-              <div className="mt-1 flex items-baseline gap-2">
-                <span className="font-heading text-3xl leading-none text-emerald-600">{b.remaining}</span>
-                <span className="text-sm text-slate-500">of {b.allowance} days left</span>
-              </div>
-              <p className="mt-1 text-xs text-slate-400">{b.taken} taken · {b.pending} pending</p>
+              {b.capped ? (
+                <>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="font-heading text-3xl leading-none text-emerald-600">{b.remaining}</span>
+                    <span className="text-sm text-slate-500">of {b.allowance} days left</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400">{b.taken} taken · {b.pending} pending</p>
+                </>
+              ) : (
+                <>
+                  <div className="mt-1 flex items-baseline gap-2">
+                    <span className="font-heading text-3xl leading-none text-slate-700">{b.taken}</span>
+                    <span className="text-sm text-slate-500">day{b.taken === 1 ? "" : "s"} taken this year</span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400">{b.pending} pending · no allowance limit</p>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -147,17 +159,17 @@ export default function MyLeaveClient() {
             <p className="text-slate-500">{workingDays > 0 ? `${workingDays} working day${workingDays === 1 ? "" : "s"}` : "Pick a date range"}</p>
             {(() => {
               const sb = balances[type];
-              if (sb) {
+              if (sb?.capped) {
                 const over = workingDays > sb.remaining;
                 return <p className={`text-xs ${over ? "text-rose-600" : "text-slate-400"}`}>
-                  {sb.remaining} of {sb.allowance} {TYPE_LABEL[type]?.toLowerCase()} days left{over ? " — exceeds your allowance" : ""}
+                  {sb.remaining} of {sb.allowance} {TYPE_LABEL[type]?.toLowerCase()} days left{over ? " - exceeds your allowance" : ""}
                 </p>;
               }
               return <p className="text-xs text-slate-400">{TYPE_LABEL[type]} isn&rsquo;t deducted from an allowance</p>;
             })()}
           </div>
           <button type="button" onClick={submit}
-            disabled={busy || workingDays === 0 || (!!balances[type] && workingDays > (balances[type]?.remaining ?? 0))}
+            disabled={busy || workingDays === 0 || (!!balances[type]?.capped && workingDays > (balances[type]?.remaining ?? 0))}
             className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">
             {busy ? "Submitting…" : "Submit request"}
           </button>

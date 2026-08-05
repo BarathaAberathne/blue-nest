@@ -114,7 +114,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	notifSvc := service.NewNotificationService(notificationRepo)
 	orgSvc := service.NewOrganisationService(orgRepo, authSvc)
 	// Resolve the default tenant for public/unauthenticated requests. Empty until
-	// the tenancy migration creates it — then public data is scoped to that org.
+	// the tenancy migration creates it - then public data is scoped to that org.
 	defaultOrgID := ""
 	defaultOrgSlug := os.Getenv("DEFAULT_ORG_SLUG")
 	if defaultOrgSlug == "" {
@@ -153,6 +153,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		ChildRoomAssign:   childRoomAssignSvc,
 		StaffAttendance:   staffAttSvc,
 		LeaveRequests:     service.NewLeaveRequestService(leaveRequestRepo, staffRepo, userRepo, staffAttSvc, notifSvc),
+		Me:                service.NewMeService(staffRepo, staffAttSvc, staffAttendanceRepo, shiftRepo),
 		Kiosk:             service.NewKioskService(kioskDeviceRepo, staffRepo, staffAttendanceRepo, branchRepo, roomRepo, staffRoomAssignRepo, staffAttSvc),
 		Shifts:            service.NewShiftService(shiftRepo, staffRepo, roomRepo, leaveRequestRepo),
 		DailyRecords:      service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo, childRoomAssignRepo, userRepo, notifSvc),
@@ -164,7 +165,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 
 	// Seed built-in roles + load the effective role→permission cache for every
 	// organisation (the cache is keyed per-org, so each tenant needs its own
-	// seed+refresh pass — see models.SetRolePermissions).
+	// seed+refresh pass - see models.SetRolePermissions).
 	if orgs, err := orgRepo.FindAll(context.Background()); err != nil {
 		log.Warn("could not list organisations for role seeding", "err", err)
 	} else {

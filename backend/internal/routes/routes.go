@@ -45,6 +45,7 @@ type Services struct {
 	Staff             service.StaffService
 	StaffAttendance   service.StaffAttendanceService
 	LeaveRequests     service.LeaveRequestService
+	Me                service.MeService
 	StaffRoomAssign   service.StaffRoomAssignmentService
 	ChildRoomAssign   service.ChildRoomAssignmentService
 	Kiosk             service.KioskService
@@ -92,7 +93,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 
 		// ── Auth ──────────────────────────────────────────────────────────
 		authH := handler.NewAuthHandler(svc.Auth, svc.Organisations, cfg)
-		// Login is credential-guessable — rate-limit per IP so a script can't
+		// Login is credential-guessable - rate-limit per IP so a script can't
 		// brute-force/credential-stuff it (every other public-but-abusable group
 		// in this file, e.g. the kiosk, already does this; login was the gap).
 		r.Group(func(r chi.Router) {
@@ -126,7 +127,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		r.Get("/branches", branchH.List)
 		r.Get("/branches/{slug}", branchH.Get)
 
-		// ── Configurable lists (public read) — the application form needs the
+		// ── Configurable lists (public read) - the application form needs the
 		// session-type slots (?category=session_type&branch=<slug>).
 		taxonomyPublicH := handler.NewTaxonomyHandler(svc.Taxonomy)
 		r.Get("/taxonomy", taxonomyPublicH.List)
@@ -164,6 +165,15 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/me/dashboards", dashH.List) // all named layouts
 			r.Post("/me/dashboards/activate", dashH.Activate)
 			r.Delete("/me/dashboards/{name}", dashH.Delete)
+
+			// Self-service "My Profile" hub - own staff record (view + limited
+			// self-edit), attendance history, personal rota. Leave lives at the
+			// existing /leave-requests self-service endpoints.
+			meH := adminHandler.NewMeHandler(svc.Me, svc.Audit)
+			r.Get("/me/profile", meH.Profile)
+			r.Put("/me/profile", meH.UpdateProfile)
+			r.Get("/me/attendance", meH.Attendance)
+			r.Get("/me/rota", meH.Rota)
 
 			// Cart
 			cartH := handler.NewCartHandler(svc.Cart)
@@ -225,7 +235,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/admin/organisation", orgSelfH.GetCurrent)
 			r.With(middleware.SuperAdminOnly).Put("/admin/organisation", orgSelfH.UpdateCurrent)
 
-			// Store — products, categories, orders.
+			// Store - products, categories, orders.
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermStoreManage))
 
@@ -287,7 +297,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Get("/admin/audit-logs", adminAuditH.List)
 			})
 
-			// Procurement — supply requests, catalogue, purchase orders.
+			// Procurement - supply requests, catalogue, purchase orders.
 			// Staff leave/holiday approvals (managers/HR).
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermLeaveApprove))
@@ -344,7 +354,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Get("/admin/procurement/analytics", adminProcurementH.Analytics)
 			})
 
-			// Nursery — children & rooms (foundation records).
+			// Nursery - children & rooms (foundation records).
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermChildrenManage))
 				adminRoomH := adminHandler.NewAdminRoomHandler(svc.Rooms, svc.Audit)
@@ -359,7 +369,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Patch("/admin/rooms/{id}/status", adminRoomH.SetStatus)
 				r.Delete("/admin/rooms/{id}", adminRoomH.Delete)
 
-				// Child room allocations — room profile and child profile both
+				// Child room allocations - room profile and child profile both
 				// land on the same service (docs/rooms/room-allocation-design.md).
 				r.Get("/admin/rooms/{id}/capacity", adminChildRoomH.Capacity)
 				r.Get("/admin/rooms/{id}/children", adminChildRoomH.ListForRoom)
@@ -379,7 +389,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Delete("/admin/children/{id}", adminChildH.Delete)
 			})
 
-			// Nursery — daily attendance register.
+			// Nursery - daily attendance register.
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermAttendanceManage))
 				adminAttendanceH := adminHandler.NewAdminAttendanceHandler(svc.Attendance, svc.Audit)
@@ -390,7 +400,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Patch("/admin/attendance/mark", adminAttendanceH.Mark)
 			})
 
-			// People / HR — staff records & staff attendance.
+			// People / HR - staff records & staff attendance.
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermStaffManage))
 				adminStaffH := adminHandler.NewAdminStaffHandler(svc.Staff, svc.Audit)
@@ -408,7 +418,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				adminStaffKeyChildrenH := adminHandler.NewAdminChildHandler(svc.Children, svc.Audit)
 				r.Get("/admin/staff/{id}/key-children", adminStaffKeyChildrenH.KeyChildren)
 
-				// Staff room allocations — room profile and staff profile both
+				// Staff room allocations - room profile and staff profile both
 				// land on the same service (docs/rooms/room-allocation-design.md).
 				adminStaffRoomH := adminHandler.NewAdminStaffRoomAssignmentHandler(svc.StaffRoomAssign, svc.Audit)
 				r.Post("/admin/staff-room-assignments", adminStaffRoomH.Create)
@@ -441,7 +451,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Put("/admin/staff/{id}/pin", adminKioskH.SetStaffPIN)
 			})
 
-			// Organisation — Branch Management System (Branch as the central hub).
+			// Organisation - Branch Management System (Branch as the central hub).
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermBranchesManage))
 				adminBranchH := adminHandler.NewAdminBranchHandler(svc.Branches, svc.BranchOverview, svc.GBP, svc.Audit)
@@ -451,7 +461,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Get("/admin/branches/{slug}/dashboard", adminBranchH.Dashboard)
 				r.Get("/admin/branches/{slug}/reviews", adminBranchH.Reviews)
 				r.Put("/admin/branches/{slug}", adminBranchH.Update) // scope-checked in handler
-				// Lifecycle — super admin only.
+				// Lifecycle - super admin only.
 				r.Group(func(r chi.Router) {
 					r.Use(middleware.RequirePermission(models.PermBranchAdmin))
 					r.Post("/admin/branches", adminBranchH.Create)
@@ -470,7 +480,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 					r.Get("/admin/taxonomy/{id}", adminTaxonomyH.Get)
 					r.Get("/admin/terms", adminTermH.List)
 					r.Get("/admin/terms/{id}", adminTermH.Get)
-					// In-app notifications — every management user reads their OWN.
+					// In-app notifications - every management user reads their OWN.
 					adminNotifH := adminHandler.NewAdminNotificationHandler(svc.Notifications)
 					r.Get("/admin/notifications", adminNotifH.List)
 					r.Post("/admin/notifications/read-all", adminNotifH.MarkAllRead)
@@ -486,7 +496,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 					})
 				}()
 
-				// Nursery — daily records (observations, incidents, safeguarding, medication, meals).
+				// Nursery - daily records (observations, incidents, safeguarding, medication, meals).
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermDailyLogsManage))
 				adminDailyH := adminHandler.NewAdminDailyRecordHandler(svc.DailyRecords, svc.Audit)
@@ -497,7 +507,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Put("/admin/daily-records/{id}", adminDailyH.Update)
 				r.Patch("/admin/daily-records/{id}/status", adminDailyH.SetStatus)
 				r.Delete("/admin/daily-records/{id}", adminDailyH.Delete)
-				// Four-eyes approval — approvers only (managers/deputies/EYFS/admin).
+				// Four-eyes approval - approvers only (managers/deputies/EYFS/admin).
 				r.Group(func(r chi.Router) {
 					r.Use(middleware.RequirePermission(models.PermDailyLogsApprove))
 					r.Post("/admin/daily-records/{id}/approve", adminDailyH.Approve)
@@ -505,7 +515,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				})
 			})
 
-			// Organisations (tenants) — platform operator only (cross-tenant).
+			// Organisations (tenants) - platform operator only (cross-tenant).
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.PlatformOnly)
 				orgH := adminHandler.NewAdminOrganisationHandler(svc.Organisations, svc.Audit)
@@ -515,7 +525,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Put("/admin/organisations/{id}", orgH.Update)
 			})
 
-			// Account management — super admin only.
+			// Account management - super admin only.
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.SuperAdminOnly)
 				adminUserH := adminHandler.NewAdminUserHandler(svc.Auth, svc.Audit)
@@ -525,14 +535,14 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Post("/admin/users/{id}/reset-password", adminUserH.ResetPassword)
 				r.Delete("/admin/users/{id}", adminUserH.Delete)
 
-				// Roles & permissions builder — super admin only.
+				// Roles & permissions builder - super admin only.
 				adminRoleH := adminHandler.NewAdminRoleHandler(svc.Roles, svc.Audit)
 				r.Get("/admin/roles", adminRoleH.List)
 				r.Post("/admin/roles", adminRoleH.Create)
 				r.Put("/admin/roles/{name}", adminRoleH.UpdatePermissions)
 				r.Delete("/admin/roles/{name}", adminRoleH.Delete)
 
-				// Org dashboard profiles / role defaults — super admin only.
+				// Org dashboard profiles / role defaults - super admin only.
 				adminDashProfileH := adminHandler.NewAdminDashboardProfileHandler(svc.DashboardProfiles, svc.Audit)
 				r.Get("/admin/dashboard-profiles", adminDashProfileH.List)
 				r.Post("/admin/dashboard-profiles", adminDashProfileH.Save)
