@@ -54,11 +54,19 @@ premium option, not the default. This keeps cross-org platform analytics + AI si
   first super-admin in one call (`admin_email`/`admin_password`), created in the new org's context so it's
   usable + isolated immediately (verified: the provisioned admin logs in and sees 0 of another tenant's
   data). `RolePlatformSuperAdmin` added to `ManagementRoles` so the operator can sign into the admin shell.
+  **Org branding wired into the live admin theme (delivered):** `AdminLayout` sets `--brand` (+ auto-contrast
+  `--brand-ink` via perceived luminance) from the signed-in org's `branding.primary_color` on the
+  `.admin-shell` root; a scoped, UNLAYERED CSS block in `styles/globals.css` re-points the `--adm-accent*`
+  tokens at the brand and remaps the admin's hardcoded `teal-*` accent utilities to brand vars (derived shades
+  via `color-mix`). It defaults to teal (no change unless an org sets a colour), is scoped to `.admin-shell`
+  (public site + the Command Centre's own `.cc-*` palette untouched), and preserves semantic status colours
+  (blue/green/amber/red). The logo gradient uses `branding.accent_color`. Unlayered is required because
+  Tailwind utilities live in the `utilities` cascade layer, which outranks `@layer` rules by specificity.
   **Still to do in T1:** per-org custom roles + permission sets (the DB-backed `roleCache` is still global —
   the `roles` collection already carries `org_id`, so this becomes org-scoped role resolution), branch
-  templates, room/age-group config, term dates, funding rules, email templates, and wiring org branding into
-  the live admin theme. **Note:** the `org_id` JWT claim means sessions issued before T0 lack it — users must
-  re-login after deploy (or let tokens expire) to get org-scoped access + the org page.
+  templates, room/age-group config, funding rules, email templates. **Note:** the `org_id` JWT claim means
+  sessions issued before T0 lack it — users must re-login after deploy (or let tokens expire) to get
+  org-scoped access + the org page.
 - **Phase A0 — AI service layer (backend, tenant-scoped).** A first-class `internal/service/ai` (not a
   frontend afterthought) wrapping the LLM. Every AI call is org-scoped and can ONLY see its tenant's data.
   **Tool-use contract:** the AI calls the CMS's own service methods (children/staff/attendance/enquiries/

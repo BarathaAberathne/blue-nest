@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -151,6 +151,17 @@ const activeNavItem = (sections: NavSection[], pathname: string): NavItem | unde
     .filter((n) => matchesNav(pathname, n))
     .sort((a, b) => b.href.length - a.href.length)[0];
 
+// readableInk picks black or white text for a brand background so branded
+// buttons stay legible even when an org sets a pale primary colour. Uses the
+// standard perceived-luminance weighting; falls back to white for bad input.
+const readableInk = (hex?: string): string => {
+  const m = /^#?([0-9a-f]{6})$/i.exec((hex ?? "").trim());
+  if (!m) return "#ffffff";
+  const n = parseInt(m[1], 16);
+  const L = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return L > 0.62 ? "#0f172a" : "#ffffff";
+};
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -180,6 +191,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   // Per-tenant branding (falls back to the Blue Nest teal until /auth/me loads).
   const brandColor = org?.branding?.primary_color || "#0d9488";
+  const accentColor = org?.branding?.accent_color || "#43C8B8";
+  // Drives the whole admin theme: --brand re-points the accent tokens + the
+  // teal-utility remap in globals.css; --brand-ink keeps branded buttons legible.
+  const brandStyle = {
+    "--brand": brandColor,
+    "--brand-ink": readableInk(brandColor),
+  } as CSSProperties;
   const orgName = org?.name || "Blue Nest";
   const brandInitials = orgName.split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "BN";
 
@@ -235,7 +253,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div className="admin-shell min-h-screen bg-[var(--adm-bg)] font-body">
+    <div className="admin-shell min-h-screen bg-[var(--adm-bg)] font-body" style={brandStyle}>
       {/* ── Sidebar ─────────────────────────────────────────── */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex flex-col border-r border-[var(--adm-line)] bg-[var(--adm-card)] transition-[width] duration-200 ease-in-out ${
@@ -250,7 +268,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ) : (
             <span
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold text-white shadow-[0_6px_14px_rgba(15,157,140,.28)]"
-              style={{ background: `linear-gradient(150deg, ${brandColor}, #43C8B8)` }}
+              style={{ background: `linear-gradient(150deg, ${brandColor}, ${accentColor})` }}
             >
               {brandInitials}
             </span>
