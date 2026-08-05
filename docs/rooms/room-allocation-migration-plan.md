@@ -1,10 +1,16 @@
 # Room-allocation data migration plan
 
-Migrates the legacy single-value `child.room_id` / `staff.room_id`
-strings into the authoritative assignment collections. Implemented as
-`backend/cmd/migrateroomassignments` (run via
-`make migrate-room-assignments`), following the same conventions as
-`cmd/migratetenancy` (idempotent, report-printing, never destructive).
+> **Status: COMPLETED / historical.** This one-shot migration is complete
+> (local-only; production was consolidated to the clean end state directly, so it
+> was never needed there). The `backend/cmd/migrateroomassignments` command (and
+> its `make migrate-room-assignments` target) have since been **retired**; this
+> document is kept for architectural context. Restore the command from git
+> history if a never-migrated dataset ever surfaces.
+
+Migrated the legacy single-value `child.room_id` / `staff.room_id`
+strings into the authoritative assignment collections. Was implemented as
+`backend/cmd/migrateroomassignments` (run via `make migrate-room-assignments`),
+idempotent, report-printing, never destructive.
 
 ## What it does
 

@@ -3,7 +3,8 @@
         docker-up docker-down docker-build docker-logs docker-restart docker-stop \
         dev-backend dev-frontend run-backend run-frontend \
         mongo-shell setup \
-        seed seed-products seed-branches seed-catalogue seed-users seed-taxonomy seed-children seed-staff seed-daily seed-gbp seed-famly seed-all \
+        seed seed-products seed-branches seed-catalogue seed-users seed-taxonomy seed-children seed-staff seed-daily seed-gbp seed-all \
+        baseline-reset baseline-snapshot baseline-ensure \
         wait-api \
         test-e2e test-e2e-regression \
         staging-up staging-verify staging-logs staging-down staging-clean \
@@ -11,8 +12,7 @@
         build-bnrest-cli test-legacy test-new test-all test-api test-smoke test-regression \
         test-parity test-validate test-discover test-changed test-map test-report test-ui \
         test-docker test-clean \
-        test-suite test-case test-collection test-tag test-owner test-file \
-        migrate-tenancy migrate-room-assignments
+        test-suite test-case test-collection test-tag test-owner test-file
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 all: build
@@ -251,7 +251,7 @@ docker-up docker-restart docker-build seed-products seed-branches seed-catalogue
 docker-up:
 	docker compose up -d
 	@$(MAKE) wait-api
-	@$(MAKE) seed-all
+	@$(MAKE) baseline-ensure
 	@echo "✓ Services running"
 	@echo "  API  → http://localhost:8080"
 	@echo "  Web  → http://localhost:3000"
@@ -269,8 +269,8 @@ docker-logs:
 docker-restart:
 	docker compose up --build -d
 	@$(MAKE) wait-api
-	@$(MAKE) seed-all
-	@echo "✓ Images rebuilt, services restarted, DB seeded"
+	@$(MAKE) baseline-ensure
+	@echo "✓ Images rebuilt, services restarted; baseline ensured"
 	@echo "  API  → http://localhost:8080"
 	@echo "  Web  → http://localhost:3000"
 
@@ -350,24 +350,6 @@ seed-children:
 	@echo "→ Seeding nursery rooms, children & today's attendance..."
 	cd backend && SEED_ALLOW_DROP=1 go run ./cmd/seedchildren
 
-# Import REAL Famly exports (rooms/staff/children). Idempotent — never drops, so
-# it is prod-safe. On the droplet Mongo is only reachable inside the container,
-# so when the backend container is running we copy the export folder in and run
-# the compiled binary there (then remove the PII copy); locally we host-run.
-# FAMLY_SRC = host export folder (default famly-templates). DRY_RUN=1 previews.
-FAMLY_SRC ?= famly-templates
-seed-famly:
-	@echo "→ Importing real Famly rooms/staff/children (idempotent)..."
-	@if docker compose ps backend --status running --quiet 2>/dev/null | grep -q .; then \
-	  echo "  backend container running → copying $(FAMLY_SRC) in + running there"; \
-	  docker compose cp "$(FAMLY_SRC)" backend:/tmp/famly-import; \
-	  docker compose exec -T -e FAMLY_DIR=/tmp/famly-import -e DRY_RUN=$${DRY_RUN:-} backend ./seedfamly; \
-	  docker compose exec -T backend rm -rf /tmp/famly-import; \
-	else \
-	  echo "  no backend container → local Go toolchain"; \
-	  cd backend && FAMLY_DIR=$${FAMLY_DIR:-../$(FAMLY_SRC)} go run ./cmd/seedfamly; \
-	fi
-
 seed-staff:
 	@echo "→ Seeding nursery staff & today's staff attendance..."
 	cd backend && SEED_ALLOW_DROP=1 go run ./cmd/seedstaff
@@ -383,46 +365,21 @@ seed-gbp:
 seed-all: seed-products seed-branches seed-catalogue seed-users seed-taxonomy seed-children seed-staff seed-daily seed-gbp
 	@echo "✓ All seeds complete"
 
-# One-off migration: assign human-readable refs (SR-/PO-/ORD-) to records created
-# before the reference feature. Idempotent — only touches docs missing a ref.
-backfill-refs:
-	@echo "→ Backfilling human-readable references (SR / PO / ORD)..."
-	@if docker compose ps backend --status running --quiet 2>/dev/null | grep -q .; then \
-	  echo "  using running backend container"; \
-	  docker compose exec backend ./backfillrefs; \
-	else \
-	  echo "  no backend container running → falling back to local Go toolchain"; \
-	  cd backend && go run ./cmd/backfillrefs; \
-	fi
+# ── Local baseline dataset (manual testing) ───────────────────────────────────
+# A full, coherent single-tenant (Blue Nest) dataset lives as a gzipped
+# mongodump at deploy/baseline/baseline.archive (GITIGNORED — it embeds real
+# Famly names, same PII policy as famly-templates/). See deploy/baseline/README.md.
+#   baseline-reset    drop the DB and restore it to the exact baseline
+#   baseline-snapshot overwrite the archive with the CURRENT DB (save new baseline)
+#   baseline-ensure   restore only if the DB is empty (used by docker-up/restart)
+baseline-reset:
+	@bash scripts/baseline.sh restore
 
-# Phase T0 tenancy migration: create the default Organisation + back-stamp org_id
-# onto every existing tenant-scoped document. Idempotent — safe to re-run.
-migrate-tenancy:
-	@echo "→ Multi-tenancy migration (create default org + back-stamp org_id)..."
-	@if docker compose ps backend --status running --quiet 2>/dev/null | grep -q .; then \
-	  echo "  using running backend container"; \
-	  docker compose exec backend ./migratetenancy; \
-	else \
-	  echo "  no backend container running → falling back to local Go toolchain"; \
-	  cd backend && go run ./cmd/migratetenancy; \
-	fi
+baseline-snapshot:
+	@bash scripts/baseline.sh snapshot
 
-# Room-allocation migration: map legacy child.room_id / staff.room_id values
-# into the authoritative assignment collections, then verify parity.
-# Idempotent + non-destructive — see docs/rooms/room-allocation-migration-plan.md.
-migrate-room-assignments:
-	@echo "→ Room-allocation migration (legacy room_id → assignment records)..."
-	@if docker compose ps backend --status running --quiet 2>/dev/null | grep -q .; then \
-	  echo "  using running backend container"; \
-	  docker compose exec backend ./migrateroomassignments; \
-	  echo "→ Verifying migration parity..."; \
-	  docker compose exec backend ./migrateroomassignments -verify; \
-	else \
-	  echo "  no backend container running → falling back to local Go toolchain"; \
-	  cd backend && go run ./cmd/migrateroomassignments; \
-	  echo "→ Verifying migration parity..."; \
-	  cd backend && go run ./cmd/migrateroomassignments -verify; \
-	fi
+baseline-ensure:
+	@bash scripts/baseline.sh ensure
 
 # ── Frontend image optimisation ──────────────────────────────────────────────
 # One-shot pass that resizes any /public image wider than 1920px down to 1920,

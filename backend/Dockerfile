@@ -13,10 +13,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o bin/api ./cmd/api
 # network). seedcatalogue embeds the Gompels order CSVs at build time.
 RUN CGO_ENABLED=0 GOOS=linux go build -o bin/seedusers ./cmd/seedusers
 RUN CGO_ENABLED=0 GOOS=linux go build -o bin/seedcatalogue ./cmd/seedcatalogue
-RUN CGO_ENABLED=0 GOOS=linux go build -o bin/backfillrefs ./cmd/backfillrefs
-RUN CGO_ENABLED=0 GOOS=linux go build -o bin/seedfamly ./cmd/seedfamly
-RUN CGO_ENABLED=0 GOOS=linux go build -o bin/migratetenancy ./cmd/migratetenancy
-RUN CGO_ENABLED=0 GOOS=linux go build -o bin/migrateroomassignments ./cmd/migrateroomassignments
 RUN CGO_ENABLED=0 GOOS=linux go build -o bin/seedtaxonomy ./cmd/seedtaxonomy
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
@@ -28,10 +24,6 @@ WORKDIR /app
 COPY --from=builder /app/bin/api .
 COPY --from=builder /app/bin/seedusers .
 COPY --from=builder /app/bin/seedcatalogue .
-COPY --from=builder /app/bin/backfillrefs .
-COPY --from=builder /app/bin/seedfamly .
-COPY --from=builder /app/bin/migratetenancy .
-COPY --from=builder /app/bin/migrateroomassignments .
 COPY --from=builder /app/bin/seedtaxonomy .
 
 # Bake the seed images (backend/uploads/products/*) into the image so a fresh

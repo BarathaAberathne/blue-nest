@@ -42,8 +42,9 @@ kept as parallel old/new systems.
 
 ## Migration status
 
-`cmd/migrateroomassignments` is **local-only, never applied to
-production**. It is therefore consolidated to a clean end state: build the
+The room-allocation migration (formerly `cmd/migrateroomassignments`, since
+**retired**) was **local-only, never applied to production**. It was therefore
+consolidated to a clean end state: build the
 canonical assignment rows from any pre-existing stored `room_id`, then
 `$unset` the stored scalar so no obsolete field remains in the data. Its
 verification moves to a migration test under `tests/migrations/`. No

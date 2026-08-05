@@ -19,10 +19,10 @@ plan's own Section 3.1 says production-shaped destructive testing needs an isola
 1. **Spin up an isolated Mongo** — either a second `mongo:7` container (`docker-compose.perf.yml`, a
    throwaway volume) or a fresh database name on the existing instance (`blue_nest_perf`), pointed at by
    `MONGODB_DATABASE` for a dedicated `blue-nest-api-perf` container. Either way: never the real `blue_nest_montessori` DB.
-2. **Bulk-seed synthetic data** — a new `cmd/seedperf` (mirroring `cmd/seedfamly`'s pattern: raw
+2. **Bulk-seed synthetic data** — a new `cmd/seedperf` (mirroring the existing seed commands' pattern: raw
    `mongo.Collection` bulk inserts, batched, org/branch-stamped correctly) generating the target volumes.
-   Needs org_id stamped correctly this time (the gap that caused this session's reseed incident) — write
-   it through `NewTenantCollection` or stamp org_id explicitly in the seed script itself, not raw driver calls.
+   Needs org_id stamped correctly (the gap behind past reseed pain) — write it through `NewTenantCollection`
+   or stamp org_id explicitly in the seed script itself, not raw driver calls.
 3. **Load-test tool** — no k6/artillery/vegeta currently in the repo. Recommend **k6** (single binary, scriptable
    in JS, no new language dependency) for HTTP-level checks against the plan's targets: branch dashboard load,
    enquiry board load/search, room register load, attendance write, KPI calculation, daily-log timeline,
