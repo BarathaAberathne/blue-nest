@@ -8,13 +8,14 @@ import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
-import type { Branch, Room, RoomInput } from "@/types";
+import type { Branch, Room, RoomInput, TaxonomyTerm } from "@/types";
 
 const emptyForm: RoomInput = { branch_slug: "", name: "", code: "", age_range: "", min_age_months: 0, max_age_months: 0, capacity: 0, staff_ratio: 0 };
 
 export default function RoomsClient() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [ageGroups, setAgeGroups] = useState<TaxonomyTerm[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [branchFilter, setBranchFilter] = useState("");
@@ -27,9 +28,10 @@ export default function RoomsClient() {
   const load = async () => {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
-    const [r, b] = await Promise.allSettled([api.adminGetRooms(token), api.getBranches()]);
+    const [r, b, g] = await Promise.allSettled([api.adminGetRooms(token), api.getBranches(), api.adminGetTaxonomy(token, "age_group")]);
     if (r.status === "fulfilled") setRooms((r.value as Room[]) ?? []);
     if (b.status === "fulfilled") setBranches((b.value as Branch[]) ?? []);
+    if (g.status === "fulfilled") setAgeGroups((g.value as TaxonomyTerm[]) ?? []);
     setLoading(false);
   };
   useEffect(() => { void load(); }, []);
@@ -179,6 +181,14 @@ export default function RoomsClient() {
                 </select>
               </Field>
               <Field label="Code"><input value={form.code ?? ""} onChange={(e) => setField({ code: e.target.value })} placeholder="e.g. NEST-1" className="inp" /></Field>
+              {ageGroups.length > 0 && (
+                <Field label="Age group (quick fill)">
+                  <select value="" onChange={(e) => { const t = ageGroups.find((a) => a.id === e.target.value); if (t) setField({ age_range: t.label, min_age_months: t.min_age_months ?? 0, max_age_months: t.max_age_months ?? 0 }); }} className="inp bg-white">
+                    <option value="">Pick a configured band…</option>
+                    {ageGroups.map((a) => <option key={a.id} value={a.id}>{a.label} ({a.min_age_months ?? 0}–{a.max_age_months ? a.max_age_months : "∞"} mo)</option>)}
+                  </select>
+                </Field>
+              )}
               <Field label="Age range (label)"><input value={form.age_range} onChange={(e) => setField({ age_range: e.target.value })} placeholder="e.g. 2–3 years" className="inp" /></Field>
               <Field label="Min age (months)"><input type="number" min={0} value={form.min_age_months ?? 0} onChange={(e) => setField({ min_age_months: Number(e.target.value) })} placeholder="0 = no limit" className="inp" /></Field>
               <Field label="Max age (months)"><input type="number" min={0} value={form.max_age_months ?? 0} onChange={(e) => setField({ max_age_months: Number(e.target.value) })} placeholder="0 = no limit" className="inp" /></Field>

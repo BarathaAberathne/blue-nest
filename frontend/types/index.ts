@@ -1149,6 +1149,8 @@ export interface TaxonomyTerm {
   label: string;
   start_time?: string; // session_type only, "HH:MM"
   end_time?: string;
+  min_age_months?: number; // age_group only
+  max_age_months?: number; // age_group only, 0 = unbounded top band
   sort_order: number;
   active: boolean;
   created_at?: string;
@@ -1162,6 +1164,8 @@ export interface TaxonomyInput {
   label: string;
   start_time?: string;
   end_time?: string;
+  min_age_months?: number;
+  max_age_months?: number;
   sort_order?: number;
   active?: boolean;
 }

@@ -14,12 +14,13 @@ const (
 	TaxonomySessionType  = "session_type"  // weekly-session slots (carry start/end times)
 	TaxonomyAllergyType  = "allergy_type"  // child allergy tags
 	TaxonomyDietaryLabel = "dietary_label" // child dietary tags
+	TaxonomyAgeGroup     = "age_group"     // configurable age bands (carry min/max age in months)
 )
 
 // ValidTaxonomyCategory reports whether a category string is a known list.
 func ValidTaxonomyCategory(c string) bool {
 	switch c {
-	case TaxonomySessionType, TaxonomyAllergyType, TaxonomyDietaryLabel:
+	case TaxonomySessionType, TaxonomyAllergyType, TaxonomyDietaryLabel, TaxonomyAgeGroup:
 		return true
 	}
 	return false
@@ -40,9 +41,17 @@ type TaxonomyTerm struct {
 	Code       string             `bson:"code"                  json:"code"`  // stable machine key stored on records
 	Label      string             `bson:"label"                 json:"label"` // human display
 	// Session-type only: the slot's times (informational display; "" otherwise).
-	StartTime string    `bson:"start_time,omitempty" json:"start_time,omitempty"` // "HH:MM"
-	EndTime   string    `bson:"end_time,omitempty"   json:"end_time,omitempty"`   // "HH:MM"
-	SortOrder int       `bson:"sort_order"           json:"sort_order"`
+	StartTime string `bson:"start_time,omitempty" json:"start_time,omitempty"` // "HH:MM"
+	EndTime   string `bson:"end_time,omitempty"   json:"end_time,omitempty"`   // "HH:MM"
+	// Age-group only: the band's bounds in months. 0 is MEANINGFUL (min 0 = from
+	// birth; max 0 = unbounded top bucket, e.g. "3+ years"), so neither bson nor
+	// json is omitempty: a 0 must persist (omitempty would drop it from the
+	// write, silently keeping the old bound) and clients must be able to tell
+	// "unbounded" from "unset". Consumers (child-stats bucketing, room age-band
+	// pickers) resolve against these.
+	MinAgeMonths int       `bson:"min_age_months" json:"min_age_months"`
+	MaxAgeMonths int       `bson:"max_age_months" json:"max_age_months"`
+	SortOrder    int       `bson:"sort_order"           json:"sort_order"`
 	Active    bool      `bson:"active"               json:"active"`
 	CreatedAt time.Time `bson:"created_at"           json:"created_at"`
 	UpdatedAt time.Time `bson:"updated_at"           json:"updated_at"`
@@ -52,10 +61,12 @@ type TaxonomyTerm struct {
 type TaxonomyRequest struct {
 	BranchSlug string `json:"branch_slug"` // "" = org-wide default
 	Category   string `json:"category"`
-	Code       string `json:"code"` // optional on create — derived from Label when empty
-	Label      string `json:"label"`
-	StartTime  string `json:"start_time"`
-	EndTime    string `json:"end_time"`
-	SortOrder  int    `json:"sort_order"`
-	Active     *bool  `json:"active"`
+	Code         string `json:"code"` // optional on create — derived from Label when empty
+	Label        string `json:"label"`
+	StartTime    string `json:"start_time"`
+	EndTime      string `json:"end_time"`
+	MinAgeMonths int    `json:"min_age_months"`
+	MaxAgeMonths int    `json:"max_age_months"`
+	SortOrder    int    `json:"sort_order"`
+	Active       *bool  `json:"active"`
 }

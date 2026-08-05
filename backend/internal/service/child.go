@@ -50,10 +50,13 @@ type childService struct {
 	// only READS from it to project the computed Child.RoomID and ends a
 	// child's placements on delete (nil-safe for unit tests).
 	roomAssignments ChildRoomAssignmentService
+	// taxonomy supplies the org-configurable age bands for Stats bucketing;
+	// nil-safe — when absent, Stats falls back to the built-in default bands.
+	taxonomy repository.TaxonomyRepository
 }
 
-func NewChildService(repo repository.ChildRepository, rooms repository.RoomRepository, counters repository.CounterRepository, staff repository.StaffRepository, roomAssignments ChildRoomAssignmentService) ChildService {
-	return &childService{repo: repo, rooms: rooms, counters: counters, staff: staff, roomAssignments: roomAssignments}
+func NewChildService(repo repository.ChildRepository, rooms repository.RoomRepository, counters repository.CounterRepository, staff repository.StaffRepository, roomAssignments ChildRoomAssignmentService, taxonomy repository.TaxonomyRepository) ChildService {
+	return &childService{repo: repo, rooms: rooms, counters: counters, staff: staff, roomAssignments: roomAssignments, taxonomy: taxonomy}
 }
 
 func (s *childService) List(ctx context.Context, f repository.ChildFilter) ([]models.Child, error) {
@@ -338,33 +341,60 @@ func (s *childService) EnsureFromEnquiry(ctx context.Context, enquiryID string, 
 	return c, nil
 }
 
-// ageYears returns whole years from a YYYY-MM-DD dob (0 if unparseable).
-// Age-group buckets for the children stats breakdown. The top bucket is
-// unbounded (every child from 3 up), so it is labelled "3+ years" rather than a
-// misleading closed "3–5 years" range.
+// Default age-group labels used when an org has not configured its own age_group
+// taxonomy. The top bucket is unbounded (every child from 3 up), so it is
+// labelled "3+ years" rather than a misleading closed "3–5 years" range.
 const (
-	ageBucket2 = 2
-	ageBucket3 = 3
-
 	ageGroupUnder2 = "Under 2"
 	ageGroup2to3   = "2–3 years"
 	ageGroup3plus  = "3+ years"
 )
 
-func ageYears(dob string) int {
+// ageMonths returns a child's whole-month age from their DOB.
+func ageMonths(dob string) int {
 	t, err := time.Parse("2006-01-02", dob)
 	if err != nil {
 		return 0
 	}
 	now := time.Now()
-	years := now.Year() - t.Year()
-	if now.YearDay() < t.YearDay() {
-		years--
+	months := (now.Year()-t.Year())*12 + int(now.Month()) - int(t.Month())
+	if now.Day() < t.Day() {
+		months--
 	}
-	if years < 0 {
-		years = 0
+	if months < 0 {
+		months = 0
 	}
-	return years
+	return months
+}
+
+// ageBand is one bucket for child-stats grouping; Max 0 = unbounded top band.
+type ageBand struct {
+	label    string
+	min, max int // months
+}
+
+// ageBands returns the org's configured age groups (sorted), falling back to the
+// built-in Under 2 / 2–3 / 3+ bands when none are configured or taxonomy is
+// unavailable, so behaviour is unchanged until an org customises them.
+func (s *childService) ageBands(ctx context.Context) []ageBand {
+	if s.taxonomy != nil {
+		terms, err := s.taxonomy.FindAll(ctx, repository.TaxonomyFilter{
+			Category: models.TaxonomyAgeGroup, ActiveOnly: true, OrgWideAlso: true,
+		})
+		if err == nil && len(terms) > 0 {
+			sort.Slice(terms, func(i, j int) bool { return terms[i].SortOrder < terms[j].SortOrder })
+			bands := make([]ageBand, 0, len(terms))
+			for _, t := range terms {
+				bands = append(bands, ageBand{label: t.Label, min: t.MinAgeMonths, max: t.MaxAgeMonths})
+			}
+			return bands
+		}
+	}
+	return []ageBand{
+		{ageGroupUnder2, 0, 24},
+		{ageGroup2to3, 24, 36},
+		{ageGroup3plus, 36, 0},
+	}
 }
 
 func (s *childService) Stats(ctx context.Context, branch string) (*models.ChildStats, error) {
@@ -386,20 +416,23 @@ func (s *childService) Stats(ctx context.Context, branch string) (*models.ChildS
 
 	stats := &models.ChildStats{Capacity: totalCap}
 	childrenByBranch := map[string]int{}
-	ageGroups := map[string]int{ageGroupUnder2: 0, ageGroup2to3: 0, ageGroup3plus: 0}
+	// Age buckets come from the org-configurable age_group taxonomy (falls back
+	// to the built-in bands). Children are placed into the first band whose
+	// [min, max) months range contains their age (max 0 = unbounded top).
+	bands := s.ageBands(ctx)
+	ageCounts := make([]int, len(bands))
 	for _, c := range children {
 		stats.Total++
 		switch c.Status {
 		case models.ChildActive:
 			stats.Active++
 			childrenByBranch[c.BranchSlug]++
-			switch a := ageYears(c.DOB); {
-			case a < ageBucket2:
-				ageGroups[ageGroupUnder2]++
-			case a < ageBucket3:
-				ageGroups[ageGroup2to3]++
-			default:
-				ageGroups[ageGroup3plus]++ // unbounded top bucket (labelled "3+ years")
+			m := ageMonths(c.DOB)
+			for i, b := range bands {
+				if m >= b.min && (b.max == 0 || m < b.max) {
+					ageCounts[i]++
+					break
+				}
 			}
 		case models.ChildWaitlist:
 			stats.Waitlist++
@@ -434,8 +467,8 @@ func (s *childService) Stats(ctx context.Context, branch string) (*models.ChildS
 		stats.Branches = append(stats.Branches, models.BranchChildStat{Branch: b, Children: ch, Capacity: cap, OccupancyRate: rate})
 		stats.ByBranch = append(stats.ByBranch, models.ChildStatPoint{Label: b, Value: ch})
 	}
-	for _, g := range []string{ageGroupUnder2, ageGroup2to3, ageGroup3plus} {
-		stats.ByAgeGroup = append(stats.ByAgeGroup, models.ChildStatPoint{Label: g, Value: ageGroups[g]})
+	for i, b := range bands {
+		stats.ByAgeGroup = append(stats.ByAgeGroup, models.ChildStatPoint{Label: b.label, Value: ageCounts[i]})
 	}
 	return stats, nil
 }

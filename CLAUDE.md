@@ -64,7 +64,8 @@ premium option, not the default. This keeps cross-org platform analytics + AI si
   Tailwind utilities live in the `utilities` cascade layer, which outranks `@layer` rules by specificity.
   **Still to do in T1:** per-org custom roles + permission sets (the DB-backed `roleCache` is still global —
   the `roles` collection already carries `org_id`, so this becomes org-scoped role resolution), branch
-  templates, room/age-group config, funding rules, email templates. **Note:** the `org_id` JWT claim means
+  templates, funding rules, email templates (age-group config is now delivered — see the taxonomy module).
+  **Note:** the `org_id` JWT claim means
   sessions issued before T0 lack it — users must re-login after deploy (or let tokens expire) to get
   org-scoped access + the org page.
 - **Phase A0 — AI service layer (backend, tenant-scoped).** A first-class `internal/service/ai` (not a
@@ -458,14 +459,24 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
 - **Configurable taxonomy (lists) + term-time (delivered):** the "configurable, not hardcoded" rule is now
   a real module. `taxonomy_terms` (`models/taxonomy.go`, tenant-scoped, optional `branch_slug` — ""=org-wide
   default) holds curated lookup lists by `category`: `session_type` (with start/end times — the weekly
-  session slots), `allergy_type`, `dietary_label` (extend `ValidTaxonomyCategory` for more). Admin CRUD at
+  session slots), `allergy_type`, `dietary_label`, and **`age_group`** (carries `min_age_months`/
+  `max_age_months`; 0 is meaningful — min 0 = from birth, max 0 = unbounded top band, so those two fields are
+  NOT `omitempty` in bson or json) (extend `ValidTaxonomyCategory` for more). Admin CRUD at
   **`/admin/lists`** (`branches.manage`); reads open to any back-office role so pickers resolve; a public
   `GET /taxonomy` feeds the application form. `cmd/seedtaxonomy` (`make seed-taxonomy`, idempotent, baked
   into the image) seeds org-wide defaults per org — the session codes (`am/pm/full/school`) **match existing
   `child.sessions` values** so they keep resolving. Every session picker (admin child create + detail edit,
   public application form) and the child **allergy/dietary tag chips** read from this list, not hardcoded
   arrays; `child.allergy_tags[]`/`dietary_tags[]` are additive (free-text `allergies`/`dietary_reqs` kept as
-  notes). Frontend: `lib/useTaxonomy.ts` (`useTaxonomy`, `sessionOptions`, fallback). **Term-time**: `terms`
+  notes). **Age groups (T1, delivered):** the `age_group` list is the single source of occupancy age bands.
+  `childService.Stats` buckets active children into the configured bands by age-in-months (falls back to the
+  built-in Under 2 / 2–3 / 3+ when none are configured, so figures are unchanged until an org customises them);
+  the `/admin/rooms` form has an age-group quick-fill that populates a room's `min/max_age_months` + label.
+  `cmd/seedtaxonomy` seeds the three defaults to reproduce the previous hardcoded buckets exactly. Two real
+  bugs surfaced while adding the CRUD test (`TAX-TC-004`) and were fixed: taxonomy `Update` re-mapped a
+  hardcoded `$set` that silently **omitted new fields** (so age bounds never saved), and `omitempty` on the
+  age-bound tags dropped a meaningful `0` on write. Frontend: `lib/useTaxonomy.ts` (`useTaxonomy`,
+  `sessionOptions`, fallback). **Term-time**: `terms`
   (`models/term.go`, per-branch date ranges) with admin CRUD at **`/admin/terms`**, plus a
   `staff.term_time_only` flag; the staff-attendance roster is **term-aware** — a term-time-only staff member
   with no record is excluded from the expected roster (never counted absent) outside their branch's term

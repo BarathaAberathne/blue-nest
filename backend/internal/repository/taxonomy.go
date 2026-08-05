@@ -106,6 +106,7 @@ func (r *taxonomyRepository) Update(ctx context.Context, id string, t models.Tax
 	set := bson.M{
 		"branch_slug": t.BranchSlug, "category": t.Category, "code": t.Code,
 		"label": t.Label, "start_time": t.StartTime, "end_time": t.EndTime,
+		"min_age_months": t.MinAgeMonths, "max_age_months": t.MaxAgeMonths,
 		"sort_order": t.SortOrder, "active": t.Active, "updated_at": t.UpdatedAt,
 	}
 	if _, err := r.col.UpdateOne(ctx, bson.M{"_id": oid}, bson.M{"$set": set}); err != nil {
