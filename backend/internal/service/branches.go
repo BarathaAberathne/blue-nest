@@ -10,6 +10,7 @@ import (
 
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/repository"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type BranchService interface {
@@ -98,6 +99,12 @@ func (s *branchService) Create(ctx context.Context, req models.BranchRequest) (*
 		b.Ref = models.FormatRef(models.RefPrefixBranch, year, seq)
 	}
 	if err := s.repo.Create(ctx, b); err != nil {
+		// The FindBySlug pre-check above is the UX path; the unique
+		// {org_id, slug} index catches the concurrent-create race — surface it
+		// as the same friendly message, never the raw Mongo write exception.
+		if mongo.IsDuplicateKeyError(err) {
+			return nil, errors.New("a branch with that slug already exists")
+		}
 		return nil, err
 	}
 	return b, nil

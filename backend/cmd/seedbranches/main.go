@@ -80,12 +80,14 @@ func main() {
 		}
 	}
 
-	// Unique index on slug — same guarantee we just added for users.email, so
-	// nobody can `db.branches.insertOne({slug:"harrow",...})` and shadow the
-	// real Harrow branch.
+	// Unique index on {org_id, slug} — slugs are unique per organisation, not
+	// globally (two tenants can each have a "harrow"). Matches the index the
+	// branch repository ensures at boot; the legacy global slug index is
+	// dropped there too.
+	_, _ = coll.Indexes().DropOne(ctx, "uniq_branch_slug")
 	if _, err = coll.Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bson.D{{Key: "slug", Value: 1}},
-		Options: options.Index().SetUnique(true).SetName("uniq_branch_slug"),
+		Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "slug", Value: 1}},
+		Options: options.Index().SetUnique(true).SetName("uniq_branch_slug_per_org"),
 	}); err != nil {
 		log.Printf("WARN slug index: %v", err)
 	}

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -31,7 +32,25 @@ type branchRepository struct {
 }
 
 func NewBranchRepository(db *mongo.Database) BranchRepository {
-	return &branchRepository{col: NewTenantCollection(db, "branches")}
+	col := db.Collection("branches")
+
+	// Branch slugs are unique PER ORGANISATION, not globally — two tenants can
+	// each have a "harrow". The legacy global index (created by cmd/seedbranches
+	// before tenancy) blocked any second org from reusing a slug, so drop it and
+	// enforce the compound guarantee instead. Both operations are best-effort,
+	// mirroring users.uniq_email: the service-level FindBySlug check remains the
+	// UX path; this index is the safety net against concurrent creates.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, _ = col.Indexes().DropOne(ctx, "uniq_branch_slug")
+	if _, err := col.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "slug", Value: 1}},
+		Options: options.Index().SetUnique(true).SetName("uniq_branch_slug_per_org"),
+	}); err != nil {
+		slog.Warn("branches: could not create unique {org_id, slug} index", "err", err)
+	}
+
+	return &branchRepository{col: NewTenantCollectionFrom(col)}
 }
 
 func (r *branchRepository) FindAll(ctx context.Context) ([]models.Branch, error) {

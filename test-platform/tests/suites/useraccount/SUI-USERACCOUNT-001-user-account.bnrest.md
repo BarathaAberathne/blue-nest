@@ -42,6 +42,7 @@ Call CatchError ../../cases/useraccount/USER-TC-006-platform-organisations.bnres
 Call CatchError ../../cases/useraccount/USER-TC-007-personal-dashboard-layout.bnrest.md
 Call CatchError ../../cases/useraccount/USER-TC-008-dashboard-profiles.bnrest.md
 Call CatchError ../../cases/useraccount/USER-TC-009-new-org-roles-seeded.bnrest.md
+Call CatchError ../../cases/useraccount/USER-TC-010-branch-slug-org-scoped.bnrest.md
 
 Teardown
 Call ../../utils/branch/BRANCH-FIX-002-archive-test-branch.bnrest.md With Json Into cleanup
