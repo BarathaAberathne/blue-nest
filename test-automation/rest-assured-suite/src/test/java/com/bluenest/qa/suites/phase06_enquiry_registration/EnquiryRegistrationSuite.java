@@ -79,6 +79,7 @@ class EnquiryRegistrationSuite {
     @Order(1)
     @DisplayName("TC-ENQ-001 (adapted, admin-logged channel): a new enquiry is created exactly once, status New, linked to Harrow")
     @Tag("golden-path")
+    @Tag("regression") // setup for the regression-tagged tests below (shared class state)
     void tc_enq_001_createsEnquiryOnce() {
         Response res = given().spec(Api.authed(adminToken))
                 .body(Map.of(
@@ -164,6 +165,7 @@ class EnquiryRegistrationSuite {
     @Order(7)
     @DisplayName("TC-REG-001: Registering the enquiry creates exactly one Child, links the enquiry, sets status Registered")
     @Tag("golden-path")
+    @Tag("regression") // setup for the regression-tagged tests below (shared class state)
     void tc_reg_001_registerCreatesChildOnce() {
         Response res = given().spec(Api.authed(adminToken))
                 .body(Map.of(

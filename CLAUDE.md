@@ -580,19 +580,22 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   pending until a *different* manager approves (four-eyes). **Planned next:** a full month-grid calendar
   view, a hard clash-block option on approval (currently a warning), and carry-over/pro-rata allowances.
 
-Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (Excel/PDF + notification
-delivery — **CSV exports delivered**, see below). Then Amazon Business API (Product Search → Cart →
-Ordering), then full inventory/stock.
+Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (**CSV + Excel exports
+and notification email delivery incl. per-user preferences delivered**, see below; PDF remains). Then
+Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
 
-- **Reporting / CSV exports (delivered):** a server-side export layer (`pkg/export` — `WriteCSV` streams a
-  `text/csv` attachment with a dated filename + UTF-8 BOM for Excel). Admin `GET …/export` endpoints reuse
-  each list's service + filters + branch scope: `/admin/children/export`, `/admin/staff/export`,
-  `/admin/enquiries/export`, `/admin/leave-requests/export`, `/admin/staff-attendance/export` (all under the
-  resource's existing `RequirePermission`). Frontend: `downloadCsv(path, token)` in `lib/api.ts` (auth-header
-  fetch → blob → download, honouring the server filename) + a reusable `components/admin/ExportCsvButton`,
-  wired on the Staff Attendance + Leave pages (Children + Staff keep their existing client-side CSV; the
-  server endpoints are ready to unify them + power future Excel/PDF). Tests: `SUI-EXPORT-001`. CSV only for
-  now (dependency-free); Excel/PDF are the follow-up under Phase E.
+- **Reporting / CSV + Excel exports (delivered):** a server-side export layer (`pkg/export` — `WriteCSV`
+  streams a `text/csv` attachment with a dated filename + UTF-8 BOM for Excel; `WriteXLSX` streams a real
+  `.xlsx` via `excelize` with a bold header row). Every handler calls the one dispatcher
+  `export.Write(w, r, base, headers, rows)` — `?format=xlsx|excel` selects Excel, default stays CSV — so
+  both formats come from one call site. Admin `GET …/export` endpoints reuse each list's service + filters +
+  branch scope: `/admin/children/export`, `/admin/staff/export`, `/admin/enquiries/export`,
+  `/admin/leave-requests/export`, `/admin/staff-attendance/export` (all under the resource's existing
+  `RequirePermission`). Frontend: `downloadCsv(path, token)` in `lib/api.ts` (auth-header fetch → blob →
+  download, honouring the server filename) + a reusable `components/admin/ExportButton` (CSV / Excel
+  dropdown; replaced the CSV-only `ExportCsvButton`), wired on the Staff Attendance + Leave pages (Children
+  + Staff keep their existing client-side CSV; the server endpoints are ready to unify them). Tests:
+  `SUI-EXPORT-001`. PDF is the remaining Phase E follow-up.
 
 - **Notification email delivery (delivered, opt-in):** in-app notifications (leave apply/approve/decline,
   daily-log approvals, safeguarding, etc. via `notificationService.NotifyMany`) now also **email** each
@@ -601,8 +604,15 @@ Ordering), then full inventory/stock.
   HTML-escaped and wrapped in the branded shell (`wrapEmailShell`); a relative `Link` is resolved to an
   absolute URL from `FRONTEND_URL`. **Opt-in via `NOTIFY_EMAIL_ENABLED`** (default false, so dev/test never
   sends real mail through the configured SMTP; **prod must set it true**). Wired in `server.go` via
-  `NewNotificationServiceWithEmail(repo, mailer, users, frontendURL, enabled)`. Per-type / per-user delivery
-  preferences are a future refinement. Tests: `notification_test.go` (escaping + absolute link + disabled-is-safe).
+  `NewNotificationServiceWithEmail(repo, mailer, users, notifPrefRepo, frontendURL, enabled)`. **Per-user
+  delivery preferences (delivered):** `notification_preferences` (`models/notification_preference.go`,
+  tenant-scoped, one doc per user) stores the user's `muted_types[]` — the notification types they do NOT
+  want emailed (in-app rows always appear; absent doc = every type emailed). The user-controllable set is
+  `models.NotificationTypeCatalogue` (leave requested/approved/declined + daily-log submitted/approved/
+  rejected); `deliverEmails` skips a recipient whose prefs mute that `n.Type`. Self-service
+  `GET/PUT /me/notification-preferences` (authenticated group; `Set` whitelists to the catalogue + dedupes)
+  surfaced as a **Notifications** tab on `/admin/profile` (per-type toggle switches).
+  Tests: `notification_test.go` (escaping + absolute link + disabled-is-safe).
 
 ## Procurement Management module — roadmap (Phases 1–4 DELIVERED)
 Goal: turn the procurement pieces into one connected **Procurement Management** module so the journey
@@ -799,6 +809,12 @@ field) whenever convenient.
   intentionally kept as ongoing fixtures per explicit user instruction, not run debris.
 
 ## Conventions
+- **The default development pipeline — every new functionality follows ALL of these steps, in order:**
+  **Analyse → Plan → ask questions if needed → implement → unit tests → e2e tests (bnrest and/or
+  REST-Assured) → manual UI test (browser) → commit → push.** Writing the tests for a new feature is part
+  of building it, not a follow-up: a feature lands together with its unit tests and its e2e coverage
+  (extend the relevant bnrest suite — or add one — in the same branch). `AGENTS.md` is a symlink to this
+  file so non-Claude agent tooling reads the same guide — never edit it separately.
 - Commits: conventional style, **no `Co-Authored-By` Claude trailer**.
 - Don't commit `next-env.d.ts` churn or stray root files (QA reports/xlsx).
 - Round trig in SVG coords (avoid SSR hydration mismatches).
