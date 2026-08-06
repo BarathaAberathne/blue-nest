@@ -11,6 +11,7 @@ import (
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/service"
+	"github.com/blue-nest-montessori/api/pkg/export"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/blue-nest-montessori/api/pkg/validator"
 	"github.com/go-chi/chi/v5"
@@ -110,6 +111,41 @@ func (h *AdminEnquiryHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.OK(w, enquiries)
+}
+
+// Export streams the filtered enquiries as CSV (same branch scoping + filters as List).
+func (h *AdminEnquiryHandler) Export(w http.ResponseWriter, r *http.Request) {
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	f := parseEnquiryFilter(r)
+	f.Branch = branch
+	enquiries, err := h.svc.List(r.Context(), f)
+	if err != nil {
+		response.InternalError(w, "failed to fetch enquiries")
+		return
+	}
+	out := make([][]string, 0, len(enquiries))
+	for _, e := range enquiries {
+		created := ""
+		if !e.CreatedAt.IsZero() {
+			created = e.CreatedAt.Format("2006-01-02")
+		}
+		followUp := ""
+		if e.FollowUpDate != nil {
+			followUp = e.FollowUpDate.Format("2006-01-02")
+		}
+		out = append(out, []string{
+			created, e.Name, e.Email, e.Phone, e.Branch, e.ChildAge, e.EnquiryType,
+			models.NormalizeStatus(e.Status), e.Source, e.AssignedToName, e.Priority, followUp,
+		})
+	}
+	export.WriteCSV(w, export.Filename("enquiries"),
+		[]string{"Created", "Name", "Email", "Phone", "Branch", "Child age", "Type", "Status", "Source", "Assigned to", "Priority", "Follow-up"},
+		out)
 }
 
 // ListPaged returns one page of enquiries plus the total matching the filter,

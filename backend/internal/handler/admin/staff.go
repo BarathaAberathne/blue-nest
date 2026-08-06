@@ -7,6 +7,7 @@ import (
 	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/internal/service"
+	"github.com/blue-nest-montessori/api/pkg/export"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/blue-nest-montessori/api/pkg/validator"
 	"github.com/go-chi/chi/v5"
@@ -41,6 +42,32 @@ func (h *AdminStaffHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.OK(w, items)
+}
+
+// Export streams the filtered staff roster as CSV (same branch scoping as List).
+func (h *AdminStaffHandler) Export(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, q.Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	items, err := h.svc.List(r.Context(), repository.StaffFilter{Branch: branch, Status: q.Get("status"), Type: q.Get("type"), Q: q.Get("q")})
+	if err != nil {
+		response.InternalError(w, "failed to fetch staff")
+		return
+	}
+	out := make([][]string, 0, len(items))
+	for _, s := range items {
+		out = append(out, []string{
+			s.Ref, s.FirstName, s.LastName, s.Email, s.Phone, s.BranchSlug, s.RoomName,
+			s.JobTitle, string(s.StaffType), string(s.Status), s.StartDate, s.DBSExpiry, s.FirstAidExpiry,
+		})
+	}
+	export.WriteCSV(w, export.Filename("staff"),
+		[]string{"Ref", "First name", "Last name", "Email", "Phone", "Branch", "Room", "Job title", "Type", "Status", "Start date", "DBS expiry", "First aid expiry"},
+		out)
 }
 
 // inScope reports whether the caller may act on a record in the given branch.

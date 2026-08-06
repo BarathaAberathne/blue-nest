@@ -1,0 +1,25 @@
+---
+id: SUI-EXPORT-001
+number: "2.28"
+type: Test Suite
+title: CSV exports (reporting layer)
+owner: QA
+mode: Standalone
+status: Active
+tags:
+  - export
+---
+
+# CSV export suite
+
+Covers the server-side CSV export endpoints (children/staff/enquiries/leave/
+staff-attendance) that back the admin "Export CSV" buttons. Shares one admin login.
+
+```bnrest
+Setup
+Call ../../utils/auth/AUTH-UTIL-001-login.bnrest.md With Json Into adminSession
+{ "email": "admin@bluenest.uk", "password": "${secret:QA_ADMIN_PASSWORD}" }
+
+Body
+Call CatchError ../../cases/export/EXPORT-TC-001-csv-endpoints.bnrest.md
+```

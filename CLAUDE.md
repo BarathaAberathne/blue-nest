@@ -580,8 +580,19 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   pending until a *different* manager approves (four-eyes). **Planned next:** a full month-grid calendar
   view, a hard clash-block option on approval (currently a warning), and carry-over/pro-rata allowances.
 
-Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (CSV/Excel/PDF) +
-notifications. Then Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
+Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (Excel/PDF + notification
+delivery — **CSV exports delivered**, see below). Then Amazon Business API (Product Search → Cart →
+Ordering), then full inventory/stock.
+
+- **Reporting / CSV exports (delivered):** a server-side export layer (`pkg/export` — `WriteCSV` streams a
+  `text/csv` attachment with a dated filename + UTF-8 BOM for Excel). Admin `GET …/export` endpoints reuse
+  each list's service + filters + branch scope: `/admin/children/export`, `/admin/staff/export`,
+  `/admin/enquiries/export`, `/admin/leave-requests/export`, `/admin/staff-attendance/export` (all under the
+  resource's existing `RequirePermission`). Frontend: `downloadCsv(path, token)` in `lib/api.ts` (auth-header
+  fetch → blob → download, honouring the server filename) + a reusable `components/admin/ExportCsvButton`,
+  wired on the Staff Attendance + Leave pages (Children + Staff keep their existing client-side CSV; the
+  server endpoints are ready to unify them + power future Excel/PDF). Tests: `SUI-EXPORT-001`. CSV only for
+  now (dependency-free); Excel/PDF are the follow-up under Phase E.
 
 ## Procurement Management module — roadmap (Phases 1–4 DELIVERED)
 Goal: turn the procurement pieces into one connected **Procurement Management** module so the journey
