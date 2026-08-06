@@ -111,7 +111,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	// project the current room (no stored scalar, no sync).
 	staffRoomAssignSvc := service.NewStaffRoomAssignmentService(staffRoomAssignRepo, staffRepo, roomRepo)
 	childRoomAssignSvc := service.NewChildRoomAssignmentService(childRoomAssignRepo, childRepo, roomRepo, staffRoomAssignRepo, attendanceRepo)
-	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo, staffRoomAssignRepo, termRepo)
+	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo, staffRoomAssignRepo, termRepo, orgRepo)
 	notifPrefRepo := repository.NewNotificationPreferenceRepository(db)
 	notifSvc := service.NewNotificationServiceWithEmail(notificationRepo, mailer, userRepo, notifPrefRepo, cfg.FrontendURL, cfg.NotifyEmailEnabled)
 	roleSvc := service.NewRoleService(roleRepo)
