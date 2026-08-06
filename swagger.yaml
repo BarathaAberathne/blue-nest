@@ -70,6 +70,18 @@ tags:
     description: Practitioner daily logs — observations, incidents, safeguarding, medication, meals
   - name: Enquiries
     description: Admissions CRM (enquiry pipeline, tasks, registration)
+  - name: Leave
+    description: Staff leave / holiday requests (apply, balances, four-eyes approval)
+  - name: My Profile
+    description: Signed-in user's self-service hub (own profile, attendance, rota, notification preferences)
+  - name: Notifications
+    description: In-app notifications (own list, mark read) with opt-in email delivery
+  - name: Room Assignments
+    description: Effective-dated staff/child room allocation (the canonical room source of truth)
+  - name: Configuration
+    description: Org-scoped configuration — taxonomy lists, term dates, fee schedules, branch + email templates
+  - name: Exports
+    description: Server-side list exports (CSV default, ?format=xlsx for Excel)
 
 paths:
   # ─────────────────────────────────────────────────────────────────────────────
@@ -3191,6 +3203,804 @@ paths:
       responses:
         '200': { description: Liked }
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # My Profile (self-service /me hub)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /me/profile:
+    get:
+      tags: [My Profile]
+      summary: Own staff record (resolved via Staff.UserID, with computed room projection)
+      operationId: getMyProfile
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Staff' } } } }
+        '404': { description: No staff record linked to this login }
+    put:
+      tags: [My Profile]
+      summary: Self-edit the safe subset (contact, qualifications, emergency contacts, DBS, first aid)
+      description: Employment fields (name/branch/role/status/type/hours/allowances/PIN) stay manager-controlled.
+      operationId: updateMyProfile
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MeProfileUpdate' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Staff' } } } }
+
+  /me/attendance:
+    get:
+      tags: [My Profile]
+      summary: Own attendance records + absence summary for a date range
+      operationId: getMyAttendance
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: from, in: query, required: false, schema: { type: string, format: date } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  records: { type: array, items: { $ref: '#/components/schemas/StaffAttendanceRecord' } }
+                  summary: { type: object, description: StaffAbsenceSummary (per-type leave/sick/absence day counts) }
+
+  /me/rota:
+    get:
+      tags: [My Profile]
+      summary: Own rostered shifts for a date range
+      operationId: getMyRota
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: from, in: query, required: false, schema: { type: string, format: date } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Shift' } } } } }
+
+  /me/notification-preferences:
+    get:
+      tags: [My Profile, Notifications]
+      summary: Own notification email preferences (catalogue + muted types)
+      description: In-app notifications always appear; muted_types lists the notification types NOT emailed. Absent preferences = every type emailed.
+      operationId: getMyNotificationPreferences
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/NotificationPreferences' } } } }
+    put:
+      tags: [My Profile, Notifications]
+      summary: Update own muted notification types
+      description: Unknown types are dropped and duplicates collapsed (whitelisted to the catalogue). An empty list restores the default (everything emailed).
+      operationId: updateMyNotificationPreferences
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [muted_types]
+              properties:
+                muted_types: { type: array, items: { type: string } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/NotificationPreferences' } } } }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Leave / holiday requests
+  # ─────────────────────────────────────────────────────────────────────────────
+  /leave-requests:
+    post:
+      tags: [Leave]
+      summary: Apply for leave (self-service; managers may pass an explicit staff_id)
+      description: Blocks over-allowance requests for capped types (annual + configured sick) and overlaps with the applicant's own pending/approved leave.
+      operationId: applyLeaveRequest
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LeaveRequestInput' }
+      responses:
+        '201': { description: Created (status pending), content: { application/json: { schema: { $ref: '#/components/schemas/LeaveRequest' } } } }
+        '400': { description: Bad range / over allowance / overlapping own leave }
+
+  /leave-requests/me:
+    get:
+      tags: [Leave]
+      summary: Own leave requests
+      operationId: listMyLeaveRequests
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/LeaveRequest' } } } } }
+
+  /leave-requests/balance:
+    get:
+      tags: [Leave]
+      summary: Own leave balances, keyed by leave type (UK Apr–Mar leave year)
+      operationId: getMyLeaveBalance
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: { $ref: '#/components/schemas/LeaveBalance' }
+
+  /leave-requests/{id}/cancel:
+    patch:
+      tags: [Leave]
+      summary: Cancel own pending leave request
+      operationId: cancelLeaveRequest
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Cancelled, content: { application/json: { schema: { $ref: '#/components/schemas/LeaveRequest' } } } }
+
+  /admin/leave-requests:
+    get:
+      tags: [Leave]
+      summary: Leave requests queue (branch-scoped via policy.EffectiveBranch; permission leave.approve)
+      operationId: listLeaveRequests
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: status, in: query, required: false, schema: { type: string, enum: [pending, approved, declined, cancelled] } }
+        - { name: staff_id, in: query, required: false, schema: { type: string } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/LeaveRequest' } } } } }
+    post:
+      tags: [Leave]
+      summary: Manager files leave for a staff member (staff_id in body; still pending until a DIFFERENT manager approves)
+      operationId: adminCreateLeaveRequest
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LeaveRequestInput' }
+      responses:
+        '201': { description: Created (status pending), content: { application/json: { schema: { $ref: '#/components/schemas/LeaveRequest' } } } }
+
+  /admin/leave-requests/export:
+    get:
+      tags: [Leave, Exports]
+      summary: Export the leave-requests list (CSV default, ?format=xlsx for Excel)
+      operationId: exportLeaveRequests
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: status, in: query, required: false, schema: { type: string } }
+        - { name: staff_id, in: query, required: false, schema: { type: string } }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [csv, xlsx, excel], default: csv } }
+      responses:
+        '200': { description: Attachment (text/csv or application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) }
+
+  /admin/leave-requests/{id}/approve:
+    post:
+      tags: [Leave]
+      summary: Approve a leave request (four-eyes — reviewer must differ from applicant)
+      description: On approval the booked weekdays are written to the staff-attendance register.
+      operationId: approveLeaveRequest
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Approved, content: { application/json: { schema: { $ref: '#/components/schemas/LeaveRequest' } } } }
+        '400': { description: Self-approval blocked / not pending }
+
+  /admin/leave-requests/{id}/decline:
+    post:
+      tags: [Leave]
+      summary: Decline a leave request (reason required; four-eyes)
+      operationId: declineLeaveRequest
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { description: Declined, content: { application/json: { schema: { $ref: '#/components/schemas/LeaveRequest' } } } }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # In-app notifications
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/notifications:
+    get:
+      tags: [Notifications]
+      summary: Caller's own recent notifications + unread count
+      operationId: listMyNotifications
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: limit, in: query, required: false, schema: { type: integer, default: 30 } }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/AppNotification' } }
+                  unread: { type: integer }
+
+  /admin/notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: Mark all own notifications read
+      operationId: markAllNotificationsRead
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
+  /admin/notifications/{id}/read:
+    patch:
+      tags: [Notifications]
+      summary: Mark one own notification read
+      operationId: markNotificationRead
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # List exports (CSV default, ?format=xlsx|excel for Excel)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/children/export:
+    get:
+      tags: [Children, Exports]
+      summary: Export the children list (same filters + branch scope as the list)
+      operationId: exportChildren
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: room, in: query, required: false, schema: { type: string } }
+        - { name: status, in: query, required: false, schema: { type: string } }
+        - { name: q, in: query, required: false, schema: { type: string } }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [csv, xlsx, excel], default: csv } }
+      responses:
+        '200': { description: Attachment (text/csv or application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) }
+
+  /admin/staff/export:
+    get:
+      tags: [Staff, Exports]
+      summary: Export the staff list (same filters + branch scope as the list)
+      operationId: exportStaff
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: status, in: query, required: false, schema: { type: string } }
+        - { name: q, in: query, required: false, schema: { type: string } }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [csv, xlsx, excel], default: csv } }
+      responses:
+        '200': { description: Attachment (text/csv or application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) }
+
+  /admin/enquiries/export:
+    get:
+      tags: [Enquiries, Exports]
+      summary: Export the enquiries list (same filters + branch scope as the list)
+      operationId: exportEnquiries
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: status, in: query, required: false, schema: { type: string } }
+        - { name: type, in: query, required: false, schema: { type: string } }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [csv, xlsx, excel], default: csv } }
+      responses:
+        '200': { description: Attachment (text/csv or application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) }
+
+  /admin/staff-attendance/export:
+    get:
+      tags: [Staff Attendance, Exports]
+      summary: Export the attendance register for a date + branch
+      operationId: exportStaffAttendance
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: date, in: query, required: false, schema: { type: string, format: date } }
+        - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [csv, xlsx, excel], default: csv } }
+      responses:
+        '200': { description: Attachment (text/csv or application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Room allocation (effective-dated assignments — the canonical room model)
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/child-room-assignments:
+    post:
+      tags: [Room Assignments]
+      summary: Allocate a child to a room (enforces same-branch + active + capacity + age; overrides need override_reason)
+      operationId: createChildRoomAssignment
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoomAssignmentInput' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/RoomAssignment' } } } }
+        '400': { description: Capacity/age/branch rule violated without override_reason }
+
+  /admin/child-room-assignments/{id}:
+    patch:
+      tags: [Room Assignments]
+      summary: End a child's room assignment
+      operationId: endChildRoomAssignment
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Ended, content: { application/json: { schema: { $ref: '#/components/schemas/RoomAssignment' } } } }
+
+  /admin/children/{id}/room-assignments:
+    get:
+      tags: [Room Assignments]
+      summary: A child's assignment history
+      operationId: listChildRoomAssignments
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/RoomAssignment' } } } } }
+
+  /admin/children/{id}/transfer-room:
+    post:
+      tags: [Room Assignments]
+      summary: Transfer a child to another room (closes the old assignment, opens a new one; future-dated → scheduled)
+      operationId: transferChildRoom
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoomAssignmentInput' }
+      responses:
+        '200': { description: Transferred, content: { application/json: { schema: { $ref: '#/components/schemas/RoomAssignment' } } } }
+
+  /admin/staff-room-assignments:
+    post:
+      tags: [Room Assignments]
+      summary: Assign a staff member to a room
+      operationId: createStaffRoomAssignment
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoomAssignmentInput' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/RoomAssignment' } } } }
+
+  /admin/staff-room-assignments/{id}:
+    patch:
+      tags: [Room Assignments]
+      summary: Update / end a staff room assignment
+      operationId: updateStaffRoomAssignment
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/RoomAssignment' } } } }
+
+  /admin/staff/{id}/room-assignments:
+    get:
+      tags: [Room Assignments]
+      summary: A staff member's assignment history
+      operationId: listStaffRoomAssignments
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/RoomAssignment' } } } } }
+
+  /admin/rooms/capacity:
+    get:
+      tags: [Room Assignments, Rooms]
+      summary: Per-room capacity/occupancy summary for a branch
+      operationId: getRoomsCapacity
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: branch, in: query, required: false, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+
+  /admin/rooms/{id}/capacity:
+    get:
+      tags: [Room Assignments, Rooms]
+      summary: One room's capacity/occupancy detail
+      operationId: getRoomCapacity
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+
+  /admin/children/capacity-forecast:
+    get:
+      tags: [Room Assignments, Children]
+      summary: Forward occupancy / room-move forecast
+      operationId: getCapacityForecast
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: branch, in: query, required: false, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Configuration — taxonomy lists, terms, fees, branch + email templates
+  # ─────────────────────────────────────────────────────────────────────────────
+  /taxonomy:
+    get:
+      tags: [Configuration]
+      summary: Public taxonomy list (pinned to the default tenant; feeds the application form)
+      operationId: listPublicTaxonomy
+      parameters:
+        - { name: category, in: query, required: false, schema: { type: string, enum: [session_type, allergy_type, dietary_label, age_group] } }
+        - { name: branch, in: query, required: false, schema: { type: string } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/TaxonomyTerm' } } } } }
+
+  /admin/taxonomy:
+    get:
+      tags: [Configuration]
+      summary: List taxonomy terms (with ?branch = picker view of active terms + org-wide defaults; without = management view)
+      operationId: listTaxonomy
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: category, in: query, required: false, schema: { type: string } }
+        - { name: branch, in: query, required: false, schema: { type: string } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/TaxonomyTerm' } } } } }
+    post:
+      tags: [Configuration]
+      summary: Create a taxonomy term (permission branches.manage)
+      operationId: createTaxonomyTerm
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaxonomyTerm' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/TaxonomyTerm' } } } }
+
+  /admin/taxonomy/{id}:
+    get:
+      tags: [Configuration]
+      summary: Get a taxonomy term
+      operationId: getTaxonomyTerm
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TaxonomyTerm' } } } }
+    put:
+      tags: [Configuration]
+      summary: Update a taxonomy term (permission branches.manage)
+      operationId: updateTaxonomyTerm
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TaxonomyTerm' }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/TaxonomyTerm' } } } }
+    delete:
+      tags: [Configuration]
+      summary: Delete a taxonomy term (permission branches.manage)
+      operationId: deleteTaxonomyTerm
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Deleted }
+
+  /admin/terms:
+    get:
+      tags: [Configuration]
+      summary: List term dates (optionally for one branch)
+      operationId: listTerms
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: branch, in: query, required: false, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Term' } } } } }
+    post:
+      tags: [Configuration]
+      summary: Create a term (permission branches.manage)
+      operationId: createTerm
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Term' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Term' } } } }
+
+  /admin/terms/{id}:
+    get:
+      tags: [Configuration]
+      summary: Get a term
+      operationId: getTerm
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Term' } } } }
+    put:
+      tags: [Configuration]
+      summary: Update a term (permission branches.manage)
+      operationId: updateTerm
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Term' }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Term' } } } }
+    delete:
+      tags: [Configuration]
+      summary: Delete a term (permission branches.manage)
+      operationId: deleteTerm
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Deleted }
+
+  /fee-config:
+    get:
+      tags: [Configuration]
+      summary: Public fee-schedule bundle for the fee calculator (pinned to the default tenant)
+      operationId: getPublicFeeConfig
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  branches: { type: object, description: Per-branch rate grids keyed by branch slug }
+                  meta: { type: object, description: Org-wide extra-hour/swap/late-fee pricing + disclaimer }
+
+  /admin/fee-config:
+    get:
+      tags: [Configuration]
+      summary: Full fee-config bundle for the admin editor
+      operationId: listFeeConfig
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+    put:
+      tags: [Configuration]
+      summary: Update the org-wide fee meta (ancillary pricing + disclaimer; permission branches.manage)
+      operationId: updateFeeMeta
+      security: [{ BearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object } } } }
+      responses:
+        '200': { description: Updated }
+
+  /admin/fee-config/{branch}:
+    put:
+      tags: [Configuration]
+      summary: Update one branch's fee schedule (permission branches.manage)
+      operationId: updateBranchFeeConfig
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: branch, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object } } } }
+      responses:
+        '200': { description: Updated }
+
+  /admin/branch-templates:
+    get:
+      tags: [Configuration]
+      summary: List branch setup templates
+      operationId: listBranchTemplates
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/BranchTemplate' } } } } }
+    post:
+      tags: [Configuration]
+      summary: Create a branch template (permission branches.manage)
+      operationId: createBranchTemplate
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BranchTemplate' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/BranchTemplate' } } } }
+
+  /admin/branch-templates/{id}:
+    get:
+      tags: [Configuration]
+      summary: Get a branch template
+      operationId: getBranchTemplate
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/BranchTemplate' } } } }
+    put:
+      tags: [Configuration]
+      summary: Update a branch template (permission branches.manage)
+      operationId: updateBranchTemplate
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BranchTemplate' }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/BranchTemplate' } } } }
+    delete:
+      tags: [Configuration]
+      summary: Delete a branch template (permission branches.manage)
+      operationId: deleteBranchTemplate
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Deleted }
+
+  /admin/branch-templates/{id}/apply:
+    post:
+      tags: [Configuration]
+      summary: Apply a template's rooms to a branch (skips rooms whose name exists — re-runnable)
+      operationId: applyBranchTemplate
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [branch_slug]
+              properties:
+                branch_slug: { type: string }
+      responses:
+        '200': { description: Applied (rooms created/skipped counts) }
+
+  /admin/branch-templates/from-branch:
+    post:
+      tags: [Configuration]
+      summary: Capture an existing branch's rooms into a new template
+      operationId: createBranchTemplateFromBranch
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [branch_slug, name]
+              properties:
+                branch_slug: { type: string }
+                name: { type: string }
+                description: { type: string }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/BranchTemplate' } } } }
+
+  /admin/email-templates:
+    get:
+      tags: [Configuration]
+      summary: Email-template catalogue with each template's current (custom or default) state
+      operationId: listEmailTemplates
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/EmailTemplate' } } } } }
+
+  /admin/daily-records/{id}/approve:
+    post:
+      tags: [Daily Records]
+      summary: Approve a pending daily log (four-eyes — approver must differ from submitter; permission daily_logs.approve)
+      operationId: approveDailyRecord
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Approved, content: { application/json: { schema: { $ref: '#/components/schemas/DailyRecord' } } } }
+        '400': { description: Self-approval blocked / not pending }
+
+  /admin/daily-records/{id}/reject:
+    post:
+      tags: [Daily Records]
+      summary: Reject a pending daily log (reason required; permission daily_logs.approve)
+      operationId: rejectDailyRecord
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { description: Rejected, content: { application/json: { schema: { $ref: '#/components/schemas/DailyRecord' } } } }
+
+  /admin/rooms/{id}/status:
+    patch:
+      tags: [Rooms]
+      summary: Set a room's status (active/inactive)
+      operationId: setRoomStatus
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string }
+      responses:
+        '200': { description: Updated }
+
+  /admin/rooms/{id}/children:
+    get:
+      tags: [Room Assignments, Rooms]
+      summary: Children currently assigned to a room
+      operationId: listRoomChildren
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/RoomAssignment' } } } } }
+
+  /admin/rooms/{id}/staff:
+    get:
+      tags: [Room Assignments, Rooms]
+      summary: Staff currently assigned to a room
+      operationId: listRoomStaff
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/RoomAssignment' } } } } }
+
+  /integrations/gbp/digest:
+    post:
+      tags: [Webhooks]
+      summary: Google Business Profile reviews-digest ingest (shared-secret webhook, no user JWT)
+      operationId: ingestGBPDigest
+      requestBody: { required: true, content: { application/json: { schema: { type: object } } } }
+      responses:
+        '200': { description: Ingested }
+        '401': { description: Bad shared secret }
+
+  /admin/email-templates/{key}:
+    put:
+      tags: [Configuration]
+      summary: Customise a transactional email's subject/body (permission branches.manage)
+      description: Body is the message text with {{placeholders}}; the service wraps it in the branded shell. A template only overrides the built-in default once customised.
+      operationId: updateEmailTemplate
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: key, in: path, required: true, schema: { type: string, example: enquiry_acknowledgement } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, body]
+              properties:
+                subject: { type: string }
+                body: { type: string }
+      responses:
+        '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/EmailTemplate' } } } }
+    delete:
+      tags: [Configuration]
+      summary: Revert a template to the built-in default (permission branches.manage)
+      operationId: revertEmailTemplate
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: key, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Reverted }
+
 components:
   securitySchemes:
     BearerAuth:
@@ -4280,3 +5090,204 @@ components:
             properties:
               label: { type: string }
               count: { type: integer }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Leave / holiday requests
+    # ─────────────────────────────────────────────────────────────────────────
+    LeaveRequest:
+      type: object
+      properties:
+        id: { type: string }
+        staff_id: { type: string }
+        staff_name: { type: string }
+        branch_slug: { type: string }
+        type: { type: string, enum: [leave, unpaid_leave, maternity, dependant_sick, sick], description: Identical to the attendance leave statuses so approval maps 1:1 }
+        start_date: { type: string, format: date }
+        end_date: { type: string, format: date, description: Inclusive }
+        days: { type: integer, description: Working days (Mon-Fri) in range }
+        reason: { type: string }
+        status: { type: string, enum: [pending, approved, declined, cancelled] }
+        requested_by_id: { type: string }
+        reviewed_by_id: { type: string }
+        reviewed_by: { type: string }
+        reviewed_at: { type: string, format: date-time, nullable: true }
+        decline_reason: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    LeaveRequestInput:
+      type: object
+      required: [type, start_date, end_date]
+      properties:
+        staff_id: { type: string, description: Optional — managers file for a staff member; self-service resolves via Staff.UserID }
+        type: { type: string, enum: [leave, unpaid_leave, maternity, dependant_sick, sick] }
+        start_date: { type: string, format: date }
+        end_date: { type: string, format: date }
+        reason: { type: string }
+
+    LeaveBalance:
+      type: object
+      description: One leave type's balance for the UK leave year (Apr-Mar). Capped types draw against an allowance; uncapped types report usage only.
+      properties:
+        type: { type: string }
+        capped: { type: boolean }
+        year: { type: integer, description: The leave year's starting calendar year }
+        allowance: { type: integer }
+        taken: { type: integer }
+        pending: { type: integer }
+        remaining: { type: integer }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Notifications
+    # ─────────────────────────────────────────────────────────────────────────
+    AppNotification:
+      type: object
+      properties:
+        id: { type: string }
+        user_id: { type: string, description: Recipient }
+        type: { type: string, example: leave_requested }
+        title: { type: string }
+        body: { type: string }
+        link: { type: string, description: In-app href }
+        entity_type: { type: string }
+        entity_id: { type: string }
+        read: { type: boolean }
+        read_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    NotificationPreferences:
+      type: object
+      description: The emailable-type catalogue plus this user's muted (opted-out) types. In-app notifications always appear; muting only stops the email copy.
+      properties:
+        catalogue:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string, example: leave_approved }
+              label: { type: string, example: Your leave was approved }
+        muted_types:
+          type: array
+          items: { type: string }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # My Profile (self-service)
+    # ─────────────────────────────────────────────────────────────────────────
+    MeProfileUpdate:
+      type: object
+      description: The safe self-editable subset of the staff record; employment fields stay manager-controlled.
+      properties:
+        phone: { type: string }
+        email: { type: string, format: email }
+        qualifications:
+          type: array
+          items: { type: string }
+        emergency_contacts:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              relation: { type: string }
+              phone: { type: string }
+              email: { type: string }
+        dbs_number: { type: string }
+        dbs_expiry: { type: string, format: date }
+        first_aid_expiry: { type: string, format: date }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Room allocation (effective-dated assignments)
+    # ─────────────────────────────────────────────────────────────────────────
+    RoomAssignment:
+      type: object
+      properties:
+        id: { type: string }
+        branch_slug: { type: string }
+        room_id: { type: string }
+        room_name: { type: string, description: Computed projection }
+        staff_id: { type: string, description: Staff assignments only }
+        child_id: { type: string, description: Child assignments only }
+        role_in_room: { type: string }
+        is_primary: { type: boolean }
+        start_date: { type: string, format: date }
+        end_date: { type: string, format: date }
+        status: { type: string, enum: [active, scheduled, ended] }
+        created_by: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    RoomAssignmentInput:
+      type: object
+      required: [room_id]
+      properties:
+        staff_id: { type: string, description: Staff assignments (and body of child assignments uses child_id) }
+        child_id: { type: string }
+        room_id: { type: string }
+        role_in_room: { type: string }
+        is_primary: { type: boolean }
+        start_date: { type: string, format: date }
+        override_reason: { type: string, description: Required to override capacity/age/branch rules (audit-logged) }
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Configuration
+    # ─────────────────────────────────────────────────────────────────────────
+    TaxonomyTerm:
+      type: object
+      properties:
+        id: { type: string }
+        branch_slug: { type: string, description: '"" = org-wide default' }
+        category: { type: string, enum: [session_type, allergy_type, dietary_label, age_group] }
+        code: { type: string, description: Stable machine key stored on records }
+        label: { type: string }
+        start_time: { type: string, description: 'HH:MM (session_type only)' }
+        end_time: { type: string, description: 'HH:MM (session_type only)' }
+        min_age_months: { type: integer, description: 'age_group only; 0 = from birth (not omitted)' }
+        max_age_months: { type: integer, description: 'age_group only; 0 = unbounded top band (not omitted)' }
+        sort_order: { type: integer }
+        active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Term:
+      type: object
+      properties:
+        id: { type: string }
+        branch_slug: { type: string, description: '"" = org-wide' }
+        name: { type: string, example: Autumn term }
+        start_date: { type: string, format: date, description: Inclusive }
+        end_date: { type: string, format: date, description: Inclusive }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    BranchTemplate:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        rooms:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              code: { type: string }
+              age_range: { type: string }
+              min_age_months: { type: integer }
+              max_age_months: { type: integer }
+              capacity: { type: integer }
+              staff_ratio: { type: integer }
+        age_groups:
+          type: array
+          items: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    EmailTemplate:
+      type: object
+      properties:
+        id: { type: string }
+        key: { type: string, example: enquiry_acknowledgement }
+        subject: { type: string }
+        body: { type: string, description: "Message text with {{placeholders}}; the service wraps it in the branded shell" }
+        updated_at: { type: string, format: date-time }
