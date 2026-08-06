@@ -628,7 +628,11 @@ Amazon Business API (Product Search → Cart → Ordering), then full inventory/
   room (assign or transfer-with-reason via the canonical endpoints, override-reason on capacity/age
   rejection); and a **future date of birth is rejected** (`dobNotInFuture` on child Create/Update/
   EnsureFromEnquiry + enquiry Register BEFORE the status flip; DOB pickers cap at today; locked by
-  `child_dob_test.go` + `REG-TC-005`).
+  `child_dob_test.go` + `REG-TC-005`). **Planner accuracy:** the capacity forecast's AM/PM classification
+  now derives from the org's configured session_type times (was a hardcoded am/pm/school/full switch — any
+  other org's codes counted zero), and rooms resolve PER DATE from active + scheduled placements so a
+  future-dated transfer shows from its effective week; children count from their start date; the planner
+  auto-refreshes (locked by the session-coverage + placement-resolver unit tests).
 - **Notification email delivery (delivered, opt-in):** in-app notifications (leave apply/approve/decline,
   daily-log approvals, safeguarding, etc. via `notificationService.NotifyMany`) now also **email** each
   recipient. `NotifyMany` creates the in-app rows then best-effort `deliverEmails`: resolves each recipient's
