@@ -1245,6 +1245,16 @@ export interface EmailTemplateInput {
   body: string;
 }
 
+// ── Notification email preferences ───────────────────────────────────────────
+export interface NotificationTypeInfo {
+  type: string;
+  label: string;
+}
+export interface NotificationPreferences {
+  catalogue: NotificationTypeInfo[];
+  muted_types: string[];
+}
+
 // ── In-app notifications ─────────────────────────────────────────────────────
 export interface AppNotification {
   id: string;

@@ -112,7 +112,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	staffRoomAssignSvc := service.NewStaffRoomAssignmentService(staffRoomAssignRepo, staffRepo, roomRepo)
 	childRoomAssignSvc := service.NewChildRoomAssignmentService(childRoomAssignRepo, childRepo, roomRepo, staffRoomAssignRepo, attendanceRepo)
 	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo, staffRoomAssignRepo, termRepo)
-	notifSvc := service.NewNotificationServiceWithEmail(notificationRepo, mailer, userRepo, cfg.FrontendURL, cfg.NotifyEmailEnabled)
+	notifPrefRepo := repository.NewNotificationPreferenceRepository(db)
+	notifSvc := service.NewNotificationServiceWithEmail(notificationRepo, mailer, userRepo, notifPrefRepo, cfg.FrontendURL, cfg.NotifyEmailEnabled)
 	roleSvc := service.NewRoleService(roleRepo)
 	orgSvc := service.NewOrganisationService(orgRepo, authSvc, roleSvc)
 	// Resolve the default tenant for public/unauthenticated requests. Empty until
@@ -168,6 +169,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Shifts:            service.NewShiftService(shiftRepo, staffRepo, roomRepo, leaveRequestRepo),
 		DailyRecords:      service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo, childRoomAssignRepo, userRepo, notifSvc),
 		Notifications:     notifSvc,
+		NotifPrefs:        service.NewNotificationPreferenceService(notifPrefRepo),
 		BranchOverview:    service.NewBranchOverviewService(childRepo, roomRepo, attendanceRepo, staffRepo, staffAttendanceRepo, dailyRecordRepo, enquiryRepo),
 		GBP:               service.NewGBPService(gbpRepo, branchRepo),
 		Roles:             roleSvc,

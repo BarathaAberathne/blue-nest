@@ -60,6 +60,7 @@ type Services struct {
 	FeeConfig         service.FeeConfigService
 	BranchTemplates   service.BranchTemplateService
 	EmailTemplates    service.EmailTemplateService
+	NotifPrefs        service.NotificationPreferenceService
 }
 
 type Repos struct {
@@ -179,6 +180,9 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Put("/me/profile", meH.UpdateProfile)
 			r.Get("/me/attendance", meH.Attendance)
 			r.Get("/me/rota", meH.Rota)
+			meNotifPrefsH := adminHandler.NewMeNotificationPrefsHandler(svc.NotifPrefs)
+			r.Get("/me/notification-preferences", meNotifPrefsH.Get)
+			r.Put("/me/notification-preferences", meNotifPrefsH.Update)
 
 			// Cart
 			cartH := handler.NewCartHandler(svc.Cart)

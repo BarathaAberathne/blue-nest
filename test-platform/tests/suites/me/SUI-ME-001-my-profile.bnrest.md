@@ -49,4 +49,5 @@ Call ../../utils/auth/AUTH-UTIL-001-login.bnrest.md With Json Into meSession
 
 Body
 Call CatchError ../../cases/me/ME-TC-001-self-service-profile.bnrest.md
+Call CatchError ../../cases/me/ME-TC-002-notification-preferences.bnrest.md
 ```

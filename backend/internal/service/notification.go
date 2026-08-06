@@ -30,6 +30,7 @@ type notificationService struct {
 	// in-app notification.
 	mailer       *email.Mailer
 	users        repository.UserRepository
+	prefs        repository.NotificationPreferenceRepository
 	frontendURL  string
 	emailEnabled bool
 }
@@ -38,9 +39,10 @@ func NewNotificationService(repo repository.NotificationRepository) Notification
 	return &notificationService{repo: repo}
 }
 
-// NewNotificationServiceWithEmail adds opt-in email delivery of notifications.
-func NewNotificationServiceWithEmail(repo repository.NotificationRepository, mailer *email.Mailer, users repository.UserRepository, frontendURL string, emailEnabled bool) NotificationService {
-	return &notificationService{repo: repo, mailer: mailer, users: users, frontendURL: frontendURL, emailEnabled: emailEnabled}
+// NewNotificationServiceWithEmail adds opt-in email delivery of notifications,
+// respecting each recipient's per-type email preferences.
+func NewNotificationServiceWithEmail(repo repository.NotificationRepository, mailer *email.Mailer, users repository.UserRepository, prefs repository.NotificationPreferenceRepository, frontendURL string, emailEnabled bool) NotificationService {
+	return &notificationService{repo: repo, mailer: mailer, users: users, prefs: prefs, frontendURL: frontendURL, emailEnabled: emailEnabled}
 }
 
 // notificationEmailHTML renders a notification as a branded email body. Dynamic
@@ -77,9 +79,25 @@ func (s *notificationService) deliverEmails(ctx context.Context, userIDs []strin
 		}
 		seen[uid] = true
 		u, err := s.users.FindByID(ctx, uid)
-		if err == nil && u != nil && u.Email != "" {
-			addrs = append(addrs, u.Email)
+		if err != nil || u == nil || u.Email == "" {
+			continue
 		}
+		// Respect the recipient's per-type email opt-outs (in-app still shown).
+		if s.prefs != nil && n.Type != "" {
+			if p, perr := s.prefs.FindByUser(ctx, uid); perr == nil && p != nil {
+				muted := false
+				for _, t := range p.MutedTypes {
+					if t == n.Type {
+						muted = true
+						break
+					}
+				}
+				if muted {
+					continue
+				}
+			}
+		}
+		addrs = append(addrs, u.Email)
 	}
 	if len(addrs) == 0 {
 		return
