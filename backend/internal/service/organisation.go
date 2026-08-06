@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"regexp"
 	"strings"
 
@@ -27,12 +28,13 @@ type OrganisationService interface {
 }
 
 type organisationService struct {
-	repo repository.OrganisationRepository
-	auth AuthService // for onboarding the first admin of a new tenant
+	repo  repository.OrganisationRepository
+	auth  AuthService // for onboarding the first admin of a new tenant
+	roles RoleService // seed the new tenant's built-in roles so its Permission Builder is usable
 }
 
-func NewOrganisationService(repo repository.OrganisationRepository, auth AuthService) OrganisationService {
-	return &organisationService{repo: repo, auth: auth}
+func NewOrganisationService(repo repository.OrganisationRepository, auth AuthService, roles RoleService) OrganisationService {
+	return &organisationService{repo: repo, auth: auth, roles: roles}
 }
 
 var orgSlugRe = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
@@ -88,6 +90,15 @@ func (s *organisationService) Create(ctx context.Context, req models.Organisatio
 	}
 	if err := s.repo.Create(ctx, o); err != nil {
 		return nil, err
+	}
+	// Seed the new tenant's built-in roles + permission cache so its Permission
+	// Builder is populated immediately (startup EnsureSeeded only covers orgs that
+	// existed then). Best-effort: role checks fall back to code defaults and the
+	// next boot reconciles, so a hiccup here must not block onboarding.
+	if s.roles != nil {
+		if err := s.roles.EnsureSeeded(ctx, []string{o.ID.Hex()}); err != nil {
+			slog.Error("failed to seed roles for new organisation", "org", o.ID.Hex(), "error", err)
+		}
 	}
 	// Onboarding: provision the tenant's first super-admin so it's usable
 	// immediately. Runs in the NEW org's context so the user is stamped with it.
