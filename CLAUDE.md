@@ -623,7 +623,12 @@ Amazon Business API (Product Search → Cart → Ordering), then full inventory/
   `adminCreateBranch` existed with no UI). Local-only artefact of the run: a second org `bluenest-e2e`
   (admin `e2e.admin@bluenest.uk`) with one Harrow branch + full lifecycle data — harmless test data, never
   on prod. **Organisation creation still has NO UI** (API-only, `PlatformOnly`) — a platform-admin console
-  is an open roadmap item.
+  is an open roadmap item. **Follow-ups delivered:** the branch-template modal exposes per-room min/max age
+  months (apply carries them onto created rooms); the Room Planner gained an **Assign child** action per
+  room (assign or transfer-with-reason via the canonical endpoints, override-reason on capacity/age
+  rejection); and a **future date of birth is rejected** (`dobNotInFuture` on child Create/Update/
+  EnsureFromEnquiry + enquiry Register BEFORE the status flip; DOB pickers cap at today; locked by
+  `child_dob_test.go` + `REG-TC-005`).
 - **Notification email delivery (delivered, opt-in):** in-app notifications (leave apply/approve/decline,
   daily-log approvals, safeguarding, etc. via `notificationService.NotifyMany`) now also **email** each
   recipient. `NotifyMany` creates the in-app rows then best-effort `deliverEmails`: resolves each recipient's
