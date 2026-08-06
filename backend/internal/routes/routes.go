@@ -280,6 +280,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Use(middleware.RequirePermission(models.PermEnquiriesManage))
 				adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Auth, svc.Audit, svc.Children)
 				r.Get("/admin/enquiries", adminEnquiryH.List)
+				r.Get("/admin/enquiries/export", adminEnquiryH.Export)
 				r.Post("/admin/enquiries", adminEnquiryH.Create)
 				r.Get("/admin/enquiries/page", adminEnquiryH.ListPaged)
 				r.Get("/admin/enquiries/stats", adminEnquiryH.Stats)
@@ -308,6 +309,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Use(middleware.RequirePermission(models.PermLeaveApprove))
 				leaveAdminH := adminHandler.NewAdminLeaveHandler(svc.LeaveRequests, svc.Audit)
 				r.Get("/admin/leave-requests", leaveAdminH.List)
+				r.Get("/admin/leave-requests/export", leaveAdminH.Export)
 				r.Post("/admin/leave-requests", leaveAdminH.Apply) // manager files for a staff member (staff_id in body)
 				r.Post("/admin/leave-requests/{id}/approve", leaveAdminH.Approve)
 				r.Post("/admin/leave-requests/{id}/decline", leaveAdminH.Decline)
@@ -385,6 +387,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 
 				adminChildH := adminHandler.NewAdminChildHandler(svc.Children, svc.Audit)
 				r.Get("/admin/children", adminChildH.List)
+				r.Get("/admin/children/export", adminChildH.Export)
 				r.Get("/admin/children/stats", adminChildH.Stats)
 				r.Get("/admin/children/capacity-forecast", adminChildH.CapacityForecast)
 				r.Get("/admin/children/{id}", adminChildH.Get)
@@ -410,6 +413,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Use(middleware.RequirePermission(models.PermStaffManage))
 				adminStaffH := adminHandler.NewAdminStaffHandler(svc.Staff, svc.Audit)
 				r.Get("/admin/staff", adminStaffH.List)
+				r.Get("/admin/staff/export", adminStaffH.Export)
 				r.Get("/admin/staff/{id}", adminStaffH.Get)
 				r.Get("/admin/staff/{id}/attendance-summary", func(w http.ResponseWriter, r *http.Request) {
 					adminStaffH.AttendanceSummary(w, r, svc.StaffAttendance)
@@ -433,6 +437,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 
 				adminStaffAttH := adminHandler.NewAdminStaffAttendanceHandler(svc.StaffAttendance, svc.Audit)
 				r.Get("/admin/staff-attendance", adminStaffAttH.Register)
+				r.Get("/admin/staff-attendance/export", adminStaffAttH.Export)
 				r.Get("/admin/staff-attendance/today", adminStaffAttH.Today)
 				r.Get("/admin/staff-attendance/summary", adminStaffAttH.Summary)
 				r.Post("/admin/staff-attendance/clock-in", adminStaffAttH.ClockIn)

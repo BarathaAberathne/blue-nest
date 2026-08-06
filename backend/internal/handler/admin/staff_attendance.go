@@ -2,15 +2,25 @@ package admin
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/service"
+	"github.com/blue-nest-montessori/api/pkg/export"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/blue-nest-montessori/api/pkg/validator"
 	"github.com/go-chi/chi/v5"
 )
+
+// hhmm formats an optional timestamp as HH:MM (empty when nil).
+func hhmm(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format("15:04")
+}
 
 type AdminStaffAttendanceHandler struct {
 	svc   service.StaffAttendanceService
@@ -35,6 +45,34 @@ func (h *AdminStaffAttendanceHandler) Register(w http.ResponseWriter, r *http.Re
 		return
 	}
 	response.OK(w, rows)
+}
+
+// Export streams the staff-attendance register for a date + branch as CSV,
+// applying the same branch scoping as Register.
+func (h *AdminStaffAttendanceHandler) Export(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, q.Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	rows, err := h.svc.Register(r.Context(), q.Get("date"), branch)
+	if err != nil {
+		response.InternalError(w, "failed to build staff register")
+		return
+	}
+	out := make([][]string, 0, len(rows))
+	for _, x := range rows {
+		out = append(out, []string{
+			x.Date, x.StaffName, x.JobTitle, x.RoomName, x.BranchSlug, string(x.Status),
+			hhmm(x.ClockIn), hhmm(x.ClockOut),
+			export.Float(float64(x.WorkedMinutes) / 60.0), export.Int(x.LateMinutes), export.Int(x.OvertimeMinutes),
+		})
+	}
+	export.WriteCSV(w, export.Filename("staff-attendance"),
+		[]string{"Date", "Staff", "Job title", "Room", "Branch", "Status", "Clock in", "Clock out", "Worked (hrs)", "Late (min)", "Overtime (min)"},
+		out)
 }
 
 // Summary returns the attendance-dashboard KPI payload for a date + branch

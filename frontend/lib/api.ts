@@ -83,6 +83,26 @@ async function tryRefreshToken(): Promise<string | null> {
   return refreshPromise;
 }
 
+// downloadCsv fetches a CSV export endpoint with the auth header and triggers a
+// browser download, honouring the server's Content-Disposition filename. Used by
+// the "Export CSV" buttons on the admin list pages.
+export async function downloadCsv(path: string, token: string, fallbackName = "export.csv"): Promise<void> {
+  const res = await fetch(`${apiBase()}${path}`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) throw new Error(`Export failed (${res.status})`);
+  const blob = await res.blob();
+  const cd = res.headers.get("Content-Disposition") ?? "";
+  const match = /filename="?([^"]+)"?/.exec(cd);
+  const name = match?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
   const { token, ...init } = options;
   const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
