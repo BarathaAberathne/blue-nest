@@ -164,8 +164,14 @@ hidden):
 Expressions (`Assert`, `Set`, `When` guards) go through an **allowlisted**
 evaluator: dotted variable paths, string/number/bool/null literals,
 `== != > >= < <= && ||`, and the functions `random()`, `timestamp()`,
-`secret(name)`. There is no way to reach arbitrary Java, shell, or
-JavaScript execution from a script file.
+`secret(name)`, `today(offset)`. There is no way to reach arbitrary Java,
+shell, or JavaScript execution from a script file.
+
+`today()` renders the run day as `YYYY-MM-DD`; an optional signed offset
+shifts it — `today("+2y")`, `today("-30d")`, `today("+3m")`, `today("+1w")`.
+**Date-sensitive tests must use it instead of hardcoding calendar dates**
+(a "future" DOB written as `2030-01-01` silently stops being future when the
+calendar catches up; `${today("+2y")}` never rots). See `REG-TC-005`.
 
 ## Fixture scopes
 

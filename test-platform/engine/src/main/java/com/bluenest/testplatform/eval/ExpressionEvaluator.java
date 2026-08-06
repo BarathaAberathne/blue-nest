@@ -185,9 +185,34 @@ public final class ExpressionEvaluator {
             case "random" -> VariableScope.mapper().getNodeFactory().numberNode(Math.abs(random.nextInt(1_000_000)));
             case "timestamp" -> VariableScope.mapper().getNodeFactory().numberNode(Instant.now().toEpochMilli());
             case "secret" -> VariableScope.mapper().getNodeFactory().textNode(secretResolver.resolve(arg));
+            case "today" -> VariableScope.mapper().getNodeFactory().textNode(todayWithOffset(arg));
             default -> throw new IllegalArgumentException(
-                    "Unknown function '" + name + "()' — only random(), timestamp(), secret(name) are allowed");
+                    "Unknown function '" + name + "()' — only random(), timestamp(), secret(name), today(offset) are allowed");
         };
+    }
+
+    // todayWithOffset renders today's date as YYYY-MM-DD, optionally shifted by
+    // a signed offset like "+2y", "-30d", "+3m", "+1w" — so date-sensitive
+    // tests (future DOBs, expected start dates, leave ranges) express dates
+    // RELATIVE to the run day instead of hardcoding a calendar date that
+    // silently rots when the calendar catches up with it.
+    private static String todayWithOffset(String offset) {
+        java.time.LocalDate d = java.time.LocalDate.now();
+        if (offset != null && !offset.isBlank()) {
+            var m = java.util.regex.Pattern.compile("^([+-])(\\d+)([dwmy])$").matcher(offset.trim());
+            if (!m.matches()) {
+                throw new IllegalArgumentException(
+                        "today() offset must look like +2y, -30d, +3m or +1w — got '" + offset + "'");
+            }
+            int n = Integer.parseInt(m.group(2)) * ("-".equals(m.group(1)) ? -1 : 1);
+            d = switch (m.group(3)) {
+                case "d" -> d.plusDays(n);
+                case "w" -> d.plusWeeks(n);
+                case "m" -> d.plusMonths(n);
+                default -> d.plusYears(n);
+            };
+        }
+        return d.toString();
     }
 
     private void expect(String tok) {

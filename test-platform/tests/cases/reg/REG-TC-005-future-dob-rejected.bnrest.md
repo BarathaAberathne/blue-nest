@@ -40,13 +40,13 @@ AssertStatus futureEnquiry 201
 Body
 When Post /api/v1/admin/enquiries/${futureEnquiry.body.data.id}/register Into rejected Using adminSession.accessToken
 {
-  "registration_date": "2026-07-23T00:00:00Z",
-  "expected_start_date": "2026-09-01T00:00:00Z",
+  "registration_date": "${today("-1w")}T00:00:00Z",
+  "expected_start_date": "${today("+1m")}T00:00:00Z",
   "child_age_group": "Under 1 year",
   "funding_type": "None",
   "child_first_name": "QA-AUTOTEST",
   "child_last_name": "FutureDOB-${dobSuffix}",
-  "child_dob": "2030-01-01",
+  "child_dob": "${today("+2y")}",
   "child_gender": ""
 }
 Then AssertStatus rejected 400
