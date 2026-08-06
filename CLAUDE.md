@@ -45,7 +45,7 @@ premium option, not the default. This keeps cross-org platform analytics + AI si
   isolation — each org's admin sees only its
   own branches/staff/children, cross-tenant fetch-by-id is 404 both ways, writes stamp the correct tenant,
   the public store serves the default tenant, and the existing Blue Nest app is intact.
-- **Phase T1 — Org-scoped configuration & customisation — IN PROGRESS.** Delivered: **org self-service**
+- **Phase T1 — Org-scoped configuration & customisation — FUNCTIONALLY COMPLETE.** Delivered: **org self-service**
   (`GET/PUT /admin/organisation` for the caller's OWN org — name/branding/settings only; slug/plan/status/
   domains stay platform-controlled) with a settings surface at `/admin/organisation` (super-admin nav item:
   profile, branding + colour pickers, feature-flag toggles, live preview); **feature flags** on the org
@@ -63,10 +63,14 @@ premium option, not the default. This keeps cross-org platform analytics + AI si
   (blue/green/amber/red). The logo gradient uses `branding.accent_color`. Unlayered is required because
   Tailwind utilities live in the `utilities` cascade layer, which outranks `@layer` rules by specificity.
   **Delivered across T1:** org-configurable **age groups** + session/allergy/dietary lists (taxonomy module),
-  **funding rules** (fees module), **branch templates**, **email templates**, and org branding wired into the
-  live admin theme. **Still to do in T1:** per-org custom roles + permission sets (the DB-backed `roleCache`
-  is still global — the `roles` collection already carries `org_id`, so this becomes org-scoped role
-  resolution). **Note:** the `org_id` JWT claim means
+  **funding rules** (fees module), **branch templates**, **email templates**, org branding wired into the
+  live admin theme, and **per-org custom roles + permission sets** — the role→permission cache is org-scoped
+  (`roleCacheKey{OrgID, Role}`; `SetRolePermissions(orgID,…)`/`HasPermission(orgID,…)`), the `roles`
+  collection is tenant-scoped (`NewTenantCollection`), and a newly-onboarded org **seeds its built-in roles
+  on create** (`organisationService.Create` calls `roleService.EnsureSeeded` for the new org, so its
+  Permission Builder is populated immediately — startup seeding only covered orgs that existed then). Custom
+  roles + edits in one tenant never leak into another (locked by `TestRolePermissionsAreOrgScoped` +
+  `USER-TC-009`). **T1 is functionally complete.** **Note:** the `org_id` JWT claim means
   sessions issued before T0 lack it — users must re-login after deploy (or let tokens expire) to get
   org-scoped access + the org page.
 - **Phase A0 — AI service layer (backend, tenant-scoped).** A first-class `internal/service/ai` (not a

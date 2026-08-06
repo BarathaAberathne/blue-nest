@@ -113,7 +113,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	childRoomAssignSvc := service.NewChildRoomAssignmentService(childRoomAssignRepo, childRepo, roomRepo, staffRoomAssignRepo, attendanceRepo)
 	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo, staffRoomAssignRepo, termRepo)
 	notifSvc := service.NewNotificationService(notificationRepo)
-	orgSvc := service.NewOrganisationService(orgRepo, authSvc)
+	roleSvc := service.NewRoleService(roleRepo)
+	orgSvc := service.NewOrganisationService(orgRepo, authSvc, roleSvc)
 	// Resolve the default tenant for public/unauthenticated requests. Empty until
 	// the tenancy migration creates it - then public data is scoped to that org.
 	defaultOrgID := ""
@@ -169,7 +170,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Notifications:     notifSvc,
 		BranchOverview:    service.NewBranchOverviewService(childRepo, roomRepo, attendanceRepo, staffRepo, staffAttendanceRepo, dailyRecordRepo, enquiryRepo),
 		GBP:               service.NewGBPService(gbpRepo, branchRepo),
-		Roles:             service.NewRoleService(roleRepo),
+		Roles:             roleSvc,
 	}
 
 	// Seed built-in roles + load the effective role→permission cache for every
