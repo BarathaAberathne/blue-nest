@@ -516,11 +516,47 @@ func mondayOf(t time.Time) time.Time {
 	return t.AddDate(0, 0, offset)
 }
 
+// slotCoverage is a session code → (covers AM, covers PM) map derived from the
+// org's session_type taxonomy times.
+type slotCoverage map[string][2]bool
+
+// middayCutoff splits the day into the planner's AM/PM slots.
+const middayCutoff = "13:00"
+
+// sessionSlotCoverage builds the coverage map from the org-configurable
+// session_type terms: a session covers the AM slot when it starts before
+// midday and the PM slot when it ends after midday. Session codes are
+// org-specific (derived from each org's labels), so the classifier must come
+// from the org's own configuration, never a hardcoded code list — an org whose
+// codes aren't am/pm/full/school otherwise counts as zero booked everywhere.
+// Terms without times fall through to the legacy fallback in sessionCovers.
+func (s *childService) sessionSlotCoverage(ctx context.Context) slotCoverage {
+	cov := slotCoverage{}
+	if s.taxonomy == nil {
+		return cov
+	}
+	terms, err := s.taxonomy.FindAll(ctx, repository.TaxonomyFilter{Category: models.TaxonomySessionType})
+	if err != nil {
+		return cov
+	}
+	for _, t := range terms {
+		start, end := strings.TrimSpace(t.StartTime), strings.TrimSpace(t.EndTime)
+		if start == "" || end == "" {
+			continue
+		}
+		cov[t.Code] = [2]bool{start < middayCutoff, end > middayCutoff}
+	}
+	return cov
+}
+
 // sessionCovers reports whether a session type occupies the AM slot
-// (~08:00–13:00) and/or PM slot (~13:00–18:00) — mirrors the frontend's
-// SESSION_TYPES (am/pm/school/full); "school" spans the midday split so it
-// counts toward both.
-func sessionCovers(sessionType string) (am, pm bool) {
+// (~08:00–13:00) and/or PM slot (~13:00–18:00). The org's configured
+// session_type times decide; the legacy am/pm/school/full switch remains the
+// fallback for codes with no configured term (pre-taxonomy child records).
+func sessionCovers(cov slotCoverage, sessionType string) (am, pm bool) {
+	if c, ok := cov[sessionType]; ok {
+		return c[0], c[1]
+	}
 	switch sessionType {
 	case "am":
 		return true, false
@@ -539,6 +575,38 @@ func sessionTypeFor(sessions []models.ChildSession, day string) string {
 	for _, s := range sessions {
 		if s.Day == day {
 			return s.Type
+		}
+	}
+	return ""
+}
+
+// placementResolver answers "which room is this child in on date D" from the
+// branch's live (active + scheduled) placement rows: the row with the LATEST
+// start_date on or before D wins — a scheduled transfer therefore takes over
+// from its effective date in forward projections, while dates before it still
+// resolve to the current room.
+type placementResolver struct {
+	byChild map[string][]models.ChildRoomAssignment // sorted by StartDate desc
+}
+
+func newPlacementResolver(rows []models.ChildRoomAssignment) *placementResolver {
+	byChild := map[string][]models.ChildRoomAssignment{}
+	for _, r := range rows {
+		byChild[r.ChildID] = append(byChild[r.ChildID], r)
+	}
+	for id := range byChild {
+		rs := byChild[id]
+		sort.Slice(rs, func(i, j int) bool { return rs[i].StartDate > rs[j].StartDate })
+		byChild[id] = rs
+	}
+	return &placementResolver{byChild: byChild}
+}
+
+// roomOn returns the child's room id as of date (YYYY-MM-DD), "" if unplaced.
+func (p *placementResolver) roomOn(childID, date string) string {
+	for _, r := range p.byChild[childID] {
+		if r.StartDate == "" || r.StartDate <= date {
+			return r.RoomID
 		}
 	}
 	return ""
@@ -585,17 +653,14 @@ func (s *childService) CapacityForecast(ctx context.Context, branch string, week
 		return nil, err
 	}
 
-	// Group active children by their CURRENT room from the canonical
-	// assignment model (one batched query) — not a stored scalar.
-	currentRoom := map[string]string{}
+	// Resolve each child's room PER DATE from the canonical assignment model
+	// (active + scheduled rows, two batched queries) — a scheduled transfer
+	// shows in the week it takes effect, not just after it activates.
+	var resolver *placementResolver
 	if s.roomAssignments != nil {
-		currentRoom = s.roomAssignments.CurrentRoomsByBranch(ctx, branch)
-	}
-	byRoom := map[string][]models.Child{}
-	for _, c := range children {
-		if rid := currentRoom[c.ID.Hex()]; rid != "" {
-			byRoom[rid] = append(byRoom[rid], c)
-		}
+		resolver = newPlacementResolver(s.roomAssignments.PlacementsByBranch(ctx, branch))
+	} else {
+		resolver = newPlacementResolver(nil)
 	}
 
 	firstMonday := mondayOf(time.Now())
@@ -604,6 +669,9 @@ func (s *childService) CapacityForecast(ctx context.Context, branch string, week
 		weekStarts[i] = firstMonday.AddDate(0, 0, 7*i).Format("2006-01-02")
 	}
 
+	// AM/PM classification comes from the org's configured session times.
+	coverage := s.sessionSlotCoverage(ctx)
+
 	forecast := &models.CapacityForecast{Weeks: weekStarts}
 	for _, room := range rooms {
 		roomID := room.ID.Hex()
@@ -611,18 +679,21 @@ func (s *childService) CapacityForecast(ctx context.Context, branch string, week
 			RoomID: roomID, RoomName: room.Name, BranchSlug: room.BranchSlug,
 			Capacity: room.Capacity, StaffRatio: room.StaffRatio,
 		}
-		roomChildren := byRoom[roomID]
 		for i := 0; i < weeks; i++ {
 			weekMonday := firstMonday.AddDate(0, 0, 7*i)
 			week := models.CapacityWeek{WeekStart: weekStarts[i]}
 			for d, label := range forecastWeekdays {
 				date := weekMonday.AddDate(0, 0, d)
+				dateStr := date.Format("2006-01-02")
 				am, pm := 0, 0
-				for _, c := range roomChildren {
+				for _, c := range children {
+					if resolver.roomOn(c.ID.Hex(), dateStr) != roomID {
+						continue
+					}
 					if !childStarted(c, date) {
 						continue
 					}
-					sessAM, sessPM := sessionCovers(sessionTypeFor(c.Sessions, label))
+					sessAM, sessPM := sessionCovers(coverage, sessionTypeFor(c.Sessions, label))
 					if sessAM {
 						am++
 					}

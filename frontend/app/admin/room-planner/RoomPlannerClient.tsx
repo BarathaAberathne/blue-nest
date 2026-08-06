@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ChevronLeft, ChevronRight, DoorOpen, UserPlus, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken, scopedBranches } from "@/lib/auth";
+import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { branchShortName } from "@/lib/branch";
 import type { Branch, CapacityDay, CapacityForecast, CapacityWeek, Child, RoomCapacityForecast } from "@/types";
 
@@ -73,6 +74,9 @@ export default function RoomPlannerClient() {
       .then((f) => setForecast(f as CapacityForecast))
       .catch(() => { /* keep the current view */ });
   };
+  // The planner tracks live session/allocation changes: silent background
+  // refresh (30s + on tab focus), same pattern as the attendance pages.
+  useAutoRefresh(reloadForecast, 30_000);
 
   useEffect(() => {
     const token = getAccessToken();
@@ -160,7 +164,7 @@ export default function RoomPlannerClient() {
               </tbody>
             </table>
           </div>
-          <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400">Each cell shows children booked / room capacity, and <Users className="inline h-3 w-3 align-text-bottom" />&nbsp;required staff (1 staff : {rooms[0]?.staff_ratio ?? "N"} ratio, rounded up). Based on each child&apos;s current weekly session pattern — not term-date aware.</p>
+          <p className="border-t border-slate-100 px-5 py-3 text-xs text-slate-400">Each cell shows children booked / room capacity, and <Users className="inline h-3 w-3 align-text-bottom" />&nbsp;required staff (1 staff : {rooms[0]?.staff_ratio ?? "N"} ratio, rounded up). Sessions classify into AM/PM from the org&apos;s configured session times; children count from their start date, and scheduled room moves apply from their effective date. Not term-date aware.</p>
         </div>
       ) : (
         <div className="card overflow-hidden">
