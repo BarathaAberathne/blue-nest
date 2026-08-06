@@ -43,4 +43,11 @@ When Put /api/v1/me/notification-preferences Into reset Using meSession.accessTo
 { "muted_types": [] }
 Then AssertStatus reset 200
 And AssertJson reset "$.body.data.muted_types.length()" == 0
+
+# A staff login can read their OWN in-app notifications (leave/daily-log
+# approvals notify staff; the bell shows in the Staff Portal). Regression:
+# these routes were once behind a management permission, 403ing staff.
+When Get /api/v1/admin/notifications Into notifs Using meSession.accessToken
+Then AssertStatus notifs 200
+And AssertJson notifs "$.body.data.items.length()" >= 0
 ```
