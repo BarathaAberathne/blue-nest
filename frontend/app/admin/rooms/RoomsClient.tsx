@@ -28,7 +28,7 @@ export default function RoomsClient() {
   const load = async () => {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
-    const [r, b, g] = await Promise.allSettled([api.adminGetRooms(token), api.getBranches(), api.adminGetTaxonomy(token, "age_group")]);
+    const [r, b, g] = await Promise.allSettled([api.adminGetRooms(token), api.adminGetBranches(token), api.adminGetTaxonomy(token, "age_group")]);
     if (r.status === "fulfilled") setRooms((r.value as Room[]) ?? []);
     if (b.status === "fulfilled") setBranches((b.value as Branch[]) ?? []);
     if (g.status === "fulfilled") setAgeGroups((g.value as TaxonomyTerm[]) ?? []);

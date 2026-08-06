@@ -47,7 +47,7 @@ export default function ChildrenClient() {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
     const [c, b, r, s] = await Promise.allSettled([
-      api.adminGetChildren(token), api.getBranches(), api.adminGetRooms(token), api.adminGetChildStats(token),
+      api.adminGetChildren(token), api.adminGetBranches(token), api.adminGetRooms(token), api.adminGetChildStats(token),
     ]);
     if (c.status === "fulfilled") setChildren((c.value as Child[]) ?? []);
     if (b.status === "fulfilled") setBranches((b.value as Branch[]) ?? []);

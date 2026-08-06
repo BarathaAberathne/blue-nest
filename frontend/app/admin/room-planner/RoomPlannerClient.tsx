@@ -68,7 +68,7 @@ export default function RoomPlannerClient() {
   useEffect(() => {
     const token = getAccessToken();
     if (!token) return;
-    api.getBranches().then((b) => setBranches(scopedBranches((b as Branch[]) ?? []))).catch(() => {});
+    api.adminGetBranches(token).then((b) => setBranches(scopedBranches((b as Branch[]) ?? []))).catch(() => {});
   }, []);
 
   useEffect(() => {

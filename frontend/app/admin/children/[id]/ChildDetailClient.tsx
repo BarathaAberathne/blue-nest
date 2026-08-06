@@ -43,7 +43,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
   const load = async () => {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
-    const [c, b, r, d] = await Promise.allSettled([api.adminGetChild(token, id), api.getBranches(), api.adminGetRooms(token), api.adminGetDailyRecords(token, { child: id, approval: "approved", limit: 12 })]);
+    const [c, b, r, d] = await Promise.allSettled([api.adminGetChild(token, id), api.adminGetBranches(token), api.adminGetRooms(token), api.adminGetDailyRecords(token, { child: id, approval: "approved", limit: 12 })]);
     if (c.status === "fulfilled") setChild(c.value as Child);
     else setError("Child not found.");
     if (b.status === "fulfilled") setBranches((b.value as Branch[]) ?? []);
