@@ -2,7 +2,7 @@
 id: SUI-EXPORT-001
 number: "2.28"
 type: Test Suite
-title: CSV exports (reporting layer)
+title: CSV + Excel exports (reporting layer)
 owner: QA
 mode: Standalone
 status: Active
@@ -10,10 +10,11 @@ tags:
   - export
 ---
 
-# CSV export suite
+# CSV + Excel export suite
 
-Covers the server-side CSV export endpoints (children/staff/enquiries/leave/
-staff-attendance) that back the admin "Export CSV" buttons. Shares one admin login.
+Covers the server-side export endpoints (children/staff/enquiries/leave/
+staff-attendance) that back the admin "Export" buttons — the CSV default and
+the `?format=xlsx` Excel dispatch. Shares one admin login.
 
 ```bnrest
 Setup
@@ -22,4 +23,5 @@ Call ../../utils/auth/AUTH-UTIL-001-login.bnrest.md With Json Into adminSession
 
 Body
 Call CatchError ../../cases/export/EXPORT-TC-001-csv-endpoints.bnrest.md
+Call CatchError ../../cases/export/EXPORT-TC-002-xlsx-format.bnrest.md
 ```

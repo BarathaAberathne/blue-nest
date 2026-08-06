@@ -143,7 +143,7 @@ func (h *AdminEnquiryHandler) Export(w http.ResponseWriter, r *http.Request) {
 			models.NormalizeStatus(e.Status), e.Source, e.AssignedToName, e.Priority, followUp,
 		})
 	}
-	export.WriteCSV(w, export.Filename("enquiries"),
+	export.Write(w, r, "enquiries",
 		[]string{"Created", "Name", "Email", "Phone", "Branch", "Child age", "Type", "Status", "Source", "Assigned to", "Priority", "Follow-up"},
 		out)
 }

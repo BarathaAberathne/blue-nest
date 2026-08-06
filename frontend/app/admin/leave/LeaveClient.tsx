@@ -5,7 +5,7 @@ import { AlertTriangle, CalendarDays, Plus, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { fmtBranch } from "@/lib/enquiry";
-import ExportCsvButton from "@/components/admin/ExportCsvButton";
+import ExportButton from "@/components/admin/ExportButton";
 import type { LeaveRequest, LeaveStatus, LeaveType, Staff } from "@/types";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -136,7 +136,7 @@ export default function LeaveClient() {
           <p className="text-sm text-slate-500">Approve or decline staff time-off. Approved leave is written to the attendance register automatically.</p>
         </div>
         <div className="flex items-center gap-2">
-          <ExportCsvButton path={`/api/v1/admin/leave-requests/export?status=${["pending", "approved", "declined", "cancelled"].includes(tab) ? tab : ""}`} />
+          <ExportButton path={`/api/v1/admin/leave-requests/export?status=${["pending", "approved", "declined", "cancelled"].includes(tab) ? tab : ""}`} />
           <button type="button" onClick={openAdd}
             className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700">
             <Plus className="h-4 w-4" /> Add leave for staff

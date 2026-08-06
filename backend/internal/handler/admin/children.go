@@ -66,7 +66,7 @@ func (h *AdminChildHandler) Export(w http.ResponseWriter, r *http.Request) {
 			string(c.Status), c.FundingType, c.KeyPersonName, c.StartDate,
 		})
 	}
-	export.WriteCSV(w, export.Filename("children"),
+	export.Write(w, r, "children",
 		[]string{"Ref", "First name", "Last name", "DOB", "Gender", "Branch", "Room", "Status", "Funding", "Key person", "Start date"},
 		out)
 }

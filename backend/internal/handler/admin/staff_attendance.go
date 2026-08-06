@@ -70,7 +70,7 @@ func (h *AdminStaffAttendanceHandler) Export(w http.ResponseWriter, r *http.Requ
 			export.Float(float64(x.WorkedMinutes) / 60.0), export.Int(x.LateMinutes), export.Int(x.OvertimeMinutes),
 		})
 	}
-	export.WriteCSV(w, export.Filename("staff-attendance"),
+	export.Write(w, r, "staff-attendance",
 		[]string{"Date", "Staff", "Job title", "Room", "Branch", "Status", "Clock in", "Clock out", "Worked (hrs)", "Late (min)", "Overtime (min)"},
 		out)
 }
