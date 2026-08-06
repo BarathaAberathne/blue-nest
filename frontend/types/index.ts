@@ -1101,6 +1101,7 @@ export interface Child {
   gender?: string;
   branch_slug: string;
   room_id?: string;
+  room_name?: string; // computed projection of the active room assignment
   status: ChildStatus;
   start_date?: string;
   guardians?: Guardian[];

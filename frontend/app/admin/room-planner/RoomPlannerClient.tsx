@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ChevronLeft, ChevronRight, DoorOpen, Users } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, DoorOpen, UserPlus, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken, scopedBranches } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
-import type { Branch, CapacityDay, CapacityForecast, CapacityWeek, RoomCapacityForecast } from "@/types";
+import type { Branch, CapacityDay, CapacityForecast, CapacityWeek, Child, RoomCapacityForecast } from "@/types";
 
 type Tab = "planner" | "availability";
 
@@ -64,6 +64,15 @@ export default function RoomPlannerClient() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("planner");
   const [weekIndex, setWeekIndex] = useState(0);
+  const [assignFor, setAssignFor] = useState<RoomCapacityForecast | null>(null);
+
+  const reloadForecast = () => {
+    const token = getAccessToken();
+    if (!token) return;
+    api.adminGetCapacityForecast(token, { branch: branchFilter, weeks: 12 })
+      .then((f) => setForecast(f as CapacityForecast))
+      .catch(() => { /* keep the current view */ });
+  };
 
   useEffect(() => {
     const token = getAccessToken();
@@ -139,6 +148,10 @@ export default function RoomPlannerClient() {
                         <div className="flex items-center gap-2 font-semibold text-slate-800"><DoorOpen className="h-4 w-4 text-slate-400" /> {room.room_name}</div>
                         <p className="mt-0.5 text-xs text-slate-400">{branchName(room.branch_slug)} · cap {room.capacity} · 1:{room.staff_ratio || "—"}</p>
                         {overbookedAny && <p className="mt-1 flex items-center gap-1 text-xs font-medium text-red-600"><AlertTriangle className="h-3.5 w-3.5" /> Over capacity</p>}
+                        <button type="button" onClick={() => setAssignFor(room)}
+                          className="mt-1.5 inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50">
+                          <UserPlus className="h-3 w-3" /> Assign child
+                        </button>
                       </td>
                       {week?.days.map((d) => <SessionCell key={d.day} day={d} capacity={room.capacity} />)}
                     </tr>
@@ -190,6 +203,99 @@ export default function RoomPlannerClient() {
           </div>
         </div>
       )}
+
+      {assignFor && (
+        <AssignChildModal
+          room={assignFor}
+          onClose={() => setAssignFor(null)}
+          onDone={() => { setAssignFor(null); reloadForecast(); }}
+        />
+      )}
     </>
+  );
+}
+
+// AssignChildModal places a child into a room straight from the planner — the
+// page that answers "where is there space?" now acts on the answer. Reuses the
+// canonical assignment endpoints: children with no active room are assigned,
+// children already placed are transferred (reason required); capacity/age-band
+// rejections surface the server message with an override-reason field.
+function AssignChildModal({ room, onClose, onDone }: { room: RoomCapacityForecast; onClose: () => void; onDone: () => void }) {
+  const token = typeof window !== "undefined" ? getAccessToken() : "";
+  const [children, setChildren] = useState<Child[]>([]);
+  const [childId, setChildId] = useState("");
+  const [reason, setReason] = useState("");
+  const [override, setOverride] = useState("");
+  const [needsOverride, setNeedsOverride] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    api.adminGetChildren(token)
+      .then((all) => setChildren(((all as Child[]) ?? []).filter((c) => c.branch_slug === room.branch_slug && c.status !== "left" && c.room_id !== room.room_id)))
+      .catch(() => setErr("Failed to load children"));
+  }, [token, room.branch_slug, room.room_id]);
+
+  const selected = children.find((c) => c.id === childId);
+  const isTransfer = !!selected?.room_id;
+
+  const submit = async () => {
+    if (!token || !selected) return;
+    if (isTransfer && !reason.trim()) { setErr("A transfer reason is required."); return; }
+    setSaving(true); setErr(null);
+    try {
+      if (isTransfer) {
+        await api.adminTransferChildRoom(token, selected.id, { room_id: room.room_id, reason: reason.trim(), override_reason: override.trim() || undefined });
+      } else {
+        await api.adminCreateChildRoomAssignment(token, { child_id: selected.id, room_id: room.room_id, override_reason: override.trim() || undefined });
+      }
+      onDone();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to assign";
+      setErr(msg);
+      if (/capacity|age range|override/i.test(msg)) setNeedsOverride(true);
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-heading text-lg font-bold text-slate-900">Assign child — {room.room_name}</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-slate-700"><X className="h-5 w-5" /></button>
+        </div>
+        {err && <p className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</p>}
+        <label className="mb-3 block text-sm">
+          <span className="mb-1 block text-xs font-medium text-slate-500">Child ({children.length} at this branch)</span>
+          <select value={childId} onChange={(e) => { setChildId(e.target.value); setErr(null); setNeedsOverride(false); }} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+            <option value="">Select a child…</option>
+            {children.map((c) => (
+              <option key={c.id} value={c.id}>{c.first_name} {c.last_name}{c.room_name ? ` — currently ${c.room_name}` : " — no room"}</option>
+            ))}
+          </select>
+        </label>
+        {isTransfer && (
+          <label className="mb-3 block text-sm">
+            <span className="mb-1 block text-xs font-medium text-slate-500">Reason for transfer (required)</span>
+            <input value={reason} onChange={(e) => setReason(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          </label>
+        )}
+        {needsOverride && (
+          <label className="mb-3 block text-sm">
+            <span className="mb-1 block text-xs font-medium text-slate-500">Override reason (capacity / age-range rule)</span>
+            <input value={override} onChange={(e) => setOverride(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          </label>
+        )}
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+          <button type="button" onClick={submit} disabled={saving || !childId}
+            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">
+            {saving ? "Saving…" : isTransfer ? "Transfer here" : "Assign here"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
