@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Save } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
-import type { FeeBranchConfig, FeeConfigInput, FeeMeta, FeeSessionRate } from "@/types";
+import type { Branch, FeeBranchConfig, FeeConfigInput, FeeMeta, FeeSessionRate } from "@/types";
 
 // Session lengths shown as columns, in fee-schedule order.
 const SESSIONS: { key: string; label: string }[] = [
@@ -41,30 +41,50 @@ export default function FeesClient() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
 
+  const [orgBranchSlugs, setOrgBranchSlugs] = useState<string[]>([]);
+
+  // A fresh, editable schedule for a branch that has no fee config yet: reuse
+  // an already-configured branch's age-band keys so the org stays consistent,
+  // else fall back to the canonical calculator bands.
+  const emptyDraft = useCallback((configured: Record<string, FeeBranchConfig>): FeeConfigInput => {
+    const firstConfigured = Object.keys(configured).sort()[0];
+    const bands = firstConfigured ? Object.keys(configured[firstConfigured].ageGroups ?? {}) : ["0-2", "2-3", "3-5"];
+    const ageGroups: FeeConfigInput["ageGroups"] = {};
+    for (const b of bands.length ? bands : ["0-2", "2-3", "3-5"]) ageGroups[b] = {};
+    return { ageGroups, earlyBird: 0, stdFunded: {} };
+  }, []);
+
   const load = useCallback(async () => {
     if (!token) { setError("Not authenticated."); setLoading(false); return; }
     try {
-      const bundle = await api.adminGetFeeConfig(token);
+      const [bundle, orgBranches] = await Promise.all([
+        api.adminGetFeeConfig(token),
+        api.adminGetBranches(token).catch(() => [] as Branch[]),
+      ]);
       const b = bundle.branches ?? {};
       setBranches(b);
       setMeta(bundle.meta ?? { note: "" });
-      const first = Object.keys(b).sort()[0] ?? "";
+      const slugs = (orgBranches ?? []).map((br) => br.slug);
+      setOrgBranchSlugs(slugs);
+      const first = [...new Set([...Object.keys(b), ...slugs])].sort()[0] ?? "";
       setSelected(first);
-      if (first) setDraft(cloneBranch(b[first]));
+      if (first) setDraft(b[first] ? cloneBranch(b[first]) : emptyDraft(b));
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load fee config");
     } finally { setLoading(false); }
-  }, [token]);
+  }, [token, emptyDraft]);
 
   useEffect(() => { void load(); }, [load]);
 
-  const branchKeys = useMemo(() => Object.keys(branches).sort(), [branches]);
+  // Every real branch gets a tab, configured or not — a branch with no fee
+  // config yet starts from an empty draft instead of being invisible.
+  const branchKeys = useMemo(() => [...new Set([...Object.keys(branches), ...orgBranchSlugs])].sort(), [branches, orgBranchSlugs]);
   const ageGroupKeys = useMemo(() => Object.keys(draft?.ageGroups ?? {}).sort(), [draft]);
 
   const pickBranch = (slug: string) => {
     setSelected(slug);
-    setDraft(branches[slug] ? cloneBranch(branches[slug]) : null);
+    setDraft(branches[slug] ? cloneBranch(branches[slug]) : emptyDraft(branches));
     setSaved(null);
   };
 
