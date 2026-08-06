@@ -3,7 +3,7 @@
         docker-up docker-down docker-build docker-logs docker-restart docker-stop \
         dev-backend dev-frontend run-backend run-frontend \
         mongo-shell setup \
-        seed seed-products seed-branches seed-catalogue seed-users seed-taxonomy seed-children seed-staff seed-daily seed-gbp seed-all \
+        seed seed-products seed-branches seed-catalogue seed-users seed-taxonomy seed-fees seed-children seed-staff seed-daily seed-gbp seed-all \
         baseline-reset baseline-snapshot baseline-ensure \
         wait-api \
         test-e2e test-e2e-regression \
@@ -346,6 +346,18 @@ seed-taxonomy:
 	  cd backend && go run ./cmd/seedtaxonomy; \
 	fi
 
+# Seeds per-branch fee/funding rules for the public fee calculator. Idempotent
+# ($setOnInsert), so it never overwrites rates an admin has edited.
+seed-fees:
+	@echo "→ Seeding fee/funding rules (fee calculator)..."
+	@if docker compose ps backend --status running --quiet 2>/dev/null | grep -q .; then \
+	  echo "  using running backend container (production-style)"; \
+	  docker compose -f docker-compose.yml -f docker-compose.prod.yml exec backend ./seedfees; \
+	else \
+	  echo "  no backend container running → falling back to local Go toolchain"; \
+	  cd backend && go run ./cmd/seedfees; \
+	fi
+
 seed-children:
 	@echo "→ Seeding nursery rooms, children & today's attendance..."
 	cd backend && SEED_ALLOW_DROP=1 go run ./cmd/seedchildren
@@ -362,7 +374,7 @@ seed-gbp:
 	@echo "→ Seeding Google Business Profile digests & reviews..."
 	cd backend && SEED_ALLOW_DROP=1 go run ./cmd/seedgbp
 
-seed-all: seed-products seed-branches seed-catalogue seed-users seed-taxonomy seed-children seed-staff seed-daily seed-gbp
+seed-all: seed-products seed-branches seed-catalogue seed-users seed-taxonomy seed-fees seed-children seed-staff seed-daily seed-gbp
 	@echo "✓ All seeds complete"
 
 # ── Local baseline dataset (manual testing) ───────────────────────────────────

@@ -76,7 +76,7 @@ func (f *fakeEnquiryRepo) LogActivity(_ context.Context, _ string, act models.En
 }
 
 func newTestEnquirySvc(repo repository.EnquiryRepository) EnquiryService {
-	return NewEnquiryService(repo, nil, "admin@bluenest.uk")
+	return NewEnquiryService(repo, nil, "admin@bluenest.uk", nil)
 }
 
 func TestChangeStatusValidationAndActivity(t *testing.T) {

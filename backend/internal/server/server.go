@@ -75,6 +75,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	orderTemplateRepo := repository.NewOrderTemplateRepository(db)
 	supplierRepo := repository.NewSupplierRepository(db)
 	taxonomyRepo := repository.NewTaxonomyRepository(db)
+	feeConfigRepo := repository.NewFeeConfigRepository(db)
 	termRepo := repository.NewTermRepository(db)
 	dashboardLayoutRepo := repository.NewDashboardLayoutRepository(db)
 	dashboardProfileRepo := repository.NewDashboardProfileRepository(db)
@@ -123,6 +124,11 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	if o, err := orgSvc.GetBySlug(context.Background(), defaultOrgSlug); err == nil && o != nil {
 		defaultOrgID = o.ID.Hex()
 	}
+	// Hoisted so the branch-template service can reuse the same room + branch
+	// services (apply-template creates rooms; capture-from-branch reads them).
+	roomSvc := service.NewRoomServiceWithGuards(roomRepo, staffRoomAssignRepo, childRoomAssignRepo)
+	branchSvc := service.NewBranchService(branchRepo, counterRepo)
+	emailTemplateSvc := service.NewEmailTemplateService(repository.NewEmailTemplateRepository(db))
 	svc := routes.Services{
 		Organisations:     orgSvc,
 		DefaultOrgID:      defaultOrgID,
@@ -132,8 +138,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Checkout:          service.NewCheckoutService(orderRepo, cartRepo, productRepo, branchRepo, cfg.Stripe.SecretKey, cfg.App.Env),
 		Orders:            service.NewOrderService(orderRepo),
 		Blog:              service.NewBlogService(blogRepo),
-		Branches:          service.NewBranchService(branchRepo, counterRepo),
-		Enquiries:         service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo),
+		Branches:          branchSvc,
+		Enquiries:         service.NewEnquiryService(enquiryRepo, mailer, cfg.SMTP.AdminTo, emailTemplateSvc),
 		Comments:          service.NewCommentService(commentRepo),
 		Audit:             service.NewAuditService(auditRepo),
 		OrderRequests:     service.NewOrderRequestService(orderRequestRepo, userRepo, counterRepo),
@@ -141,12 +147,15 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		OrderTemplates:    service.NewOrderTemplateService(orderTemplateRepo),
 		Suppliers:         service.NewSupplierService(supplierRepo),
 		Taxonomy:          service.NewTaxonomyService(taxonomyRepo),
+		FeeConfig:         service.NewFeeConfigService(feeConfigRepo),
+		BranchTemplates:   service.NewBranchTemplateService(repository.NewBranchTemplateRepository(db), roomSvc, branchSvc),
+		EmailTemplates:    emailTemplateSvc,
 		Terms:             service.NewTermService(termRepo),
 		Procurement:       service.NewProcurementAnalyticsService(orderRequestRepo, purchaseCartRepo),
 		DashboardLayouts:  service.NewDashboardLayoutService(dashboardLayoutRepo),
 		DashboardProfiles: service.NewDashboardProfileService(dashboardProfileRepo),
-		Rooms:             service.NewRoomServiceWithGuards(roomRepo, staffRoomAssignRepo, childRoomAssignRepo),
-		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo, childRoomAssignSvc),
+		Rooms:             roomSvc,
+		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo, childRoomAssignSvc, taxonomyRepo),
 		Attendance:        service.NewAttendanceService(attendanceRepo, childRepo, childRoomAssignRepo),
 		Staff:             service.NewStaffService(staffRepo, counterRepo, authSvc, staffRoomAssignSvc, roomRepo),
 		StaffRoomAssign:   staffRoomAssignSvc,

@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, LeaveRequest, LeaveRequestInput, LeaveBalances, MeAttendance, MeProfileInput, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, NotificationsResponse, User } from "@/types";
+import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, LeaveRequest, LeaveRequestInput, LeaveBalances, MeAttendance, MeProfileInput, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, FeeConfigBundle, FeeBranchConfig, FeeConfigInput, FeeMeta, BranchTemplate, BranchTemplateInput, BranchTemplateApplyResult, EmailTemplate, EmailTemplateInput, NotificationsResponse, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -582,6 +582,37 @@ export const api = {
   // Public read (unauthenticated) - the application form's session picker.
   getTaxonomy: (category: string, branch?: string) =>
     apiFetch<TaxonomyTerm[]>(`/api/v1/taxonomy?category=${encodeURIComponent(category)}${branch ? `&branch=${encodeURIComponent(branch)}` : ""}`),
+
+  // ── Fee / funding rules (public calculator + admin editor) ─────────────────
+  getFeeConfig: () => apiFetch<FeeConfigBundle>("/api/v1/fee-config"),
+  adminGetFeeConfig: (token: string) =>
+    apiFetch<FeeConfigBundle>("/api/v1/admin/fee-config", { token }),
+  adminUpdateFeeBranch: (token: string, branch: string, body: FeeConfigInput) =>
+    apiFetch<FeeBranchConfig>(`/api/v1/admin/fee-config/${encodeURIComponent(branch)}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminUpdateFeeMeta: (token: string, body: FeeMeta) =>
+    apiFetch<FeeBranchConfig>("/api/v1/admin/fee-config", { method: "PUT", body: JSON.stringify(body), token }),
+
+  // ── Branch templates ───────────────────────────────────────────────────────
+  adminGetBranchTemplates: (token: string) =>
+    apiFetch<BranchTemplate[]>("/api/v1/admin/branch-templates", { token }),
+  adminCreateBranchTemplate: (token: string, body: BranchTemplateInput) =>
+    apiFetch<BranchTemplate>("/api/v1/admin/branch-templates", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateBranchTemplate: (token: string, id: string, body: BranchTemplateInput) =>
+    apiFetch<BranchTemplate>(`/api/v1/admin/branch-templates/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminDeleteBranchTemplate: (token: string, id: string) =>
+    apiFetch<void>(`/api/v1/admin/branch-templates/${id}`, { method: "DELETE", token }),
+  adminApplyBranchTemplate: (token: string, id: string, branchSlug: string) =>
+    apiFetch<BranchTemplateApplyResult>(`/api/v1/admin/branch-templates/${id}/apply`, { method: "POST", body: JSON.stringify({ branch_slug: branchSlug }), token }),
+  adminCreateBranchTemplateFromBranch: (token: string, branchSlug: string, name: string, description?: string) =>
+    apiFetch<BranchTemplate>("/api/v1/admin/branch-templates/from-branch", { method: "POST", body: JSON.stringify({ branch_slug: branchSlug, name, description }), token }),
+
+  // ── Email templates ────────────────────────────────────────────────────────
+  adminGetEmailTemplates: (token: string) =>
+    apiFetch<EmailTemplate[]>("/api/v1/admin/email-templates", { token }),
+  adminUpdateEmailTemplate: (token: string, key: string, body: EmailTemplateInput) =>
+    apiFetch<EmailTemplate>(`/api/v1/admin/email-templates/${encodeURIComponent(key)}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminDeleteEmailTemplate: (token: string, key: string) =>
+    apiFetch<void>(`/api/v1/admin/email-templates/${encodeURIComponent(key)}`, { method: "DELETE", token }),
 
   // ── In-app notifications ───────────────────────────────────────────────────
   adminGetNotifications: (token: string) =>

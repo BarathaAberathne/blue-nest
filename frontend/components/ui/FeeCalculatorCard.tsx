@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Baby, GraduationCap, Users } from "lucide-react";
 import feeData from "@/lib/fee-data.json";
+import { api } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -48,18 +49,30 @@ const SESSION_HOURS: Record<SessionId, number> = {
 
 // Props use hyphenated slugs; JSON uses space variant for "pinner green"
 type BranchProp = "harrow" | "pinner" | "borehamwood" | "pinner-green" | "northwood";
-type JsonBranchKey = keyof typeof feeData.branches;
 type AgeGroupId = "0-2" | "2-3" | "3-5";
 type SessionId  = "full_day" | "morning" | "afternoon" | "school";
 
-// Map prop slug → JSON key
-const BRANCH_JSON_KEY: Record<BranchProp, JsonBranchKey> = {
-  harrow:        "harrow",
-  pinner:        "pinner",
-  borehamwood:   "borehamwood",
-  "pinner-green": "pinner green",
-  northwood:     "northwood",
+// Fee rules shape (per branch) — configurable via the backend fee-config, with
+// the bundled fee-data.json as a resilient fallback (below).
+type SessionRate = { daily: number; weekly: number };
+type BranchFees = {
+  ageGroups: Partial<Record<AgeGroupId, Record<SessionId, SessionRate>>>;
+  earlyBird: number;
+  stdFunded: Record<"below3" | "above3", Record<SessionId, number>>;
 };
+type FeeBranches = Partial<Record<BranchProp, BranchFees>>;
+type FeeMeta = { note: string };
+
+// The bundled schedule is the fallback used until GET /fee-config resolves (or
+// if it errors), remapped from the JSON's display keys to branch slugs so both
+// the API and fallback are slug-keyed.
+const FALLBACK_BRANCHES: FeeBranches = Object.fromEntries(
+  Object.entries(feeData.branches).map(([k, v]) => [
+    k === "pinner green" ? "pinner-green" : k,
+    v as unknown as BranchFees,
+  ]),
+) as FeeBranches;
+const FALLBACK_META: FeeMeta = feeData.meta as FeeMeta;
 
 const BRANCH_LABELS: Record<BranchProp, string> = {
   harrow:        "Harrow",
@@ -105,12 +118,8 @@ const DAY_OPTIONS: { id: DayChoice; label: string; short: string }[] = [
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getBranchData(branch: BranchProp) {
-  return feeData.branches[BRANCH_JSON_KEY[branch]];
-}
-
-function getAvailableAgeGroups(branch: BranchProp): AgeGroupId[] {
-  const groups = getBranchData(branch).ageGroups;
+function getAvailableAgeGroups(branchData: BranchFees | undefined): AgeGroupId[] {
+  const groups = branchData?.ageGroups ?? {};
   return AGE_GROUPS.map((g) => g.id).filter((id) => id in groups);
 }
 
@@ -128,7 +137,7 @@ interface Quote {
 }
 
 function computeQuote(
-  branch: BranchProp,
+  branchData: BranchFees | undefined,
   ageGroup: AgeGroupId,
   schedule: DaySchedule,
   earlyBird: boolean,
@@ -136,17 +145,16 @@ function computeQuote(
   yearWeeks: YearWeeks,
   funding: FundingId,
 ): Quote {
-  const branchData   = getBranchData(branch);
-  const ageGroupData = branchData.ageGroups[ageGroup as keyof typeof branchData.ageGroups];
+  const ageGroupData = branchData?.ageGroups[ageGroup];
 
   // Booked sessions, in weekday order (days off skipped).
   const booked      = WEEKDAYS.map((d) => schedule[d.id]).filter((c): c is SessionId => c !== "off");
   const bookedDays  = booked.length;
   const holidayWks  = yearWeeks - Math.min(yearWeeks, TERM_WEEKS);
 
-  // Defensive: missing age band (e.g. Pinner has no 0-2 row) or an empty week
-  // — bail out with a zero quote instead of throwing.
-  if (!ageGroupData || bookedDays === 0) {
+  // Defensive: no branch data yet (config still loading), missing age band (e.g.
+  // Pinner has no 0-2 row) or an empty week — bail out with a zero quote.
+  if (!branchData || !ageGroupData || bookedDays === 0) {
     return {
       gross: 0, termWeekly: 0, holidayWeekly: 0, fundingOffset: 0, discountAmount: 0,
       weekly: 0, monthly: 0, fundedSessions: 0, bookedDays, holidayWeeks: holidayWks,
@@ -282,13 +290,32 @@ export default function FeeCalculatorCard({
   const [yearWeeks, setYearWeeks] = useState<YearWeeks>(52);
   const [funding, setFunding]     = useState<FundingId>("none");
 
+  // Configurable fee rules: fetched from the backend, with the bundled schedule
+  // as a resilient fallback so the public calculator never breaks on a failed
+  // or slow request.
+  const [branches, setBranches] = useState<FeeBranches>(FALLBACK_BRANCHES);
+  const [meta, setMeta]         = useState<FeeMeta>(FALLBACK_META);
+  useEffect(() => {
+    let alive = true;
+    api.getFeeConfig()
+      .then((bundle) => {
+        if (!alive || !bundle) return;
+        if (bundle.branches && Object.keys(bundle.branches).length > 0) setBranches(bundle.branches as FeeBranches);
+        if (bundle.meta) setMeta(bundle.meta as FeeMeta);
+      })
+      .catch(() => { /* keep the bundled fallback */ });
+    return () => { alive = false; };
+  }, []);
+
+  const branchData = branches[branch];
+
   // Guard: if branch doesn't have the selected age group, pick first available
-  const available = getAvailableAgeGroups(branch);
+  const available = getAvailableAgeGroups(branchData);
   const safeAgeGroup: AgeGroupId = available.includes(ageGroup) ? ageGroup : available[0];
 
   function handleBranchChange(b: BranchProp) {
     setBranch(b);
-    const avail = getAvailableAgeGroups(b);
+    const avail = getAvailableAgeGroups(branches[b]);
     if (!avail.includes(ageGroup)) setAgeGroup(avail[0]);
   }
 
@@ -297,7 +324,7 @@ export default function FeeCalculatorCard({
     setSchedule({ mon: choice, tue: choice, wed: choice, thu: choice, fri: choice });
 
   const quote = computeQuote(
-    branch, safeAgeGroup, schedule, earlyBird, discount, yearWeeks, funding,
+    branchData, safeAgeGroup, schedule, earlyBird, discount, yearWeeks, funding,
   );
   const { gross, fundingOffset, discountAmount, weekly, monthly, termWeekly, holidayWeekly, holidayWeeks, bookedDays } = quote;
 
@@ -414,7 +441,7 @@ export default function FeeCalculatorCard({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Early drop-off</p>
-            <p className="text-[0.6rem] text-[var(--muted)]">+£{getBranchData(branch).earlyBird}/day · 7:30 AM – 8:00 AM</p>
+            <p className="text-[0.6rem] text-[var(--muted)]">+£{branchData?.earlyBird ?? 0}/day · 7:30 AM – 8:00 AM</p>
           </div>
           <button
             type="button"
@@ -544,7 +571,7 @@ export default function FeeCalculatorCard({
               {earlyBird && (
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[var(--muted)]">Early drop-off ×{bookedDays}</span>
-                  <span className="font-semibold text-[var(--ink)]">+{fmt(getBranchData(branch).earlyBird * bookedDays)}/wk</span>
+                  <span className="font-semibold text-[var(--ink)]">+{fmt((branchData?.earlyBird ?? 0) * bookedDays)}/wk</span>
                 </div>
               )}
               {fundingOffset > 0 && (
@@ -580,7 +607,7 @@ export default function FeeCalculatorCard({
         </Link>
 
         <p className="text-center text-[0.6rem] text-[var(--muted)]">
-          {feeData.meta.note}
+          {meta.note}
         </p>
       </div>
     </div>

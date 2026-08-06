@@ -14,6 +14,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o bin/api ./cmd/api
 RUN CGO_ENABLED=0 GOOS=linux go build -o bin/seedusers ./cmd/seedusers
 RUN CGO_ENABLED=0 GOOS=linux go build -o bin/seedcatalogue ./cmd/seedcatalogue
 RUN CGO_ENABLED=0 GOOS=linux go build -o bin/seedtaxonomy ./cmd/seedtaxonomy
+RUN CGO_ENABLED=0 GOOS=linux go build -o bin/seedfees ./cmd/seedfees
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
 FROM alpine:3.19
@@ -25,6 +26,7 @@ COPY --from=builder /app/bin/api .
 COPY --from=builder /app/bin/seedusers .
 COPY --from=builder /app/bin/seedcatalogue .
 COPY --from=builder /app/bin/seedtaxonomy .
+COPY --from=builder /app/bin/seedfees .
 
 # Bake the seed images (backend/uploads/products/*) into the image so a fresh
 # `docker compose up` always has them, even when the uploads_data volume is

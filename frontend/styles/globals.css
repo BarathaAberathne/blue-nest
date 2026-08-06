@@ -653,3 +653,64 @@
   .ar-fallback-4-3  { height: 0; padding-top: 75%; }
   .ar-fallback-4-5  { height: 0; padding-top: 125%; }
 }
+
+/* ── Tenant branding - live admin theme (Phase T1) ───────────────────────────
+   The back-office accent is teal by default. AdminLayout sets --brand (and
+   --brand-ink for readable text) from the signed-in org's branding.primary_color
+   on the .admin-shell root, so the whole admin re-themes per tenant with no
+   component edits. Derived shades use color-mix (evergreen browsers). Everything
+   is scoped to .admin-shell, so the public site and the Command Centre (its own
+   .cc-* palette, rendered outside AdminLayout) are untouched.
+
+   This block is intentionally UNLAYERED: Tailwind's utility classes live in the
+   `utilities` cascade layer, which outranks @layer base/components regardless of
+   selector specificity - only unlayered rules (or !important) can re-point them.
+   Defaults equal the previous hardcoded teal, so an org that sets no colour sees
+   no change. */
+.admin-shell {
+  --brand: #0d9488;                                              /* teal-600 default; overridden inline per org */
+  --brand-strong: color-mix(in srgb, var(--brand) 82%, #000);   /* hover (≈ teal-700) */
+  --brand-ink: #ffffff;                                          /* text on brand fills; JS swaps to dark on light brands */
+  --brand-tint: color-mix(in srgb, var(--brand) 10%, #fff);     /* ≈ teal-50 */
+  --brand-tint-2: color-mix(in srgb, var(--brand) 18%, #fff);   /* ≈ teal-100 */
+  --brand-line: color-mix(in srgb, var(--brand) 32%, #fff);     /* soft borders (≈ teal-200/300) */
+  /* re-point the tokenised admin accent (sidebar nav, .card accents) at the brand */
+  --adm-accent: var(--brand);
+  --adm-accent-600: var(--brand-strong);
+  --adm-accent-tint: var(--brand-tint);
+  --adm-accent-tint-2: var(--brand-tint-2);
+}
+
+/* Remap the hardcoded teal accent utilities used across the admin to the brand. */
+.admin-shell .bg-teal-600,
+.admin-shell .bg-teal-400            { background-color: var(--brand); color: var(--brand-ink); }
+.admin-shell .hover\:bg-teal-700:hover { background-color: var(--brand-strong); }
+.admin-shell .bg-teal-50,
+.admin-shell .hover\:bg-teal-50:hover  { background-color: var(--brand-tint); }
+.admin-shell .bg-teal-100,
+.admin-shell .hover\:bg-teal-100:hover { background-color: var(--brand-tint-2); }
+
+.admin-shell .text-teal-500,
+.admin-shell .text-teal-600,
+.admin-shell .text-teal-700,
+.admin-shell .text-teal-800,
+.admin-shell .text-teal-900,
+.admin-shell .hover\:text-teal-500:hover,
+.admin-shell .hover\:text-teal-600:hover,
+.admin-shell .hover\:text-teal-700:hover,
+.admin-shell .hover\:text-teal-800:hover { color: var(--brand); }
+
+.admin-shell .border-teal-200,
+.admin-shell .border-teal-300,
+.admin-shell .border-teal-400,
+.admin-shell .hover\:border-teal-300:hover,
+.admin-shell .hover\:border-teal-400:hover { border-color: var(--brand-line); }
+.admin-shell .border-teal-500,
+.admin-shell .border-teal-600            { border-color: var(--brand); }
+
+.admin-shell .ring-teal-300              { --tw-ring-color: var(--brand-line); }
+.admin-shell .focus\:ring-teal-500:focus { --tw-ring-color: var(--brand); }
+.admin-shell .focus\:border-teal-500:focus { border-color: var(--brand); }
+.admin-shell .from-teal-400              { --tw-gradient-from: var(--brand) var(--tw-gradient-from-position);
+                                            --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position);
+                                            --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }

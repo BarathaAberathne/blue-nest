@@ -54,11 +54,21 @@ premium option, not the default. This keeps cross-org platform analytics + AI si
   first super-admin in one call (`admin_email`/`admin_password`), created in the new org's context so it's
   usable + isolated immediately (verified: the provisioned admin logs in and sees 0 of another tenant's
   data). `RolePlatformSuperAdmin` added to `ManagementRoles` so the operator can sign into the admin shell.
-  **Still to do in T1:** per-org custom roles + permission sets (the DB-backed `roleCache` is still global —
-  the `roles` collection already carries `org_id`, so this becomes org-scoped role resolution), branch
-  templates, room/age-group config, term dates, funding rules, email templates, and wiring org branding into
-  the live admin theme. **Note:** the `org_id` JWT claim means sessions issued before T0 lack it — users must
-  re-login after deploy (or let tokens expire) to get org-scoped access + the org page.
+  **Org branding wired into the live admin theme (delivered):** `AdminLayout` sets `--brand` (+ auto-contrast
+  `--brand-ink` via perceived luminance) from the signed-in org's `branding.primary_color` on the
+  `.admin-shell` root; a scoped, UNLAYERED CSS block in `styles/globals.css` re-points the `--adm-accent*`
+  tokens at the brand and remaps the admin's hardcoded `teal-*` accent utilities to brand vars (derived shades
+  via `color-mix`). It defaults to teal (no change unless an org sets a colour), is scoped to `.admin-shell`
+  (public site + the Command Centre's own `.cc-*` palette untouched), and preserves semantic status colours
+  (blue/green/amber/red). The logo gradient uses `branding.accent_color`. Unlayered is required because
+  Tailwind utilities live in the `utilities` cascade layer, which outranks `@layer` rules by specificity.
+  **Delivered across T1:** org-configurable **age groups** + session/allergy/dietary lists (taxonomy module),
+  **funding rules** (fees module), **branch templates**, **email templates**, and org branding wired into the
+  live admin theme. **Still to do in T1:** per-org custom roles + permission sets (the DB-backed `roleCache`
+  is still global — the `roles` collection already carries `org_id`, so this becomes org-scoped role
+  resolution). **Note:** the `org_id` JWT claim means
+  sessions issued before T0 lack it — users must re-login after deploy (or let tokens expire) to get
+  org-scoped access + the org page.
 - **Phase A0 — AI service layer (backend, tenant-scoped).** A first-class `internal/service/ai` (not a
   frontend afterthought) wrapping the LLM. Every AI call is org-scoped and can ONLY see its tenant's data.
   **Tool-use contract:** the AI calls the CMS's own service methods (children/staff/attendance/enquiries/
@@ -450,14 +460,24 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
 - **Configurable taxonomy (lists) + term-time (delivered):** the "configurable, not hardcoded" rule is now
   a real module. `taxonomy_terms` (`models/taxonomy.go`, tenant-scoped, optional `branch_slug` — ""=org-wide
   default) holds curated lookup lists by `category`: `session_type` (with start/end times — the weekly
-  session slots), `allergy_type`, `dietary_label` (extend `ValidTaxonomyCategory` for more). Admin CRUD at
+  session slots), `allergy_type`, `dietary_label`, and **`age_group`** (carries `min_age_months`/
+  `max_age_months`; 0 is meaningful — min 0 = from birth, max 0 = unbounded top band, so those two fields are
+  NOT `omitempty` in bson or json) (extend `ValidTaxonomyCategory` for more). Admin CRUD at
   **`/admin/lists`** (`branches.manage`); reads open to any back-office role so pickers resolve; a public
   `GET /taxonomy` feeds the application form. `cmd/seedtaxonomy` (`make seed-taxonomy`, idempotent, baked
   into the image) seeds org-wide defaults per org — the session codes (`am/pm/full/school`) **match existing
   `child.sessions` values** so they keep resolving. Every session picker (admin child create + detail edit,
   public application form) and the child **allergy/dietary tag chips** read from this list, not hardcoded
   arrays; `child.allergy_tags[]`/`dietary_tags[]` are additive (free-text `allergies`/`dietary_reqs` kept as
-  notes). Frontend: `lib/useTaxonomy.ts` (`useTaxonomy`, `sessionOptions`, fallback). **Term-time**: `terms`
+  notes). **Age groups (T1, delivered):** the `age_group` list is the single source of occupancy age bands.
+  `childService.Stats` buckets active children into the configured bands by age-in-months (falls back to the
+  built-in Under 2 / 2–3 / 3+ when none are configured, so figures are unchanged until an org customises them);
+  the `/admin/rooms` form has an age-group quick-fill that populates a room's `min/max_age_months` + label.
+  `cmd/seedtaxonomy` seeds the three defaults to reproduce the previous hardcoded buckets exactly. Two real
+  bugs surfaced while adding the CRUD test (`TAX-TC-004`) and were fixed: taxonomy `Update` re-mapped a
+  hardcoded `$set` that silently **omitted new fields** (so age bounds never saved), and `omitempty` on the
+  age-bound tags dropped a meaningful `0` on write. Frontend: `lib/useTaxonomy.ts` (`useTaxonomy`,
+  `sessionOptions`, fallback). **Term-time**: `terms`
   (`models/term.go`, per-branch date ranges) with admin CRUD at **`/admin/terms`**, plus a
   `staff.term_time_only` flag; the staff-attendance roster is **term-aware** — a term-time-only staff member
   with no record is excluded from the expected roster (never counted absent) outside their branch's term
@@ -465,6 +485,41 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   public application-form session picker also reads the configurable list (org-wide). **Admin list ordering**:
   `lib/group.ts` (`sortByName`/`groupByBranch`) — lists sort alphabetically, grouped by branch; the
   children + staff tables render per-branch section headers (the same helper extends to the remaining lists).
+
+- **Fees & funding config (T1, delivered):** the public fee calculator's per-branch rates are no longer a
+  hardcoded frontend file. `fee_configs` (`models/fee_config.go`, tenant-scoped: one doc per branch keyed by
+  `branch_slug`, plus a ""-branch doc holding the org-wide `Meta` = extra-hour/swap/late-fee + disclaimer)
+  mirrors the old `fee-data.json` shape (`ageGroups[ageKey][session]{daily,weekly}`, `earlyBird`,
+  `stdFunded{below3,above3}`), so `computeQuote` is unchanged. Public `GET /fee-config` returns the bundle
+  (`{branches, meta}`, keyed by slug, pinned to the default tenant); admin `GET /admin/fee-config` +
+  `PUT /admin/fee-config/{branch}` + `PUT /admin/fee-config` (meta) under `branches.manage`, edited at
+  **`/admin/fees`** (branch tabs → age-group×session rate grid + early-bird + funded top-up + ancillary
+  pricing). `cmd/seedfees` (`make seed-fees`, idempotent `$setOnInsert`, embeds the canonical schedule,
+  maps display keys → slugs e.g. "pinner green"→"pinner-green"). `FeeCalculatorCard` fetches the bundle on
+  mount and **falls back to the still-bundled `lib/fee-data.json`** if the request fails, so the public
+  calculator never breaks. Tests: `SUI-FEES-001` (public bundle + admin round-trip on a throwaway branch).
+
+- **Branch templates (T1, delivered):** reusable branch-setup presets so a new branch's rooms are created in
+  one step instead of by hand. `branch_templates` (`models/branch_template.go`, tenant-scoped: name +
+  description + `rooms[]` presets {name/code/age_range/min-max_age_months/capacity/staff_ratio}) with
+  repo/service/handler admin CRUD at **`/admin/branch-templates`** (`branches.manage`, Organisation nav).
+  `POST .../{id}/apply` `{branch_slug}` creates the template's rooms on the target branch (skips rooms whose
+  name already exists — non-destructive, re-runnable); `POST .../from-branch` captures an existing branch's
+  rooms into a new template. The service reuses the shared `RoomService`/`BranchService` (hoisted in
+  `server.go`), so room validation/guards apply. Tests: `SUI-BRANCHTPL-001` (create → apply to a fresh test
+  branch → rooms verified).
+
+- **Email templates (T1, delivered):** per-org editable transactional-email copy, **opt-in**: a template
+  only overrides the built-in default once an admin customises it, so existing emails are unchanged.
+  `email_templates` (`models/email_template.go`, tenant-scoped, keyed by `key`; catalogue =
+  `EmailTemplateCatalogue`, currently `enquiry_acknowledgement`) stores an editable `subject` + `body` (the
+  message text with `{{placeholders}}`; the service wraps it in the branded Blue Nest shell so admins never
+  edit raw layout). `emailTemplateService.Render(ctx, key, vars)` substitutes placeholders (HTML-escaping
+  values into the body to prevent injection) and returns `ok=false` when no custom template exists.
+  `enquiryService` resolves the acknowledgement email **synchronously before the async send goroutine**
+  (request ctx is still valid for the org-scoped lookup) and falls back to the hardcoded copy. Admin CRUD at
+  **`/admin/email-templates`** (`branches.manage`, Organisation nav): pick a template, edit subject/body with
+  a variable reference, or revert to default. Tests: `SUI-EMAILTPL-001` (customise + revert round-trip).
 
 - **Leave / holiday requests (HR module, Phases 1–4 DELIVERED):** staff apply for time off and a
   **different** manager (four-eyes) approves or declines it. `models/leave_request.go`

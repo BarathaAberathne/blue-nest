@@ -1149,6 +1149,8 @@ export interface TaxonomyTerm {
   label: string;
   start_time?: string; // session_type only, "HH:MM"
   end_time?: string;
+  min_age_months?: number; // age_group only
+  max_age_months?: number; // age_group only, 0 = unbounded top band
   sort_order: number;
   active: boolean;
   created_at?: string;
@@ -1162,8 +1164,85 @@ export interface TaxonomyInput {
   label: string;
   start_time?: string;
   end_time?: string;
+  min_age_months?: number;
+  max_age_months?: number;
   sort_order?: number;
   active?: boolean;
+}
+
+// ── Fee / funding configuration (public fee calculator) ──────────────────────
+export interface FeeSessionRate {
+  daily: number;
+  weekly: number;
+}
+export interface FeeBranchConfig {
+  branch_slug?: string;
+  ageGroups?: Record<string, Record<string, FeeSessionRate>>;
+  earlyBird?: number;
+  stdFunded?: Record<string, Record<string, number>>;
+}
+export interface FeeMeta {
+  extraHour?: number;
+  swapSession?: number;
+  lateFeePerMinute?: number;
+  note: string;
+}
+export interface FeeConfigBundle {
+  branches: Record<string, FeeBranchConfig>;
+  meta?: FeeMeta;
+}
+export interface FeeConfigInput {
+  ageGroups: Record<string, Record<string, FeeSessionRate>>;
+  earlyBird: number;
+  stdFunded: Record<string, Record<string, number>>;
+}
+
+// ── Branch templates (reusable branch setup) ─────────────────────────────────
+export interface BranchTemplateRoom {
+  name: string;
+  code?: string;
+  age_range?: string;
+  min_age_months?: number;
+  max_age_months?: number;
+  capacity?: number;
+  staff_ratio?: number;
+}
+export interface BranchTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  rooms: BranchTemplateRoom[];
+  age_groups?: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+export interface BranchTemplateInput {
+  name: string;
+  description?: string;
+  rooms: BranchTemplateRoom[];
+  age_groups?: string[];
+}
+export interface BranchTemplateApplyResult {
+  branch_slug: string;
+  rooms_created: number;
+  skipped?: string[];
+}
+
+// ── Email templates (editable transactional email copy) ──────────────────────
+export interface EmailTemplate {
+  key: string;
+  label: string;
+  description: string;
+  variables: string[];
+  default_subject: string;
+  default_body: string;
+  customized: boolean;
+  subject: string;
+  body: string;
+}
+export interface EmailTemplateInput {
+  subject: string;
+  body: string;
 }
 
 // ── In-app notifications ─────────────────────────────────────────────────────

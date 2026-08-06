@@ -58,6 +58,22 @@ func defaults() []term {
 	}
 }
 
+// ageGroup is one default age band. Bounds in months; max 0 = unbounded top.
+type ageGroup struct {
+	code, label    string
+	min, max, sort int
+}
+
+// ageDefaults reproduce the previous hardcoded child-stats buckets EXACTLY so
+// existing figures are unchanged: Under 2 = <24m, 2–3 years = 24–36m, 3+ = 36m+.
+func ageDefaults() []ageGroup {
+	return []ageGroup{
+		{"under_2", "Under 2", 0, 24, 1},
+		{"2_3", "2–3 years", 24, 36, 2},
+		{"3_plus", "3+ years", 36, 0, 3},
+	}
+}
+
 func main() {
 	cfg := config.Load()
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -108,6 +124,25 @@ func main() {
 			}, options.Update().SetUpsert(true))
 			if err != nil {
 				log.Fatalf("upsert %s/%s: %v", t.category, t.code, err)
+			}
+			if res.UpsertedCount > 0 {
+				inserted++
+			} else {
+				kept++
+			}
+		}
+		// Age bands (carry min/max age in months instead of times).
+		for _, a := range ageDefaults() {
+			filter := bson.M{"org_id": orgID, "branch_slug": "", "category": models.TaxonomyAgeGroup, "code": a.code}
+			res, err := coll.UpdateOne(ctx, filter, bson.M{
+				"$setOnInsert": bson.M{
+					"org_id": orgID, "branch_slug": "", "category": models.TaxonomyAgeGroup, "code": a.code,
+					"label": a.label, "min_age_months": a.min, "max_age_months": a.max,
+					"sort_order": a.sort, "active": true, "created_at": now, "updated_at": now,
+				},
+			}, options.Update().SetUpsert(true))
+			if err != nil {
+				log.Fatalf("upsert age_group/%s: %v", a.code, err)
 			}
 			if res.UpsertedCount > 0 {
 				inserted++
