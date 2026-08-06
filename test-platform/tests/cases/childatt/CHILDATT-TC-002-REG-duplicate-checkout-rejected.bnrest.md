@@ -26,21 +26,21 @@ cycle, independent of the other cases.
 Given Post /api/v1/admin/attendance/check-in Into checkedIn Using adminSession.accessToken
 {
   "child_id": "${child.body.data.id}",
-  "date": "2027-03-17"
+  "date": "${today("+30w+2d")}"
 }
 Then AssertStatus checkedIn 200
 
 When Post /api/v1/admin/attendance/check-out Into checkedOut Using adminSession.accessToken
 {
   "child_id": "${child.body.data.id}",
-  "date": "2027-03-17"
+  "date": "${today("+30w+2d")}"
 }
 Then AssertStatus checkedOut 200
 
 When Post /api/v1/admin/attendance/check-out Into rejected Using adminSession.accessToken
 {
   "child_id": "${child.body.data.id}",
-  "date": "2027-03-17"
+  "date": "${today("+30w+2d")}"
 }
 Then AssertStatus rejected 400
 And AssertJson rejected $.body.error contains "already checked out"

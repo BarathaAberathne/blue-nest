@@ -30,7 +30,7 @@ Reads the shared `adminSession`/`child` suite fixtures — see
 Given Post /api/v1/admin/attendance/check-in Into checked Using adminSession.accessToken
 {
   "child_id": "${child.body.data.id}",
-  "date": "2027-03-18"
+  "date": "${today("+30w+3d")}"
 }
 Then AssertStatus checked 200
 And Assert checked.body.data.status == "present"

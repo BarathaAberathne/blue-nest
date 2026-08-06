@@ -25,7 +25,7 @@ Verified the real handler always returns 400 for any service error here
 Given Post /api/v1/admin/attendance/check-in Into rejected Using adminSession.accessToken
 {
   "child_id": "000000000000000000000000",
-  "date": "2027-03-15"
+  "date": "${today("+30w")}"
 }
 Then AssertStatus rejected 400
 ```

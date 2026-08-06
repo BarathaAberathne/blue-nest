@@ -29,7 +29,7 @@ Post /api/v1/admin/children Into fixture Using adminSession.accessToken
 {
   "first_name": "QA-AUTOTEST",
   "last_name": "SafetyWipeCheck-${random()}",
-  "dob": "2026-03-01",
+  "dob": "${today("-5m")}",
   "branch_slug": "${branch.slug}",
   "allergies": "Peanuts - severe",
   "medical_notes": "EpiPen in bag",

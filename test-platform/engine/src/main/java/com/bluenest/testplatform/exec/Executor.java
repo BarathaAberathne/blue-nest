@@ -290,7 +290,10 @@ public final class Executor {
         JsonNode root = scope.getRoot(s.subjectVar);
         String jsonPathExpr = new TemplateSubstitutor(scope, ctx.secretResolver).substitute(s.args.get(0));
         String op = s.args.get(1);
-        String expectedLiteral = s.args.get(2);
+        // The expected value may reference variables/functions (e.g. a date the
+        // test submitted as ${today("+1m")}) — substitute like the path; plain
+        // literals pass through unchanged.
+        String expectedLiteral = new TemplateSubstitutor(scope, ctx.secretResolver).substitute(s.args.get(2));
         Object actual;
         try {
             actual = JsonPath.read(VariableScope.mapper().writeValueAsString(root), jsonPathExpr);

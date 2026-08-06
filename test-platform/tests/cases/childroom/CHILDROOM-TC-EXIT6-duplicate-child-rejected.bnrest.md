@@ -30,7 +30,7 @@ Given Post /api/v1/admin/children Into first Using adminSession.accessToken
 {
   "first_name": "QA-AUTOTEST",
   "last_name": "DupeChild-${dupSuffix}",
-  "dob": "2023-05-01",
+  "dob": "${today("-3y")}",
   "branch_slug": "${branch.slug}"
 }
 Then AssertStatus first 201
@@ -39,7 +39,7 @@ When Post /api/v1/admin/children Into rejected Using adminSession.accessToken
 {
   "first_name": "QA-AUTOTEST",
   "last_name": "DupeChild-${dupSuffix}",
-  "dob": "2023-05-01",
+  "dob": "${today("-3y")}",
   "branch_slug": "${branch.slug}"
 }
 Then AssertStatus rejected 400
@@ -49,7 +49,7 @@ When Post /api/v1/admin/children Into different Using adminSession.accessToken
 {
   "first_name": "QA-AUTOTEST",
   "last_name": "DupeChild-${dupSuffix}",
-  "dob": "2024-01-01",
+  "dob": "${today("-30m")}",
   "branch_slug": "${branch.slug}"
 }
 Then AssertStatus different 201

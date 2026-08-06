@@ -24,7 +24,7 @@ shared `adminSession`/`staff` suite fixtures — see `SUI-ATT-001`.
 Given Post /api/v1/admin/staff-attendance/clock-in Into clocked Using adminSession.accessToken
 {
   "staff_id": "${staff.body.data.id}",
-  "date": "2027-04-12"
+  "date": "${today("+32w")}"
 }
 Then AssertStatus clocked 200
 And Assert clocked.body.data.status == "present"

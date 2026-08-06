@@ -65,7 +65,7 @@ Call ../../utils/child/CHILD-UTIL-003-create-child-direct.bnrest.md With Json In
   "branchSlug": "${branch.slug}",
   "firstName": "QA-AUTOTEST",
   "lastName": "Key004ChildA-${staffSuffix}",
-  "dob": "2023-05-01"
+  "dob": "${today("-3y")}"
 }
 
 Call ../../utils/child/CHILD-UTIL-003-create-child-direct.bnrest.md With Json Into childB
@@ -74,7 +74,7 @@ Call ../../utils/child/CHILD-UTIL-003-create-child-direct.bnrest.md With Json In
   "branchSlug": "${branch.slug}",
   "firstName": "QA-AUTOTEST",
   "lastName": "Key004ChildB-${staffSuffix}",
-  "dob": "2023-05-01"
+  "dob": "${today("-3y")}"
 }
 
 Body

@@ -49,7 +49,7 @@ And Assert exported.body.data.status == "ordered"
 When Patch /api/v1/admin/purchase-carts/${cart.id}/fulfillment Into fulfillment Using adminSession.accessToken
 {
   "tracking_number": "QA-AUTOTEST-TRACK-002",
-  "expected_delivery_date": "2027-08-01T00:00:00Z"
+  "expected_delivery_date": "${today("+2m")}T00:00:00Z"
 }
 Then AssertStatus fulfillment 200
 And Assert fulfillment.body.data.tracking_number == "QA-AUTOTEST-TRACK-002"

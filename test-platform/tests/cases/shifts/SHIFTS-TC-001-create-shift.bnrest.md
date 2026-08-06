@@ -28,7 +28,7 @@ Given Post /api/v1/admin/shifts Into shift Using adminSession.accessToken
   "staff_id": "${staff.id}",
   "branch_slug": "${branch.slug}",
   "room_id": "${room.id}",
-  "date": "2027-06-07",
+  "date": "${monday("+20w")}",
   "start_time": "09:00",
   "end_time": "17:00"
 }

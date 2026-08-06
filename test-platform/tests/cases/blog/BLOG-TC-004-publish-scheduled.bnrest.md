@@ -30,7 +30,7 @@ Given Post /api/v1/admin/blog/posts Into due Using adminSession.accessToken
   "body": "Body",
   "author_name": "QA-AUTOTEST",
   "published": false,
-  "scheduled_at": "2020-01-01T00:00:00Z"
+  "scheduled_at": "${today("-1y")}T00:00:00Z"
 }
 Then AssertStatus due 201
 

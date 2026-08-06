@@ -33,6 +33,6 @@ Then AssertStatus enquiries 200
 When Get /api/v1/admin/leave-requests/export Into leave Using adminSession.accessToken
 Then AssertStatus leave 200
 
-When Get /api/v1/admin/staff-attendance/export?date=2026-08-04&branch=harrow Into att Using adminSession.accessToken
+When Get /api/v1/admin/staff-attendance/export?date=${today()}&branch=harrow Into att Using adminSession.accessToken
 Then AssertStatus att 200
 ```

@@ -81,4 +81,9 @@ func TestPlacementResolverIsDateAware(t *testing.T) {
 	if got := r.roomOn("unknown", "2026-09-07"); got != "" {
 		t.Fatalf("unplaced child must resolve to empty, got %q", got)
 	}
+	// Dates BEFORE the first placement resolve retroactively to it — a child
+	// placed mid-week still counts across the whole displayed week.
+	if got := r.roomOn("c1", "2026-08-03"); got != "kindergarten" {
+		t.Fatalf("pre-placement date must resolve to the earliest placement, got %q", got)
+	}
 }

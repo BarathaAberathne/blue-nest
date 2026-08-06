@@ -27,12 +27,12 @@ straight after, exactly like the legacy `EnquiryRegistrationSuite` had to.
 Inputs: `input.accessToken`, `input.enquiryId`, `input.branchSlug`,
 `input.firstName`, `input.lastName`, `input.dob`, `input.ageGroup`,
 `input.fundingType`, `input.expectedStartDate` (RFC3339, e.g.
-`2026-09-01T00:00:00Z`).
+`${today("+1m")}T00:00:00Z`).
 
 ```bnrest
 Post /api/v1/admin/enquiries/${input.enquiryId}/register Into registered Using input.accessToken
 {
-  "registration_date": "2026-07-23T00:00:00Z",
+  "registration_date": "${today("-1w")}T00:00:00Z",
   "expected_start_date": "${input.expectedStartDate}",
   "child_age_group": "${input.ageGroup}",
   "funding_type": "${input.fundingType}",

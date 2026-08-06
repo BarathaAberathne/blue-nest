@@ -603,11 +603,19 @@ func newPlacementResolver(rows []models.ChildRoomAssignment) *placementResolver 
 }
 
 // roomOn returns the child's room id as of date (YYYY-MM-DD), "" if unplaced.
+// Dates before the child's FIRST placement resolve to that earliest placement
+// (retroactive): the planner is a planning surface, so a child placed mid-week
+// still counts across the whole displayed week — only a scheduled TRANSFER
+// flips rooms at its effective date.
 func (p *placementResolver) roomOn(childID, date string) string {
-	for _, r := range p.byChild[childID] {
+	rows := p.byChild[childID]
+	for _, r := range rows {
 		if r.StartDate == "" || r.StartDate <= date {
 			return r.RoomID
 		}
+	}
+	if len(rows) > 0 {
+		return rows[len(rows)-1].RoomID // earliest placement, applied retroactively
 	}
 	return ""
 }

@@ -25,14 +25,14 @@ Reads the shared `adminSession`/`staff` suite fixtures — see
 Given Post /api/v1/admin/staff-attendance/clock-in Into first Using adminSession.accessToken
 {
   "staff_id": "${staff.body.data.id}",
-  "date": "2027-04-13"
+  "date": "${today("+32w+1d")}"
 }
 Then AssertStatus first 200
 
 When Post /api/v1/admin/staff-attendance/clock-in Into rejected Using adminSession.accessToken
 {
   "staff_id": "${staff.body.data.id}",
-  "date": "2027-04-13"
+  "date": "${today("+32w+1d")}"
 }
 Then AssertStatus rejected 400
 And AssertJson rejected $.body.error contains "already clocked in"

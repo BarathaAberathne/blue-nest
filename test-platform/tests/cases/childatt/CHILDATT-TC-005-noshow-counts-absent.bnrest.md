@@ -27,7 +27,7 @@ its own scoped branch — so `present` is 0 and `absent` must be at least 1.
 Reads the shared `adminSession`/`branch` fixtures — see `SUI-ATT-001`.
 
 ```bnrest
-Given Get /api/v1/admin/attendance/today?date=2027-05-15&branch=${branch.slug} Into today Using adminSession.accessToken
+Given Get /api/v1/admin/attendance/today?date=${today("+38w")}&branch=${branch.slug} Into today Using adminSession.accessToken
 Then AssertStatus today 200
 And Assert today.body.data.expected >= 1
 And Assert today.body.data.present == 0

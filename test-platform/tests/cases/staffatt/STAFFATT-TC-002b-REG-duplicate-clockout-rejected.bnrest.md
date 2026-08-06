@@ -26,21 +26,21 @@ cycle.
 Given Post /api/v1/admin/staff-attendance/clock-in Into clockedIn Using adminSession.accessToken
 {
   "staff_id": "${staff.body.data.id}",
-  "date": "2027-04-14"
+  "date": "${today("+32w+2d")}"
 }
 Then AssertStatus clockedIn 200
 
 When Post /api/v1/admin/staff-attendance/clock-out Into clockedOut Using adminSession.accessToken
 {
   "staff_id": "${staff.body.data.id}",
-  "date": "2027-04-14"
+  "date": "${today("+32w+2d")}"
 }
 Then AssertStatus clockedOut 200
 
 When Post /api/v1/admin/staff-attendance/clock-out Into rejected Using adminSession.accessToken
 {
   "staff_id": "${staff.body.data.id}",
-  "date": "2027-04-14"
+  "date": "${today("+32w+2d")}"
 }
 Then AssertStatus rejected 400
 And AssertJson rejected $.body.error contains "already clocked out"
