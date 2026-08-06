@@ -226,7 +226,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
         <div className="card grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
           <Field label="First name"><input value={form.first_name} onChange={(e) => setField({ first_name: e.target.value })} className="inp" /></Field>
           <Field label="Last name"><input value={form.last_name} onChange={(e) => setField({ last_name: e.target.value })} className="inp" /></Field>
-          <Field label="Date of birth"><input type="date" value={form.dob} onChange={(e) => setField({ dob: e.target.value })} className="inp" /></Field>
+          <Field label="Date of birth"><input type="date" max={new Date().toISOString().slice(0, 10)} value={form.dob} onChange={(e) => setField({ dob: e.target.value })} className="inp" /></Field>
           <Field label="Gender">
             <select value={form.gender} onChange={(e) => setField({ gender: e.target.value })} className="inp bg-white">
               <option value="">—</option><option value="female">Female</option><option value="male">Male</option><option value="other">Other</option>

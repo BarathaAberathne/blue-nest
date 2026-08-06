@@ -435,7 +435,7 @@ export default function AdminInquiryDetailClient({ id }: { id: string }) {
               <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Child&apos;s last name *</span>
                 <input type="text" value={reg.child_last_name} onChange={(ev) => setReg({ ...reg, child_last_name: ev.target.value })} placeholder="e.g. Saxena" className={inputCls} /></label>
               <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Date of birth *</span>
-                <input type="date" value={reg.child_dob} onChange={(ev) => setReg({ ...reg, child_dob: ev.target.value })} className={inputCls} /></label>
+                <input type="date" max={new Date().toISOString().slice(0, 10)} value={reg.child_dob} onChange={(ev) => setReg({ ...reg, child_dob: ev.target.value })} className={inputCls} /></label>
               <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Gender</span>
                 <input type="text" value={reg.child_gender} onChange={(ev) => setReg({ ...reg, child_gender: ev.target.value })} placeholder="Optional" className={inputCls} /></label>
               <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Registration date</span>

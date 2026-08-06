@@ -249,6 +249,23 @@ func (s *childService) duplicateChild(ctx context.Context, branch string, c *mod
 	return false, nil
 }
 
+// dobNotInFuture rejects a date of birth after today — a child cannot be born
+// in the future. Catches year-typo registrations before they create a record.
+func dobNotInFuture(dob string) error {
+	d := strings.TrimSpace(dob)
+	if d == "" {
+		return nil
+	}
+	t, err := time.Parse("2006-01-02", d)
+	if err != nil {
+		return errors.New("date of birth must be YYYY-MM-DD")
+	}
+	if t.After(time.Now()) {
+		return errors.New("date of birth cannot be in the future")
+	}
+	return nil
+}
+
 func (s *childService) Create(ctx context.Context, req models.ChildRequest) (*models.Child, error) {
 	if strings.TrimSpace(req.FirstName) == "" || strings.TrimSpace(req.LastName) == "" {
 		return nil, errors.New("child first and last name are required")
@@ -258,6 +275,9 @@ func (s *childService) Create(ctx context.Context, req models.ChildRequest) (*mo
 	}
 	if req.Status != "" && !models.IsValidChildStatus(req.Status) {
 		return nil, errors.New("invalid child status")
+	}
+	if err := dobNotInFuture(req.DOB); err != nil {
+		return nil, err
 	}
 	c := &models.Child{Status: models.ChildActive, FundingType: models.FundingNone}
 	applyChild(c, req)
@@ -282,6 +302,9 @@ func (s *childService) Create(ctx context.Context, req models.ChildRequest) (*mo
 func (s *childService) Update(ctx context.Context, id string, req models.ChildRequest) (*models.Child, error) {
 	if req.Status != "" && !models.IsValidChildStatus(req.Status) {
 		return nil, errors.New("invalid child status")
+	}
+	if err := dobNotInFuture(req.DOB); err != nil {
+		return nil, err
 	}
 	existing, err := s.repo.FindByID(ctx, id)
 	if err != nil {
@@ -314,6 +337,9 @@ func (s *childService) Delete(ctx context.Context, id string) error {
 }
 
 func (s *childService) EnsureFromEnquiry(ctx context.Context, enquiryID string, req models.ChildRequest) (*models.Child, error) {
+	if err := dobNotInFuture(req.DOB); err != nil {
+		return nil, err
+	}
 	if existing, err := s.repo.FindByEnquiryID(ctx, enquiryID); err == nil && existing != nil {
 		return existing, nil // already linked — idempotent
 	}
