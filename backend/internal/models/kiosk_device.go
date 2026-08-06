@@ -38,6 +38,10 @@ type KioskSession struct {
 	DeviceName string `json:"device_name"`
 	BranchSlug string `json:"branch_slug"`
 	BranchName string `json:"branch_name"`
+	// OrgID is the device's tenant — internal only (never sent to the tablet).
+	// KioskAuth re-pins the request context to it so every kiosk operation
+	// reads/writes the device's own organisation, not the default tenant.
+	OrgID string `json:"-"`
 }
 
 // KioskRecentCheckIn is one row in the "Recently Checked In" strip.
