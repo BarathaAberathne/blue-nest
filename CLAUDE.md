@@ -594,6 +594,16 @@ Ordering), then full inventory/stock.
   server endpoints are ready to unify them + power future Excel/PDF). Tests: `SUI-EXPORT-001`. CSV only for
   now (dependency-free); Excel/PDF are the follow-up under Phase E.
 
+- **Notification email delivery (delivered, opt-in):** in-app notifications (leave apply/approve/decline,
+  daily-log approvals, safeguarding, etc. via `notificationService.NotifyMany`) now also **email** each
+  recipient. `NotifyMany` creates the in-app rows then best-effort `deliverEmails`: resolves each recipient's
+  email in the caller's org ctx and sends asynchronously (never blocks the underlying action). The body is
+  HTML-escaped and wrapped in the branded shell (`wrapEmailShell`); a relative `Link` is resolved to an
+  absolute URL from `FRONTEND_URL`. **Opt-in via `NOTIFY_EMAIL_ENABLED`** (default false, so dev/test never
+  sends real mail through the configured SMTP; **prod must set it true**). Wired in `server.go` via
+  `NewNotificationServiceWithEmail(repo, mailer, users, frontendURL, enabled)`. Per-type / per-user delivery
+  preferences are a future refinement. Tests: `notification_test.go` (escaping + absolute link + disabled-is-safe).
+
 ## Procurement Management module — roadmap (Phases 1–4 DELIVERED)
 Goal: turn the procurement pieces into one connected **Procurement Management** module so the journey
 feels like a single process: **Supply Request → Approve → Purchase Order → Place → Track → Receive →

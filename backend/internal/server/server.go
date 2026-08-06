@@ -112,7 +112,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	staffRoomAssignSvc := service.NewStaffRoomAssignmentService(staffRoomAssignRepo, staffRepo, roomRepo)
 	childRoomAssignSvc := service.NewChildRoomAssignmentService(childRoomAssignRepo, childRepo, roomRepo, staffRoomAssignRepo, attendanceRepo)
 	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo, staffRoomAssignRepo, termRepo)
-	notifSvc := service.NewNotificationService(notificationRepo)
+	notifSvc := service.NewNotificationServiceWithEmail(notificationRepo, mailer, userRepo, cfg.FrontendURL, cfg.NotifyEmailEnabled)
 	roleSvc := service.NewRoleService(roleRepo)
 	orgSvc := service.NewOrganisationService(orgRepo, authSvc, roleSvc)
 	// Resolve the default tenant for public/unauthenticated requests. Empty until
