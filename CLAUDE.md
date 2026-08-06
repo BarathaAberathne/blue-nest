@@ -597,6 +597,33 @@ Amazon Business API (Product Search → Cart → Ordering), then full inventory/
   + Staff keep their existing client-side CSV; the server endpoints are ready to unify them). Tests:
   `SUI-EXPORT-001`. PDF is the remaining Phase E follow-up.
 
+- **Multi-tenant hardening pass (delivered — found by the full live-UI E2E run in a fresh org):** six real
+  defects fixed, each regression-locked. (1) **Branch slugs are unique per org, not globally** — the legacy
+  pre-tenancy `uniq_branch_slug` index blocked any second tenant from owning "harrow"; now a compound
+  `{org_id, slug}` index (`uniq_branch_slug_per_org`, ensured by `NewBranchRepository` at boot, legacy index
+  dropped) + `mongo.IsDuplicateKeyError` mapped to the friendly message (locked by `USER-TC-010`).
+  (2) **Branch dropdown tenancy leak** — ten admin pages (rooms/children/staff/users/daily-log/attendance/
+  room-planner/my-requests + both detail pages) fed their branch selectors from the PUBLIC default-org
+  `api.getBranches()`, showing another tenant's branch names; all switched to the scoped
+  `api.adminGetBranches(token)`. The enquiries page's hardcoded `BRANCH_OPTIONS` array is gone too (scoped
+  fetch). (3) **Fees editor unusable for new branches/orgs** — `/admin/fees` only tabbed branches that
+  already had a fee_config doc; it now unions the org's real branches and starts an empty draft (canonical
+  `0-2/2-3/3-5` bands or an existing branch's shape) for unconfigured ones. (4) **Staff-attendance timezone**
+  — every wall-clock comparison (correction time input, 09:00 late threshold, shift late/overtime deltas,
+  "today" boundaries, export HH:MM rendering) ran in the SERVER's zone (UTC in Docker), shifting BST times
+  by an hour; the service now resolves the org's `Settings.Timezone` (`orgLocation`, cached; constructor
+  takes the org repo) and interprets all wall-clock maths in it (locked by `staff_attendance_tz_test.go`).
+  (5) **Kiosk was default-tenant-only** — `/kiosk` routes run unauthenticated under `DefaultTenant`, so a
+  non-default org's device token could never pair; the device token is now a platform-wide identity (like
+  `users.email` at login): `Authenticate` matches cross-org and `middleware.KioskAuth` re-pins the request
+  context to the device's org (`KioskSession.OrgID`, internal-only). (6) **Staff couldn't read their own
+  notifications** — `/admin/notifications` sat behind a management permission while leave/daily-log flows
+  notify staff; the three routes (handler already scopes to the JWT user) moved to the plain authenticated
+  group (locked in `ME-TC-002`). Also new: **`/admin/branches` has a "New branch" modal** (the create API +
+  `adminCreateBranch` existed with no UI). Local-only artefact of the run: a second org `bluenest-e2e`
+  (admin `e2e.admin@bluenest.uk`) with one Harrow branch + full lifecycle data — harmless test data, never
+  on prod. **Organisation creation still has NO UI** (API-only, `PlatformOnly`) — a platform-admin console
+  is an open roadmap item.
 - **Notification email delivery (delivered, opt-in):** in-app notifications (leave apply/approve/decline,
   daily-log approvals, safeguarding, etc. via `notificationService.NotifyMany`) now also **email** each
   recipient. `NotifyMany` creates the in-app rows then best-effort `deliverEmails`: resolves each recipient's
