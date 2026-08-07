@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AlertTriangle, Bell, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Pencil, Plane, Plus, Save, Trash2, UserCircle, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
@@ -35,9 +36,14 @@ function daysUntil(d?: string) {
   return Math.ceil((t - Date.now()) / 86_400_000);
 }
 
+const isTab = (v: string | null): v is Tab => TABS.some((t) => t.key === v);
+
 export default function ProfileClient() {
   const token = typeof window !== "undefined" ? getAccessToken() : "";
-  const [tab, setTab] = useState<Tab>("profile");
+  const searchParams = useSearchParams();
+  // ?tab=leave deep-links a tab (used by leave notifications).
+  const initialTab = isTab(searchParams.get("tab")) ? (searchParams.get("tab") as Tab) : "profile";
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [me, setMe] = useState<Staff | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

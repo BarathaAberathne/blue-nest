@@ -308,9 +308,10 @@ export default function FeeCalculatorCard({
 
   // The chip roster is the org's configured fee branches (from the live
   // bundle), so a branch added in the admin shows up here automatically; the
-  // static roster only covers the fallback render.
+  // static roster only covers the fallback render. The backend bundle only
+  // serves real, non-archived branches, so no client-side filtering is needed.
   const branchRoster: BranchProp[] = (() => {
-    const keys = Object.keys(branches).filter((k) => !k.startsWith("qa"));
+    const keys = Object.keys(branches);
     const order = (k: string) => { const i = FALLBACK_ROSTER.indexOf(k); return i === -1 ? 999 : i; };
     return keys.length > 0 ? [...keys].sort((a, b) => order(a) - order(b) || a.localeCompare(b)) : FALLBACK_ROSTER;
   })();

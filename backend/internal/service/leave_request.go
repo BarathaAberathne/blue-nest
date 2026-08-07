@@ -335,7 +335,7 @@ func (s *leaveRequestService) Approve(ctx context.Context, id, actorUserID, acto
 			Type:       models.NotifLeaveApproved,
 			Title:      "Leave approved",
 			Body:       leaveTypeLabel(lr.Type) + " · " + lr.StartDate + " → " + lr.EndDate + " approved by " + actorName,
-			Link:       "/admin/my-leave",
+			Link:       "/admin/profile?tab=leave",
 			EntityType: "leave_request",
 			EntityID:   lr.ID.Hex(),
 		})
@@ -372,7 +372,7 @@ func (s *leaveRequestService) Decline(ctx context.Context, id, reason, actorUser
 			Type:       models.NotifLeaveDeclined,
 			Title:      "Leave declined",
 			Body:       leaveTypeLabel(lr.Type) + " · " + lr.StartDate + " → " + lr.EndDate + " declined: " + reason,
-			Link:       "/admin/my-leave",
+			Link:       "/admin/profile?tab=leave",
 			EntityType: "leave_request",
 			EntityID:   lr.ID.Hex(),
 		})
