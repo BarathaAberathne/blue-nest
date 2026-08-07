@@ -17,13 +17,13 @@ import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/our-team" },
-  title: "Our Team — Montessori Educators in Harrow, Pinner & Borehamwood",
+  title: "Our Team — Montessori Educators in Harrow, Pinner, Borehamwood & Aldershot",
   description:
-    "Meet the Blue Nest Montessori team — Montessori-trained, EYFS-qualified, enhanced-DBS-checked and paediatric-first-aid certified educators across our Harrow, Pinner and Borehamwood nurseries. Careers and apprenticeships also welcome.",
+    "Meet the Blue Nest Montessori team — Montessori-trained, EYFS-qualified, enhanced-DBS-checked and paediatric-first-aid certified educators across our Harrow, Pinner, Borehamwood and Aldershot nurseries. Careers and apprenticeships also welcome.",
   openGraph: {
     title: "Our Team — Blue Nest Montessori School",
     description:
-      "Meet our qualified, DBS-checked educators dedicated to every child's development across Harrow, Pinner and Borehamwood.",
+      "Meet our qualified, DBS-checked educators dedicated to every child's development across Harrow, Pinner, Borehamwood and Aldershot.",
     url: "/our-team",
     images: [{ url: "/home/montessori-learning.jpeg", width: 1280, height: 854, alt: "Blue Nest Montessori team" }],
     type: "website",
@@ -643,7 +643,7 @@ export default function OurTeamPage() {
               <div className="body-text mt-5 space-y-5">
                 <p>
                   We&rsquo;re always looking for passionate early-years practitioners who love
-                  Montessori learning. Roles open up across our Harrow, Pinner and Borehamwood
+                  Montessori learning. Roles open up across our Harrow, Pinner, Borehamwood and Aldershot
                   Montessori day nurseries — from Montessori-trained room leads and apprentices
                   to qualified EYFS practitioners and bank staff.
                 </p>

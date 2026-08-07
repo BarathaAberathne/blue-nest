@@ -12,11 +12,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/admission" },
   title: "Admission — Apply, Prospectus & Fees",
   description:
-    "Start your child's nursery journey at Blue Nest Montessori in Harrow, Pinner and Borehamwood. Download the prospectus, estimate fees with our calculator, or send your application online. We reply within one working day.",
+    "Start your child's nursery journey at Blue Nest Montessori in Harrow, Pinner, Borehamwood and Aldershot. Download the prospectus, estimate fees with our calculator, or send your application online. We reply within one working day.",
   openGraph: {
     title: "Admission — Blue Nest Montessori",
     description:
-      "Apply, view fees and download the prospectus for Blue Nest Montessori in Harrow, Pinner and Borehamwood.",
+      "Apply, view fees and download the prospectus for Blue Nest Montessori in Harrow, Pinner, Borehamwood and Aldershot.",
     url: "/admission",
     images: [{ url: "/home/branches/harrow/harrow-home-hero.jpg", width: 1920, height: 1440, alt: "Blue Nest Montessori admission" }],
     type: "website",
@@ -87,8 +87,8 @@ export default function AdmissionPage() {
               Admission
             </h1>
             <p className="body-text mt-5 max-w-xl !text-white/90">
-              We welcome children from 3 months to 5 years across our Harrow, Pinner
-              and Borehamwood branches. Places are limited — we recommend enquiring
+              We welcome children from 3 months to 5 years across our Harrow, Pinner,
+              Borehamwood and Aldershot branches. Places are limited — we recommend enquiring
               early to avoid disappointment.
             </p>
           </Reveal>
@@ -156,7 +156,7 @@ export default function AdmissionPage() {
 
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { icon: Eye,          color: "#cf7d9c", bg: "rgba(246,213,223,0.35)", n: "01", t: "Visit",      d: "Come and meet our team in Harrow, Pinner or Borehamwood. See the prepared environments, ask any questions and feel the atmosphere of a Montessori day." },
+              { icon: Eye,          color: "#cf7d9c", bg: "rgba(246,213,223,0.35)", n: "01", t: "Visit",      d: "Come and meet our team in Harrow, Pinner, Borehamwood or Aldershot. See the prepared environments, ask any questions and feel the atmosphere of a Montessori day." },
               { icon: ClipboardList,color: "#5fc8c7", bg: "rgba(127,216,210,0.18)", n: "02", t: "Apply",      d: "Send your online application — choose your branch, preferred start week and sessions. We confirm within two working days." },
               { icon: Heart,        color: "#f0bd55", bg: "rgba(247,215,116,0.22)", n: "03", t: "Settle in", d: "We design a gentle settling-in plan around your child — short visits, a familiar key person and a slow ramp into full sessions." },
               { icon: CalendarDays, color: "#b89bdd", bg: "rgba(185,159,224,0.20)", n: "04", t: "Start",     d: "Your child joins their Blue Nest classroom for their full week of sessions, ready to learn, play and grow." },
@@ -208,7 +208,7 @@ export default function AdmissionPage() {
                 <Link href="/admission/holiday-club" className="underline decoration-[var(--rose)]/60 underline-offset-4 hover:text-[var(--ink)]">
                   holiday club
                 </Link>{" "}
-                runs at Harrow, Pinner and Borehamwood for ages 2-5.
+                runs at Harrow, Pinner, Borehamwood and Aldershot for ages 2-5.
               </p>
             </div>
           </Reveal>
@@ -227,7 +227,7 @@ export default function AdmissionPage() {
               <h2 className="section-title mt-4 text-[var(--ink)]">Start your child&rsquo;s Blue Nest journey</h2>
               <p className="body-text mx-auto mt-5 max-w-lg">
                 Children aged 3 months to 5 years — Montessori day nursery places in Harrow,
-                Pinner and Borehamwood. We reply within one working day.
+                Pinner, Borehamwood and Aldershot. We reply within one working day.
               </p>
               <div className="mt-8 flex flex-wrap justify-center gap-3">
                 <PastelButton href="/contact?enquiry=book-visit" variant="rose">

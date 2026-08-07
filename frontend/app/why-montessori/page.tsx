@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/why-montessori" },
   title: "Why Montessori — Play-Based Learning at Blue Nest",
   description:
-    "Why parents in Harrow, Pinner and Borehamwood choose Montessori. Compare Montessori vs traditional nursery, see how play-based learning supports independence, language development and school readiness, and discover Blue Nest's Montessori method.",
+    "Why parents in Harrow, Pinner, Borehamwood and Aldershot choose Montessori. Compare Montessori vs traditional nursery, see how play-based learning supports independence, language development and school readiness, and discover Blue Nest's Montessori method.",
   openGraph: {
     title: "Why Montessori — Blue Nest Montessori",
     description:
@@ -398,7 +398,7 @@ export default function WhyMontessoriPage() {
                 See Montessori in action
               </h2>
               <p className="body-text mx-auto mt-5 max-w-lg">
-                Book a visit at our Harrow, Pinner or Borehamwood nursery and watch a Montessori
+                Book a visit at our Harrow, Pinner, Borehamwood or Aldershot nursery and watch a Montessori
                 day unfold. We&rsquo;ll show you the prepared environments, introduce your child&rsquo;s
                 key person and talk you through fees and funded childcare.
               </p>

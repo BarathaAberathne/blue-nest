@@ -322,7 +322,7 @@ export default function Header() {
             <div className="col-span-2 flex items-center justify-between gap-3 border-t border-[var(--hdr-border-soft)] px-4 py-1.5">
               {/* Contact details */}
               <div className="flex items-center">
-                {branches.slice(0, 3).map((branch, i) => (
+                {branches.filter((b) => b.phone && !b.comingSoon).slice(0, 4).map((branch, i, shown) => (
                   <div key={branch.label} className="flex items-center">
                     <div className="flex items-center gap-1.5 px-3 text-[var(--ink)] first:pl-0">
                       <Phone className="h-3.5 w-3.5 shrink-0 text-[var(--hdr-accent)]" />
@@ -333,7 +333,7 @@ export default function Header() {
                         <p className="text-[0.82rem] font-semibold">{branch.phone}</p>
                       </div>
                     </div>
-                    {i < 2 && (
+                    {i < shown.length - 1 && (
                       <span className="h-5 w-px bg-[rgba(90,74,66,0.12)]" aria-hidden="true" />
                     )}
                   </div>

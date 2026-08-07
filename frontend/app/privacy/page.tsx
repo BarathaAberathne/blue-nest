@@ -26,7 +26,7 @@ export default function PrivacyPage() {
       <p>
         <strong>Blue Nest Montessori School</strong> (&ldquo;Blue Nest&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;) is the
         data controller for the personal information described in this policy. We operate Montessori day nurseries
-        across Harrow, Pinner, Borehamwood, Pinner Green and Northwood. This policy applies to all personal data we
+        across Harrow, Pinner, Borehamwood, Pinner Green, Northwood and Aldershot. This policy applies to all personal data we
         process — through our nurseries, our website at bluenest.uk and our supporting systems.
       </p>
 

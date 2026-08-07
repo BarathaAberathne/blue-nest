@@ -37,7 +37,7 @@ export default function AboutSection() {
                 At Blue Nest Montessori School, our day nursery offers a blend of structured learning and
                 play, guided by the Montessori method. We prioritise the EYFS curriculum in combination
                 with our own Montessori approach, giving your child the best of both worlds. We serve
-                families in Harrow, Pinner and Borehamwood.
+                families in Harrow, Pinner, Borehamwood and Aldershot.
               </p>
               <p>
                 Our private nursery runs five days a week, from 7:30 am to 6 pm — ideal for working

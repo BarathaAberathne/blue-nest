@@ -80,7 +80,7 @@ export default function HeroSection() {
           </span>
 
           <h1 className="section-title max-w-xl">
-            Montessori Nursery in Harrow, Pinner &amp; Borehamwood
+            Montessori Nursery in Harrow, Pinner, Borehamwood &amp; Aldershot
           </h1>
 
           <p className="font-heading text-[1.05rem] leading-snug text-[var(--ink)] max-w-lg sm:text-[1.22rem]">

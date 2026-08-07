@@ -408,7 +408,7 @@ export default function ApplicationFormClient() {
                 <div>
                   <span className="section-kicker">Admissions</span>
                   <h2 className="mt-3 font-heading text-[1.9rem] leading-tight text-[var(--ink)] sm:text-[2.1rem]">
-                    Affordable private nursery in Harrow, Pinner and Borehamwood
+                    Affordable private nursery in Harrow, Pinner, Borehamwood and Aldershot
                   </h2>
                 </div>
 

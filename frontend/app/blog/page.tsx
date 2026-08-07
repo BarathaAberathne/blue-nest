@@ -42,7 +42,7 @@ const TOPIC_CLUSTERS = [
     color: "#b89bdd",
     bg:    "rgba(185,159,224,0.20)",
     title: "Holiday club",
-    desc:  "School holiday childcare for ages 2-5 across Harrow, Pinner and Borehamwood.",
+    desc:  "School holiday childcare for ages 2-5 across Harrow, Pinner, Borehamwood and Aldershot.",
   },
 ];
 
@@ -82,7 +82,7 @@ export default function BlogPage() {
             </h1>
             <p className="body-text mt-4">
               Practical Montessori parenting guides, early years development tips, settling-in
-              advice, language milestones and stories from our Harrow, Pinner and Borehamwood
+              advice, language milestones and stories from our Harrow, Pinner, Borehamwood and Aldershot
               nurseries. Written by the Blue Nest team for families of children aged 3 months
               to 5 years.
             </p>

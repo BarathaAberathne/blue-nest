@@ -10,13 +10,13 @@ import { Reveal } from "@/components/ui/Motion";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/admission/our-fees" },
-  title: "Nursery Fees & Fee Calculator — Harrow, Pinner & Borehamwood",
+  title: "Nursery Fees & Fee Calculator — Harrow, Pinner, Borehamwood & Aldershot",
   description:
-    "Estimate your weekly and monthly nursery fees with our interactive Fee Calculator for Harrow, Pinner and Borehamwood. 15 and 30 hours funded childcare, sibling and staff discounts, childcare vouchers accepted, term-time or full-year basis.",
+    "Estimate your weekly and monthly nursery fees with our interactive Fee Calculator for Harrow, Pinner, Borehamwood and Aldershot. 15 and 30 hours funded childcare, sibling and staff discounts, childcare vouchers accepted, term-time or full-year basis.",
   openGraph: {
     title: "Nursery Fees & Fee Calculator — Blue Nest Montessori",
     description:
-      "Interactive nursery fee calculator with funded childcare (15/30 hours), term-time vs. full-year, sibling and staff discounts. Harrow, Pinner and Borehamwood branches.",
+      "Interactive nursery fee calculator with funded childcare (15/30 hours), term-time vs. full-year, sibling and staff discounts. Harrow, Pinner, Borehamwood and Aldershot branches.",
     url: "/admission/our-fees",
     images: [{ url: "/home/branches/harrow/harrow-home-hero.jpg", width: 1920, height: 1440, alt: "Blue Nest Montessori — nursery fees and fee calculator" }],
     type: "website",

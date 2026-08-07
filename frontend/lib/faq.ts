@@ -25,7 +25,7 @@ export const generalFaqs: Faq[] = [
   {
     question: "What ages does Blue Nest Montessori accept?",
     answer:
-      "Blue Nest Montessori cares for children from 3 months to 5 years across our Harrow, Pinner and Borehamwood nurseries, with new settings coming soon to Pinner Green and Northwood.",
+      "Blue Nest Montessori cares for children from 3 months to 5 years across our Harrow, Pinner, Borehamwood and Aldershot nurseries, with new settings coming soon to Pinner Green and Northwood.",
   },
   {
     question: "Where are the Blue Nest Montessori nurseries?",

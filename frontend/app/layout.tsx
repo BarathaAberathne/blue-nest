@@ -32,11 +32,11 @@ const adminBodyFont = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Blue Nest Montessori School — Nursery in Harrow, Pinner & Borehamwood",
+    default: "Blue Nest Montessori School — Nursery in Harrow, Pinner, Borehamwood & Aldershot",
     template: "%s | Blue Nest Montessori",
   },
   description:
-    "Blue Nest Montessori School — Ofsted Good Montessori day nursery and preschool for children aged 3 months to 5 years in Harrow, Pinner and Borehamwood, with new branches coming to Pinner Green and Northwood. Funded childcare, forest school and warm Montessori care.",
+    "Blue Nest Montessori School — Ofsted Good Montessori day nursery and preschool for children aged 3 months to 5 years in Harrow, Pinner, Borehamwood and Aldershot, with new branches coming to Pinner Green and Northwood. Funded childcare, forest school and warm Montessori care.",
   keywords: [
     // Branded + branch-local (matches Yell high-impression terms)
     "montessori nursery harrow",
@@ -77,7 +77,7 @@ export const metadata: Metadata = {
       url: "/home/branches/harrow/harrow-home-hero.jpg",
       width: 1920,
       height: 1440,
-      alt: "Blue Nest Montessori — Ofsted Good Montessori nursery in Harrow, Pinner and Borehamwood",
+      alt: "Blue Nest Montessori — Ofsted Good Montessori nursery in Harrow, Pinner, Borehamwood and Aldershot",
     }],
   },
   twitter: {
@@ -99,7 +99,7 @@ const organisationNode = {
   logo: "https://bluenest.uk/home/logo_new.png",
   image: "https://bluenest.uk/home/branches/harrow/harrow-home-hero.jpg",
   description:
-    "Award-winning Ofsted Good Montessori day nursery for children aged 3 months to 5 years in Harrow, Pinner and Borehamwood, with new settings coming soon to Pinner Green and Northwood. Funded childcare (15/30 hours) and forest school programmes.",
+    "Award-winning Ofsted Good Montessori day nursery for children aged 3 months to 5 years in Harrow, Pinner, Borehamwood and Aldershot, with new settings coming soon to Pinner Green and Northwood. Funded childcare (15/30 hours) and forest school programmes.",
   telephone: "+44 20 8861 5574",
   email: "manager@bluenest.uk",
   priceRange: "££",
@@ -127,8 +127,10 @@ const organisationNode = {
     "Elstree",
     "Radlett",
     "Bushey",
+    "Aldershot",
     "London",
     "Hertfordshire",
+    "Hampshire",
   ],
   address: {
     "@type": "PostalAddress",

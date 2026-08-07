@@ -12,13 +12,13 @@ import FinalCTASection      from "@/components/sections/FinalCTASection";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
-  title: "Blue Nest Montessori School – Nursery in Harrow, Pinner & Borehamwood",
+  title: "Blue Nest Montessori School – Nursery in Harrow, Pinner, Borehamwood & Aldershot",
   description:
-    "Blue Nest Montessori School offers outstanding nursery education for children aged 3 months to 5 years in Harrow, Pinner and Borehamwood. Ofsted Good · Award-winning · Government funding available.",
+    "Blue Nest Montessori School offers outstanding nursery education for children aged 3 months to 5 years in Harrow, Pinner, Borehamwood and Aldershot. Ofsted Good · Award-winning · Government funding available.",
   openGraph: {
-    title: "Blue Nest Montessori School – Nursery in Harrow, Pinner & Borehamwood",
+    title: "Blue Nest Montessori School – Nursery in Harrow, Pinner, Borehamwood & Aldershot",
     description:
-      "Outstanding Montessori nursery education for children aged 3 months to 5 years in Harrow, Pinner and Borehamwood. Ofsted Good · Award-winning.",
+      "Outstanding Montessori nursery education for children aged 3 months to 5 years in Harrow, Pinner, Borehamwood and Aldershot. Ofsted Good · Award-winning.",
     url: "/",
     images: [{ url: "/home/branches/harrow/harrow-home-hero.jpg", width: 1920, height: 1440, alt: "Two children dressed as astronauts at the Blue Nest Montessori space-station role-play area" }],
     type: "website",
