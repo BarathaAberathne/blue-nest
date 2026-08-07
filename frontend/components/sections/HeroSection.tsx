@@ -24,6 +24,7 @@ const branches: {
   { name: "Borehamwood",  href: "/branches/borehamwood",  colour: "var(--branch-borehamwood)" },
   { name: "Pinner Green", href: "/branches/pinner-green", colour: "var(--branch-pinner-green)", comingSoon: true },
   { name: "Northwood",    href: "/branches/northwood",    colour: "var(--branch-northwood)",    comingSoon: true },
+  { name: "Aldershot",    href: "/branches/aldershot",    colour: "var(--branch-aldershot)" },
 ];
 
 export default function HeroSection() {

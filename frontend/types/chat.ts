@@ -25,6 +25,7 @@ export type PageContext =
   | 'forest-school'
   | 'branches'
   | 'harrow'
+  | 'aldershot'
   | 'pinner'
   | 'borehamwood'
   | 'northwood'

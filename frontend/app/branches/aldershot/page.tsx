@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Heart,
   Leaf,
-  Lightbulb,
   Mail,
   MapPin,
   Phone,
@@ -24,18 +23,25 @@ import BranchMap from "@/components/contact/BranchMap";
 import BranchFeeCalculatorSection from "@/components/sections/BranchFeeCalculatorSection";
 import BranchHero from "@/components/sections/BranchHero";
 import { branchContactView, getPublicBranch } from "@/lib/branch-public";
+import { faqPageJsonLd, branchFaqs } from "@/lib/faq";
 
 export const metadata: Metadata = {
-  alternates: { canonical: "/branches/pinner-green" },
-  title: "Pinner Green Nursery — Blue Nest Montessori School",
+  alternates: { canonical: "/branches/aldershot" },
+  title: "Montessori Nursery in Aldershot — Blue Nest Montessori",
   description:
-    "Blue Nest Montessori School Pinner Green — a child-led Montessori nursery for children aged 3 months to 5 years, set in the heart of Pinner Green.",
+    "Montessori day nursery on Belle Vue Road, Aldershot (GU12) for ages 3 months\u20135 years. Forest school, 15/30 hours funded childcare, halal food. Book a visit.",
+  keywords: [
+    "montessori nursery aldershot", "nursery in aldershot", "aldershot nursery", "day nursery aldershot",
+    "preschool aldershot", "baby nursery aldershot", "forest school aldershot", "funded childcare aldershot",
+    "15 hours funded childcare", "30 hours funded childcare", "nursery near aldershot station",
+    "childcare for military families aldershot", "halal food nursery", "nursery ash vale", "nursery farnborough",
+  ],
   openGraph: {
-    title: "Pinner Green Nursery — Blue Nest Montessori School",
+    title: "Montessori Nursery in Aldershot — Blue Nest Montessori",
     description:
-      "Montessori nursery in Pinner Green for children aged 3 months to 5 years. Government funding available.",
-    url: "/branches/pinner-green",
-    images: [{ url: "/home/outdoor-learning-and-play-area.jpg", width: 1280, height: 854, alt: "Blue Nest Montessori Pinner Green nursery" }],
+      "Aldershot's first dedicated Montessori day nursery, for ages 3 months to 5 years. Forest school, 15/30 hours funded childcare, open 7:30am-6:00pm. Book a visit.",
+    url: "/branches/aldershot",
+    images: [{ url: "/home/branches/aldershot/aldershot-hero.jpg", width: 2000, height: 921, alt: "Blue Nest Montessori Aldershot nursery entrance" }],
     type: "website",
   },
 };
@@ -47,74 +53,74 @@ type Feature = { icon: LucideIcon; title: string; desc: string; accent: string }
 const features: Feature[] = [
   {
     icon: Sparkles,
-    title: "Montessori Classrooms",
-    desc: "Thoughtfully arranged rooms with carefully selected materials that invite exploration, concentration and independent discovery.",
+    title: "Aldershot's First Montessori Setting",
+    desc: "Authentic Montessori materials and prepared environments you won't find anywhere else in town — the real method, not a buzzword.",
     accent: "#ef8cab",
   },
   {
-    icon: Leaf,
-    title: "Nature-Rich Setting",
-    desc: "Surrounded by the greenery of Pinner Green, children enjoy daily access to outdoor spaces that foster a love of the natural world.",
-    accent: "#9FC6A8",
+    icon: Heart,
+    title: "Babies Welcome from 3 Months",
+    desc: "Full baby room provision where most local settings start at age 2 — gentle key-person care from your child's very first months.",
+    accent: "#f4aac8",
   },
   {
     icon: TreePine,
-    title: "Forest School",
-    desc: "Regular forest school sessions build confidence, resilience and environmental curiosity from the earliest years.",
+    title: "Forest School Access",
+    desc: "Regular forest school sessions that build confidence, resilience and a love of the natural world — unique in Aldershot.",
     accent: "#8ecb9b",
   },
   {
-    icon: Lightbulb,
-    title: "EYFS & Montessori",
-    desc: "We weave the EYFS framework seamlessly into our Montessori approach so every child thrives academically and personally.",
+    icon: SunMedium,
+    title: "Open 7:30am – 6:00pm",
+    desc: "The earliest drop-off in town for commuting parents — minutes from Aldershot station, with easy links to Farnborough and Guildford.",
     accent: "#6ecfc9",
   },
   {
-    icon: Heart,
-    title: "Warm, Caring Team",
-    desc: "Our dedicated, highly qualified educators form genuine bonds with every child, supporting their growth and wellbeing each day.",
-    accent: "#f4aac8",
+    icon: Leaf,
+    title: "Halal Food & Inclusive Menus",
+    desc: "Freshly prepared meals from our 5-star hygiene rated kitchen, with halal, vegetarian and allergy-aware options as standard.",
+    accent: "#9FC6A8",
   },
   {
     icon: ShieldCheck,
     title: "Safe & Secure",
-    desc: "Enhanced DBS-checked staff, rigorous safety standards and secure entry systems ensure your child is always protected.",
+    desc: "Enhanced DBS-checked staff, secure entry systems and rigorously maintained safety standards — an Ofsted registered setting.",
     accent: "#b99fe0",
   },
 ];
 
-// ── Gallery ────────────────────────────────────────────────────────────────────
+// ── Gallery (example imagery until the Aldershot photo set is ready) ──────────
 
 const gallery = [
   {
-    src: "/home/forest-school-2.jpg",
-    alt: "Forest school at Pinner Green nursery",
+    src: "/home/branches/aldershot/aldershot-hero.jpg",
+    alt: "The entrance to Blue Nest Montessori Aldershot on Belle Vue Road",
     rotate: -2,
+    caption: "Our Belle Vue Road entrance",
+  },
+  {
+    src: "/home/forest-school-2.jpg",
+    alt: "Forest school at Blue Nest Montessori",
+    rotate: 2,
     caption: "Forest School",
   },
   {
     src: "/home/outdoor-learning-and-play-area.jpg",
-    alt: "Outdoor learning area at Blue Nest Pinner Green",
-    rotate: 2,
+    alt: "Outdoor learning area at Blue Nest Montessori",
+    rotate: -1,
     caption: "Outdoor classroom",
   },
   {
     src: "/home/DSC_0177.jpg",
     alt: "Montessori classroom activity",
-    rotate: -1,
+    rotate: 2,
     caption: "Learning through play",
   },
   {
     src: "/home/outdoor-childrens-play-area2.jpg",
-    alt: "Children's outdoor play area at Pinner Green",
-    rotate: 2,
-    caption: "Garden and play",
-  },
-  {
-    src: "/home/DSC_0151.jpg",
-    alt: "Children engaged in a Montessori activity",
+    alt: "Children's outdoor play area",
     rotate: -2,
-    caption: "Prepared environments",
+    caption: "Garden and play",
   },
   {
     src: "/home/structured-routine.jpg",
@@ -126,22 +132,66 @@ const gallery = [
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
-export default async function PinnerGreenBranchPage() {
-  // Live contact data (phone/address/hours) from the backend; the literals in
-  // this file remain only inside the roster fallback (lib/branch-public).
-  const branch = await getPublicBranch("pinner-green");
-  const c = branchContactView("pinner-green", branch);
+export default async function AldershotBranchPage() {
+  // Live contact data from the backend (phone/address/hours/status), with the
+  // roster fallback so the page renders even when the API is unreachable.
+  const branch = await getPublicBranch("aldershot");
+  const c = branchContactView("aldershot", branch);
+
+  const branchJsonLd = {
+    "@context": "https://schema.org",
+    "@type": ["Preschool", "ChildCare", "LocalBusiness"],
+    "@id": "https://bluenest.uk/branches/aldershot#preschool",
+    name: "Blue Nest Montessori School — Aldershot",
+    url: "https://bluenest.uk/branches/aldershot",
+    image: "https://bluenest.uk/home/branches/aldershot/aldershot-hero.jpg",
+    telephone: "+44 " + c.phone.replace(/^0/, "").replace(/\s+/g, " "),
+    email: c.email,
+    priceRange: "££",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "Belle Vue Rd",
+      addressLocality: "Aldershot",
+      postalCode: "GU12 4RZ",
+      addressCountry: "GB",
+    },
+    geo: { "@type": "GeoCoordinates", latitude: c.lat, longitude: c.lng },
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        opens: "07:30",
+        closes: "18:00",
+      },
+    ],
+    areaServed: ["Aldershot", "Farnborough", "Ash", "Ash Vale", "Farnham", "Fleet"],
+    parentOrganization: { "@id": "https://bluenest.uk/#organization" },
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://bluenest.uk/" },
+      { "@type": "ListItem", position: 2, name: "Aldershot", item: "https://bluenest.uk/branches/aldershot" },
+    ],
+  };
+
   return (
     <PublicLayout>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(branchJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqPageJsonLd(branchFaqs.aldershot)) }} />
 
       <BranchHero
-        location="Pinner Green, London"
-        heading="Montessori Nursery in Pinner Green"
-        description="At Blue Nest Montessori School Pinner Green, child-led learning meets a beautifully natural setting. Authentic Montessori principles with rich outdoor experiences — where every child's curiosity and confidence can truly flourish."
-        image="/home/forest-school-2.jpg"
-        imageAlt="Blue Nest Montessori Pinner Green outdoor nursery environment"
-        primaryCta={{ label: "Book a Visit", href: "/contact?enquiry=book-visit&branch=pinner-green", variant: "rose" }}
+        location="Aldershot, Hampshire"
+        heading="Montessori Nursery in Aldershot"
+        description="Aldershot's first dedicated Montessori day nursery, on Belle Vue Road — for children aged 3 months to 5 years. Authentic Montessori learning, forest school sessions and 15/30 hours funded childcare, open Monday–Friday 7:30am–6:00pm."
+        image="/home/branches/aldershot/aldershot-hero.jpg"
+        imageAlt="The tree-lined entrance to Blue Nest Montessori Aldershot"
+        primaryCta={{ label: "Book a Visit", href: "/contact?enquiry=book-visit&branch=aldershot", variant: "rose" }}
         secondaryCta={{ label: "Contact Us", href: "#visit", variant: "mint" }}
+        trustLine={"Ofsted Registered\u2002\u00b7\u20025-Star Food Hygiene Rated\u2002\u00b7\u2002Mon\u2013Fri 7:30 am \u2013 6:00 pm"}
       />
 
       {/* ══════════════════════════════════════════════════════
@@ -159,7 +209,7 @@ export default async function PinnerGreenBranchPage() {
               <div className="mx-auto w-full max-w-[420px]">
                 <StickerCard
                   src="/home/outdoor-play-for-children.jpg"
-                  alt="Children at Blue Nest Montessori Pinner Green"
+                  alt="Children at Blue Nest Montessori Aldershot"
                   rotate={-3}
                   sizes="(max-width: 1024px) 80vw, 38vw"
                   className="w-full"
@@ -172,18 +222,33 @@ export default async function PinnerGreenBranchPage() {
             <Reveal delay={0.1}>
               <span className="section-kicker">Welcome</span>
               <h2 className="section-title mt-4" style={{ color: "#9FC6A8" }}>
-                Welcome to Our Pinner Green Nursery
+                Welcome to Our Aldershot Nursery
               </h2>
               <div className="body-text mt-5 space-y-5">
                 <p>
-                  Our Pinner Green nursery offers a calm, structured environment rooted in
-                  Montessori principles. Children are gently encouraged to explore, develop
-                  independence and build essential life skills through purposeful, hands-on activity.
+                  Blue Nest is a private Montessori day nursery on Belle Vue Road in Aldershot,
+                  welcoming children aged 3 months to 5 years from families across Aldershot, Ash,
+                  Ash Vale, Badshot Lea, Tongham, North Camp, Farnborough and Fleet. Our calm,
+                  structured classrooms blend authentic Montessori principles with the EYFS
+                  framework, so independence, language and a genuine love of early years learning
+                  grow side by side.
                 </p>
                 <p>
-                  Sitting within a green and leafy neighbourhood, our nursery makes the most of its
-                  natural surroundings — weaving outdoor learning, Forest School sessions and garden
-                  time into every week.
+                  If you&apos;ve been searching for a &ldquo;Montessori nursery near me&rdquo; in
+                  Aldershot, you&apos;ve found Hampshire&apos;s newest &mdash; and the town&apos;s
+                  first &mdash; dedicated Montessori setting. We accept 15 and 30 hours of funded
+                  childcare. Try our fee calculator below to estimate weekly fees, then apply for a
+                  place.
+                </p>
+                <h3 className="font-heading text-lg text-[var(--ink)]">
+                  Proud to serve Aldershot&apos;s forces families
+                </h3>
+                <p>
+                  As the home of the British Army, Aldershot is full of families who move often and
+                  need childcare that settles children quickly. Our key-person approach, flexible
+                  sessions and term-time or all-year contracts are designed to make transitions
+                  gentle &mdash; and we&apos;re experienced in supporting funded hours and Tax-Free
+                  Childcare for serving parents.
                 </p>
               </div>
             </Reveal>
@@ -203,7 +268,7 @@ export default async function PinnerGreenBranchPage() {
             <div className="mb-10 text-center">
               <span className="section-kicker">What makes us special</span>
               <h2 className="section-title mt-4" style={{ color: "#cf7d9c" }}>
-                Why Choose Our Pinner Green Nursery
+                Why Choose Our Aldershot Nursery
               </h2>
             </div>
           </Reveal>
@@ -218,10 +283,7 @@ export default async function PinnerGreenBranchPage() {
                   >
                     <f.icon className="h-6 w-6" strokeWidth={1.8} />
                   </div>
-                  <h3
-                    className="feature-card-title"
-                    style={{ color: f.accent }}
-                  >
+                  <h3 className="feature-card-title" style={{ color: f.accent }}>
                     {f.title}
                   </h3>
                   <p className="body-text mt-3 flex-1">{f.desc}</p>
@@ -235,7 +297,7 @@ export default async function PinnerGreenBranchPage() {
       {/* ══════════════════════════════════════════════════════
           3.5 — FEE CALCULATOR
       ══════════════════════════════════════════════════════ */}
-      <BranchFeeCalculatorSection branch="pinner-green" branchName="Pinner Green" />
+      <BranchFeeCalculatorSection branch="aldershot" branchName="Aldershot" />
 
       {/* ══════════════════════════════════════════════════════
           4 — GALLERY
@@ -249,7 +311,7 @@ export default async function PinnerGreenBranchPage() {
             <div className="mb-10 text-center">
               <span className="section-kicker">A peek inside</span>
               <h2 className="section-title mt-4" style={{ color: "#9FC6A8" }}>
-                Our Pinner Green Nursery
+                Our Aldershot Nursery
               </h2>
             </div>
           </Reveal>
@@ -271,7 +333,7 @@ export default async function PinnerGreenBranchPage() {
             <Reveal>
               <span className="section-kicker">Every day at Blue Nest</span>
               <h2 className="section-title mt-4" style={{ color: "#cf7d9c" }}>
-                A Day at Our Pinner Green Nursery
+                A Day at Our Aldershot Nursery
               </h2>
               <div className="body-text mt-5 space-y-5">
                 <p>
@@ -280,14 +342,18 @@ export default async function PinnerGreenBranchPage() {
                   their prepared environment, choosing activities that spark genuine interest.
                 </p>
                 <p>
-                  From morning circle time to afternoon garden sessions, every moment is designed to
-                  nurture the whole child — building independence, social confidence and a deep love
-                  of learning that lasts a lifetime.
+                  From morning circle time to afternoon garden sessions and regular{" "}
+                  <a href="/forest-school" className="font-semibold underline">forest school</a>{" "}
+                  outings, every moment is designed to nurture the whole child &mdash; building
+                  independence, social confidence and a deep love of learning that lasts a lifetime.
                 </p>
               </div>
-              <div className="mt-7">
+              <div className="mt-7 flex flex-wrap gap-3">
                 <PastelButton href="/why-montessori" variant="mint">
                   About Montessori <ArrowRight className="h-4 w-4" />
+                </PastelButton>
+                <PastelButton href="/admission" variant="rose">
+                  Apply for a Place <ArrowRight className="h-4 w-4" />
                 </PastelButton>
               </div>
             </Reveal>
@@ -297,7 +363,7 @@ export default async function PinnerGreenBranchPage() {
               <div className="mx-auto w-full max-w-[420px]">
                 <StickerCard
                   src="/home/children-outdoor-play.jpg"
-                  alt="Children enjoying outdoor play at Blue Nest Pinner Green"
+                  alt="Children enjoying outdoor play at Blue Nest Montessori Aldershot"
                   rotate={4}
                   sizes="(max-width: 1024px) 80vw, 38vw"
                   className="w-full"
@@ -311,7 +377,7 @@ export default async function PinnerGreenBranchPage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════
-          6 — CONTACT DETAILS
+          6 — CONTACT DETAILS (live from the backend)
       ══════════════════════════════════════════════════════ */}
       <section id="visit" className="blush-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <Doodle kind="blue-bird" animated="float" className="absolute left-[3%] top-10 h-10 w-10 opacity-50 hidden lg:block" />
@@ -321,7 +387,7 @@ export default async function PinnerGreenBranchPage() {
             <div className="mb-10 text-center">
               <span className="section-kicker">Find us</span>
               <h2 className="section-title mt-4" style={{ color: "#9FC6A8" }}>
-                Visit Our Pinner Green Nursery
+                Visit Our Aldershot Nursery
               </h2>
             </div>
           </Reveal>
@@ -334,7 +400,7 @@ export default async function PinnerGreenBranchPage() {
                 <h3 className="font-heading text-[1.6rem] leading-tight" style={{ color: "#9FC6A8" }}>
                   Blue Nest Montessori School
                 </h3>
-                <p className="body-text mt-1 text-sm font-semibold">Pinner Green Branch</p>
+                <p className="body-text mt-1 text-sm font-semibold">Aldershot Branch</p>
 
                 <div className="mt-7 space-y-4">
                   <div className="flex items-start gap-3">
@@ -349,10 +415,7 @@ export default async function PinnerGreenBranchPage() {
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.06)]">
                       <Phone className="h-4 w-4 text-[#5fc8c7]" />
                     </div>
-                    <a
-                      href={c.telHref}
-                      className="text-sm font-semibold text-[rgba(90,74,66,0.85)] transition hover:text-[var(--ink)]"
-                    >
+                    <a href={c.telHref} className="text-sm font-semibold text-[rgba(90,74,66,0.85)] transition hover:text-[var(--ink)]">
                       {c.phone}
                     </a>
                   </div>
@@ -360,10 +423,7 @@ export default async function PinnerGreenBranchPage() {
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.06)]">
                       <Mail className="h-4 w-4 text-[#5fc8c7]" />
                     </div>
-                    <a
-                      href={"mailto:" + c.email}
-                      className="text-sm font-semibold text-[rgba(90,74,66,0.85)] transition hover:text-[var(--ink)]"
-                    >
+                    <a href={"mailto:" + c.email} className="text-sm font-semibold text-[rgba(90,74,66,0.85)] transition hover:text-[var(--ink)]">
                       {c.email}
                     </a>
                   </div>
@@ -378,8 +438,13 @@ export default async function PinnerGreenBranchPage() {
                   </div>
                 </div>
 
+                <p className="body-text mt-6 text-sm">
+                  We&apos;re a short walk from Aldershot town centre and Aldershot railway station,
+                  with easy drop-off for parents commuting to Farnborough, Guildford or London.
+                </p>
+
                 <div className="mt-8">
-                  <PastelButton href="/contact?enquiry=arrange-a-visit&branch=pinner-green" variant="rose">
+                  <PastelButton href="/contact?enquiry=arrange-a-visit&branch=aldershot" variant="rose">
                     Book a Visit <ArrowRight className="h-4 w-4" />
                   </PastelButton>
                 </div>
@@ -388,7 +453,7 @@ export default async function PinnerGreenBranchPage() {
 
             <Reveal delay={0.1}>
               <div className="h-[320px] overflow-hidden rounded-[1.8rem] shadow-[0_4px_20px_rgba(90,74,66,0.10)] sm:h-[400px]">
-                <BranchMap branchId="pinner-green" />
+                <BranchMap branchId="aldershot" />
               </div>
             </Reveal>
 
@@ -408,14 +473,14 @@ export default async function PinnerGreenBranchPage() {
             <div className="mx-auto max-w-2xl text-center">
               <span className="section-kicker">Come and see us</span>
               <h2 className="section-title mt-4 text-[var(--ink)]">
-                Come and See Our Pinner Green Nursery
+                Come and See Our Aldershot Nursery
               </h2>
               <p className="body-text mx-auto mt-5 max-w-lg">
-                We would love to welcome you and your child to Blue Nest Montessori School Pinner Green.
+                We would love to welcome you and your child to Blue Nest Montessori School Aldershot.
                 Get in touch today to arrange a visit and experience our warm, nature-rich environment.
               </p>
               <div className="mt-8">
-                <PastelButton href="/contact?enquiry=arrange-a-visit&branch=pinner-green" variant="rose">
+                <PastelButton href="/contact?enquiry=arrange-a-visit&branch=aldershot" variant="rose">
                   Contact Us <ArrowRight className="h-4 w-4" />
                 </PastelButton>
               </div>

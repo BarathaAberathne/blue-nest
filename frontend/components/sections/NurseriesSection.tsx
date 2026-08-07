@@ -59,6 +59,19 @@ const branches = [
     cta:         "Register Interest",
   },
   {
+    name:        "Aldershot",
+    href:        "/branches/aldershot",
+    images: [
+      { src: "/home/branches/aldershot/aldershot-hero.jpg", alt: "The tree-lined entrance to Blue Nest Montessori Aldershot" },
+      { src: "/home/forest-school-2.jpg",                   alt: "Nature-based outdoor learning at Blue Nest Montessori" },
+      { src: "/home/outdoor-learning-and-play-area.jpg",    alt: "Outdoor learning and play area" },
+      { src: "/home/DSC_0177.jpg",                          alt: "Montessori classroom activity" },
+    ],
+    description: "Our newest nursery on Belle Vue Road, Aldershot — bringing child-led Montessori learning and daily outdoor exploration to Hampshire.",
+    color:       "var(--branch-aldershot)",
+    cta:         "Book a Visit",
+  },
+  {
     name:        "Pinner Green",
     href:        "/branches/pinner-green",
     images: [

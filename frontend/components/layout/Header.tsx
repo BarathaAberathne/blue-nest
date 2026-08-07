@@ -13,6 +13,10 @@ import SiteSearch from "@/components/layout/SiteSearch";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { BRANCH_FALLBACKS } from "@/lib/branch-public";
+import { branchShortName } from "@/lib/branch";
+import type { Branch } from "@/types";
 import { usePathname } from "next/navigation";
 import Doodle from "@/components/ui/Doodle";
 import { getCartUpdatedEventName, loadCart } from "@/lib/store-cart";
@@ -107,13 +111,16 @@ const slideOverLinks: NavLink[] = [
   { label: "Contact", href: "/contact" },
 ];
 
-const branches = [
-  { label: "Harrow", href: "/branches/harrow", phone: "020 8861 5574" },
-  { label: "Borehamwood", href: "/branches/borehamwood", phone: "020 8953 1718" },
-  { label: "Pinner", href: "/branches/pinner", phone: "07400 430630" },
-  { label: "Pinner Green", href: "/branches/pinner-green", comingSoon: true },
-  { label: "Northwood", href: "/branches/northwood", comingSoon: true },
-];
+type NavBranch = { label: string; href: string; phone?: string; comingSoon?: boolean };
+
+// The shared roster is the render fallback; the live list (labels, phones,
+// coming-soon status, NEW branches) is fetched from the backend on mount.
+const FALLBACK_NAV_BRANCHES: NavBranch[] = BRANCH_FALLBACKS.map((b) => ({
+  label: b.label,
+  href: `/branches/${b.slug}`,
+  phone: b.phone,
+  comingSoon: b.comingSoon,
+}));
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -137,6 +144,31 @@ function BadgeItem({ badge }: { badge: typeof trustBadges[number] }) {
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [branches, setBranches] = useState<NavBranch[]>(FALLBACK_NAV_BRANCHES);
+  useEffect(() => {
+    let alive = true;
+    api.getBranches()
+      .then((raw) => {
+        if (!alive) return;
+        const live = (raw as Branch[]) ?? [];
+        if (!Array.isArray(live) || live.length === 0) return;
+        // Keep the curated prominence order (roster first, new branches after)
+        const order = (slug: string) => {
+          const i = BRANCH_FALLBACKS.findIndex((f) => f.slug === slug);
+          return i === -1 ? 999 : i;
+        };
+        setBranches([...live]
+          .sort((a, b) => order(a.slug) - order(b.slug) || a.slug.localeCompare(b.slug))
+          .map((b) => ({
+            label: branchShortName(b),
+            href: `/branches/${b.slug}`,
+            phone: b.contact?.phone || undefined,
+            comingSoon: b.status === "coming_soon",
+          })));
+      })
+      .catch(() => { /* keep the fallback nav */ });
+    return () => { alive = false; };
+  }, []);
   const [cartCount, setCartCount] = useState(0);
   const [authUser, setAuthUser] = useState<User | null>(null);
   const pathname = usePathname();

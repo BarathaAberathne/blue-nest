@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { api } from "@/lib/api";
+import { branchShortName } from "@/lib/branch";
+import type { Branch } from "@/types";
 
 interface BranchPin {
   id:        string;
@@ -36,7 +39,7 @@ const PINS: BranchPin[] = [
     id:      "pinner",
     name:    "Pinner",
     address: "Cuckoo Hill Road, Pinner, HA5 1AY",
-    phone:   "020 8861 5574",
+    phone:   "07400 430630",
     hours:   "Mon–Fri, 07:30–18:30",
     lat:     51.5919,
     lng:     -0.3795,
@@ -48,7 +51,7 @@ const PINS: BranchPin[] = [
     id:      "borehamwood",
     name:    "Borehamwood",
     address: "31-33 Farriers Way, Borehamwood, WD6 2TB",
-    phone:   "020 8861 5574",
+    phone:   "020 8953 1718",
     hours:   "Mon–Fri, 07:30–18:30",
     lat:     51.6594,
     lng:     -0.2724,
@@ -68,6 +71,18 @@ const PINS: BranchPin[] = [
     letter:    "P",
     mapUrl:    "https://www.google.com/maps/search/?api=1&query=Pinner+Green+HA5",
     comingSoon: true,
+  },
+  {
+    id:      "aldershot",
+    name:    "Aldershot",
+    address: "Belle Vue Rd, Aldershot, GU12 4RZ",
+    phone:   "01252 343772",
+    hours:   "Mon–Fri, 07:30–18:30",
+    lat:     51.2416,
+    lng:     -0.746,
+    colour:  "#e0965f",
+    letter:  "A",
+    mapUrl:  "https://www.google.com/maps/search/?api=1&query=Belle+Vue+Rd+Aldershot+GU12+4RZ",
   },
   {
     id:        "northwood",
@@ -102,6 +117,52 @@ function makeIcon(colour: string, letter: string) {
 }
 
 export default function LeafletMap({ focusBranch }: { focusBranch?: string }) {
+  // Live branch data overrides the static fallback pins: phone, address,
+  // coordinates and status come from the backend, so a change made in the
+  // admin (or a brand-new branch) reaches the map without a code change.
+  const [pins, setPins] = useState<BranchPin[]>(PINS);
+  useEffect(() => {
+    let alive = true;
+    api.getBranches()
+      .then((raw) => {
+        if (!alive) return;
+        const branches = (raw as Branch[]) ?? [];
+        if (!Array.isArray(branches) || branches.length === 0) return;
+        setPins((prev) => {
+          const bySlug = new Map(branches.map((b) => [b.slug, b]));
+          const merged = prev.map((pin) => {
+            const b = bySlug.get(pin.id);
+            if (!b) return pin;
+            bySlug.delete(pin.id);
+            return {
+              ...pin,
+              name: branchShortName(b),
+              address: b.contact?.address || pin.address,
+              phone: b.contact?.phone || pin.phone,
+              lat: b.lat || pin.lat,
+              lng: b.lng || pin.lng,
+              mapUrl: b.google?.maps_url || pin.mapUrl,
+              comingSoon: b.status === "coming_soon",
+            };
+          });
+          // Branches the static table doesn't know about yet still get a pin.
+          for (const b of bySlug.values()) {
+            if (!b.lat || !b.lng) continue;
+            merged.push({
+              id: b.slug, name: branchShortName(b),
+              address: b.contact?.address || "", phone: b.contact?.phone || "",
+              hours: "Mon–Fri, 07:30–18:30", lat: b.lat, lng: b.lng,
+              colour: "#3aada9", letter: (branchShortName(b)[0] || "B").toUpperCase(),
+              mapUrl: b.google?.maps_url || "", comingSoon: b.status === "coming_soon",
+            });
+          }
+          return merged;
+        });
+      })
+      .catch(() => { /* keep the static fallback pins */ });
+    return () => { alive = false; };
+  }, []);
+
   useEffect(() => {
     // Fix default icon path broken by webpack
     const proto = L.Icon.Default.prototype as L.Icon.Default & { _getIconUrl?: unknown };
@@ -113,8 +174,8 @@ export default function LeafletMap({ focusBranch }: { focusBranch?: string }) {
     });
   }, []);
 
-  const focused = focusBranch ? PINS.find((p) => p.id === focusBranch) : undefined;
-  const visiblePins = focused ? [focused] : PINS;
+  const focused = focusBranch ? pins.find((p) => p.id === focusBranch) : undefined;
+  const visiblePins = focused ? [focused] : pins;
   const center: [number, number] = focused ? [focused.lat, focused.lng] : [51.62, -0.35];
   const zoom = focused ? 15 : 11;
 

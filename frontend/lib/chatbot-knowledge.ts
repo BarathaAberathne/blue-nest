@@ -251,6 +251,8 @@ const PAGE_INSTRUCTIONS: Record<PageContext, string> = {
     'The parent is on the Borehamwood branch page. Focus on the Borehamwood branch and encourage them to enquire about availability.',
   northwood:
     'The parent is on the Northwood page. This branch is coming soon — be exciting about it! Encourage pre-registration interest so we can keep them updated when it opens.',
+  aldershot:
+    'The parent is on the Aldershot page — our newest open branch on Belle Vue Road, Aldershot (GU12 4RZ, phone 01252 343772). Help them book a visit or ask about places for children aged 3 months to 5 years.',
   contact:
     'The parent is on the contact page and likely wants to reach out. Help them choose the right contact method, and offer to capture their details here so our team can follow up directly.',
   'why-montessori':
@@ -273,6 +275,7 @@ export function getPageContext(pathname: string): PageContext {
   if (pathname.startsWith('/branches/pinner')) return 'pinner';
   if (pathname.startsWith('/branches/borehamwood')) return 'borehamwood';
   if (pathname.startsWith('/branches/northwood')) return 'northwood';
+  if (pathname.startsWith('/branches/aldershot')) return 'aldershot';
   if (pathname.startsWith('/branches')) return 'branches';
   if (pathname.startsWith('/contact')) return 'contact';
   if (pathname.startsWith('/why-montessori')) return 'why-montessori';
