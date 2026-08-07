@@ -318,6 +318,9 @@ export const api = {
       expected_start_date?: string | null;
       child_age_group?: string;
       room_allocation?: string;
+      // Canonical room id — the backend allocates the new child to this room
+      // (room_allocation stays the display name).
+      room_id?: string;
       funding_type?: string;
       // Child identity - required for registration to actually create the
       // Child record (see AdminEnquiryHandler.Register); omitted, the enquiry
