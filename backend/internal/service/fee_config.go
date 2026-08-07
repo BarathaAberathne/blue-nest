@@ -21,6 +21,11 @@ type FeeConfigService interface {
 	List(ctx context.Context) ([]models.FeeConfig, error)
 	UpsertBranch(ctx context.Context, branch string, req models.FeeConfigRequest) (*models.FeeConfig, error)
 	UpsertMeta(ctx context.Context, meta models.FeeMeta) (*models.FeeConfig, error)
+	// DeleteBranch prunes a branch's rates document. Deliberately NOT
+	// restricted to existing branches — its purpose includes cleaning up
+	// orphan docs whose branch was archived or deleted. The ""-slug meta
+	// document cannot be deleted this way.
+	DeleteBranch(ctx context.Context, branch string) (bool, error)
 }
 
 type feeConfigService struct {
@@ -107,4 +112,15 @@ func (s *feeConfigService) UpsertBranch(ctx context.Context, branch string, req 
 
 func (s *feeConfigService) UpsertMeta(ctx context.Context, meta models.FeeMeta) (*models.FeeConfig, error) {
 	return s.repo.Upsert(ctx, "", bson.M{"meta": meta})
+}
+
+func (s *feeConfigService) DeleteBranch(ctx context.Context, branch string) (bool, error) {
+	if branch == "" {
+		return false, errors.New("branch is required")
+	}
+	n, err := s.repo.DeleteByBranch(ctx, branch)
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
 }

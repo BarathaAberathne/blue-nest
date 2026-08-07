@@ -3785,13 +3785,23 @@ paths:
   /admin/fee-config/{branch}:
     put:
       tags: [Configuration]
-      summary: Update one branch's fee schedule (permission branches.manage)
+      summary: Update one branch's fee schedule (permission branches.manage; the branch must exist)
       operationId: updateBranchFeeConfig
       security: [{ BearerAuth: [] }]
       parameters: [{ name: branch, in: path, required: true, schema: { type: string } }]
       requestBody: { required: true, content: { application/json: { schema: { type: object } } } }
       responses:
         '200': { description: Updated }
+        '400': { description: Unknown branch }
+    delete:
+      tags: [Configuration]
+      summary: Delete a branch's fee schedule, including orphan docs whose branch was archived/deleted (permission branches.manage)
+      operationId: deleteBranchFeeConfig
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: branch, in: path, required: true, schema: { type: string } }]
+      responses:
+        '204': { description: Deleted }
+        '404': { description: No fee config for that branch }
 
   /admin/branch-templates:
     get:

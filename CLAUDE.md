@@ -496,12 +496,18 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   mirrors the old `fee-data.json` shape (`ageGroups[ageKey][session]{daily,weekly}`, `earlyBird`,
   `stdFunded{below3,above3}`), so `computeQuote` is unchanged. Public `GET /fee-config` returns the bundle
   (`{branches, meta}`, keyed by slug, pinned to the default tenant); admin `GET /admin/fee-config` +
-  `PUT /admin/fee-config/{branch}` + `PUT /admin/fee-config` (meta) under `branches.manage`, edited at
+  `PUT /admin/fee-config/{branch}` + `DELETE /admin/fee-config/{branch}` + `PUT /admin/fee-config` (meta)
+  under `branches.manage`, edited at
   **`/admin/fees`** (branch tabs → age-group×session rate grid + early-bird + funded top-up + ancillary
-  pricing). `cmd/seedfees` (`make seed-fees`, idempotent `$setOnInsert`, embeds the canonical schedule,
+  pricing). **The org's branch list is the source of truth** (found live: an orphan test doc surfaced as a
+  phantom "qatestfees" tab on /admin/fees): the bundle serves only real, non-archived branches' configs,
+  `PUT` rejects a slug with no branch behind it, and `DELETE` prunes a doc for ANY slug — its purpose
+  includes orphans whose branch was archived/deleted (the ""-slug org-meta doc is protected). Locked by
+  `fee_config_test.go` + `FEE-TC-002` (real throwaway branch → rates → archive → vanishes from bundle →
+  prune 204/404). `cmd/seedfees` (`make seed-fees`, idempotent `$setOnInsert`, embeds the canonical schedule,
   maps display keys → slugs e.g. "pinner green"→"pinner-green"). `FeeCalculatorCard` fetches the bundle on
   mount and **falls back to the still-bundled `lib/fee-data.json`** if the request fails, so the public
-  calculator never breaks. Tests: `SUI-FEES-001` (public bundle + admin round-trip on a throwaway branch).
+  calculator never breaks. Tests: `SUI-FEES-001`.
 
 - **Branch templates (T1, delivered):** reusable branch-setup presets so a new branch's rooms are created in
   one step instead of by hand. `branch_templates` (`models/branch_template.go`, tenant-scoped: name +

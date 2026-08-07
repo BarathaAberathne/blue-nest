@@ -2,7 +2,7 @@
 id: FEE-TC-002
 number: 2.25.2
 type: Test Case
-title: An admin fee-rate update persists, requires a real branch, and vanishes when the branch is archived
+title: An admin fee-rate update persists, requires a real branch, vanishes on archive, and can be pruned
 owner: QA
 mode: Standalone
 status: Active
@@ -55,6 +55,14 @@ When Get /api/v1/fee-config Into gone Using adminSession.accessToken
 Then AssertStatus gone 200
 And ExpectFail AssertJson gone "$.body.data.branches['qa-autotest-fees-${feeSuffix}'].earlyBird" == 13
 
+# The cleanup endpoint prunes the now-orphan doc; a second delete finds nothing.
+When Delete /api/v1/admin/fee-config/qa-autotest-fees-${feeSuffix} Into pruned Using adminSession.accessToken
+Then AssertStatus pruned 204
+
+When Delete /api/v1/admin/fee-config/qa-autotest-fees-${feeSuffix} Into prunedAgain Using adminSession.accessToken
+Then AssertStatus prunedAgain 404
+
 Teardown
 Post /api/v1/admin/branches/qa-autotest-fees-${feeSuffix}/archive Using adminSession.accessToken
+Delete /api/v1/admin/fee-config/qa-autotest-fees-${feeSuffix} Using adminSession.accessToken
 ```

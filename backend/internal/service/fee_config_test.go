@@ -30,6 +30,15 @@ func (f *fakeFeeConfigRepo) Upsert(ctx context.Context, branch string, set bson.
 	f.upserted = append(f.upserted, branch)
 	return &models.FeeConfig{BranchSlug: branch}, nil
 }
+func (f *fakeFeeConfigRepo) DeleteByBranch(ctx context.Context, branch string) (int64, error) {
+	for i := range f.docs {
+		if f.docs[i].BranchSlug == branch {
+			f.docs = append(f.docs[:i], f.docs[i+1:]...)
+			return 1, nil
+		}
+	}
+	return 0, nil
+}
 
 // fakeBranchRepoFees serves a fixed non-archived branch roster; the other
 // BranchRepository methods are unused by FeeConfigService.
@@ -115,5 +124,28 @@ func TestFeeConfigUpsertRejectsUnknownBranch(t *testing.T) {
 
 	if _, err := svc.UpsertBranch(context.Background(), "harrow", models.FeeConfigRequest{}); err != nil {
 		t.Fatalf("real branch upsert should succeed: %v", err)
+	}
+}
+
+// DeleteBranch prunes any branch doc — including orphans whose branch no
+// longer exists (its whole point) — but never the ""-slug org meta doc.
+func TestFeeConfigDeleteBranch(t *testing.T) {
+	repo := &fakeFeeConfigRepo{docs: []models.FeeConfig{
+		{BranchSlug: "qatestfees"}, // orphan
+		{BranchSlug: ""},           // org-wide meta
+	}}
+	svc := NewFeeConfigService(repo, &fakeBranchRepoFees{slugs: []string{"harrow"}})
+
+	if removed, err := svc.DeleteBranch(context.Background(), "qatestfees"); err != nil || !removed {
+		t.Fatalf("orphan delete should succeed, removed=%v err=%v", removed, err)
+	}
+	if removed, err := svc.DeleteBranch(context.Background(), "qatestfees"); err != nil || removed {
+		t.Fatalf("second delete should report nothing removed, removed=%v err=%v", removed, err)
+	}
+	if _, err := svc.DeleteBranch(context.Background(), ""); err == nil {
+		t.Fatalf("deleting the meta doc must be rejected")
+	}
+	if len(repo.docs) != 1 || repo.docs[0].BranchSlug != "" {
+		t.Fatalf("meta doc must survive, docs=%v", repo.docs)
 	}
 }

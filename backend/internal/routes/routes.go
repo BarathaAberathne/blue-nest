@@ -520,6 +520,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 						r.Put("/admin/terms/{id}", adminTermH.Update)
 						r.Delete("/admin/terms/{id}", adminTermH.Delete)
 						r.Put("/admin/fee-config/{branch}", adminFeeH.UpdateBranch)
+						r.Delete("/admin/fee-config/{branch}", adminFeeH.Delete)
 						r.Put("/admin/fee-config", adminFeeH.UpdateMeta)
 						r.Post("/admin/branch-templates", adminBranchTplH.Create)
 						r.Put("/admin/branch-templates/{id}", adminBranchTplH.Update)
