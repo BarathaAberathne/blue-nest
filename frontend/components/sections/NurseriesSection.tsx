@@ -2,8 +2,11 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Reveal } from "@/components/ui/Motion";
 import CardImageSlider from "@/components/ui/CardImageSlider";
+import { getPublicBranches } from "@/lib/branch-public";
 
-const branches = [
+// The comingSoon flags below are the render FALLBACK; the live branch status
+// from the backend overrides them at request time (see NurseriesSection body).
+const branchesFallback = [
   {
     name:        "Harrow",
     href:        "/branches/harrow",
@@ -87,7 +90,25 @@ const branches = [
   },
 ];
 
-export default function NurseriesSection() {
+export default async function NurseriesSection() {
+  // Live status overrides the static comingSoon flags so opening a branch in
+  // the admin flips the card badge and CTA without a code change.
+  const live = await getPublicBranches();
+  const statusBySlug = new Map((live ?? []).map((b) => [b.slug, b.status]));
+  const branches = branchesFallback.map((b) => {
+    const slug = b.href.replace("/branches/", "");
+    const status = statusBySlug.get(slug);
+    if (!status) return b;
+    const comingSoon = status === "coming_soon";
+    return {
+      ...b,
+      comingSoon,
+      cta: comingSoon ? "Register Interest" : b.cta === "Register Interest" ? "View Nursery" : b.cta,
+    };
+  });
+  const activeCount = branches.filter((b) => !b.comingSoon).length;
+  const soonCount = branches.length - activeCount;
+  const countWords = ["Zero", "One", "Two", "Three", "Four", "Five", "Six"];
   return (
     <section id="our-nurseries" className="blush-bg relative px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
       <div className="container-site">
@@ -97,13 +118,13 @@ export default function NurseriesSection() {
             <span className="section-kicker">Our nurseries</span>
             <h2 className="section-title mt-4">Find your nearest Blue Nest</h2>
             <p className="section-subtitle mx-auto mt-5 max-w-xl">
-              Three active nurseries across North London and Hertfordshire, plus two more coming soon —
+              {countWords[activeCount] ?? activeCount} active nurseries across North London, Hertfordshire and Hampshire{soonCount > 0 ? `, plus ${(countWords[soonCount] ?? String(soonCount)).toLowerCase()} more coming soon` : ""},
               each offering the same outstanding Montessori education and care.
             </p>
           </div>
         </Reveal>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {branches.map((branch, i) => (
             <Reveal key={branch.name} delay={0.09 * i} className="flex">
               <Link

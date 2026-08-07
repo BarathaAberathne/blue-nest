@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import BranchMap from "./BranchMap";
 import { branchShortName } from "@/lib/branch";
+import { BRANCH_FALLBACKS } from "@/lib/branch-public";
 import type { Branch as ApiBranch } from "@/types";
 
 // ── Branch data ────────────────────────────────────────────────────────────────
@@ -35,92 +36,36 @@ interface Branch {
   status:   "active" | "coming-soon";
 }
 
-const BRANCHES: Branch[] = [
-  {
-    id:       "harrow",
-    name:     "Harrow",
-    address:  "29 Churchfield Close, Harrow",
-    postcode: "HA2 6BD",
-    phone:    "020 8861 5574",
-    tel:      "tel:02088615574",
-    hours:    "Mon–Fri, 07:30–18:30",
-    ageRange: "3 months – 5 years",
-    colour:   "#3aada9",
-    bg:       "rgba(127,216,210,0.13)",
-    mapUrl:   "https://www.google.com/maps/search/?api=1&query=29+Churchfield+Close+Harrow+HA2+6BD",
-    status:   "active",
-  },
-  {
-    id:       "pinner",
-    name:     "Pinner",
-    address:  "Cuckoo Hill Road, Pinner",
-    postcode: "HA5 1AY",
-    phone:    "07400 430630",
-    tel:      "tel:07400430630",
-    hours:    "Mon–Fri, 07:30–18:30",
-    ageRange: "3 months – 5 years",
-    colour:   "#cf7d9c",
-    bg:       "rgba(244,170,200,0.13)",
-    mapUrl:   "https://www.google.com/maps/search/?api=1&query=Cuckoo+Hill+Road+Pinner+HA5+1AY",
-    status:   "active",
-  },
-  {
-    id:       "borehamwood",
-    name:     "Borehamwood",
-    address:  "31-33 Farriers Way, Borehamwood",
-    postcode: "WD6 2TB",
-    phone:    "020 8953 1718",
-    tel:      "tel:02089531718",
-    hours:    "Mon–Fri, 07:30–18:30",
-    ageRange: "3 months – 5 years",
-    colour:   "#5fc8c7",
-    bg:       "rgba(127,216,210,0.13)",
-    mapUrl:   "https://www.google.com/maps/search/?api=1&query=31-33+Farriers+Way+Borehamwood+WD6+2TB",
-    status:   "active",
-  },
-  {
-    id:       "aldershot",
-    name:     "Aldershot",
-    address:  "Belle Vue Rd, Aldershot",
-    postcode: "GU12 4RZ",
-    phone:    "01252 343772",
-    tel:      "tel:01252343772",
-    hours:    "Mon–Fri, 07:30–18:30",
-    ageRange: "3 months – 5 years",
-    colour:   "#e0965f",
-    bg:       "rgba(224,150,95,0.13)",
-    mapUrl:   "https://www.google.com/maps/search/?api=1&query=Belle+Vue+Rd+Aldershot+GU12+4RZ",
-    status:   "active",
-  },
-  {
-    id:       "pinner-green",
-    name:     "Pinner Green",
-    address:  "Pinner Green, London",
-    postcode: "HA5",
-    phone:    "020 8861 5574",
-    tel:      "tel:02088615574",
-    hours:    "Opening soon",
-    ageRange: "3 months – 5 years",
-    colour:   "#5fa46e",
-    bg:       "rgba(159,198,168,0.18)",
-    mapUrl:   "https://www.google.com/maps/search/?api=1&query=Pinner+Green+HA5",
-    status:   "coming-soon",
-  },
-  {
-    id:       "northwood",
-    name:     "Northwood",
-    address:  "Sandy Lane, Northwood",
-    postcode: "HA6 3DA",
-    phone:    "020 8861 5574",
-    tel:      "tel:02088615574",
-    hours:    "Opening soon",
-    ageRange: "3 months – 5 years",
-    colour:   "#c49a00",
-    bg:       "rgba(247,215,116,0.16)",
-    mapUrl:   "https://www.google.com/maps/search/?api=1&query=Sandy+Lane+Northwood+HA6+3DA",
-    status:   "coming-soon",
-  },
-];
+// Fallback data derives from the ONE shared roster (lib/branch-public.ts);
+// only the presentation styling (dot colour / tint) stays local to this page.
+const BRANCH_STYLE: Record<string, { colour: string; bg: string }> = {
+  harrow:         { colour: "#3aada9", bg: "rgba(127,216,210,0.13)" },
+  borehamwood:    { colour: "#5fc8c7", bg: "rgba(127,216,210,0.13)" },
+  pinner:         { colour: "#cf7d9c", bg: "rgba(244,170,200,0.13)" },
+  aldershot:      { colour: "#e0965f", bg: "rgba(224,150,95,0.13)" },
+  "pinner-green": { colour: "#5fa46e", bg: "rgba(159,198,168,0.18)" },
+  northwood:      { colour: "#c49a00", bg: "rgba(247,215,116,0.16)" },
+};
+const DEFAULT_STYLE = { colour: "#3aada9", bg: "rgba(127,216,210,0.13)" };
+
+const BRANCHES: Branch[] = BRANCH_FALLBACKS.map((fb) => {
+  const style = BRANCH_STYLE[fb.slug] ?? DEFAULT_STYLE;
+  const phone = fb.phone ?? "";
+  return {
+    id:       fb.slug,
+    name:     fb.label,
+    address:  fb.address,
+    postcode: fb.postcode,
+    phone,
+    tel:      "tel:" + phone.replace(/\s+/g, ""),
+    hours:    fb.comingSoon ? "Opening soon" : "Mon\u2013Fri, 07:30\u201318:30",
+    ageRange: "3 months \u2013 5 years",
+    colour:   style.colour,
+    bg:       style.bg,
+    mapUrl:   "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(fb.address + " " + fb.postcode),
+    status:   fb.comingSoon ? "coming-soon" : "active",
+  };
+});
 
 const ENQUIRY_TYPES = [
   "Arrange a visit",

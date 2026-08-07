@@ -131,8 +131,21 @@ export default async function PinnerGreenBranchPage() {
   // this file remain only inside the roster fallback (lib/branch-public).
   const branch = await getPublicBranch("pinner-green");
   const c = branchContactView("pinner-green", branch);
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://bluenest.uk/" },
+      { "@type": "ListItem", position: 2, name: "Branches", item: "https://bluenest.uk/branches" },
+      { "@type": "ListItem", position: 3, name: "Pinner Green", item: "https://bluenest.uk/branches/pinner-green" },
+    ],
+  };
   return (
     <PublicLayout>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
 
       <BranchHero
         location="Pinner Green, London"

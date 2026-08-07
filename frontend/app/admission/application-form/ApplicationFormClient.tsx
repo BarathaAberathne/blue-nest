@@ -5,11 +5,15 @@ import { ArrowRight, CheckCircle2, ChevronDown, MapPin, Sparkles } from "lucide-
 import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
 import { api } from "@/lib/api";
+import { BRANCH_FALLBACKS, fallbackFor } from "@/lib/branch-public";
 import { trackEvent } from "@/lib/analytics";
+import type { Branch } from "@/types";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const BRANCHES      = ["Harrow", "Borehamwood", "Pinner", "Northwood"];
+// Fallback only — the live options come from GET /branches (fetched below),
+// so a new branch appears here without a code change.
+const BRANCHES_FALLBACK = BRANCH_FALLBACKS.map((b) => b.label);
 const GENDERS       = ["Male", "Female", "Prefer not to say"];
 const DAYS          = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 const DAYS_FULL     = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -268,6 +272,26 @@ export default function ApplicationFormClient() {
   // Live session options from the configurable list (org-wide), fallback to the
   // static marketing set if unavailable.
   const [sessionTypes, setSessionTypes] = useState<SessionType[]>(SESSION_TYPES_FALLBACK);
+  // Live branch options from GET /branches (roster order, short labels),
+  // fallback to the static roster if unavailable.
+  const [branchOptions, setBranchOptions] = useState<string[]>(BRANCHES_FALLBACK);
+  useEffect(() => {
+    api.getBranches()
+      .then((raw) => {
+        const list = (raw as Branch[]) ?? [];
+        if (!Array.isArray(list) || !list.length) return;
+        const order = BRANCH_FALLBACKS.map((b) => b.slug);
+        const labels = list
+          .slice()
+          .sort((a, b) => {
+            const ia = order.indexOf(a.slug), ib = order.indexOf(b.slug);
+            return (ia === -1 ? order.length : ia) - (ib === -1 ? order.length : ib);
+          })
+          .map((b) => fallbackFor(b.slug)?.label ?? b.name.replace(/^.*—\s*/, ""));
+        setBranchOptions(labels);
+      })
+      .catch(() => { /* keep fallback */ });
+  }, []);
   useEffect(() => {
     api.getTaxonomy("session_type")
       .then((terms) => {
@@ -461,7 +485,7 @@ export default function ApplicationFormClient() {
                         <fieldset>
                           <legend className={labelCls}>Branch<Req /></legend>
                           <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-1">
-                            {BRANCHES.map((b) => (
+                            {branchOptions.map((b) => (
                               <label key={b} className="flex cursor-pointer items-center gap-1.5">
                                 <input type="radio" name="branch" value={b}
                                   checked={branch === b} onChange={() => setBranch(b)}

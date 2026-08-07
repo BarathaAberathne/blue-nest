@@ -45,7 +45,7 @@ const aboutJsonLd = {
     url: "https://bluenest.uk",
     description:
       "A family of Montessori day nurseries in Harrow, Pinner, Borehamwood and Aldershot for children aged 3 months to 5 years, blending the Montessori method with the UK EYFS framework.",
-    areaServed: ["Harrow", "Pinner", "Borehamwood"],
+    areaServed: ["Harrow", "Pinner", "Borehamwood", "Aldershot"],
   },
 };
 

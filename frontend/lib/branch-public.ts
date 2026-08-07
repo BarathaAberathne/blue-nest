@@ -55,6 +55,20 @@ export async function getPublicBranch(slug: string): Promise<Branch | null> {
   }
 }
 
+// getPublicBranches fetches the full public roster with the same ISR window,
+// returning null (never throwing) when the API is unavailable so callers keep
+// their static fallback flags.
+export async function getPublicBranches(): Promise<Branch[] | null> {
+  try {
+    const res = await fetch(`${serverApiBase()}/api/v1/branches`, { next: { revalidate: 300 } });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { data?: Branch[] };
+    return body.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Merge helpers: fetched value first, fallback literal second ──────────────
 
 export type BranchContactView = {

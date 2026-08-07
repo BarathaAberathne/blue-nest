@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
 import { Reveal } from "@/components/ui/Motion";
 import PastelButton from "@/components/ui/PastelButton";
+import { getPublicBranches } from "@/lib/branch-public";
 
 const trustItems = [
   "Rated Good by Ofsted",
@@ -13,7 +14,9 @@ const trustItems = [
 // Branch picker — colour tokens match the per-branch `--branch-*` variables
 // defined in styles/globals.css so the chips line up with the rest of the
 // site's branch identity.
-const branches: {
+// The comingSoon flags below are the render FALLBACK; the live branch status
+// from the backend overrides them at request time (see HeroSection body).
+const branchesFallback: {
   name:        string;
   href:        string;
   colour:      string;
@@ -27,7 +30,16 @@ const branches: {
   { name: "Aldershot",    href: "/branches/aldershot",    colour: "var(--branch-aldershot)" },
 ];
 
-export default function HeroSection() {
+export default async function HeroSection() {
+  // Live status overrides the static comingSoon flags so opening a branch in
+  // the admin flips the homepage badge without a code change.
+  const live = await getPublicBranches();
+  const statusBySlug = new Map((live ?? []).map((b) => [b.slug, b.status]));
+  const branches = branchesFallback.map((b) => {
+    const slug = b.href.replace("/branches/", "");
+    const status = statusBySlug.get(slug);
+    return status ? { ...b, comingSoon: status === "coming_soon" } : b;
+  });
   return (
     // Height policy (preserved from the earlier tablet fix):
     //   mobile  (<sm) fills viewport

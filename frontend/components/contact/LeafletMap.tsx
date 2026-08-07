@@ -6,6 +6,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { api } from "@/lib/api";
 import { branchShortName } from "@/lib/branch";
+import { BRANCH_FALLBACKS } from "@/lib/branch-public";
 import type { Branch } from "@/types";
 
 interface BranchPin {
@@ -22,82 +23,33 @@ interface BranchPin {
   comingSoon?: boolean;
 }
 
-const PINS: BranchPin[] = [
-  {
-    id:      "harrow",
-    name:    "Harrow",
-    address: "29 Churchfield Close, Harrow, HA2 6BD",
-    phone:   "020 8861 5574",
-    hours:   "Mon–Fri, 07:30–18:30",
-    lat:     51.5836,
-    lng:     -0.3364,
-    colour:  "#3aada9",
-    letter:  "H",
-    mapUrl:  "https://www.google.com/maps/search/?api=1&query=29+Churchfield+Close+Harrow+HA2+6BD",
-  },
-  {
-    id:      "pinner",
-    name:    "Pinner",
-    address: "Cuckoo Hill Road, Pinner, HA5 1AY",
-    phone:   "07400 430630",
-    hours:   "Mon–Fri, 07:30–18:30",
-    lat:     51.5919,
-    lng:     -0.3795,
-    colour:  "#cf7d9c",
-    letter:  "P",
-    mapUrl:  "https://www.google.com/maps/search/?api=1&query=Cuckoo+Hill+Road+Pinner+HA5+1AY",
-  },
-  {
-    id:      "borehamwood",
-    name:    "Borehamwood",
-    address: "31-33 Farriers Way, Borehamwood, WD6 2TB",
-    phone:   "020 8953 1718",
-    hours:   "Mon–Fri, 07:30–18:30",
-    lat:     51.6594,
-    lng:     -0.2724,
-    colour:  "#5fc8c7",
-    letter:  "B",
-    mapUrl:  "https://www.google.com/maps/search/?api=1&query=31-33+Farriers+Way+Borehamwood+WD6+2TB",
-  },
-  {
-    id:        "pinner-green",
-    name:      "Pinner Green",
-    address:   "Pinner Green, London, HA5",
-    phone:     "020 8861 5574",
-    hours:     "Opening soon",
-    lat:       51.5972,
-    lng:       -0.3878,
-    colour:    "#5fa46e",
-    letter:    "P",
-    mapUrl:    "https://www.google.com/maps/search/?api=1&query=Pinner+Green+HA5",
-    comingSoon: true,
-  },
-  {
-    id:      "aldershot",
-    name:    "Aldershot",
-    address: "Belle Vue Rd, Aldershot, GU12 4RZ",
-    phone:   "01252 343772",
-    hours:   "Mon–Fri, 07:30–18:30",
-    lat:     51.2416,
-    lng:     -0.746,
-    colour:  "#e0965f",
-    letter:  "A",
-    mapUrl:  "https://www.google.com/maps/search/?api=1&query=Belle+Vue+Rd+Aldershot+GU12+4RZ",
-  },
-  {
-    id:        "northwood",
-    name:      "Northwood",
-    address:   "Sandy Lane, Northwood, HA6 3DA",
-    phone:     "020 8861 5574",
-    hours:     "Opening soon",
-    lat:       51.6091,
-    lng:       -0.4186,
-    colour:    "#c49a00",
-    letter:    "N",
-    mapUrl:    "https://www.google.com/maps/search/?api=1&query=Sandy+Lane+Northwood+HA6+3DA",
-    comingSoon: true,
-  },
-];
+// Fallback pins derive from the ONE shared roster (lib/branch-public.ts);
+// only the marker styling (colour / letter) stays local to the map.
+const PIN_STYLE: Record<string, { colour: string; letter: string }> = {
+  harrow:         { colour: "#3aada9", letter: "H" },
+  borehamwood:    { colour: "#5fc8c7", letter: "B" },
+  pinner:         { colour: "#cf7d9c", letter: "P" },
+  aldershot:      { colour: "#e0965f", letter: "A" },
+  "pinner-green": { colour: "#5fa46e", letter: "P" },
+  northwood:      { colour: "#c49a00", letter: "N" },
+};
+
+const PINS: BranchPin[] = BRANCH_FALLBACKS.map((fb) => {
+  const style = PIN_STYLE[fb.slug] ?? { colour: "#3aada9", letter: (fb.label[0] || "B").toUpperCase() };
+  return {
+    id:      fb.slug,
+    name:    fb.label,
+    address: fb.address + ", " + fb.postcode,
+    phone:   fb.phone ?? "",
+    hours:   fb.comingSoon ? "Opening soon" : "Mon\u2013Fri, 07:30\u201318:30",
+    lat:     fb.lat,
+    lng:     fb.lng,
+    colour:  style.colour,
+    letter:  style.letter,
+    mapUrl:  "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(fb.address + " " + fb.postcode),
+    comingSoon: fb.comingSoon,
+  };
+});
 
 function makeIcon(colour: string, letter: string) {
   return L.divIcon({

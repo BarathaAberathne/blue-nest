@@ -115,7 +115,7 @@ export default function Footer() {
             </Link>
 
             <p className="max-w-[210px] text-[0.88rem] leading-[1.8] text-[rgba(90,74,66,0.85)]">
-              Nurturing curious minds through child-led Montessori education across North West London and Hertfordshire.
+              Nurturing curious minds through child-led Montessori education across North West London, Hertfordshire and Hampshire.
             </p>
 
             {/* Social icons */}
