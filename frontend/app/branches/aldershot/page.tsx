@@ -99,6 +99,18 @@ const gallery = [
     caption: "Our Belle Vue Road entrance",
   },
   {
+    src: "/home/branches/aldershot/aldershot-sign.jpg",
+    alt: "The Blue Nest Montessori School Aldershot branch sign with our website and phone number",
+    rotate: 2,
+    caption: "Look out for our sign",
+  },
+  {
+    src: "/home/branches/aldershot/aldershot-welcome-board.jpg",
+    alt: "The Aldershot welcome board greeting families in many languages, from Hola to Vanakkam",
+    rotate: -1,
+    caption: "Welcome, in every language",
+  },
+  {
     src: "/home/forest-school-2.jpg",
     alt: "Forest school at Blue Nest Montessori",
     rotate: 2,
@@ -107,26 +119,14 @@ const gallery = [
   {
     src: "/home/outdoor-learning-and-play-area.jpg",
     alt: "Outdoor learning area at Blue Nest Montessori",
-    rotate: -1,
+    rotate: -2,
     caption: "Outdoor classroom",
   },
   {
     src: "/home/DSC_0177.jpg",
     alt: "Montessori classroom activity",
-    rotate: 2,
-    caption: "Learning through play",
-  },
-  {
-    src: "/home/outdoor-childrens-play-area2.jpg",
-    alt: "Children's outdoor play area",
-    rotate: -2,
-    caption: "Garden and play",
-  },
-  {
-    src: "/home/structured-routine.jpg",
-    alt: "Calm structured routine at Blue Nest",
     rotate: 1,
-    caption: "Calm, consistent routines",
+    caption: "Learning through play",
   },
 ];
 
@@ -208,8 +208,8 @@ export default async function AldershotBranchPage() {
             <Reveal>
               <div className="mx-auto w-full max-w-[420px]">
                 <StickerCard
-                  src="/home/outdoor-play-for-children.jpg"
-                  alt="Children at Blue Nest Montessori Aldershot"
+                  src="/home/branches/aldershot/aldershot-sign.jpg"
+                  alt="The Blue Nest Montessori School Aldershot branch sign on Belle Vue Road"
                   rotate={-3}
                   sizes="(max-width: 1024px) 80vw, 38vw"
                   className="w-full"
