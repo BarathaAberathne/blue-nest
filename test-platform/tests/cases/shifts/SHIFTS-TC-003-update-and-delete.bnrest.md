@@ -24,7 +24,7 @@ Given Post /api/v1/admin/shifts Into shift Using adminSession.accessToken
 {
   "staff_id": "${staff.id}",
   "branch_slug": "${branch.slug}",
-  "date": "2027-06-09",
+  "date": "${monday("+20w+2d")}",
   "start_time": "09:00",
   "end_time": "17:00"
 }
@@ -34,7 +34,7 @@ When Put /api/v1/admin/shifts/${shift.body.data.id} Into updated Using adminSess
 {
   "staff_id": "${staff.id}",
   "branch_slug": "${branch.slug}",
-  "date": "2027-06-09",
+  "date": "${monday("+20w+2d")}",
   "start_time": "13:00",
   "end_time": "18:00"
 }
@@ -45,7 +45,7 @@ And Assert updated.body.data.end_time == "18:00"
 When Delete /api/v1/admin/shifts/${shift.body.data.id} Into deleted Using adminSession.accessToken
 Then AssertStatus deleted 204
 
-When Get /api/v1/admin/shifts?branch=${branch.slug}&week=2027-06-07 Into afterDelete Using adminSession.accessToken
+When Get /api/v1/admin/shifts?branch=${branch.slug}&week=${monday("+20w")} Into afterDelete Using adminSession.accessToken
 Then AssertStatus afterDelete 200
 And AssertJson afterDelete "$.body.data[?(@.id=='${shift.body.data.id}')].length()" == 0
 ```

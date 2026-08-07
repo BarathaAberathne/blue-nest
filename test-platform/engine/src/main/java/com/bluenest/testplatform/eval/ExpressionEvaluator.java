@@ -185,9 +185,42 @@ public final class ExpressionEvaluator {
             case "random" -> VariableScope.mapper().getNodeFactory().numberNode(Math.abs(random.nextInt(1_000_000)));
             case "timestamp" -> VariableScope.mapper().getNodeFactory().numberNode(Instant.now().toEpochMilli());
             case "secret" -> VariableScope.mapper().getNodeFactory().textNode(secretResolver.resolve(arg));
+            case "today" -> VariableScope.mapper().getNodeFactory().textNode(applyDateOffset(java.time.LocalDate.now(), arg, name));
+            case "monday" -> VariableScope.mapper().getNodeFactory().textNode(
+                    applyDateOffset(java.time.LocalDate.now().with(java.time.DayOfWeek.MONDAY), arg, name));
             default -> throw new IllegalArgumentException(
-                    "Unknown function '" + name + "()' — only random(), timestamp(), secret(name) are allowed");
+                    "Unknown function '" + name + "()' — only random(), timestamp(), secret(name), today(offset), monday(offset) are allowed");
         };
+    }
+
+    // applyDateOffset renders a base date as YYYY-MM-DD, optionally shifted by
+    // a signed compound offset like "+2y", "-30d", "+3m", "+30w+3d" — so
+    // date-sensitive tests (future DOBs, expected start dates, leave ranges)
+    // express dates RELATIVE to the run day instead of hardcoding a calendar
+    // date that silently rots when the calendar catches up with it. today()
+    // anchors on the run day; monday() anchors on the current week's Monday so
+    // weekday-sensitive tests (working-day counts, session-day checks) stay on
+    // the intended weekday whatever day the suite runs.
+    private static String applyDateOffset(java.time.LocalDate base, String offset, String fn) {
+        java.time.LocalDate d = base;
+        if (offset != null && !offset.isBlank()) {
+            String o = offset.trim();
+            if (!o.matches("^([+-]\\d+[dwmy])+$")) {
+                throw new IllegalArgumentException(
+                        fn + "() offset must be segments like +2y, -30d, +3m, +30w+3d — got '" + offset + "'");
+            }
+            var m = java.util.regex.Pattern.compile("([+-])(\\d+)([dwmy])").matcher(o);
+            while (m.find()) {
+                int n = Integer.parseInt(m.group(2)) * ("-".equals(m.group(1)) ? -1 : 1);
+                d = switch (m.group(3)) {
+                    case "d" -> d.plusDays(n);
+                    case "w" -> d.plusWeeks(n);
+                    case "m" -> d.plusMonths(n);
+                    default -> d.plusYears(n);
+                };
+            }
+        }
+        return d.toString();
     }
 
     private void expect(String tok) {

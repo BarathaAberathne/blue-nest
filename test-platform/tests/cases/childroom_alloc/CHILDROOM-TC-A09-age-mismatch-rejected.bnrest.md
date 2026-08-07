@@ -33,7 +33,7 @@ Post /api/v1/admin/rooms Into ageRoom Using adminSession.accessToken
 AssertStatus ageRoom 201
 
 Post /api/v1/admin/children Into youngChild Using adminSession.accessToken
-{ "first_name": "QA-AUTOTEST", "last_name": "TooYoung-${random()}", "dob": "2024-01-01", "branch_slug": "${branch.slug}" }
+{ "first_name": "QA-AUTOTEST", "last_name": "TooYoung-${random()}", "dob": "${today("-30m")}", "branch_slug": "${branch.slug}" }
 AssertStatus youngChild 201
 
 Body

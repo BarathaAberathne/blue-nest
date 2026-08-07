@@ -25,14 +25,14 @@ just returned, and this engine doesn't share variables between sibling
 cases (only a suite's own `Setup` variables are inherited — see
 `ENQUIRY-TC-001`'s doc for the same constraint). Genuinely
 `dependsOn: [STAFFATT-TC-001]` — needs the staff member clocked in on the
-same date (`2027-04-12`) first. Reads the shared `adminSession`/`staff`
+same run-relative date (`today("+32w")`) first. Reads the shared `adminSession`/`staff`
 suite fixtures — see `SUI-ATT-001`.
 
 ```bnrest
 Given Post /api/v1/admin/staff-attendance/clock-out Into clocked Using adminSession.accessToken
 {
   "staff_id": "${staff.body.data.id}",
-  "date": "2027-04-12"
+  "date": "${today("+32w")}"
 }
 Then AssertStatus clocked 200
 And Assert clocked.body.data.clock_out != null
@@ -41,7 +41,7 @@ And Assert clocked.body.data.worked_minutes >= 0
 When Patch /api/v1/admin/staff-attendance/${clocked.body.data.id}/correct Into corrected Using adminSession.accessToken
 {
   "staff_id": "${staff.body.data.id}",
-  "date": "2027-04-12",
+  "date": "${today("+32w")}",
   "status": "sick",
   "reason": "QA-AUTOTEST correction — reclassified after the fact"
 }

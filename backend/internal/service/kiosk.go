@@ -162,24 +162,35 @@ func isValidPIN(pin string) bool {
 // ── kiosk (device) side ──────────────────────────────────────────────────────
 
 // Authenticate matches a presented token against the active devices' hashes.
+// The device token is a PLATFORM-WIDE identity (like users.email at login): the
+// unauthenticated /kiosk routes run under the default tenant, so the lookup
+// deliberately escapes the tenant filter to find which org the device belongs
+// to — otherwise a non-default tenant's kiosk could never pair. Everything
+// after the match runs pinned to the device's own org, and KioskAuth re-pins
+// the request context from the returned session's OrgID.
 func (s *kioskService) Authenticate(ctx context.Context, token string) (*models.KioskSession, error) {
 	if strings.TrimSpace(token) == "" {
 		return nil, errors.New("missing device token")
 	}
-	devices, err := s.devices.FindActive(ctx)
+	devices, err := s.devices.FindActive(repository.WithCrossOrg(ctx))
 	if err != nil {
 		return nil, err
 	}
 	for _, d := range devices {
 		if bcrypt.CompareHashAndPassword([]byte(d.TokenHash), []byte(token)) == nil {
-			_ = s.devices.TouchLastSeen(ctx, d.ID.Hex())
+			dctx := ctx
+			if d.OrgID != "" {
+				dctx = repository.WithOrg(ctx, d.OrgID)
+			}
+			_ = s.devices.TouchLastSeen(dctx, d.ID.Hex())
 			branchName := d.BranchSlug
-			if b, err := s.branches.FindBySlug(ctx, d.BranchSlug); err == nil && b != nil {
+			if b, err := s.branches.FindBySlug(dctx, d.BranchSlug); err == nil && b != nil {
 				branchName = b.Name
 			}
 			return &models.KioskSession{
 				DeviceID: d.ID.Hex(), DeviceName: d.Name,
 				BranchSlug: d.BranchSlug, BranchName: branchName,
+				OrgID: d.OrgID,
 			}, nil
 		}
 	}

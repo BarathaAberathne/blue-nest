@@ -34,7 +34,7 @@ Call ../../utils/staff/STAFF-UTIL-001-create-staff.bnrest.md With Json Into staf
 { "accessToken": "${adminSession.accessToken}", "firstName": "QA-AUTOTEST", "lastName": "AuditStaff-${random()}", "email": "qa-autotest-auditstaff-${random()}@bluenest.test", "branchSlug": "${branch.slug}", "jobTitle": "", "enableLogin": false, "loginRole": "", "loginPassword": "" }
 
 Call ../../utils/child/CHILD-UTIL-003-create-child-direct.bnrest.md With Json Into child
-{ "accessToken": "${adminSession.accessToken}", "branchSlug": "${branch.slug}", "firstName": "QA-AUTOTEST", "lastName": "AuditChild-${random()}", "dob": "2024-01-01" }
+{ "accessToken": "${adminSession.accessToken}", "branchSlug": "${branch.slug}", "firstName": "QA-AUTOTEST", "lastName": "AuditChild-${random()}", "dob": "${today("-30m")}" }
 
 Body
 Call CatchError ../../cases/roomaudit/ROOMAUDIT-TC-001-staff-allocation-audited.bnrest.md

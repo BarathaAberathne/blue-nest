@@ -290,7 +290,10 @@ public final class Executor {
         JsonNode root = scope.getRoot(s.subjectVar);
         String jsonPathExpr = new TemplateSubstitutor(scope, ctx.secretResolver).substitute(s.args.get(0));
         String op = s.args.get(1);
-        String expectedLiteral = s.args.get(2);
+        // The expected value may reference variables/functions (e.g. a date the
+        // test submitted as ${today("+1m")}) — substitute like the path; plain
+        // literals pass through unchanged.
+        String expectedLiteral = new TemplateSubstitutor(scope, ctx.secretResolver).substitute(s.args.get(2));
         Object actual;
         try {
             actual = JsonPath.read(VariableScope.mapper().writeValueAsString(root), jsonPathExpr);
@@ -321,11 +324,28 @@ public final class Executor {
     }
 
     private void assertHeader(Statement s, VariableScope scope, ExecutionContext ctx) {
-        JsonNode headerValue = scope.resolve(s.subjectVar + ".headers." + s.args.get(0));
-        boolean pass = compareLiteral(headerValue.asText(), s.args.get(1), s.args.get(2));
+        // Look the header up as a field on the headers object rather than via the
+        // dotted-path resolver — header names contain hyphens ("Content-Type"),
+        // which the path grammar can't express. Case-insensitive per HTTP.
+        JsonNode headersNode = scope.resolve(s.subjectVar + ".headers");
+        String wanted = s.args.get(0);
+        JsonNode headerValue = headersNode.get(wanted);
+        if (headerValue == null) {
+            var names = headersNode.fieldNames();
+            while (names.hasNext()) {
+                String name = names.next();
+                if (name.equalsIgnoreCase(wanted)) {
+                    headerValue = headersNode.get(name);
+                    break;
+                }
+            }
+        }
+        boolean pass = headerValue != null
+                && compareLiteral(headerValue.asText(), s.args.get(1), s.args.get(2));
         if (!pass) {
             ctx.result.failedAssertion = s.raw;
-            throw new AssertionFailedException("AssertHeader failed: " + s.raw);
+            throw new AssertionFailedException("AssertHeader failed: " + s.raw
+                    + (headerValue == null ? " (header not present)" : " (actual: " + headerValue.asText() + ")"));
         }
     }
 

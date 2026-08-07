@@ -30,7 +30,7 @@ Call ../../utils/branch/BRANCH-FIX-001-create-test-branch.bnrest.md With Json In
 { "accessToken": "${adminSession.accessToken}" }
 
 Post /api/v1/admin/terms Into term Using adminSession.accessToken
-{ "branch_slug": "${branch.slug}", "name": "QA-AUTOTEST Term", "start_date": "2027-01-01", "end_date": "2027-01-31" }
+{ "branch_slug": "${branch.slug}", "name": "QA-AUTOTEST Term", "start_date": "${monday("+20w")}", "end_date": "${monday("+24w+4d")}" }
 AssertStatus term 201
 
 Post /api/v1/admin/staff Into staff Using adminSession.accessToken
@@ -38,11 +38,11 @@ Post /api/v1/admin/staff Into staff Using adminSession.accessToken
 AssertStatus staff 201
 
 Body
-When Get /api/v1/admin/staff-attendance/summary?date=2027-01-15&branch=${branch.slug} Into inTerm Using adminSession.accessToken
+When Get /api/v1/admin/staff-attendance/summary?date=${monday("+22w")}&branch=${branch.slug} Into inTerm Using adminSession.accessToken
 Then AssertStatus inTerm 200
 And Assert inTerm.body.data.total == 1
 
-When Get /api/v1/admin/staff-attendance/summary?date=2027-06-15&branch=${branch.slug} Into outTerm Using adminSession.accessToken
+When Get /api/v1/admin/staff-attendance/summary?date=${monday("+40w")}&branch=${branch.slug} Into outTerm Using adminSession.accessToken
 Then AssertStatus outTerm 200
 And Assert outTerm.body.data.total == 0
 

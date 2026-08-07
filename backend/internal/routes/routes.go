@@ -60,6 +60,7 @@ type Services struct {
 	FeeConfig         service.FeeConfigService
 	BranchTemplates   service.BranchTemplateService
 	EmailTemplates    service.EmailTemplateService
+	NotifPrefs        service.NotificationPreferenceService
 }
 
 type Repos struct {
@@ -179,6 +180,19 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Put("/me/profile", meH.UpdateProfile)
 			r.Get("/me/attendance", meH.Attendance)
 			r.Get("/me/rota", meH.Rota)
+			meNotifPrefsH := adminHandler.NewMeNotificationPrefsHandler(svc.NotifPrefs)
+			r.Get("/me/notification-preferences", meNotifPrefsH.Get)
+			r.Put("/me/notification-preferences", meNotifPrefsH.Update)
+
+			// In-app notifications — strictly the CALLER's own rows (handler
+			// scopes by JWT user id), so any authenticated user may read
+			// theirs. Staff are notified by leave/daily-log approvals and see
+			// the bell in the Staff Portal; gating this behind a management
+			// permission locked them out of their own notifications.
+			notifH := adminHandler.NewAdminNotificationHandler(svc.Notifications)
+			r.Get("/admin/notifications", notifH.List)
+			r.Post("/admin/notifications/read-all", notifH.MarkAllRead)
+			r.Patch("/admin/notifications/{id}/read", notifH.MarkRead)
 
 			// Cart
 			cartH := handler.NewCartHandler(svc.Cart)
@@ -280,6 +294,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Use(middleware.RequirePermission(models.PermEnquiriesManage))
 				adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Auth, svc.Audit, svc.Children)
 				r.Get("/admin/enquiries", adminEnquiryH.List)
+				r.Get("/admin/enquiries/export", adminEnquiryH.Export)
 				r.Post("/admin/enquiries", adminEnquiryH.Create)
 				r.Get("/admin/enquiries/page", adminEnquiryH.ListPaged)
 				r.Get("/admin/enquiries/stats", adminEnquiryH.Stats)
@@ -308,6 +323,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Use(middleware.RequirePermission(models.PermLeaveApprove))
 				leaveAdminH := adminHandler.NewAdminLeaveHandler(svc.LeaveRequests, svc.Audit)
 				r.Get("/admin/leave-requests", leaveAdminH.List)
+				r.Get("/admin/leave-requests/export", leaveAdminH.Export)
 				r.Post("/admin/leave-requests", leaveAdminH.Apply) // manager files for a staff member (staff_id in body)
 				r.Post("/admin/leave-requests/{id}/approve", leaveAdminH.Approve)
 				r.Post("/admin/leave-requests/{id}/decline", leaveAdminH.Decline)
@@ -385,6 +401,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 
 				adminChildH := adminHandler.NewAdminChildHandler(svc.Children, svc.Audit)
 				r.Get("/admin/children", adminChildH.List)
+				r.Get("/admin/children/export", adminChildH.Export)
 				r.Get("/admin/children/stats", adminChildH.Stats)
 				r.Get("/admin/children/capacity-forecast", adminChildH.CapacityForecast)
 				r.Get("/admin/children/{id}", adminChildH.Get)
@@ -410,6 +427,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Use(middleware.RequirePermission(models.PermStaffManage))
 				adminStaffH := adminHandler.NewAdminStaffHandler(svc.Staff, svc.Audit)
 				r.Get("/admin/staff", adminStaffH.List)
+				r.Get("/admin/staff/export", adminStaffH.Export)
 				r.Get("/admin/staff/{id}", adminStaffH.Get)
 				r.Get("/admin/staff/{id}/attendance-summary", func(w http.ResponseWriter, r *http.Request) {
 					adminStaffH.AttendanceSummary(w, r, svc.StaffAttendance)
@@ -433,6 +451,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 
 				adminStaffAttH := adminHandler.NewAdminStaffAttendanceHandler(svc.StaffAttendance, svc.Audit)
 				r.Get("/admin/staff-attendance", adminStaffAttH.Register)
+				r.Get("/admin/staff-attendance/export", adminStaffAttH.Export)
 				r.Get("/admin/staff-attendance/today", adminStaffAttH.Today)
 				r.Get("/admin/staff-attendance/summary", adminStaffAttH.Summary)
 				r.Post("/admin/staff-attendance/clock-in", adminStaffAttH.ClockIn)
@@ -492,11 +511,6 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 					r.Get("/admin/branch-templates", adminBranchTplH.List)
 					r.Get("/admin/branch-templates/{id}", adminBranchTplH.Get)
 					r.Get("/admin/email-templates", adminEmailTplH.List)
-					// In-app notifications - every management user reads their OWN.
-					adminNotifH := adminHandler.NewAdminNotificationHandler(svc.Notifications)
-					r.Get("/admin/notifications", adminNotifH.List)
-					r.Post("/admin/notifications/read-all", adminNotifH.MarkAllRead)
-					r.Patch("/admin/notifications/{id}/read", adminNotifH.MarkRead)
 					r.Group(func(r chi.Router) {
 						r.Use(middleware.RequirePermission(models.PermBranchesManage))
 						r.Post("/admin/taxonomy", adminTaxonomyH.Create)

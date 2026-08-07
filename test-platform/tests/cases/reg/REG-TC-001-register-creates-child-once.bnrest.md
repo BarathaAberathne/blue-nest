@@ -34,10 +34,10 @@ Given Call ../../utils/child/CHILD-UTIL-001-register-child-from-enquiry.bnrest.m
   "branchSlug": "${branch.slug}",
   "firstName": "QA-AUTOTEST",
   "lastName": "RegChild-${childSuffix}",
-  "dob": "2026-03-01",
+  "dob": "${today("-5m")}",
   "ageGroup": "Under 1 year",
   "fundingType": "None",
-  "expectedStartDate": "2026-09-01T00:00:00Z"
+  "expectedStartDate": "${today("+1m")}T00:00:00Z"
 }
 Then Assert created.id != null
 

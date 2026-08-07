@@ -27,25 +27,25 @@ halves are asserted below. Reads the shared `adminSession`/`branch`/
 `staff` suite fixtures — see `SUI-ATT-001`.
 
 ```bnrest
-Given Get /api/v1/admin/staff-attendance/summary?date=2020-06-15&branch=${branch.slug} Into before Using adminSession.accessToken
+Given Get /api/v1/admin/staff-attendance/summary?date=${today("-2y")}&branch=${branch.slug} Into before Using adminSession.accessToken
 Then AssertStatus before 200
 And Assert before.body.data.missing_clockout == 0
 
 When Post /api/v1/admin/staff-attendance/clock-in Into clocked Using adminSession.accessToken
 {
   "staff_id": "${staff.body.data.id}",
-  "date": "2020-06-15"
+  "date": "${today("-2y")}"
 }
 Then AssertStatus clocked 200
 And Assert clocked.body.data.worked_minutes == 0
 
-When Get /api/v1/admin/staff-attendance/summary?date=2020-06-15&branch=${branch.slug} Into after Using adminSession.accessToken
+When Get /api/v1/admin/staff-attendance/summary?date=${today("-2y")}&branch=${branch.slug} Into after Using adminSession.accessToken
 Then Assert after.body.data.missing_clockout == 1
 
 When Patch /api/v1/admin/staff-attendance/000000000000000000000000/correct Into corrected Using adminSession.accessToken
 {
   "staff_id": "${staff.body.data.id}",
-  "date": "2020-06-15",
+  "date": "${today("-2y")}",
   "clock_out": "17:30",
   "reason": "QA-AUTOTEST manual correction — forgot to clock out"
 }

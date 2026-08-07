@@ -366,6 +366,11 @@ type ChildRoomAssignmentService interface {
 	// CurrentRoomsByBranch returns child_id → active room_id for a branch, in
 	// one query — the batch projection for child list responses.
 	CurrentRoomsByBranch(ctx context.Context, branch string) map[string]string
+	// PlacementsByBranch returns every live (active + scheduled) placement row
+	// for a branch, so date-aware consumers (the capacity forecast) can resolve
+	// each child's room AS OF any future date — a scheduled transfer must show
+	// in the week it takes effect, not be invisible until it activates.
+	PlacementsByBranch(ctx context.Context, branch string) []models.ChildRoomAssignment
 	// EndAllForChild ends every live placement for a child (used on delete).
 	EndAllForChild(ctx context.Context, childID, actor string)
 }
@@ -416,6 +421,19 @@ func (s *childRoomAssignmentService) CurrentRoom(ctx context.Context, childID st
 
 func (s *childRoomAssignmentService) CurrentRoomsByBranch(ctx context.Context, branch string) map[string]string {
 	return CurrentChildRooms(ctx, s.repo, branch)
+}
+
+func (s *childRoomAssignmentService) PlacementsByBranch(ctx context.Context, branch string) []models.ChildRoomAssignment {
+	out := []models.ChildRoomAssignment{}
+	for _, status := range []models.AssignmentStatus{models.AssignmentActive, models.AssignmentScheduled} {
+		rows, err := s.repo.FindAll(ctx, repository.ChildRoomAssignmentFilter{Branch: branch, Status: status})
+		if err != nil {
+			log.Printf("room-assignment: PlacementsByBranch(%q, %s) failed: %v", branch, status, err)
+			continue
+		}
+		out = append(out, rows...)
+	}
+	return out
 }
 
 func (s *childRoomAssignmentService) currentActive(ctx context.Context, childID string) (*models.ChildRoomAssignment, error) {

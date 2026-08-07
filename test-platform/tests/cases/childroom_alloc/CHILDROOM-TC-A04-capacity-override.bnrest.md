@@ -25,7 +25,7 @@ blocked without — and allowed with — an override reason. Reads shared
 ```bnrest
 Setup
 Post /api/v1/admin/children Into filler Using adminSession.accessToken
-{ "first_name": "QA-AUTOTEST", "last_name": "Filler-${random()}", "dob": "2024-01-01", "branch_slug": "${branch.slug}" }
+{ "first_name": "QA-AUTOTEST", "last_name": "Filler-${random()}", "dob": "${today("-30m")}", "branch_slug": "${branch.slug}" }
 AssertStatus filler 201
 Post /api/v1/admin/child-room-assignments Into fill Using adminSession.accessToken
 { "child_id": "${filler.body.data.id}", "room_id": "${tinyRoom.id}" }

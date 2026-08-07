@@ -26,7 +26,7 @@ Given Post /api/v1/admin/shifts Into badTimes Using adminSession.accessToken
 {
   "staff_id": "${staff.id}",
   "branch_slug": "${branch.slug}",
-  "date": "2027-06-10",
+  "date": "${monday("+20w+3d")}",
   "start_time": "17:00",
   "end_time": "09:00"
 }
@@ -36,7 +36,7 @@ When Post /api/v1/admin/shifts Into unknownStaff Using adminSession.accessToken
 {
   "staff_id": "000000000000000000000099",
   "branch_slug": "${branch.slug}",
-  "date": "2027-06-10",
+  "date": "${monday("+20w+3d")}",
   "start_time": "09:00",
   "end_time": "17:00"
 }

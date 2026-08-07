@@ -8,7 +8,7 @@ import {
   useReactTable, type SortingState,
 } from "@tanstack/react-table";
 import {
-  ArrowUpDown, Baby, Building2, LayoutGrid, MapPin, Star, Table as TableIcon, Users,
+  ArrowUpDown, Baby, Building2, LayoutGrid, MapPin, Plus, Star, Table as TableIcon, Users, X,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
@@ -18,7 +18,7 @@ import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import ProgressBar from "@/components/admin/ui/ProgressBar";
 import ViewToggle from "@/components/admin/ui/ViewToggle";
-import type { BranchOverviewRow, Staff } from "@/types";
+import type { BranchInput, BranchOverviewRow, BranchStatus, Staff } from "@/types";
 
 const BranchAdminMap = dynamic(() => import("./BranchAdminMap"), { ssr: false });
 
@@ -32,18 +32,18 @@ export default function BranchesClient() {
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<View>("table");
   const [sorting, setSorting] = useState<SortingState>([{ id: "performance", desc: true }]);
+  const [createOpen, setCreateOpen] = useState(false);
 
-  useEffect(() => {
+  const load = async () => {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
-    (async () => {
-      const [o, s] = await Promise.allSettled([api.adminGetBranchOverview(token), api.adminGetStaff(token)]);
-      if (o.status === "fulfilled") setRows((o.value as BranchOverviewRow[]) ?? []);
-      else setError("Failed to load branches.");
-      if (s.status === "fulfilled") setStaff((s.value as Staff[]) ?? []);
-      setLoading(false);
-    })();
-  }, []);
+    const [o, s] = await Promise.allSettled([api.adminGetBranchOverview(token), api.adminGetStaff(token)]);
+    if (o.status === "fulfilled") setRows((o.value as BranchOverviewRow[]) ?? []);
+    else setError("Failed to load branches.");
+    if (s.status === "fulfilled") setStaff((s.value as Staff[]) ?? []);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
 
   const managerName = useMemo(() => {
     const m = new Map(staff.map((s) => [s.id, `${s.first_name} ${s.last_name}`]));
@@ -114,12 +114,25 @@ export default function BranchesClient() {
           <h1 className="font-heading text-2xl font-bold text-slate-900">Branches</h1>
           <p className="text-sm text-slate-500">Every nursery is the hub that owns its children, staff, rooms, admissions &amp; performance — live, aggregated, never duplicated.</p>
         </div>
-        <ViewToggle<View>
-          options={[{ key: "table", label: "Table", icon: TableIcon }, { key: "cards", label: "Cards", icon: LayoutGrid }, { key: "map", label: "Map", icon: MapPin }]}
-          active={view}
-          onChange={setView}
-        />
+        <div className="flex items-center gap-2">
+          <ViewToggle<View>
+            options={[{ key: "table", label: "Table", icon: TableIcon }, { key: "cards", label: "Cards", icon: LayoutGrid }, { key: "map", label: "Map", icon: MapPin }]}
+            active={view}
+            onChange={setView}
+          />
+          <button type="button" onClick={() => setCreateOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700">
+            <Plus className="h-4 w-4" /> New branch
+          </button>
+        </div>
       </div>
+
+      {createOpen && (
+        <CreateBranchModal
+          onClose={() => setCreateOpen(false)}
+          onCreated={(slug) => { setCreateOpen(false); load(); router.push(`/admin/branches/${slug}`); }}
+        />
+      )}
 
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 
@@ -202,6 +215,95 @@ export default function BranchesClient() {
         </div>
       )}
     </>
+  );
+}
+
+// CreateBranchModal collects the minimal branch setup; everything else (hero,
+// gallery, Ofsted, socials, opening hours) is edited on the branch profile page.
+function CreateBranchModal({ onClose, onCreated }: { onClose: () => void; onCreated: (slug: string) => void }) {
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [status, setStatus] = useState<BranchStatus>("active");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [postcode, setPostcode] = useState("");
+  const [capacity, setCapacity] = useState("");
+  const [ageRange, setAgeRange] = useState("3 months – 5 years");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const slugify = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const onName = (v: string) => { setName(v); if (!slugTouched) setSlug(slugify(v)); };
+
+  const submit = async () => {
+    const token = getAccessToken();
+    if (!token) { setErr("Not authenticated"); return; }
+    if (!name.trim()) { setErr("Name is required"); return; }
+    setSaving(true); setErr(null);
+    const body = {
+      slug: slug || slugify(name),
+      name: name.trim(),
+      status,
+      short_description: "",
+      gallery: [],
+      contact: { phone, email, address },
+      admissions: { age_range: ageRange },
+      postcode,
+      capacity: capacity ? Number(capacity) : 0,
+      age_groups: [],
+      opening_hours: [],
+    } as unknown as BranchInput;
+    try {
+      const created = await api.adminCreateBranch(token, body);
+      onCreated(created.slug);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed to create branch");
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" role="dialog" aria-modal="true">
+      <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-heading text-lg font-bold text-slate-900">New branch</h2>
+          <button type="button" onClick={onClose} className="rounded p-1 text-slate-400 hover:text-slate-600" aria-label="Close"><X className="h-5 w-5" /></button>
+        </div>
+        {err && <p className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</p>}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="text-sm sm:col-span-2"><span className="mb-1 block font-medium text-slate-600">Name *</span>
+            <input value={name} onChange={(e) => onName(e.target.value)} placeholder="Blue Nest Montessori School — Harrow" className="w-full rounded-lg border border-slate-200 px-3 py-2" /></label>
+          <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Slug</span>
+            <input value={slug} onChange={(e) => { setSlugTouched(true); setSlug(slugify(e.target.value)); }} placeholder="harrow" className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs" /></label>
+          <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Status</span>
+            <select value={status} onChange={(e) => setStatus(e.target.value as BranchStatus)} className="w-full rounded-lg border border-slate-200 px-3 py-2">
+              <option value="active">Active</option>
+              <option value="coming_soon">Coming soon</option>
+            </select></label>
+          <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Phone</span>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2" /></label>
+          <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Contact email</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2" /></label>
+          <label className="text-sm sm:col-span-2"><span className="mb-1 block font-medium text-slate-600">Address</span>
+            <input value={address} onChange={(e) => setAddress(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2" /></label>
+          <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Postcode</span>
+            <input value={postcode} onChange={(e) => setPostcode(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2" /></label>
+          <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Capacity</span>
+            <input type="number" min="0" value={capacity} onChange={(e) => setCapacity(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2" /></label>
+          <label className="text-sm sm:col-span-2"><span className="mb-1 block font-medium text-slate-600">Age range</span>
+            <input value={ageRange} onChange={(e) => setAgeRange(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2" /></label>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Cancel</button>
+          <button type="button" onClick={submit} disabled={saving}
+            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">
+            {saving ? "Creating…" : "Create branch"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

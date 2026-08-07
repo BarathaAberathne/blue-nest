@@ -580,8 +580,75 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   pending until a *different* manager approves (four-eyes). **Planned next:** a full month-grid calendar
   view, a hard clash-block option on approval (currently a warning), and carry-over/pro-rata allowances.
 
-Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (CSV/Excel/PDF) +
-notifications. Then Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
+Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (**CSV + Excel exports
+and notification email delivery incl. per-user preferences delivered**, see below; PDF remains). Then
+Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
+
+- **Reporting / CSV + Excel exports (delivered):** a server-side export layer (`pkg/export` — `WriteCSV`
+  streams a `text/csv` attachment with a dated filename + UTF-8 BOM for Excel; `WriteXLSX` streams a real
+  `.xlsx` via `excelize` with a bold header row). Every handler calls the one dispatcher
+  `export.Write(w, r, base, headers, rows)` — `?format=xlsx|excel` selects Excel, default stays CSV — so
+  both formats come from one call site. Admin `GET …/export` endpoints reuse each list's service + filters +
+  branch scope: `/admin/children/export`, `/admin/staff/export`, `/admin/enquiries/export`,
+  `/admin/leave-requests/export`, `/admin/staff-attendance/export` (all under the resource's existing
+  `RequirePermission`). Frontend: `downloadCsv(path, token)` in `lib/api.ts` (auth-header fetch → blob →
+  download, honouring the server filename) + a reusable `components/admin/ExportButton` (CSV / Excel
+  dropdown; replaced the CSV-only `ExportCsvButton`), wired on the Staff Attendance + Leave pages (Children
+  + Staff keep their existing client-side CSV; the server endpoints are ready to unify them). Tests:
+  `SUI-EXPORT-001`. PDF is the remaining Phase E follow-up.
+
+- **Multi-tenant hardening pass (delivered — found by the full live-UI E2E run in a fresh org):** six real
+  defects fixed, each regression-locked. (1) **Branch slugs are unique per org, not globally** — the legacy
+  pre-tenancy `uniq_branch_slug` index blocked any second tenant from owning "harrow"; now a compound
+  `{org_id, slug}` index (`uniq_branch_slug_per_org`, ensured by `NewBranchRepository` at boot, legacy index
+  dropped) + `mongo.IsDuplicateKeyError` mapped to the friendly message (locked by `USER-TC-010`).
+  (2) **Branch dropdown tenancy leak** — ten admin pages (rooms/children/staff/users/daily-log/attendance/
+  room-planner/my-requests + both detail pages) fed their branch selectors from the PUBLIC default-org
+  `api.getBranches()`, showing another tenant's branch names; all switched to the scoped
+  `api.adminGetBranches(token)`. The enquiries page's hardcoded `BRANCH_OPTIONS` array is gone too (scoped
+  fetch). (3) **Fees editor unusable for new branches/orgs** — `/admin/fees` only tabbed branches that
+  already had a fee_config doc; it now unions the org's real branches and starts an empty draft (canonical
+  `0-2/2-3/3-5` bands or an existing branch's shape) for unconfigured ones. (4) **Staff-attendance timezone**
+  — every wall-clock comparison (correction time input, 09:00 late threshold, shift late/overtime deltas,
+  "today" boundaries, export HH:MM rendering) ran in the SERVER's zone (UTC in Docker), shifting BST times
+  by an hour; the service now resolves the org's `Settings.Timezone` (`orgLocation`, cached; constructor
+  takes the org repo) and interprets all wall-clock maths in it (locked by `staff_attendance_tz_test.go`).
+  (5) **Kiosk was default-tenant-only** — `/kiosk` routes run unauthenticated under `DefaultTenant`, so a
+  non-default org's device token could never pair; the device token is now a platform-wide identity (like
+  `users.email` at login): `Authenticate` matches cross-org and `middleware.KioskAuth` re-pins the request
+  context to the device's org (`KioskSession.OrgID`, internal-only). (6) **Staff couldn't read their own
+  notifications** — `/admin/notifications` sat behind a management permission while leave/daily-log flows
+  notify staff; the three routes (handler already scopes to the JWT user) moved to the plain authenticated
+  group (locked in `ME-TC-002`). Also new: **`/admin/branches` has a "New branch" modal** (the create API +
+  `adminCreateBranch` existed with no UI). Local-only artefact of the run: a second org `bluenest-e2e`
+  (admin `e2e.admin@bluenest.uk`) with one Harrow branch + full lifecycle data — harmless test data, never
+  on prod. **Organisation creation still has NO UI** (API-only, `PlatformOnly`) — a platform-admin console
+  is an open roadmap item. **Follow-ups delivered:** the branch-template modal exposes per-room min/max age
+  months (apply carries them onto created rooms); the Room Planner gained an **Assign child** action per
+  room (assign or transfer-with-reason via the canonical endpoints, override-reason on capacity/age
+  rejection); and a **future date of birth is rejected** (`dobNotInFuture` on child Create/Update/
+  EnsureFromEnquiry + enquiry Register BEFORE the status flip; DOB pickers cap at today; locked by
+  `child_dob_test.go` + `REG-TC-005`). **Planner accuracy:** the capacity forecast's AM/PM classification
+  now derives from the org's configured session_type times (was a hardcoded am/pm/school/full switch — any
+  other org's codes counted zero), and rooms resolve PER DATE from active + scheduled placements so a
+  future-dated transfer shows from its effective week; children count from their start date; the planner
+  auto-refreshes (locked by the session-coverage + placement-resolver unit tests).
+- **Notification email delivery (delivered, opt-in):** in-app notifications (leave apply/approve/decline,
+  daily-log approvals, safeguarding, etc. via `notificationService.NotifyMany`) now also **email** each
+  recipient. `NotifyMany` creates the in-app rows then best-effort `deliverEmails`: resolves each recipient's
+  email in the caller's org ctx and sends asynchronously (never blocks the underlying action). The body is
+  HTML-escaped and wrapped in the branded shell (`wrapEmailShell`); a relative `Link` is resolved to an
+  absolute URL from `FRONTEND_URL`. **Opt-in via `NOTIFY_EMAIL_ENABLED`** (default false, so dev/test never
+  sends real mail through the configured SMTP; **prod must set it true**). Wired in `server.go` via
+  `NewNotificationServiceWithEmail(repo, mailer, users, notifPrefRepo, frontendURL, enabled)`. **Per-user
+  delivery preferences (delivered):** `notification_preferences` (`models/notification_preference.go`,
+  tenant-scoped, one doc per user) stores the user's `muted_types[]` — the notification types they do NOT
+  want emailed (in-app rows always appear; absent doc = every type emailed). The user-controllable set is
+  `models.NotificationTypeCatalogue` (leave requested/approved/declined + daily-log submitted/approved/
+  rejected); `deliverEmails` skips a recipient whose prefs mute that `n.Type`. Self-service
+  `GET/PUT /me/notification-preferences` (authenticated group; `Set` whitelists to the catalogue + dedupes)
+  surfaced as a **Notifications** tab on `/admin/profile` (per-type toggle switches).
+  Tests: `notification_test.go` (escaping + absolute link + disabled-is-safe).
 
 ## Procurement Management module — roadmap (Phases 1–4 DELIVERED)
 Goal: turn the procurement pieces into one connected **Procurement Management** module so the journey
@@ -778,6 +845,12 @@ field) whenever convenient.
   intentionally kept as ongoing fixtures per explicit user instruction, not run debris.
 
 ## Conventions
+- **The default development pipeline — every new functionality follows ALL of these steps, in order:**
+  **Analyse → Plan → ask questions if needed → implement → unit tests → e2e tests (bnrest and/or
+  REST-Assured) → manual UI test (browser) → commit → push.** Writing the tests for a new feature is part
+  of building it, not a follow-up: a feature lands together with its unit tests and its e2e coverage
+  (extend the relevant bnrest suite — or add one — in the same branch). `AGENTS.md` is a symlink to this
+  file so non-Claude agent tooling reads the same guide — never edit it separately.
 - Commits: conventional style, **no `Co-Authored-By` Claude trailer**.
 - Don't commit `next-env.d.ts` churn or stray root files (QA reports/xlsx).
 - Round trig in SVG coords (avoid SSR hydration mismatches).

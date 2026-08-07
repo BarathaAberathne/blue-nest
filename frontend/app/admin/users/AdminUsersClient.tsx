@@ -95,7 +95,7 @@ export default function AdminUsersClient() {
       setError(null);
       const [data, br] = await Promise.all([
         api.adminGetUsers(token) as Promise<User[]>,
-        api.getBranches().catch(() => []) as Promise<Branch[]>,
+        api.adminGetBranches(token).catch(() => []) as Promise<Branch[]>,
       ]);
       setUsers(Array.isArray(data) ? data : []);
       setBranches(Array.isArray(br) ? br : []);

@@ -1,19 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Pencil, Plane, Plus, Save, Trash2, UserCircle, X } from "lucide-react";
+import { AlertTriangle, Bell, CalendarClock, CalendarDays, ChevronLeft, ChevronRight, Pencil, Plane, Plus, Save, Trash2, UserCircle, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { fmtBranch } from "@/lib/enquiry";
 import MyLeaveSection from "@/components/admin/MyLeaveSection";
-import type { EmergencyContact, MeAttendance, MeProfileInput, Shift, Staff } from "@/types";
+import type { EmergencyContact, MeAttendance, MeProfileInput, NotificationPreferences, Shift, Staff } from "@/types";
 
-type Tab = "profile" | "leave" | "attendance" | "rota";
+type Tab = "profile" | "leave" | "attendance" | "rota" | "notifications";
 const TABS: { key: Tab; label: string; icon: typeof UserCircle }[] = [
   { key: "profile", label: "Profile", icon: UserCircle },
   { key: "leave", label: "Leave", icon: Plane },
   { key: "attendance", label: "Attendance", icon: CalendarDays },
   { key: "rota", label: "My Rota", icon: CalendarClock },
+  { key: "notifications", label: "Notifications", icon: Bell },
 ];
 
 const ATT_LABEL: Record<string, string> = {
@@ -81,8 +82,10 @@ export default function ProfileClient() {
         <MyLeaveSection />
       ) : tab === "attendance" ? (
         <AttendanceTab />
-      ) : (
+      ) : tab === "rota" ? (
         <RotaTab />
+      ) : (
+        <NotificationsTab />
       )}
     </div>
   );
@@ -315,6 +318,66 @@ function AttendanceTab() {
             </tbody>
           </table>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── Notifications tab (per-type email opt-outs) ───────────────────────────────
+
+function NotificationsTab() {
+  const token = typeof window !== "undefined" ? getAccessToken() : "";
+  const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    api.getMyNotificationPrefs(token)
+      .then((p) => setPrefs(p))
+      .catch((e) => setErr(e instanceof Error ? e.message : "Failed to load preferences"))
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  const toggle = async (type: string) => {
+    if (!token || !prefs || busy) return;
+    const muted = prefs.muted_types ?? [];
+    const next = muted.includes(type) ? muted.filter((t) => t !== type) : [...muted, type];
+    setBusy(type); setErr(null);
+    try { setPrefs(await api.updateMyNotificationPrefs(token, next)); }
+    catch (e) { setErr(e instanceof Error ? e.message : "Failed to save"); }
+    finally { setBusy(null); }
+  };
+
+  if (loading) return <p className="py-10 text-center text-sm text-slate-400">Loading…</p>;
+  if (err && !prefs) return <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{err}</div>;
+  if (!prefs) return null;
+  const muted = prefs.muted_types ?? [];
+
+  return (
+    <div className="space-y-4">
+      {err && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">{err}</div>}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-slate-600">Email notifications</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Choose which notifications are also sent to your email. In-app notifications always appear in the bell menu.
+        </p>
+        <ul className="mt-4 divide-y divide-slate-100">
+          {prefs.catalogue.map((t) => {
+            const on = !muted.includes(t.type);
+            return (
+              <li key={t.type} className="flex items-center justify-between gap-4 py-3">
+                <span className="text-sm text-slate-700">{t.label}</span>
+                <button type="button" role="switch" aria-checked={on} aria-label={t.label}
+                  onClick={() => toggle(t.type)} disabled={busy !== null}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-60 ${on ? "bg-teal-600" : "bg-slate-300"}`}>
+                  <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? "left-[1.375rem]" : "left-0.5"}`} />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </div>
   );

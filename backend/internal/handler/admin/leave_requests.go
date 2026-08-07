@@ -6,6 +6,7 @@ import (
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/service"
+	"github.com/blue-nest-montessori/api/pkg/export"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/blue-nest-montessori/api/pkg/validator"
 	"github.com/go-chi/chi/v5"
@@ -93,6 +94,29 @@ func (h *AdminLeaveHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.OK(w, list)
+}
+
+// Export streams the filtered leave requests as CSV (same branch scoping as List).
+func (h *AdminLeaveHandler) Export(w http.ResponseWriter, r *http.Request) {
+	role, scope := caller(r)
+	branch, _ := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	list, err := h.svc.List(r.Context(), models.LeaveRequestFilter{
+		Branch: branch, Status: r.URL.Query().Get("status"), StaffID: r.URL.Query().Get("staff_id"),
+	})
+	if err != nil {
+		response.InternalError(w, "failed to load leave requests")
+		return
+	}
+	out := make([][]string, 0, len(list))
+	for _, l := range list {
+		out = append(out, []string{
+			l.StaffName, l.BranchSlug, string(l.Type), l.StartDate, l.EndDate,
+			export.Int(l.Days), string(l.Status), l.Reason, l.ReviewedBy, l.DeclineReason,
+		})
+	}
+	export.Write(w, r, "leave-requests",
+		[]string{"Staff", "Branch", "Type", "Start", "End", "Days", "Status", "Reason", "Reviewed by", "Decline reason"},
+		out)
 }
 
 // Approve marks a pending request approved (four-eyes: a different reviewer).

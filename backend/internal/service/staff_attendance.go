@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -64,6 +65,9 @@ type StaffAttendanceService interface {
 	// PeriodSummary aggregates one staff member's attendance over a date range for
 	// the staff-profile dashboard (worked/sick/leave/absent days + attendance rate).
 	PeriodSummary(ctx context.Context, staffID, from, to string) (*models.StaffAbsenceSummary, error)
+	// Location is the caller org's timezone — for server-side wall-clock
+	// rendering (e.g. CSV/Excel exports) so it matches the register UI.
+	Location(ctx context.Context) *time.Location
 }
 
 type staffAttendanceService struct {
@@ -73,10 +77,52 @@ type staffAttendanceService struct {
 	rooms       repository.RoomRepository                     // optional; resolves room names for the register
 	staffRooms  repository.StaffRoomAssignmentRepository // canonical staff→room source for the register's room column
 	terms       repository.TermRepository                // optional; term-time-only staff aren't expected outside term dates
+	orgs        repository.OrganisationRepository        // optional; resolves the org's timezone for wall-clock maths
+	tzCache     sync.Map                                 // org id → *time.Location
 }
 
-func NewStaffAttendanceService(repo repository.StaffAttendanceRepository, staff repository.StaffRepository, shifts repository.ShiftRepository, rooms repository.RoomRepository, staffRooms repository.StaffRoomAssignmentRepository, terms repository.TermRepository) StaffAttendanceService {
-	return &staffAttendanceService{repo: repo, staff: staff, shifts: shifts, rooms: rooms, staffRooms: staffRooms, terms: terms}
+func NewStaffAttendanceService(repo repository.StaffAttendanceRepository, staff repository.StaffRepository, shifts repository.ShiftRepository, rooms repository.RoomRepository, staffRooms repository.StaffRoomAssignmentRepository, terms repository.TermRepository, orgs repository.OrganisationRepository) StaffAttendanceService {
+	return &staffAttendanceService{repo: repo, staff: staff, shifts: shifts, rooms: rooms, staffRooms: staffRooms, terms: terms, orgs: orgs}
+}
+
+// orgLocation resolves the caller org's configured IANA timezone for every
+// wall-clock comparison in this service — late thresholds, shift start/end
+// deltas, correction time input, and "today" date boundaries. Clock instants
+// are still stored as absolute times; only their WALL-CLOCK interpretation is
+// org-local. Falls back to the server's zone when unset/invalid (the pre-fix
+// behaviour, which is only correct when server TZ == nursery TZ).
+func (s *staffAttendanceService) orgLocation(ctx context.Context) *time.Location {
+	if s.orgs == nil {
+		return time.Local
+	}
+	// Second return is crossOrg (platform/system scope) — no single tenant to
+	// resolve a timezone for.
+	orgID, crossOrg := repository.OrgFromContext(ctx)
+	if crossOrg || orgID == "" {
+		return time.Local
+	}
+	if cached, ok := s.tzCache.Load(orgID); ok {
+		return cached.(*time.Location)
+	}
+	loc := time.Local
+	if org, err := s.orgs.FindByID(ctx, orgID); err == nil && org != nil && org.Settings.Timezone != "" {
+		if l, err := time.LoadLocation(org.Settings.Timezone); err == nil {
+			loc = l
+		}
+	}
+	s.tzCache.Store(orgID, loc)
+	return loc
+}
+
+// todayIn is today's YYYY-MM-DD in the org's timezone (date boundaries roll at
+// the nursery's midnight, not the server's).
+func (s *staffAttendanceService) todayIn(ctx context.Context) string {
+	return time.Now().In(s.orgLocation(ctx)).Format("2006-01-02")
+}
+
+// Location exposes the org timezone for handler-side rendering (exports).
+func (s *staffAttendanceService) Location(ctx context.Context) *time.Location {
+	return s.orgLocation(ctx)
 }
 
 // termActive reports whether `date` falls inside a configured term for the
@@ -139,7 +185,7 @@ func (s *staffAttendanceService) activeStaff(ctx context.Context, branch string)
 
 func (s *staffAttendanceService) Register(ctx context.Context, date, branch string) ([]models.StaffAttendanceRecord, error) {
 	if date == "" {
-		date = today()
+		date = s.todayIn(ctx)
 	}
 	people, err := s.activeStaff(ctx, branch)
 	if err != nil {
@@ -191,7 +237,7 @@ func (s *staffAttendanceService) baseRecord(ctx context.Context, staffID, date s
 		return models.StaffAttendanceRecord{}, errors.New("staff_id is required")
 	}
 	if date == "" {
-		date = today()
+		date = s.todayIn(ctx)
 	}
 	if existing, err := s.repo.FindByStaffDate(ctx, staffID, date); err == nil && existing != nil {
 		return *existing, nil
@@ -293,7 +339,7 @@ func (s *staffAttendanceService) ClockIn(ctx context.Context, req models.StaffCl
 	if rec.ClockIn != nil && rec.ClockOut == nil {
 		return nil, errors.New("already clocked in")
 	}
-	now := time.Now()
+	now := time.Now().In(s.orgLocation(ctx))
 	rec.Status = models.StaffAttPresent
 	rec.ClockIn = &now
 	rec.ClockOut = nil
@@ -332,7 +378,7 @@ func (s *staffAttendanceService) ClockOut(ctx context.Context, req models.StaffC
 	if rec.ClockOut != nil {
 		return nil, errors.New("already clocked out")
 	}
-	now := time.Now()
+	now := time.Now().In(s.orgLocation(ctx))
 	rec.ClockOut = &now
 	if rec.Status == models.StaffAttExpected || rec.Status == "" {
 		rec.Status = models.StaffAttPresent
@@ -442,7 +488,7 @@ func (s *staffAttendanceService) resolveDate(ctx context.Context, date, branch s
 	if date != "" {
 		return date
 	}
-	date = today()
+	date = s.todayIn(ctx)
 	if recs, err := s.repo.FindByDate(ctx, date, branch); err == nil && len(recs) == 0 {
 		if latest, lerr := s.repo.LatestDate(ctx, branch); lerr == nil && latest != "" {
 			return latest
@@ -536,14 +582,14 @@ func (s *staffAttendanceService) TodayStats(ctx context.Context, date, branch st
 
 // ── attendance dashboard + manual corrections (Phase C) ─────────────────────
 
-func minutesOfDayLocal(t *time.Time) int {
-	lt := t.In(time.Local)
+func minutesOfDay(t *time.Time, loc *time.Location) int {
+	lt := t.In(loc)
 	return lt.Hour()*60 + lt.Minute()
 }
 
 // summarize reduces one branch's register rows to the KPI summary.
-func summarize(date string, rows []models.StaffAttendanceRecord) models.AttendanceDaySummary {
-	isPast := date < today()
+func summarize(date, todayStr string, rows []models.StaffAttendanceRecord, loc *time.Location) models.AttendanceDaySummary {
+	isPast := date < todayStr
 	s := models.AttendanceDaySummary{Date: date, Total: len(rows)}
 	arrivals := make([]int, 0, len(rows))
 	for _, r := range rows {
@@ -586,7 +632,7 @@ func summarize(date string, rows []models.StaffAttendanceRecord) models.Attendan
 		}
 		s.OvertimeMinutes += r.OvertimeMinutes
 		if hasIn {
-			arrivals = append(arrivals, minutesOfDayLocal(r.ClockIn))
+			arrivals = append(arrivals, minutesOfDay(r.ClockIn, loc))
 		}
 	}
 	if s.Absent = s.Total - s.Attended - s.OnLeave; s.Absent < 0 {
@@ -615,7 +661,8 @@ func (s *staffAttendanceService) DaySummary(ctx context.Context, date, branch st
 	if err != nil {
 		return nil, err
 	}
-	sum := summarize(date, rows)
+	loc := s.orgLocation(ctx)
+	sum := summarize(date, s.todayIn(ctx), rows, loc)
 	// Company-wide view → per-branch breakdown.
 	if branch == "" {
 		byBranch := map[string][]models.StaffAttendanceRecord{}
@@ -627,7 +674,7 @@ func (s *staffAttendanceService) DaySummary(ctx context.Context, date, branch st
 			byBranch[r.BranchSlug] = append(byBranch[r.BranchSlug], r)
 		}
 		for _, b := range order {
-			bs := summarize(date, byBranch[b])
+			bs := summarize(date, s.todayIn(ctx), byBranch[b], loc)
 			sum.Branches = append(sum.Branches, models.StaffBranchAttendanceStat{
 				Branch: b, Total: bs.Total, CurrentlyIn: bs.CurrentlyIn,
 				Attended: bs.Attended, Late: bs.Late, Rate: bs.AttendanceRate,
@@ -637,8 +684,8 @@ func (s *staffAttendanceService) DaySummary(ctx context.Context, date, branch st
 	return &sum, nil
 }
 
-func parseClockOnDate(date, hhmm string) (*time.Time, error) {
-	t, err := time.ParseInLocation("2006-01-02 15:04", date+" "+hhmm, time.Local)
+func parseClockOnDate(loc *time.Location, date, hhmm string) (*time.Time, error) {
+	t, err := time.ParseInLocation("2006-01-02 15:04", date+" "+hhmm, loc)
 	if err != nil {
 		return nil, errors.New("time must be HH:MM")
 	}
@@ -651,18 +698,20 @@ func (s *staffAttendanceService) recompute(ctx context.Context, rec *models.Staf
 	rec.LateArrival, rec.LateMinutes = false, 0
 	rec.OvertimeMinutes, rec.EarlyDepartureMinutes, rec.WorkedMinutes, rec.BreakMinutes = 0, 0, 0, 0
 	rec.MissingClockOut = false
+	loc := s.orgLocation(ctx)
 	sh := s.shiftFor(ctx, rec.StaffID, rec.Date)
 	if sh != nil {
 		rec.ShiftID = sh.ID.Hex()
 	}
 	if rec.ClockIn != nil {
+		ci := rec.ClockIn.In(loc)
 		if sh != nil {
-			if d, ok := minsFromShiftTime(*rec.ClockIn, sh.StartTime); ok && d > 0 {
+			if d, ok := minsFromShiftTime(ci, sh.StartTime); ok && d > 0 {
 				rec.LateArrival, rec.LateMinutes = true, d
 			}
 		} else {
-			rec.LateArrival = isLate(*rec.ClockIn)
-			rec.LateMinutes = lateMinutes(*rec.ClockIn)
+			rec.LateArrival = isLate(ci)
+			rec.LateMinutes = lateMinutes(ci)
 		}
 	}
 	if rec.ClockIn != nil && rec.ClockOut != nil {
@@ -671,7 +720,7 @@ func (s *staffAttendanceService) recompute(ctx context.Context, rec *models.Staf
 			rec.WorkedMinutes = worked
 		}
 		if sh != nil {
-			if d, ok := minsFromShiftTime(*rec.ClockOut, sh.EndTime); ok {
+			if d, ok := minsFromShiftTime(rec.ClockOut.In(loc), sh.EndTime); ok {
 				if d > 0 {
 					rec.OvertimeMinutes = d
 				} else if d < 0 {
@@ -679,7 +728,7 @@ func (s *staffAttendanceService) recompute(ctx context.Context, rec *models.Staf
 				}
 			}
 		}
-	} else if rec.ClockIn != nil && rec.Date < today() {
+	} else if rec.ClockIn != nil && rec.Date < s.todayIn(ctx) {
 		rec.MissingClockOut = true
 	}
 }
@@ -715,12 +764,12 @@ func (s *staffAttendanceService) Correct(ctx context.Context, id string, req mod
 		v := strings.TrimSpace(*req.ClockIn)
 		old := ""
 		if rec.ClockIn != nil {
-			old = rec.ClockIn.In(time.Local).Format("15:04")
+			old = rec.ClockIn.In(s.orgLocation(ctx)).Format("15:04")
 		}
 		if v == "" {
 			rec.ClockIn = nil
 		} else {
-			t, err := parseClockOnDate(rec.Date, v)
+			t, err := parseClockOnDate(s.orgLocation(ctx), rec.Date, v)
 			if err != nil {
 				return nil, err
 			}
@@ -732,12 +781,12 @@ func (s *staffAttendanceService) Correct(ctx context.Context, id string, req mod
 		v := strings.TrimSpace(*req.ClockOut)
 		old := ""
 		if rec.ClockOut != nil {
-			old = rec.ClockOut.In(time.Local).Format("15:04")
+			old = rec.ClockOut.In(s.orgLocation(ctx)).Format("15:04")
 		}
 		if v == "" {
 			rec.ClockOut = nil
 		} else {
-			t, err := parseClockOnDate(rec.Date, v)
+			t, err := parseClockOnDate(s.orgLocation(ctx), rec.Date, v)
 			if err != nil {
 				return nil, err
 			}

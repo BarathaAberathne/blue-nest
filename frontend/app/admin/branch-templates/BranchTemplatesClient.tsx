@@ -179,13 +179,22 @@ export default function BranchTemplatesClient() {
                 <button onClick={addRoom} className="inline-flex items-center gap-1 text-xs font-medium text-teal-600 hover:text-teal-700"><Plus className="h-3.5 w-3.5" /> Add room</button>
               </div>
               <div className="space-y-2">
+                {form.rooms.length > 0 && (
+                  <div className="grid grid-cols-12 gap-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    <span className="col-span-3">Room</span><span className="col-span-2">Age label</span>
+                    <span className="col-span-2">Min age (mo)</span><span className="col-span-2">Max age (mo)</span>
+                    <span className="col-span-1">Cap</span><span className="col-span-1">1:x</span><span className="col-span-1" />
+                  </div>
+                )}
                 {form.rooms.map((r, i) => (
                   <div key={i} className="grid grid-cols-12 items-center gap-2">
                     <input value={r.name} onChange={(e) => setRoom(i, { name: e.target.value })} placeholder="Room name" className="col-span-3 rounded border border-slate-200 px-2 py-1 text-sm" />
-                    <input value={r.age_range ?? ""} onChange={(e) => setRoom(i, { age_range: e.target.value })} placeholder="Age label" className="col-span-3 rounded border border-slate-200 px-2 py-1 text-sm" />
-                    <input type="number" min={0} value={r.capacity ?? 0} onChange={(e) => setRoom(i, { capacity: Number(e.target.value) })} placeholder="Cap" className="col-span-2 rounded border border-slate-200 px-2 py-1 text-sm" title="Capacity" />
-                    <input type="number" min={0} value={r.staff_ratio ?? 0} onChange={(e) => setRoom(i, { staff_ratio: Number(e.target.value) })} placeholder="1:x" className="col-span-2 rounded border border-slate-200 px-2 py-1 text-sm" title="Staff ratio 1:x" />
-                    <button onClick={() => removeRoom(i)} className="col-span-2 justify-self-end text-slate-400 hover:text-red-600" aria-label="Remove room"><Trash2 className="h-4 w-4" /></button>
+                    <input value={r.age_range ?? ""} onChange={(e) => setRoom(i, { age_range: e.target.value })} placeholder="Age label" className="col-span-2 rounded border border-slate-200 px-2 py-1 text-sm" />
+                    <input type="number" min={0} value={r.min_age_months ?? 0} onChange={(e) => setRoom(i, { min_age_months: Number(e.target.value) })} placeholder="Min mo" className="col-span-2 rounded border border-slate-200 px-2 py-1 text-sm" title="Minimum age in months (0 = from birth)" />
+                    <input type="number" min={0} value={r.max_age_months ?? 0} onChange={(e) => setRoom(i, { max_age_months: Number(e.target.value) })} placeholder="Max mo" className="col-span-2 rounded border border-slate-200 px-2 py-1 text-sm" title="Maximum age in months (0 = no upper bound)" />
+                    <input type="number" min={0} value={r.capacity ?? 0} onChange={(e) => setRoom(i, { capacity: Number(e.target.value) })} placeholder="Cap" className="col-span-1 rounded border border-slate-200 px-2 py-1 text-sm" title="Capacity" />
+                    <input type="number" min={0} value={r.staff_ratio ?? 0} onChange={(e) => setRoom(i, { staff_ratio: Number(e.target.value) })} placeholder="1:x" className="col-span-1 rounded border border-slate-200 px-2 py-1 text-sm" title="Staff ratio 1:x" />
+                    <button onClick={() => removeRoom(i)} className="col-span-1 justify-self-end text-slate-400 hover:text-red-600" aria-label="Remove room"><Trash2 className="h-4 w-4" /></button>
                   </div>
                 ))}
                 {form.rooms.length === 0 && <p className="text-xs text-slate-400">No rooms. Add at least one.</p>}

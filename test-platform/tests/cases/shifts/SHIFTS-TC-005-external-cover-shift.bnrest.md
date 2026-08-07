@@ -27,7 +27,7 @@ Given Post /api/v1/admin/shifts Into cover Using adminSession.accessToken
   "external": true,
   "staff_name": "QA-AUTOTEST External Cover",
   "branch_slug": "${branch.slug}",
-  "date": "2027-06-11",
+  "date": "${monday("+20w+4d")}",
   "start_time": "09:00",
   "end_time": "17:00"
 }

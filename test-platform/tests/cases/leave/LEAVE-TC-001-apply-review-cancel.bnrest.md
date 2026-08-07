@@ -19,13 +19,13 @@ timeoutSeconds: 30
 
 New coverage (`SUI-LEAVE-001`). Reads the shared `adminSession`/`staff`
 fixtures. A manager files leave for the staff member (staff_id supplied);
-Mon–Fri is 5 working days; the request shows in the pending queue; the SAME
+Mon–Fri (monday("+10w") anchored) is 5 working days; the request shows in the pending queue; the SAME
 user who applied cannot approve it (four-eyes → 400); the applicant cancels
 their own pending request; and a reversed date range is rejected.
 
 ```bnrest
 Given Post /api/v1/leave-requests Into applied Using adminSession.accessToken
-{ "staff_id": "${staff.id}", "type": "leave", "start_date": "2026-08-03", "end_date": "2026-08-07", "reason": "QA-AUTOTEST holiday" }
+{ "staff_id": "${staff.id}", "type": "leave", "start_date": "${monday("+10w")}", "end_date": "${monday("+10w+4d")}", "reason": "QA-AUTOTEST holiday" }
 Then AssertStatus applied 201
 And Assert applied.body.data.status == "pending"
 And Assert applied.body.data.days == 5
@@ -42,6 +42,6 @@ Then AssertStatus cancelled 200
 And Assert cancelled.body.data.status == "cancelled"
 
 When Post /api/v1/leave-requests Into badRange Using adminSession.accessToken
-{ "staff_id": "${staff.id}", "type": "leave", "start_date": "2026-08-07", "end_date": "2026-08-03" }
+{ "staff_id": "${staff.id}", "type": "leave", "start_date": "${monday("+10w+4d")}", "end_date": "${monday("+10w")}" }
 Then AssertStatus badRange 400
 ```

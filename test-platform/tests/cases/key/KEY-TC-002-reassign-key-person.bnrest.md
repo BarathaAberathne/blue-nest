@@ -74,7 +74,7 @@ Call ../../utils/child/CHILD-UTIL-003-create-child-direct.bnrest.md With Json In
   "branchSlug": "${branch.slug}",
   "firstName": "QA-AUTOTEST",
   "lastName": "Key002Child-${staffSuffix}",
-  "dob": "2023-05-01"
+  "dob": "${today("-3y")}"
 }
 
 Call ../../utils/key/KEY-UTIL-001-set-key-person.bnrest.md With Json Into initialAssign

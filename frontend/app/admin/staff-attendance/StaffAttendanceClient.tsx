@@ -7,6 +7,7 @@ import { getAccessToken, getAuthUser, isOrgWideRole } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StatCard from "@/components/admin/ui/StatCard";
+import ExportButton from "@/components/admin/ExportButton";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import { fmtTime } from "@/lib/child";
 import { staffAttendanceAccent } from "@/lib/staff";
@@ -148,6 +149,7 @@ export default function StaffAttendanceClient() {
             {orgWide && <option value="">All branches</option>}
             {branches.map((b) => <option key={b.slug} value={b.slug}>{branchShortName(b)}</option>)}
           </select>
+          <ExportButton path={`/api/v1/admin/staff-attendance/export?date=${encodeURIComponent(date)}&branch=${encodeURIComponent(branch)}`} />
         </div>
       </div>
 

@@ -27,7 +27,7 @@ other check-in/out cases in this suite.
 Given Post /api/v1/admin/attendance/check-out Into rejected Using adminSession.accessToken
 {
   "child_id": "${child.body.data.id}",
-  "date": "2027-03-14"
+  "date": "${today("+29w+6d")}"
 }
 Then AssertStatus rejected 400
 And AssertJson rejected $.body.error contains "not checked in"

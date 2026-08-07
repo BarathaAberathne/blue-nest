@@ -8,6 +8,7 @@ import (
 	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/internal/service"
+	"github.com/blue-nest-montessori/api/pkg/export"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/blue-nest-montessori/api/pkg/validator"
 	"github.com/go-chi/chi/v5"
@@ -42,6 +43,32 @@ func (h *AdminChildHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.OK(w, items)
+}
+
+// Export streams the filtered children roster as CSV (same branch scoping as List).
+func (h *AdminChildHandler) Export(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	role, scope := caller(r)
+	branch, ok := policy.EffectiveBranch(role, scope, q.Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	items, err := h.svc.List(r.Context(), repository.ChildFilter{Branch: branch, Room: q.Get("room"), Status: q.Get("status"), Q: q.Get("q")})
+	if err != nil {
+		response.InternalError(w, "failed to fetch children")
+		return
+	}
+	out := make([][]string, 0, len(items))
+	for _, c := range items {
+		out = append(out, []string{
+			c.Ref, c.FirstName, c.LastName, c.DOB, c.Gender, c.BranchSlug, c.RoomName,
+			string(c.Status), c.FundingType, c.KeyPersonName, c.StartDate,
+		})
+	}
+	export.Write(w, r, "children",
+		[]string{"Ref", "First name", "Last name", "DOB", "Gender", "Branch", "Room", "Status", "Funding", "Key person", "Start date"},
+		out)
 }
 
 func (h *AdminChildHandler) Stats(w http.ResponseWriter, r *http.Request) {

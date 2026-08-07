@@ -537,6 +537,11 @@ func (s *enquiryService) Register(ctx context.Context, id string, req models.Enq
 	if req.ExpectedStartDate == nil {
 		return errors.New("expected start date is required to register")
 	}
+	// Validate before the status flip: the handler creates the Child AFTER
+	// registering, so a bad DOB must fail the whole operation up front.
+	if err := dobNotInFuture(req.ChildDOB); err != nil {
+		return err
+	}
 	regDate := req.RegistrationDate
 	if regDate == nil {
 		now := time.Now()

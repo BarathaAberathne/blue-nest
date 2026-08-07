@@ -25,7 +25,7 @@ Reads the shared `adminSession`/`staff` suite fixtures — see
 Given Post /api/v1/admin/staff-attendance/clock-out Into rejected Using adminSession.accessToken
 {
   "staff_id": "${staff.body.data.id}",
-  "date": "2027-04-11"
+  "date": "${today("+31w+6d")}"
 }
 Then AssertStatus rejected 400
 And AssertJson rejected $.body.error contains "not clocked in"
