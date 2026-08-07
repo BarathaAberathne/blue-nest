@@ -65,7 +65,7 @@ func (h *AdminStaffHandler) Export(w http.ResponseWriter, r *http.Request) {
 			s.JobTitle, string(s.StaffType), string(s.Status), s.StartDate, s.DBSExpiry, s.FirstAidExpiry,
 		})
 	}
-	export.WriteCSV(w, export.Filename("staff"),
+	export.Write(w, r, "staff",
 		[]string{"Ref", "First name", "Last name", "Email", "Phone", "Branch", "Room", "Job title", "Type", "Status", "Start date", "DBS expiry", "First aid expiry"},
 		out)
 }

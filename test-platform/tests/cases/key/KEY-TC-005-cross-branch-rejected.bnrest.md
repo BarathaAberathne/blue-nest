@@ -66,7 +66,7 @@ Call ../../utils/child/CHILD-UTIL-003-create-child-direct.bnrest.md With Json In
   "branchSlug": "${branchA.slug}",
   "firstName": "QA-AUTOTEST",
   "lastName": "Key005ChildA-${suffix}",
-  "dob": "2023-05-01"
+  "dob": "${today("-3y")}"
 }
 
 Body

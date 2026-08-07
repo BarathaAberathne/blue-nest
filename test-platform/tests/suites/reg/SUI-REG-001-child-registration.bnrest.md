@@ -55,6 +55,7 @@ Call CatchError ../../cases/reg/REG-TC-001b-expected-start-date-no-timezone-shif
 Call CatchError ../../cases/reg/REG-TC-002-appears-once-in-registered.bnrest.md
 Call CatchError ../../cases/reg/REG-TC-003-repeat-registration-idempotent.bnrest.md
 Call CatchError ../../cases/reg/REG-TC-004-registration-not-atomic-gap-lock.bnrest.md
+Call CatchError ../../cases/reg/REG-TC-005-future-dob-rejected.bnrest.md
 
 Teardown
 Call ../../utils/branch/BRANCH-FIX-002-archive-test-branch.bnrest.md With Json Into cleanup

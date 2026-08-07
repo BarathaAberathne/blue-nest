@@ -33,7 +33,7 @@ Call ../../utils/room/ROOM-UTIL-001-create-room.bnrest.md With Json Into room2
 { "accessToken": "${adminSession.accessToken}", "branchSlug": "${branch.slug}", "name": "QA-AUTOTEST-NetBurrow-${random()}", "ageRange": "0-5 years", "capacity": 10 }
 
 Call ../../utils/child/CHILD-UTIL-003-create-child-direct.bnrest.md With Json Into child
-{ "accessToken": "${adminSession.accessToken}", "branchSlug": "${branch.slug}", "firstName": "QA-AUTOTEST", "lastName": "NetChild-${random()}", "dob": "2024-01-01" }
+{ "accessToken": "${adminSession.accessToken}", "branchSlug": "${branch.slug}", "firstName": "QA-AUTOTEST", "lastName": "NetChild-${random()}", "dob": "${today("-30m")}" }
 
 Body
 Call CatchError ../../cases/roomnet/ROOMNET-TC-001-retry-no-duplicate.bnrest.md

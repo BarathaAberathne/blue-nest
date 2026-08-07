@@ -94,7 +94,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
   const load = async () => {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated - please sign in as admin."); setLoading(false); return; }
-    const [s, b] = await Promise.allSettled([api.adminGetStaffMember(token, id), api.getBranches()]);
+    const [s, b] = await Promise.allSettled([api.adminGetStaffMember(token, id), api.adminGetBranches(token)]);
     if (s.status === "fulfilled") setMember(s.value as Staff);
     else setError("Staff member not found.");
     if (b.status === "fulfilled") setBranches((b.value as Branch[]) ?? []);

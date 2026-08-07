@@ -24,7 +24,9 @@ export default function AttendanceClient() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const loadBranches = async () => {
-    try { setBranches((await api.getBranches()) as Branch[]); } catch { /* non-fatal */ }
+    const token = getAccessToken();
+    if (!token) return;
+    try { setBranches((await api.adminGetBranches(token)) as Branch[]); } catch { /* non-fatal */ }
   };
   // requestIdRef guards against an in-flight response from a superseded
   // filter (e.g. Harrow → Pinner mid-flight) overwriting newer data.

@@ -28,14 +28,14 @@ Reads the shared `adminSession`/`staff` suite fixtures — see
 Given Post /api/v1/admin/staff-attendance/clock-in Into clocked Using adminSession.accessToken
 {
   "staff_id": "${staff.body.data.id}",
-  "date": "2027-04-16"
+  "date": "${today("+32w+4d")}"
 }
 Then AssertStatus clocked 200
 
 When Patch /api/v1/admin/staff-attendance/mark Into marked Using adminSession.accessToken
 {
   "staff_id": "${staff.body.data.id}",
-  "date": "2027-04-16",
+  "date": "${today("+32w+4d")}",
   "status": "absent"
 }
 Then AssertStatus marked 200

@@ -25,7 +25,7 @@ Given Post /api/v1/admin/child-room-assignments Into start Using adminSession.ac
 Then AssertStatus start 201
 
 When Post /api/v1/admin/children/${child.id}/transfer-room Into scheduled Using adminSession.accessToken
-{ "room_id": "${room2.id}", "reason": "planned move", "effective_date": "2099-01-01" }
+{ "room_id": "${room2.id}", "reason": "planned move", "effective_date": "${today("+10y")}" }
 Then AssertStatus scheduled 200
 And Assert scheduled.body.data.status == "scheduled"
 

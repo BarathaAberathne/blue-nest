@@ -21,9 +21,9 @@ Reads the shared `adminSession`/`branch` suite fixtures — see
 `SUI-ATT-001`.
 
 ```bnrest
-Given Get /api/v1/admin/staff-attendance/summary?date=2027-04-12&branch=${branch.slug} Into summary Using adminSession.accessToken
+Given Get /api/v1/admin/staff-attendance/summary?date=${today("+32w")}&branch=${branch.slug} Into summary Using adminSession.accessToken
 Then AssertStatus summary 200
-And Assert summary.body.data.date == "2027-04-12"
+And Assert summary.body.data.date == today("+32w")
 And Assert summary.body.data.total >= 0
 And Assert summary.body.data.attendance_rate >= 0
 And Assert summary.body.data.attendance_rate <= 100

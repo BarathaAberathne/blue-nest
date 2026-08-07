@@ -44,7 +44,7 @@ export default function StaffClient() {
   const load = async () => {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
-    const [s, b, st, r] = await Promise.allSettled([api.adminGetStaff(token), api.getBranches(), api.adminGetStaffStats(token), api.adminGetRooms(token)]);
+    const [s, b, st, r] = await Promise.allSettled([api.adminGetStaff(token), api.adminGetBranches(token), api.adminGetStaffStats(token), api.adminGetRooms(token)]);
     if (s.status === "fulfilled") setStaff((s.value as Staff[]) ?? []);
     if (b.status === "fulfilled") setBranches((b.value as Branch[]) ?? []);
     if (st.status === "fulfilled") setStats(st.value as StaffStats);

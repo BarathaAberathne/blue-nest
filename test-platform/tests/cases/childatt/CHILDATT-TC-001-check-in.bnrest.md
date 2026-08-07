@@ -24,7 +24,7 @@ shared `adminSession`/`child` suite fixtures — see `SUI-ATT-001`.
 Given Post /api/v1/admin/attendance/check-in Into checked Using adminSession.accessToken
 {
   "child_id": "${child.body.data.id}",
-  "date": "2027-03-15"
+  "date": "${today("+30w")}"
 }
 Then AssertStatus checked 200
 And Assert checked.body.data.status == "present"

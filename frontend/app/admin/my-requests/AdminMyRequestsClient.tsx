@@ -71,7 +71,7 @@ export default function AdminMyRequestsClient() {
       setLoading(false);
       return;
     }
-    Promise.allSettled([api.getBranches(), api.getMyOrderRequests(token), api.getCatalogue(token), api.getOrderTemplates(token)])
+    Promise.allSettled([api.adminGetBranches(token), api.getMyOrderRequests(token), api.getCatalogue(token), api.getOrderTemplates(token)])
       .then(([branchesRes, reqRes, catRes, tplRes]) => {
         if (branchesRes.status === "fulfilled") setBranches((branchesRes.value as Branch[]) ?? []);
         if (reqRes.status === "fulfilled") setRequests((reqRes.value as OrderRequest[]) ?? []);

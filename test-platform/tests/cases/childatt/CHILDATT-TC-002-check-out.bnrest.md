@@ -20,14 +20,14 @@ timeoutSeconds: 30
 
 Replaces legacy `ChildAttendanceSuite.tc_childatt_002_checkOut`. Genuinely
 `dependsOn: [CHILDATT-TC-001]` — needs the child actually checked in on
-the same date (`2027-03-15`) first. Reads the shared `adminSession`/
+the same run-relative date (`today("+30w")`) first. Reads the shared `adminSession`/
 `child` suite fixtures — see `SUI-ATT-001`.
 
 ```bnrest
 Given Post /api/v1/admin/attendance/check-out Into checked Using adminSession.accessToken
 {
   "child_id": "${child.body.data.id}",
-  "date": "2027-03-15"
+  "date": "${today("+30w")}"
 }
 Then AssertStatus checked 200
 And Assert checked.body.data.check_out != null

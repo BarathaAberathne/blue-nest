@@ -44,8 +44,8 @@ Call ../../utils/enquiry/ENQUIRY-UTIL-001-submit-enquiry.bnrest.md With Json Int
 Body
 When Post /api/v1/admin/enquiries/${fixtureEnquiry.id}/register Into result Using adminSession.accessToken
 {
-  "registration_date": "2026-07-23T00:00:00Z",
-  "expected_start_date": "2026-09-01T00:00:00Z"
+  "registration_date": "${today("-1w")}T00:00:00Z",
+  "expected_start_date": "${today("+1m")}T00:00:00Z"
 }
 Then AssertStatus result 200
 And AssertJson result $.body.data.status == "registered"

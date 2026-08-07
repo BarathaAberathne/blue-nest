@@ -26,7 +26,7 @@ materialises one from `staff_id` + `date`. Reads the shared
 Given Patch /api/v1/admin/staff-attendance/000000000000000000000000/correct Into backfilled Using adminSession.accessToken
 {
   "staff_id": "${staff.body.data.id}",
-  "date": "2027-04-15",
+  "date": "${today("+32w+3d")}",
   "status": "present",
   "reason": "QA-AUTOTEST backfill — kiosk never captured this shift"
 }

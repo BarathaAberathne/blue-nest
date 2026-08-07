@@ -30,10 +30,10 @@ Call ../../utils/room/ROOM-UTIL-001-create-room.bnrest.md With Json Into room
 { "accessToken": "${adminSession.accessToken}", "branchSlug": "${branch.slug}", "name": "QA-AUTOTEST-Cap-${random()}", "ageRange": "0-5 years", "capacity": 3 }
 
 Call ../../utils/child/CHILD-UTIL-003-create-child-direct.bnrest.md With Json Into child
-{ "accessToken": "${adminSession.accessToken}", "branchSlug": "${branch.slug}", "firstName": "QA-AUTOTEST", "lastName": "Cap1-${random()}", "dob": "2024-01-01" }
+{ "accessToken": "${adminSession.accessToken}", "branchSlug": "${branch.slug}", "firstName": "QA-AUTOTEST", "lastName": "Cap1-${random()}", "dob": "${today("-30m")}" }
 
 Call ../../utils/child/CHILD-UTIL-003-create-child-direct.bnrest.md With Json Into child2
-{ "accessToken": "${adminSession.accessToken}", "branchSlug": "${branch.slug}", "firstName": "QA-AUTOTEST", "lastName": "Cap2-${random()}", "dob": "2024-02-01" }
+{ "accessToken": "${adminSession.accessToken}", "branchSlug": "${branch.slug}", "firstName": "QA-AUTOTEST", "lastName": "Cap2-${random()}", "dob": "${today("-29m")}" }
 
 Body
 Call CatchError ../../cases/capacity/CAPACITY-TC-001-allocated-and-available.bnrest.md

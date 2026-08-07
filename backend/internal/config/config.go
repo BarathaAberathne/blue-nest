@@ -19,6 +19,10 @@ type Config struct {
 	SMTP        SMTPConfig
 	Sourcing    SourcingConfig
 	FrontendURL string
+	// NotifyEmailEnabled turns on email delivery of in-app notifications
+	// (NOTIFY_EMAIL_ENABLED). Opt-in (default off) so dev/test never sends real
+	// mail via the configured SMTP; prod sets it true.
+	NotifyEmailEnabled bool
 	// GBPIngestSecret gates the GBP digest webhook (X-GBP-Secret header). The
 	// Claude GBP-monitoring automation posts with this shared secret.
 	GBPIngestSecret string
@@ -134,8 +138,9 @@ func Load() *Config {
 		CORS: CORSConfig{
 			AllowedOrigins: frontendOrigins,
 		},
-		FrontendURL:     frontendOrigins[0],
-		GBPIngestSecret: getEnv("GBP_INGEST_SECRET", ""),
+		FrontendURL:        frontendOrigins[0],
+		NotifyEmailEnabled: strings.EqualFold(getEnv("NOTIFY_EMAIL_ENABLED", "false"), "true"),
+		GBPIngestSecret:    getEnv("GBP_INGEST_SECRET", ""),
 		SMTP: SMTPConfig{
 			Host:         getEnv("SMTP_HOST", ""),
 			Port:         func() int { p, _ := strconv.Atoi(getEnv("SMTP_PORT", "587")); return p }(),

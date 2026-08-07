@@ -14,12 +14,13 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// hhmm formats an optional timestamp as HH:MM (empty when nil).
-func hhmm(t *time.Time) string {
+// hhmm formats an optional timestamp as HH:MM in the given zone (empty when
+// nil) — exports must show the org's wall clock, not the server's.
+func hhmm(t *time.Time, loc *time.Location) string {
 	if t == nil {
 		return ""
 	}
-	return t.Format("15:04")
+	return t.In(loc).Format("15:04")
 }
 
 type AdminStaffAttendanceHandler struct {
@@ -62,15 +63,16 @@ func (h *AdminStaffAttendanceHandler) Export(w http.ResponseWriter, r *http.Requ
 		response.InternalError(w, "failed to build staff register")
 		return
 	}
+	loc := h.svc.Location(r.Context())
 	out := make([][]string, 0, len(rows))
 	for _, x := range rows {
 		out = append(out, []string{
 			x.Date, x.StaffName, x.JobTitle, x.RoomName, x.BranchSlug, string(x.Status),
-			hhmm(x.ClockIn), hhmm(x.ClockOut),
+			hhmm(x.ClockIn, loc), hhmm(x.ClockOut, loc),
 			export.Float(float64(x.WorkedMinutes) / 60.0), export.Int(x.LateMinutes), export.Int(x.OvertimeMinutes),
 		})
 	}
-	export.WriteCSV(w, export.Filename("staff-attendance"),
+	export.Write(w, r, "staff-attendance",
 		[]string{"Date", "Staff", "Job title", "Room", "Branch", "Status", "Clock in", "Clock out", "Worked (hrs)", "Late (min)", "Overtime (min)"},
 		out)
 }

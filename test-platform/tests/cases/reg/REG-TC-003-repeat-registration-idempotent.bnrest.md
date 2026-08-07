@@ -27,13 +27,13 @@ already linked to its first child.
 ```bnrest
 Given Post /api/v1/admin/enquiries/${enquiry.id}/register Into retry Using adminSession.accessToken
 {
-  "registration_date": "2026-07-23T00:00:00Z",
-  "expected_start_date": "2026-09-01T00:00:00Z",
+  "registration_date": "${today("-1w")}T00:00:00Z",
+  "expected_start_date": "${today("+1m")}T00:00:00Z",
   "child_age_group": "Under 1 year",
   "funding_type": "None",
   "child_first_name": "QA-AUTOTEST",
   "child_last_name": "SecondAttempt",
-  "child_dob": "2026-03-01",
+  "child_dob": "${today("-5m")}",
   "child_gender": ""
 }
 Then AssertStatus retry 200

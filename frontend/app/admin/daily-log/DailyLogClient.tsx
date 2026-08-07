@@ -46,7 +46,7 @@ export default function DailyLogClient() {
     const [r, s, b, c] = await Promise.allSettled([
       api.adminGetDailyRecords(token, { type: typeFilter, branch: branchFilter, approval, q, limit: 500 }),
       api.adminGetDailyStats(token),
-      api.getBranches(),
+      api.adminGetBranches(token),
       api.adminGetChildren(token),
     ]);
     if (r.status === "fulfilled") setRecords((r.value as DailyRecord[]) ?? []);

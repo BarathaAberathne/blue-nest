@@ -164,8 +164,23 @@ hidden):
 Expressions (`Assert`, `Set`, `When` guards) go through an **allowlisted**
 evaluator: dotted variable paths, string/number/bool/null literals,
 `== != > >= < <= && ||`, and the functions `random()`, `timestamp()`,
-`secret(name)`. There is no way to reach arbitrary Java, shell, or
-JavaScript execution from a script file.
+`secret(name)`, `today(offset)`. There is no way to reach arbitrary Java,
+shell, or JavaScript execution from a script file.
+
+`today()` renders the run day as `YYYY-MM-DD`; an optional signed compound
+offset shifts it — `today("+2y")`, `today("-30d")`, `today("+3m")`,
+`today("+30w+3d")`. `monday()` is the same but anchored on the CURRENT
+week's Monday, for weekday-sensitive tests (working-day counts, rota
+`week=` params, session-day checks): `monday("+10w")` is always a Monday,
+`monday("+10w+4d")` always that week's Friday, whatever day the suite runs.
+**Date-sensitive tests must use these instead of hardcoding calendar dates**
+(a "future" DOB written as `2030-01-01` silently stops being future when the
+calendar catches up; a fixed DOB ages a "toddler" into a preschooler;
+`${today("-30m")}` is a 30-month-old forever). The whole tree was migrated
+in one sweep — new tests must not reintroduce literals. `AssertJson`
+expected values are template-substituted, so a submitted `${today("+1m")}`
+can be asserted back with `contains "${today("+1m")}"`. See `REG-TC-005`,
+`LEAVE-TC-001`, `STAFFATT-TC-004b`.
 
 ## Fixture scopes
 

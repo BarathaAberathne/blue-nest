@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/pkg/response"
 )
 
@@ -32,6 +33,12 @@ func KioskAuth(auth KioskAuthenticator) func(http.Handler) http.Handler {
 				return
 			}
 			ctx := context.WithValue(r.Context(), KioskSessionKey, sess)
+			// Re-pin the request to the DEVICE's organisation: the kiosk routes
+			// are unauthenticated (default-tenant), but the device token proves
+			// which tenant this tablet belongs to.
+			if sess.OrgID != "" {
+				ctx = repository.WithOrg(ctx, sess.OrgID)
+			}
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

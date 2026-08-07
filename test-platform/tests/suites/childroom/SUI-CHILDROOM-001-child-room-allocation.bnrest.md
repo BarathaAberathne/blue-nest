@@ -42,7 +42,7 @@ Call ../../utils/room/ROOM-UTIL-001-create-room.bnrest.md With Json Into roomB
 { "accessToken": "${adminSession.accessToken}", "branchSlug": "${branchB.slug}", "name": "QA-AUTOTEST-OtherBranch-${random()}", "ageRange": "0-5 years", "capacity": 10 }
 
 Call ../../utils/child/CHILD-UTIL-003-create-child-direct.bnrest.md With Json Into child
-{ "accessToken": "${adminSession.accessToken}", "branchSlug": "${branch.slug}", "firstName": "QA-AUTOTEST", "lastName": "Placement-${random()}", "dob": "2024-01-01" }
+{ "accessToken": "${adminSession.accessToken}", "branchSlug": "${branch.slug}", "firstName": "QA-AUTOTEST", "lastName": "Placement-${random()}", "dob": "${today("-30m")}" }
 
 Body
 Call CatchError ../../cases/childroom_alloc/CHILDROOM-TC-A01-allocate-both-views.bnrest.md

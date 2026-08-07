@@ -60,6 +60,7 @@ type Services struct {
 	FeeConfig         service.FeeConfigService
 	BranchTemplates   service.BranchTemplateService
 	EmailTemplates    service.EmailTemplateService
+	NotifPrefs        service.NotificationPreferenceService
 }
 
 type Repos struct {
@@ -179,6 +180,19 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Put("/me/profile", meH.UpdateProfile)
 			r.Get("/me/attendance", meH.Attendance)
 			r.Get("/me/rota", meH.Rota)
+			meNotifPrefsH := adminHandler.NewMeNotificationPrefsHandler(svc.NotifPrefs)
+			r.Get("/me/notification-preferences", meNotifPrefsH.Get)
+			r.Put("/me/notification-preferences", meNotifPrefsH.Update)
+
+			// In-app notifications — strictly the CALLER's own rows (handler
+			// scopes by JWT user id), so any authenticated user may read
+			// theirs. Staff are notified by leave/daily-log approvals and see
+			// the bell in the Staff Portal; gating this behind a management
+			// permission locked them out of their own notifications.
+			notifH := adminHandler.NewAdminNotificationHandler(svc.Notifications)
+			r.Get("/admin/notifications", notifH.List)
+			r.Post("/admin/notifications/read-all", notifH.MarkAllRead)
+			r.Patch("/admin/notifications/{id}/read", notifH.MarkRead)
 
 			// Cart
 			cartH := handler.NewCartHandler(svc.Cart)
@@ -497,11 +511,6 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 					r.Get("/admin/branch-templates", adminBranchTplH.List)
 					r.Get("/admin/branch-templates/{id}", adminBranchTplH.Get)
 					r.Get("/admin/email-templates", adminEmailTplH.List)
-					// In-app notifications - every management user reads their OWN.
-					adminNotifH := adminHandler.NewAdminNotificationHandler(svc.Notifications)
-					r.Get("/admin/notifications", adminNotifH.List)
-					r.Post("/admin/notifications/read-all", adminNotifH.MarkAllRead)
-					r.Patch("/admin/notifications/{id}/read", adminNotifH.MarkRead)
 					r.Group(func(r chi.Router) {
 						r.Use(middleware.RequirePermission(models.PermBranchesManage))
 						r.Post("/admin/taxonomy", adminTaxonomyH.Create)

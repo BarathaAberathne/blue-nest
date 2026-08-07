@@ -30,10 +30,13 @@ func WriteCSV(w http.ResponseWriter, filename string, headers []string, rows [][
 	cw.Flush()
 }
 
+// dateStamp is today's date for export filenames (YYYY-MM-DD).
+func dateStamp() string { return time.Now().Format("2006-01-02") }
+
 // Filename builds a dated export filename, e.g. Filename("staff-attendance") ->
 // "staff-attendance-2026-08-06.csv".
 func Filename(base string) string {
-	return fmt.Sprintf("%s-%s.csv", base, time.Now().Format("2006-01-02"))
+	return fmt.Sprintf("%s-%s.csv", base, dateStamp())
 }
 
 // Int renders an int as a CSV cell.

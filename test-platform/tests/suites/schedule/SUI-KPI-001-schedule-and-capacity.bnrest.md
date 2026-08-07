@@ -51,7 +51,7 @@ Call ../../utils/child/CHILD-UTIL-003-create-child-direct.bnrest.md With Json In
   "branchSlug": "${branch.slug}",
   "firstName": "QA-AUTOTEST",
   "lastName": "Schedule-${random()}",
-  "dob": "2023-01-01"
+  "dob": "${today("-42m")}"
 }
 
 Call ../../utils/childroom/CHILDROOM-UTIL-001-allocate-child.bnrest.md With Json Into placement

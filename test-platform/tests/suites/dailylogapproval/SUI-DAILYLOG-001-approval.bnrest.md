@@ -26,7 +26,7 @@ Call ../../utils/branch/BRANCH-FIX-001-create-test-branch.bnrest.md With Json In
 { "accessToken": "${adminSession.accessToken}" }
 
 Post /api/v1/admin/children Into child Using adminSession.accessToken
-{ "first_name": "QA-AUTOTEST", "last_name": "DailyLog-${random()}", "dob": "2023-01-01", "branch_slug": "${branch.slug}" }
+{ "first_name": "QA-AUTOTEST", "last_name": "DailyLog-${random()}", "dob": "${today("-42m")}", "branch_slug": "${branch.slug}" }
 AssertStatus child 201
 
 Body

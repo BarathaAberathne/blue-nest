@@ -25,14 +25,14 @@ Reads the shared `adminSession`/`child` suite fixtures — see
 Given Post /api/v1/admin/attendance/check-in Into first Using adminSession.accessToken
 {
   "child_id": "${child.body.data.id}",
-  "date": "2027-03-16"
+  "date": "${today("+30w+1d")}"
 }
 Then AssertStatus first 200
 
 When Post /api/v1/admin/attendance/check-in Into rejected Using adminSession.accessToken
 {
   "child_id": "${child.body.data.id}",
-  "date": "2027-03-16"
+  "date": "${today("+30w+1d")}"
 }
 Then AssertStatus rejected 400
 And AssertJson rejected $.body.error contains "already checked in"

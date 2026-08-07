@@ -114,7 +114,7 @@ func (h *AdminLeaveHandler) Export(w http.ResponseWriter, r *http.Request) {
 			export.Int(l.Days), string(l.Status), l.Reason, l.ReviewedBy, l.DeclineReason,
 		})
 	}
-	export.WriteCSV(w, export.Filename("leave-requests"),
+	export.Write(w, r, "leave-requests",
 		[]string{"Staff", "Branch", "Type", "Start", "End", "Days", "Status", "Reason", "Reviewed by", "Decline reason"},
 		out)
 }

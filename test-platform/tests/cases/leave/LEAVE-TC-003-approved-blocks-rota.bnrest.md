@@ -24,7 +24,7 @@ on a leave date is rejected while a shift outside the leave dates succeeds.
 
 ```bnrest
 Given Post /api/v1/admin/leave-requests Into lv Using adminSession.accessToken
-{ "staff_id": "${staff.id}", "type": "leave", "start_date": "2026-11-02", "end_date": "2026-11-06" }
+{ "staff_id": "${staff.id}", "type": "leave", "start_date": "${monday("+24w")}", "end_date": "${monday("+24w+4d")}" }
 Then AssertStatus lv 201
 
 When Post /api/v1/admin/leave-requests/${lv.body.data.id}/approve Into approved Using mgrSession.accessToken
@@ -32,11 +32,11 @@ Then AssertStatus approved 200
 And Assert approved.body.data.status == "approved"
 
 When Post /api/v1/admin/shifts Into blocked Using adminSession.accessToken
-{ "staff_id": "${staff.id}", "date": "2026-11-03", "start_time": "09:00", "end_time": "17:00" }
+{ "staff_id": "${staff.id}", "date": "${monday("+24w+1d")}", "start_time": "09:00", "end_time": "17:00" }
 Then AssertStatus blocked 400
 
 When Post /api/v1/admin/shifts Into rostered Using adminSession.accessToken
-{ "staff_id": "${staff.id}", "date": "2026-11-09", "start_time": "09:00", "end_time": "17:00" }
+{ "staff_id": "${staff.id}", "date": "${monday("+25w")}", "start_time": "09:00", "end_time": "17:00" }
 Then AssertStatus rostered 201
 
 Teardown

@@ -27,7 +27,6 @@ import { ENQUIRY_STATUSES } from "@/types";
 type View = "pipeline" | "table" | "followup";
 type Toast = { kind: "success" | "error"; msg: string };
 
-const BRANCH_OPTIONS = ["harrow", "pinner", "borehamwood", "pinner-green", "northwood"];
 const TYPE_OPTIONS = ["Arrange a visit", "Fees and availability", "Application form", "General enquiry"];
 const PRIORITIES: EnquiryPriority[] = ["low", "medium", "high"];
 
@@ -84,6 +83,7 @@ export default function AdminInquiriesClient() {
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [total, setTotal] = useState(0);
   const [assignees, setAssignees] = useState<EnquiryAssignee[]>([]);
+  const [branchOptions, setBranchOptions] = useState<string[]>([]);
   const [tasks, setTasks] = useState<EnquiryTasks | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -218,6 +218,9 @@ export default function AdminInquiriesClient() {
   useEffect(() => {
     const token = getAccessToken();
     if (token) api.adminGetEnquiryAssignees(token).then(setAssignees).catch(() => { /* non-blocking */ });
+    // Branch options come from the caller's org (scoped list), never a
+    // hardcoded tenant's slugs.
+    if (token) api.adminGetBranches(token).then((bs) => setBranchOptions((bs ?? []).map((b) => b.slug))).catch(() => { /* non-blocking */ });
     loadTasks();
   }, [loadTasks]);
 
@@ -402,7 +405,7 @@ export default function AdminInquiriesClient() {
           </div>
           <select value={branch} onChange={(e) => { setBranch(e.target.value); resetPaging(); }} className={inputCls} aria-label="Branch">
             <option value="">All branches</option>
-            {BRANCH_OPTIONS.map((b) => <option key={b} value={b}>{fmtBranch(b)}</option>)}
+            {branchOptions.map((b) => <option key={b} value={b}>{fmtBranch(b)}</option>)}
           </select>
           <select value={status} onChange={(e) => { setStatus(e.target.value); resetPaging(); }} className={inputCls} aria-label="Status">
             <option value="">All statuses</option>
@@ -527,7 +530,7 @@ export default function AdminInquiriesClient() {
                   <label className={labelCls}>Branch <span className="text-red-500">*</span></label>
                   <select className={inputCls} value={createForm.branch} onChange={(e) => set({ branch: e.target.value })}>
                     <option value="">Select branch…</option>
-                    {BRANCH_OPTIONS.map((b) => <option key={b} value={b}>{fmtBranch(b)}</option>)}
+                    {branchOptions.map((b) => <option key={b} value={b}>{fmtBranch(b)}</option>)}
                   </select>
                 </div>
                 <div>

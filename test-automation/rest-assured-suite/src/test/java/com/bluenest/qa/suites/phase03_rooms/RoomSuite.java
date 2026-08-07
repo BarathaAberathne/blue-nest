@@ -80,6 +80,7 @@ class RoomSuite {
     @Order(2)
     @DisplayName("TC-ROOM-001b: Creating a new room with valid data succeeds exactly once")
     @Tag("golden-path")
+    @Tag("regression") // setup for the regression-tagged tests below (shared class state)
     void tc_room_001b_createValidRoom() {
         String name = TestData.uniqueName("Room");
 

@@ -25,7 +25,7 @@ shared `adminSession` suite fixture — see `SUI-ATT-001`.
 Given Post /api/v1/admin/staff-attendance/clock-in Into rejected Using adminSession.accessToken
 {
   "staff_id": "000000000000000000000000",
-  "date": "2027-04-12"
+  "date": "${today("+32w")}"
 }
 Then AssertStatus rejected 400
 ```

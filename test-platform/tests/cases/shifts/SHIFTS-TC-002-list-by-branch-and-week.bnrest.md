@@ -25,13 +25,13 @@ Given Post /api/v1/admin/shifts Into shift Using adminSession.accessToken
 {
   "staff_id": "${staff.id}",
   "branch_slug": "${branch.slug}",
-  "date": "2027-06-08",
+  "date": "${monday("+20w+1d")}",
   "start_time": "09:00",
   "end_time": "17:00"
 }
 Then AssertStatus shift 201
 
-When Get /api/v1/admin/shifts?branch=${branch.slug}&week=2027-06-07 Into list Using adminSession.accessToken
+When Get /api/v1/admin/shifts?branch=${branch.slug}&week=${monday("+20w")} Into list Using adminSession.accessToken
 Then AssertStatus list 200
 And AssertJson list "$.body.data[?(@.id=='${shift.body.data.id}')].length()" == 1
 

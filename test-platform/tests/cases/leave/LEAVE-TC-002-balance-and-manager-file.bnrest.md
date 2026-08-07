@@ -24,7 +24,7 @@ fixtures. A manager files leave for the staff member via the admin endpoint
 
 ```bnrest
 Given Post /api/v1/admin/leave-requests Into filed Using adminSession.accessToken
-{ "staff_id": "${staff.id}", "type": "unpaid_leave", "start_date": "2026-09-07", "end_date": "2026-09-09" }
+{ "staff_id": "${staff.id}", "type": "unpaid_leave", "start_date": "${monday("+12w")}", "end_date": "${monday("+12w+2d")}" }
 Then AssertStatus filed 201
 And Assert filed.body.data.status == "pending"
 
@@ -32,6 +32,6 @@ When Patch /api/v1/leave-requests/${filed.body.data.id}/cancel Into cancelled Us
 Then AssertStatus cancelled 200
 
 When Post /api/v1/admin/leave-requests Into tooMuch Using adminSession.accessToken
-{ "staff_id": "${staff.id}", "type": "leave", "start_date": "2026-09-01", "end_date": "2026-10-31" }
+{ "staff_id": "${staff.id}", "type": "leave", "start_date": "${monday("+14w")}", "end_date": "${monday("+22w+4d")}" }
 Then AssertStatus tooMuch 400
 ```
