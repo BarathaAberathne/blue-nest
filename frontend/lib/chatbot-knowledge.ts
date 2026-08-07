@@ -252,7 +252,7 @@ const PAGE_INSTRUCTIONS: Record<PageContext, string> = {
   northwood:
     'The parent is on the Northwood page. This branch is coming soon — be exciting about it! Encourage pre-registration interest so we can keep them updated when it opens.',
   aldershot:
-    'The parent is on the Aldershot page — our newest open branch on Belle Vue Road, Aldershot (GU12 4RZ, phone 01252 343772). Help them book a visit or ask about places for children aged 3 months to 5 years.',
+    'The parent is on the Aldershot page, our newest open branch on Belle Vue Road, Aldershot (GU12 4RZ, phone 01252 343772). Help them book a visit or ask about places for children aged 3 months to 5 years.',
   contact:
     'The parent is on the contact page and likely wants to reach out. Help them choose the right contact method, and offer to capture their details here so our team can follow up directly.',
   'why-montessori':

@@ -23,8 +23,8 @@ const DISCOUNTS: { id: DiscountId; label: string; rate: number }[] = [
 type YearWeeks = 38 | 52;
 const TERM_WEEKS = 38; // government-funded term-time weeks in a year
 const YEAR_WEEKS_OPTIONS: { id: YearWeeks; title: string; sub: string }[] = [
-  { id: 38, title: "Term time only", sub: "38 weeks — funded weeks only" },
-  { id: 52, title: "All year round", sub: "52 weeks — holidays at full fee" },
+  { id: 38, title: "Term time only", sub: "38 weeks (funded weeks only)" },
+  { id: 52, title: "All year round", sub: "52 weeks (holidays at full fee)" },
 ];
 
 // Funding option. TFC is information-only — does not reduce the fee.
@@ -409,16 +409,16 @@ export default function FeeCalculatorCard({
           </div>
         </div>
 
-        {/* Weekly schedule — a session (or day off) per weekday */}
+        {/* Weekly schedule a session (or day off) per weekday */}
         <div>
           <p className="mb-2 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
-            Weekly schedule —{" "}
+            Weekly schedule{" "}
             <span className="font-extrabold text-[var(--ink)]">
               {bookedDays} day{bookedDays !== 1 ? "s" : ""}
             </span>
           </p>
           <p className="mb-2 text-[0.62rem] leading-snug text-[var(--muted)]">
-            Choose a session for each day your child attends — times shown are drop-off to pick-up.
+            Choose a session for each day your child attends. Times shown are drop-off to pick-up.
           </p>
 
           {/* Quick presets: set every weekday at once */}
@@ -527,7 +527,7 @@ export default function FeeCalculatorCard({
           <p className="mb-1 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Weeks per year</p>
           <p className="mb-2 text-[0.62rem] leading-snug text-[var(--muted)]">
             Funding covers 38 term-time weeks. Pick &ldquo;all year round&rdquo; if your child also attends in
-            the school holidays — those weeks are charged at the full (unfunded) rate.
+            the school holidays; those weeks are charged at the full (unfunded) rate.
           </p>
           <div className="grid gap-1.5">
             {YEAR_WEEKS_OPTIONS.map((y) => (

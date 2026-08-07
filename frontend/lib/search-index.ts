@@ -68,7 +68,7 @@ export const searchIndex: SearchEntry[] = [
   },
   {
     title:       "Aldershot Nursery",
-    description: "Blue Nest Montessori School Aldershot — Montessori nursery on Belle Vue Road, Aldershot, GU12 4RZ.",
+    description: "Blue Nest Montessori School Aldershot: Montessori nursery on Belle Vue Road, Aldershot, GU12 4RZ.",
     url:         "/branches/aldershot",
     category:    "Branch",
     keywords: ["aldershot", "gu12", "belle vue road", "hampshire", "blue nest aldershot"],

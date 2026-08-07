@@ -54,7 +54,7 @@ const branches = [
   { label: "Pinner", href: "/branches/pinner" },
   { label: "Pinner Green", href: "/branches/pinner-green" },
   { label: "Aldershot", href: "/branches/aldershot" },
-  { label: "Northwood — Coming Soon", href: "/branches/northwood" },
+  { label: "Northwood (Coming Soon)", href: "/branches/northwood" },
 ];
 
 const quickLinks = [

@@ -62,7 +62,7 @@ export const branchFaqs: Record<string, Faq[]> = {
     {
       question: "Is there a Montessori nursery in Aldershot?",
       answer:
-        "Yes — Blue Nest Montessori School on Belle Vue Road is Aldershot's first dedicated Montessori day nursery, taking children from 3 months to 5 years.",
+        "Yes. Blue Nest Montessori School on Belle Vue Road is Aldershot's first dedicated Montessori day nursery, taking children from 3 months to 5 years.",
     },
     {
       question: "Do you offer 15 and 30 hours funded childcare in Aldershot?",
@@ -75,21 +75,21 @@ export const branchFaqs: Record<string, Faq[]> = {
     },
     {
       question: "What are the opening hours of the Aldershot nursery?",
-      answer: "Monday to Friday, 7:30am to 6:00pm — the earliest drop-off in town, minutes from Aldershot station.",
+      answer: "Monday to Friday, 7:30am to 6:00pm. The earliest drop-off in town, minutes from Aldershot station.",
     },
     {
       question: "How much does nursery cost in Aldershot?",
       answer:
-        "Use our online fee calculator for an instant estimate — fees vary by age, sessions and funding. Sibling discounts available.",
+        "Use our online fee calculator for an instant estimate. Fees vary by age, sessions and funding, and sibling discounts are available.",
     },
     {
       question: "Do you provide halal food?",
       answer:
-        "Yes — halal options are part of our standard menu, prepared in our 5-star hygiene rated kitchen, with vegetarian and allergy-aware choices too.",
+        "Yes. Halal options are part of our standard menu, prepared in our 5-star hygiene rated kitchen, with vegetarian and allergy-aware choices too.",
     },
     {
       question: "How do I book a visit to the Aldershot nursery?",
-      answer: "Use the Book a Visit button or call 01252 343772 — we'd love to show you around.",
+      answer: "Use the Book a Visit button or call 01252 343772, and we'd love to show you around.",
     },
   ],
   harrow: [

@@ -67,7 +67,7 @@ const branches = [
       { src: "/home/outdoor-learning-and-play-area.jpg",    alt: "Outdoor learning and play area" },
       { src: "/home/DSC_0177.jpg",                          alt: "Montessori classroom activity" },
     ],
-    description: "Our newest nursery on Belle Vue Road, Aldershot — bringing child-led Montessori learning and daily outdoor exploration to Hampshire.",
+    description: "Our newest nursery on Belle Vue Road, Aldershot, bringing child-led Montessori learning and daily outdoor exploration to Hampshire.",
     color:       "var(--branch-aldershot)",
     cta:         "Book a Visit",
   },

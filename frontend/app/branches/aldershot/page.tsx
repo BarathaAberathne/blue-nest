@@ -27,7 +27,7 @@ import { faqPageJsonLd, branchFaqs } from "@/lib/faq";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/branches/aldershot" },
-  title: "Montessori Nursery in Aldershot — Blue Nest Montessori",
+  title: "Montessori Nursery in Aldershot | Blue Nest Montessori",
   description:
     "Montessori day nursery on Belle Vue Road, Aldershot (GU12) for ages 3 months\u20135 years. Forest school, 15/30 hours funded childcare, halal food. Book a visit.",
   keywords: [
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     "childcare for military families aldershot", "halal food nursery", "nursery ash vale", "nursery farnborough",
   ],
   openGraph: {
-    title: "Montessori Nursery in Aldershot — Blue Nest Montessori",
+    title: "Montessori Nursery in Aldershot | Blue Nest Montessori",
     description:
       "Aldershot's first dedicated Montessori day nursery, for ages 3 months to 5 years. Forest school, 15/30 hours funded childcare, open 7:30am-6:00pm. Book a visit.",
     url: "/branches/aldershot",
@@ -54,25 +54,25 @@ const features: Feature[] = [
   {
     icon: Sparkles,
     title: "Aldershot's First Montessori Setting",
-    desc: "Authentic Montessori materials and prepared environments you won't find anywhere else in town — the real method, not a buzzword.",
+    desc: "Authentic Montessori materials and prepared environments you won't find anywhere else in town. The real method, not a buzzword.",
     accent: "#ef8cab",
   },
   {
     icon: Heart,
     title: "Babies Welcome from 3 Months",
-    desc: "Full baby room provision where most local settings start at age 2 — gentle key-person care from your child's very first months.",
+    desc: "Full baby room provision where most local settings start at age 2, with gentle key-person care from your child's very first months.",
     accent: "#f4aac8",
   },
   {
     icon: TreePine,
     title: "Forest School Access",
-    desc: "Regular forest school sessions that build confidence, resilience and a love of the natural world — unique in Aldershot.",
+    desc: "Regular forest school sessions that build confidence, resilience and a love of the natural world. Unique in Aldershot.",
     accent: "#8ecb9b",
   },
   {
     icon: SunMedium,
     title: "Open 7:30am – 6:00pm",
-    desc: "The earliest drop-off in town for commuting parents — minutes from Aldershot station, with easy links to Farnborough and Guildford.",
+    desc: "The earliest drop-off in town for commuting parents, minutes from Aldershot station, with easy links to Farnborough and Guildford.",
     accent: "#6ecfc9",
   },
   {
@@ -84,7 +84,7 @@ const features: Feature[] = [
   {
     icon: ShieldCheck,
     title: "Safe & Secure",
-    desc: "Enhanced DBS-checked staff, secure entry systems and rigorously maintained safety standards — an Ofsted registered setting.",
+    desc: "Enhanced DBS-checked staff, secure entry systems and rigorously maintained safety standards in an Ofsted registered setting.",
     accent: "#b99fe0",
   },
 ];
@@ -186,7 +186,7 @@ export default async function AldershotBranchPage() {
       <BranchHero
         location="Aldershot, Hampshire"
         heading="Montessori Nursery in Aldershot"
-        description="Aldershot's first dedicated Montessori day nursery, on Belle Vue Road — for children aged 3 months to 5 years. Authentic Montessori learning, forest school sessions and 15/30 hours funded childcare, open Monday–Friday 7:30am–6:00pm."
+        description="Aldershot's first dedicated Montessori day nursery on Belle Vue Road, for children aged 3 months to 5 years. Authentic Montessori learning, forest school sessions and 15/30 hours funded childcare, open Monday–Friday 7:30am–6:00pm."
         image="/home/branches/aldershot/aldershot-hero.jpg"
         imageAlt="The tree-lined entrance to Blue Nest Montessori Aldershot"
         primaryCta={{ label: "Book a Visit", href: "/contact?enquiry=book-visit&branch=aldershot", variant: "rose" }}
@@ -235,8 +235,8 @@ export default async function AldershotBranchPage() {
                 </p>
                 <p>
                   If you&apos;ve been searching for a &ldquo;Montessori nursery near me&rdquo; in
-                  Aldershot, you&apos;ve found Hampshire&apos;s newest &mdash; and the town&apos;s
-                  first &mdash; dedicated Montessori setting. We accept 15 and 30 hours of funded
+                  Aldershot, you&apos;ve found Hampshire&apos;s newest, and the town&apos;s first,
+                  dedicated Montessori setting. We accept 15 and 30 hours of funded
                   childcare. Try our fee calculator below to estimate weekly fees, then apply for a
                   place.
                 </p>
@@ -247,7 +247,7 @@ export default async function AldershotBranchPage() {
                   As the home of the British Army, Aldershot is full of families who move often and
                   need childcare that settles children quickly. Our key-person approach, flexible
                   sessions and term-time or all-year contracts are designed to make transitions
-                  gentle &mdash; and we&apos;re experienced in supporting funded hours and Tax-Free
+                  gentle, and we&apos;re experienced in supporting funded hours and Tax-Free
                   Childcare for serving parents.
                 </p>
               </div>
@@ -344,7 +344,7 @@ export default async function AldershotBranchPage() {
                 <p>
                   From morning circle time to afternoon garden sessions and regular{" "}
                   <a href="/forest-school" className="font-semibold underline">forest school</a>{" "}
-                  outings, every moment is designed to nurture the whole child &mdash; building
+                  outings, every moment is designed to nurture the whole child: building
                   independence, social confidence and a deep love of learning that lasts a lifetime.
                 </p>
               </div>
