@@ -12,6 +12,8 @@ const (
 	CounterStaff        = "staff"
 	CounterDailyRecord  = "daily_record"
 	CounterBranch       = "branch"
+	CounterParent       = "parent"
+	CounterFamily       = "family"
 )
 
 // Ref prefixes for each entity (human-readable ID = PREFIX-YEAR-NNNNNN).
@@ -23,6 +25,8 @@ const (
 	RefPrefixStaff        = "STF" // staff member
 	RefPrefixDailyRecord  = "LOG" // daily record (observation/incident/etc.)
 	RefPrefixBranch       = "BR"  // branch / nursery location
+	RefPrefixParent       = "PAR" // parent / guardian
+	RefPrefixFamily       = "FAM" // family / billing account
 )
 
 // FormatRef builds a zero-padded reference, e.g. FormatRef("SR", 2026, 45) →
