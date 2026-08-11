@@ -16,6 +16,7 @@ type fakeFinanceRepo struct {
 	families map[string]*models.Family
 	charges  map[string]*models.Charge
 	payments map[string]*models.Payment
+	comms    []models.CommunicationLog
 	events   map[string]bool
 }
 
@@ -218,6 +219,37 @@ func (f *fakeFinanceRepo) ScheduleCreate(_ context.Context, _ *models.PaymentSch
 }
 func (f *fakeFinanceRepo) ScheduleUpdate(_ context.Context, _ string, _ models.PaymentSchedule) (*models.PaymentSchedule, error) {
 	return nil, errors.New("not found")
+}
+
+func (f *fakeFinanceRepo) CommLogCreate(_ context.Context, c *models.CommunicationLog) error {
+	if c.ID.IsZero() {
+		c.ID = primitive.NewObjectID()
+	}
+	c.SentAt = time.Now()
+	f.comms = append(f.comms, *c)
+	return nil
+}
+
+func (f *fakeFinanceRepo) CommLogExists(_ context.Context, key string) bool {
+	if key == "" {
+		return false
+	}
+	for _, c := range f.comms {
+		if c.Key == key {
+			return true
+		}
+	}
+	return false
+}
+
+func (f *fakeFinanceRepo) CommLogsByFamily(_ context.Context, familyID string) ([]models.CommunicationLog, error) {
+	out := []models.CommunicationLog{}
+	for _, c := range f.comms {
+		if c.FamilyID == familyID {
+			out = append(out, c)
+		}
+	}
+	return out, nil
 }
 
 func (f *fakeFinanceRepo) MarkEventProcessed(_ context.Context, eventID string) (bool, error) {
@@ -458,5 +490,64 @@ func TestFirstPaymentCreatesGatingCharges(t *testing.T) {
 		if !c.FirstPayment {
 			t.Errorf("charge %q must carry the first_payment flag", c.Description)
 		}
+	}
+}
+
+// ── Reminder sweep ───────────────────────────────────────────────────────────
+
+func TestReminderSweepSchedulesAndDedupes(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeFinanceRepo()
+	fam := repo.addFamily(&models.Family{Name: "Reminder Family", ChildIDs: []string{"c1"}})
+	famID := fam.ID.Hex()
+	today := time.Now().Format("2006-01-02")
+	in3 := time.Now().AddDate(0, 0, 3).Format("2006-01-02")
+	in5 := time.Now().AddDate(0, 0, 5).Format("2006-01-02")
+	past7 := time.Now().AddDate(0, 0, -7).Format("2006-01-02")
+
+	dueToday := repo.addCharge(&models.Charge{FamilyID: famID, AmountPence: 10000, DueDate: today, Status: models.ChargeDue, Description: "Due today"})
+	repo.addCharge(&models.Charge{FamilyID: famID, AmountPence: 10000, DueDate: in3, Status: models.ChargeUpcoming, Description: "Due in 3"})
+	repo.addCharge(&models.Charge{FamilyID: famID, AmountPence: 10000, DueDate: in5, Status: models.ChargeUpcoming, Description: "No rule"})
+	repo.addCharge(&models.Charge{FamilyID: famID, AmountPence: 10000, DueDate: past7, Status: models.ChargeOverdue, Description: "Overdue 7"})
+	svc := newTestFinance(repo)
+
+	sent, err := svc.RunReminderSweep(ctx)
+	if err != nil {
+		t.Fatalf("sweep: %v", err)
+	}
+	// due-0 + upcoming-3 + overdue-7 + the DD-incomplete weekly nudge = 4;
+	// the 5-days-out charge matches no rule.
+	if sent != 4 {
+		t.Fatalf("expected 4 reminders, got %d (%+v)", sent, repo.comms)
+	}
+
+	// Re-running is a no-op — every rule dedupes via its key.
+	sent2, err := svc.RunReminderSweep(ctx)
+	if err != nil {
+		t.Fatalf("second sweep: %v", err)
+	}
+	if sent2 != 0 {
+		t.Errorf("second sweep must send nothing, got %d", sent2)
+	}
+
+	// A manual reminder always sends (no dedup key).
+	log1, err := svc.SendChargeReminder(ctx, dueToday.ID.Hex())
+	if err != nil || log1 == nil {
+		t.Fatalf("manual reminder: %v", err)
+	}
+	log2, err := svc.SendChargeReminder(ctx, dueToday.ID.Hex())
+	if err != nil || log2 == nil {
+		t.Fatalf("repeat manual reminder should still send: %v", err)
+	}
+	// A settled charge cannot be reminded.
+	dueToday.PaidPence = dueToday.AmountPence
+	dueToday.Status = models.ChargePaid
+	if _, err := svc.SendChargeReminder(ctx, dueToday.ID.Hex()); err == nil {
+		t.Error("a settled charge must not accept reminders")
+	}
+
+	logs, _ := svc.Communications(ctx, famID)
+	if len(logs) != 6 {
+		t.Errorf("expected 6 communication rows (4 sweep + 2 manual), got %d", len(logs))
 	}
 }

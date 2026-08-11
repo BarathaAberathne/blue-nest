@@ -27,6 +27,8 @@ export default function FinanceClient() {
   const [q, setQ] = useState("");
   const [mandateFilter, setMandateFilter] = useState("");
   const [loading, setLoading] = useState(true);
+  const [sweeping, setSweeping] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
@@ -72,6 +74,7 @@ export default function FinanceClient() {
       </div>
 
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
+      {notice && <p className="mb-4 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-700">{notice}</p>}
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
         {tiles.map((t) => (
@@ -93,6 +96,21 @@ export default function FinanceClient() {
           {MANDATE_FILTERS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
         </select>
         <span className="ml-auto text-sm text-slate-400">{filtered.length} shown</span>
+        <button
+          onClick={() => {
+            const token = getAccessToken();
+            if (!token) return;
+            setSweeping(true);
+            api.adminRunReminderSweep(token)
+              .then((r) => setNotice(`Reminder sweep complete — ${r.sent} reminder${r.sent === 1 ? "" : "s"} sent.`))
+              .catch((e) => setError(e instanceof Error ? e.message : "Sweep failed"))
+              .finally(() => setSweeping(false));
+          }}
+          disabled={sweeping}
+          className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          {sweeping ? "Running…" : "Run reminders"}
+        </button>
       </div>
 
       <div className="card overflow-x-auto">

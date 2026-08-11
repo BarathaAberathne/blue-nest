@@ -478,6 +478,9 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Post("/admin/families/{id}/schedule", adminFinanceH.CreateSchedule)
 				r.Post("/admin/families/{id}/manual-payment", adminFinanceH.ManualPayment)
 				r.Post("/admin/charges/{chargeId}/collect", adminFinanceH.Collect)
+				r.Post("/admin/charges/{chargeId}/remind", adminFinanceH.Remind)
+				r.Get("/admin/families/{id}/communications", adminFinanceH.Communications)
+				r.Post("/admin/finance/reminders/run", adminFinanceH.RunReminders)
 				r.Group(func(r chi.Router) {
 					r.Use(middleware.RequirePermission(models.PermFinanceAdjust))
 					r.Post("/admin/families/{id}/mandate", adminFinanceH.MarkMandate)

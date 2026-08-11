@@ -36,10 +36,35 @@ type inductionService struct {
 	repo     repository.InductionRepository
 	consents repository.ConsentRepository
 	children repository.ChildRepository
+	users    repository.UserRepository
+	notifs   NotificationService
 }
 
-func NewInductionService(repo repository.InductionRepository, consents repository.ConsentRepository, children repository.ChildRepository) InductionService {
-	return &inductionService{repo: repo, consents: consents, children: children}
+func NewInductionService(repo repository.InductionRepository, consents repository.ConsentRepository, children repository.ChildRepository, users repository.UserRepository, notifs NotificationService) InductionService {
+	return &inductionService{repo: repo, consents: consents, children: children, users: users, notifs: notifs}
+}
+
+// reviewersFor returns users holding children.manage scoped to the child's
+// branch — the audience for the four-eyes induction review.
+func (s *inductionService) reviewersFor(ctx context.Context, branch string) []string {
+	if s.users == nil {
+		return nil
+	}
+	orgID, _ := repository.OrgFromContext(ctx)
+	users, err := s.users.FindAll(ctx)
+	if err != nil {
+		return nil
+	}
+	var ids []string
+	for _, u := range users {
+		if !models.HasPermission(orgID, u.Role, models.PermChildrenManage) {
+			continue
+		}
+		if len(u.BranchSlugs) == 0 || contains(u.BranchSlugs, branch) {
+			ids = append(ids, u.ID.Hex())
+		}
+	}
+	return ids
 }
 
 func (s *inductionService) Get(ctx context.Context, childID string) (*models.ChildInduction, error) {
@@ -156,7 +181,34 @@ func (s *inductionService) Submit(ctx context.Context, childID, actorUserID stri
 	ind.SubmittedBy = actorUserID
 	ind.SubmittedAt = &now
 	ind.ReviewedBy, ind.ReviewedAt, ind.ReviewNote = "", nil, ""
-	return s.repo.Upsert(ctx, ind)
+	out, err := s.repo.Upsert(ctx, ind)
+	if err != nil {
+		return nil, err
+	}
+	if s.notifs != nil {
+		child, _ := s.children.FindByID(ctx, childID)
+		name := "a child"
+		branch := ""
+		if child != nil {
+			name = strings.TrimSpace(child.FirstName + " " + child.LastName)
+			branch = child.BranchSlug
+		}
+		var recipients []string
+		for _, id := range s.reviewersFor(ctx, branch) {
+			if id != actorUserID {
+				recipients = append(recipients, id)
+			}
+		}
+		_ = s.notifs.NotifyMany(ctx, recipients, models.Notification{
+			Type:       models.NotifInductionSubmitted,
+			Title:      "Induction form to review",
+			Body:       "The induction for " + name + " was submitted and needs a second-person review.",
+			Link:       "/admin/children/" + childID,
+			EntityType: "induction",
+			EntityID:   out.ID.Hex(),
+		})
+	}
+	return out, nil
 }
 
 func (s *inductionService) Review(ctx context.Context, childID, actorUserID, note string) (*models.ChildInduction, error) {
@@ -175,7 +227,26 @@ func (s *inductionService) Review(ctx context.Context, childID, actorUserID, not
 	ind.ReviewedBy = actorUserID
 	ind.ReviewedAt = &now
 	ind.ReviewNote = strings.TrimSpace(note)
-	return s.repo.Upsert(ctx, ind)
+	out, err := s.repo.Upsert(ctx, ind)
+	if err != nil {
+		return nil, err
+	}
+	if s.notifs != nil && out.SubmittedBy != "" && out.SubmittedBy != actorUserID {
+		child, _ := s.children.FindByID(ctx, childID)
+		name := "your child"
+		if child != nil {
+			name = strings.TrimSpace(child.FirstName + " " + child.LastName)
+		}
+		_ = s.notifs.NotifyMany(ctx, []string{out.SubmittedBy}, models.Notification{
+			Type:       models.NotifInductionReviewed,
+			Title:      "Induction reviewed",
+			Body:       "The induction for " + name + " has been reviewed and locked in.",
+			Link:       "/portal",
+			EntityType: "induction",
+			EntityID:   out.ID.Hex(),
+		})
+	}
+	return out, nil
 }
 
 func (s *inductionService) Consents(ctx context.Context, childID string) ([]models.Consent, error) {

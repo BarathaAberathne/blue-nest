@@ -59,6 +59,16 @@ type FinanceService interface {
 	// of the child's family paid — the onboarding gate.
 	FinanceCompleteForChild(ctx context.Context, childID string) bool
 	Dashboard(ctx context.Context) (map[string]any, error)
+
+	// RunReminderSweep generates schedule charges, refreshes overdue statuses
+	// and sends the scheduled fee reminders (upcoming 7/3/0 days, overdue
+	// 3/7/14 days, weekly DD-incomplete nudges). Idempotent per rule via the
+	// communication-log dedup key; ctx must be org-scoped (the scheduler
+	// iterates orgs).
+	RunReminderSweep(ctx context.Context) (int, error)
+	// SendChargeReminder sends a manual reminder for one charge right now.
+	SendChargeReminder(ctx context.Context, chargeID string) (*models.CommunicationLog, error)
+	Communications(ctx context.Context, familyID string) ([]models.CommunicationLog, error)
 }
 
 type financeService struct {
@@ -67,11 +77,41 @@ type financeService struct {
 	parents  repository.ParentRepository
 	children repository.ChildRepository
 	counters repository.CounterRepository
+	users    repository.UserRepository
+	notifs   NotificationService
+	emailTpl EmailTemplateService
 	stripeOn bool
 }
 
-func NewFinanceService(repo repository.FinanceRepository, rels repository.ChildParentRepository, parents repository.ParentRepository, children repository.ChildRepository, counters repository.CounterRepository, stripeConfigured bool) FinanceService {
-	return &financeService{repo: repo, rels: rels, parents: parents, children: children, counters: counters, stripeOn: stripeConfigured}
+func NewFinanceService(repo repository.FinanceRepository, rels repository.ChildParentRepository, parents repository.ParentRepository, children repository.ChildRepository, counters repository.CounterRepository, users repository.UserRepository, notifs NotificationService, emailTpl EmailTemplateService, stripeConfigured bool) FinanceService {
+	return &financeService{repo: repo, rels: rels, parents: parents, children: children, counters: counters, users: users, notifs: notifs, emailTpl: emailTpl, stripeOn: stripeConfigured}
+}
+
+// notifyFamily sends a finance notification to the family's billing parent
+// (their portal user) and, when includeFinance is set, every user holding
+// finance.manage. Best-effort — finance actions never fail on notification
+// problems.
+func (s *financeService) notifyFamily(ctx context.Context, f *models.Family, includeFinance bool, n models.Notification) {
+	if s.notifs == nil || f == nil {
+		return
+	}
+	var recipients []string
+	if p, err := s.parents.FindByID(ctx, f.BillingParentID); err == nil && p != nil && p.UserID != "" {
+		recipients = append(recipients, p.UserID)
+	}
+	if includeFinance && s.users != nil {
+		orgID, _ := repository.OrgFromContext(ctx)
+		if users, err := s.users.FindAll(ctx); err == nil {
+			for _, u := range users {
+				if models.HasPermission(orgID, u.Role, models.PermFinanceManage) {
+					recipients = appendUnique(recipients, u.ID.Hex())
+				}
+			}
+		}
+	}
+	n.EntityType = "family"
+	n.EntityID = f.ID.Hex()
+	_ = s.notifs.NotifyMany(ctx, recipients, n)
 }
 
 func (s *financeService) ref(ctx context.Context, counter, prefix string) string {
@@ -409,7 +449,17 @@ func (s *financeService) MarkMandateActive(ctx context.Context, familyID, refere
 	if reference != "" {
 		f.StripeMandateID = reference // offline mandate reference
 	}
-	return s.repo.FamilyUpdate(ctx, familyID, *f)
+	updated, err := s.repo.FamilyUpdate(ctx, familyID, *f)
+	if err != nil {
+		return nil, err
+	}
+	s.notifyFamily(ctx, updated, true, models.Notification{
+		Type:  models.NotifDDActive,
+		Title: "Direct Debit active",
+		Body:  "A Direct Debit mandate for " + updated.Name + " is now active.",
+		Link:  "/admin/finance/" + updated.ID.Hex(),
+	})
+	return updated, nil
 }
 
 func (s *financeService) CollectCharge(ctx context.Context, chargeID string) (*models.Charge, error) {
@@ -479,6 +529,14 @@ func (s *financeService) RecordManualPayment(ctx context.Context, familyID strin
 		return nil, err
 	}
 	s.applyAllocations(ctx, p.Allocations)
+	if f, err := s.repo.FamilyByID(ctx, familyID); err == nil {
+		s.notifyFamily(ctx, f, false, models.Notification{
+			Type:  models.NotifPaymentReceived,
+			Title: "Payment received",
+			Body:  "We received a payment of £" + fmt.Sprintf("%.2f", float64(req.AmountPence)/100) + " — thank you.",
+			Link:  "/portal",
+		})
+	}
 	return p, nil
 }
 
@@ -543,8 +601,17 @@ func (s *financeService) OnSetupCompleted(ctx context.Context, customerID, payme
 	f.StripePaymentMethodID = paymentMethodID
 	f.StripeMandateID = mandateID
 	f.MandateStatus = models.MandateActive
-	_, err = s.repo.FamilyUpdate(ctx, f.ID.Hex(), *f)
-	return err
+	updated, err := s.repo.FamilyUpdate(ctx, f.ID.Hex(), *f)
+	if err != nil {
+		return err
+	}
+	s.notifyFamily(ctx, updated, true, models.Notification{
+		Type:  models.NotifDDActive,
+		Title: "Direct Debit active",
+		Body:  "The Direct Debit mandate for " + updated.Name + " is now active.",
+		Link:  "/admin/finance/" + updated.ID.Hex(),
+	})
+	return nil
 }
 
 func (s *financeService) OnPaymentIntent(ctx context.Context, intentID string, status models.PaymentStatus, failureNote string) error {
@@ -563,6 +630,14 @@ func (s *financeService) OnPaymentIntent(ctx context.Context, intentID string, s
 	switch status {
 	case models.PaymentSucceeded:
 		s.applyAllocations(ctx, p.Allocations)
+		if f, err := s.repo.FamilyByID(ctx, p.FamilyID); err == nil {
+			s.notifyFamily(ctx, f, false, models.Notification{
+				Type:  models.NotifPaymentReceived,
+				Title: "Payment received",
+				Body:  "Your Direct Debit payment of £" + fmt.Sprintf("%.2f", float64(p.AmountPence)/100) + " was collected — thank you.",
+				Link:  "/portal",
+			})
+		}
 	case models.PaymentFailed:
 		for _, a := range p.Allocations {
 			if c, err := s.repo.ChargeByID(ctx, a.ChargeID); err == nil && c.Status == models.ChargeProcessing {
@@ -570,8 +645,23 @@ func (s *financeService) OnPaymentIntent(ctx context.Context, intentID string, s
 				_, _ = s.repo.ChargeUpdate(ctx, a.ChargeID, *c)
 			}
 		}
+		if f, err := s.repo.FamilyByID(ctx, p.FamilyID); err == nil {
+			s.notifyFamily(ctx, f, true, models.Notification{
+				Type:  models.NotifPaymentFailed,
+				Title: "Payment failed",
+				Body:  "A Direct Debit payment of £" + fmt.Sprintf("%.2f", float64(p.AmountPence)/100) + " for " + f.Name + " failed" + failureSuffix(failureNote),
+				Link:  "/admin/finance/" + f.ID.Hex(),
+			})
+		}
 	}
 	return nil
+}
+
+func failureSuffix(note string) string {
+	if note == "" {
+		return "."
+	}
+	return ": " + note
 }
 
 // ── Onboarding gate + dashboard ──────────────────────────────────────────────
@@ -654,4 +744,188 @@ func (s *financeService) Dashboard(ctx context.Context) (map[string]any, error) 
 		"families_total":        len(fams),
 		"families_without_dd":   noDD,
 	}, nil
+}
+
+// ── Reminders (scheduler + manual) ───────────────────────────────────────────
+
+// Reminder offsets in days relative to the due date (negative = before due).
+var upcomingReminderDays = []int{7, 3, 0}
+var overdueReminderDays = []int{3, 7, 14}
+
+func formatPence(p int64) string {
+	return fmt.Sprintf("£%.2f", float64(p)/100)
+}
+
+// reminderCopy resolves the reminder subject/body — the org's customised
+// payment_reminder email template when one exists, else the built-in copy.
+func (s *financeService) reminderCopy(ctx context.Context, f *models.Family, c *models.Charge) (string, string) {
+	parentName := "there"
+	if s.parents != nil {
+		if p, err := s.parents.FindByID(ctx, f.BillingParentID); err == nil && p != nil && p.FirstName != "" {
+			parentName = p.FirstName
+		}
+	}
+	vars := map[string]string{
+		"parent_name": parentName,
+		"family_name": f.Name,
+		"description": c.Description,
+		"amount_due":  formatPence(c.AmountPence - c.PaidPence),
+		"due_date":    c.DueDate,
+	}
+	if s.emailTpl != nil {
+		if subject, body, ok := s.emailTpl.Render(ctx, models.EmailTplPaymentReminder, vars); ok {
+			return subject, body
+		}
+	}
+	info := models.EmailTemplateInfoFor(models.EmailTplPaymentReminder)
+	subject, body := info.DefaultSubject, info.DefaultBody
+	for k, v := range vars {
+		subject = strings.ReplaceAll(subject, "{{"+k+"}}", v)
+		body = strings.ReplaceAll(body, "{{"+k+"}}", v)
+	}
+	return subject, body
+}
+
+// sendReminder notifies the billing parent (in-app + email via the
+// notification module, honouring their preferences) and writes the
+// communication-log row. key dedupes scheduled sends; manual sends pass "".
+func (s *financeService) sendReminder(ctx context.Context, f *models.Family, c *models.Charge, kind, key string) (*models.CommunicationLog, error) {
+	if key != "" && s.repo.CommLogExists(ctx, key) {
+		return nil, nil
+	}
+	subject, body := s.reminderCopy(ctx, f, c)
+	s.notifyFamily(ctx, f, false, models.Notification{
+		Type:  models.NotifPaymentReminder,
+		Title: subject,
+		Body:  body,
+		Link:  "/portal",
+	})
+	log := &models.CommunicationLog{
+		FamilyID: f.ID.Hex(), ChargeID: c.ID.Hex(), Kind: kind, Key: key,
+		Subject: subject, Body: body,
+	}
+	if err := s.repo.CommLogCreate(ctx, log); err != nil {
+		return nil, err
+	}
+	return log, nil
+}
+
+func (s *financeService) RunReminderSweep(ctx context.Context) (int, error) {
+	_, _ = s.GenerateDueCharges(ctx)
+	charges, err := s.repo.ChargesAll(ctx)
+	if err != nil {
+		return 0, err
+	}
+	s.refreshOverdue(ctx, charges)
+	today := time.Now().Truncate(24 * time.Hour)
+	sent := 0
+	famCache := map[string]*models.Family{}
+	family := func(id string) *models.Family {
+		if f, ok := famCache[id]; ok {
+			return f
+		}
+		f, err := s.repo.FamilyByID(ctx, id)
+		if err != nil {
+			famCache[id] = nil
+			return nil
+		}
+		famCache[id] = f
+		return f
+	}
+
+	for i := range charges {
+		c := &charges[i]
+		switch c.Status {
+		case models.ChargeUpcoming, models.ChargeDue, models.ChargeOverdue, models.ChargePartiallyPaid, models.ChargeFailed:
+		default:
+			continue
+		}
+		due, err := time.Parse("2006-01-02", c.DueDate)
+		if err != nil {
+			continue
+		}
+		delta := int(due.Sub(today).Hours() / 24) // >0 upcoming, <0 overdue
+		var kind, key string
+		switch {
+		case delta > 0:
+			for _, d := range upcomingReminderDays {
+				if delta == d {
+					kind, key = "reminder_upcoming", fmt.Sprintf("upcoming-%d:%s", d, c.ID.Hex())
+				}
+			}
+		case delta == 0:
+			kind, key = "reminder_due", "due-0:"+c.ID.Hex()
+		default:
+			for _, d := range overdueReminderDays {
+				if -delta == d {
+					kind, key = "reminder_overdue", fmt.Sprintf("overdue-%d:%s", d, c.ID.Hex())
+				}
+			}
+		}
+		if kind == "" {
+			continue
+		}
+		f := family(c.FamilyID)
+		if f == nil {
+			continue
+		}
+		if log, err := s.sendReminder(ctx, f, c, kind, key); err == nil && log != nil {
+			sent++
+		}
+	}
+
+	// Weekly DD-incomplete nudge for families with outstanding charges but no
+	// active mandate.
+	year, week := time.Now().ISOWeek()
+	fams, _ := s.repo.FamiliesAll(ctx)
+	for i := range fams {
+		f := &fams[i]
+		if f.MandateStatus == models.MandateActive {
+			continue
+		}
+		if s.balance(ctx, f.ID.Hex()) <= 0 {
+			continue
+		}
+		key := fmt.Sprintf("dd:%s:%d-%02d", f.ID.Hex(), year, week)
+		if s.repo.CommLogExists(ctx, key) {
+			continue
+		}
+		body := "Your Direct Debit for " + f.Name + " has not been set up yet. Please sign in to the parent portal to complete it, or contact the nursery for a paper mandate."
+		s.notifyFamily(ctx, f, false, models.Notification{
+			Type:  models.NotifDDIncomplete,
+			Title: "Direct Debit setup needed",
+			Body:  body,
+			Link:  "/portal",
+		})
+		if err := s.repo.CommLogCreate(ctx, &models.CommunicationLog{
+			FamilyID: f.ID.Hex(), Kind: "dd_incomplete", Key: key,
+			Subject: "Direct Debit setup needed", Body: body,
+		}); err == nil {
+			sent++
+		}
+	}
+	return sent, nil
+}
+
+func (s *financeService) SendChargeReminder(ctx context.Context, chargeID string) (*models.CommunicationLog, error) {
+	c, err := s.repo.ChargeByID(ctx, chargeID)
+	if err != nil {
+		return nil, errors.New("charge not found")
+	}
+	if c.AmountPence-c.PaidPence <= 0 || c.Status == models.ChargeCancelled || c.Status == models.ChargeWrittenOff {
+		return nil, errors.New("this charge has nothing outstanding")
+	}
+	f, err := s.repo.FamilyByID(ctx, c.FamilyID)
+	if err != nil {
+		return nil, errors.New("family not found")
+	}
+	log, err := s.sendReminder(ctx, f, c, "manual_reminder", "")
+	if err != nil {
+		return nil, err
+	}
+	return log, nil
+}
+
+func (s *financeService) Communications(ctx context.Context, familyID string) ([]models.CommunicationLog, error) {
+	return s.repo.CommLogsByFamily(ctx, familyID)
 }

@@ -17,7 +17,7 @@ import {
   chargeStatusAccent, chargeStatusLabel, formatPence,
   mandateStatusAccent, mandateStatusLabel, paymentStatusAccent,
 } from "@/lib/finance";
-import type { Charge, Child, FamilyView } from "@/types";
+import type { Charge, Child, CommunicationLog, FamilyView } from "@/types";
 
 type ModalKind = null | "charge" | "first_payment" | "manual_payment" | "schedule" | "mandate";
 
@@ -27,6 +27,7 @@ function todayISO(): string {
 
 export default function FamilyClient({ familyId }: { familyId: string }) {
   const [view, setView] = useState<FamilyView | null>(null);
+  const [comms, setComms] = useState<CommunicationLog[]>([]);
   const [children, setChildren] = useState<Child[]>([]);
   const [modal, setModal] = useState<ModalKind>(null);
   const [busy, setBusy] = useState(false);
@@ -40,6 +41,7 @@ export default function FamilyClient({ familyId }: { familyId: string }) {
     try {
       const v = await api.adminGetFamily(token, familyId);
       setView(v);
+      api.adminGetFamilyCommunications(token, familyId).then(setComms).catch(() => null);
       if (!silent) {
         const kids = await Promise.all(
           (v.family.child_ids ?? []).map((id) => api.adminGetChild(token, id).catch(() => null)),
@@ -72,6 +74,9 @@ export default function FamilyClient({ familyId }: { familyId: string }) {
 
   const collect = (c: Charge) =>
     run((t) => api.adminCollectCharge(t, c.id), `Direct Debit collection raised for ${c.ref || c.description}.`);
+
+  const remind = (c: Charge) =>
+    run((t) => api.adminSendChargeReminder(t, c.id), `Reminder sent for ${c.ref || c.description}.`);
 
   if (!f) {
     return (
@@ -161,9 +166,14 @@ export default function FamilyClient({ familyId }: { familyId: string }) {
                   <td className="px-4 py-2.5 text-right font-semibold text-slate-800">{formatPence(c.amount_pence)}</td>
                   <td className="px-4 py-2.5 text-right text-slate-500">{c.paid_pence ? formatPence(c.paid_pence) : "—"}</td>
                   <td className="px-4 py-2.5 text-right">
-                    {collectable(c) && (
-                      <button onClick={() => void collect(c)} disabled={busy} className="rounded-lg border border-teal-200 px-2.5 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-50">Collect</button>
-                    )}
+                    <div className="flex justify-end gap-1.5">
+                      {c.amount_pence - (c.paid_pence ?? 0) > 0 && !["cancelled", "written_off", "draft"].includes(c.status) && (
+                        <button onClick={() => void remind(c)} disabled={busy} className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">Remind</button>
+                      )}
+                      {collectable(c) && (
+                        <button onClick={() => void collect(c)} disabled={busy} className="rounded-lg border border-teal-200 px-2.5 py-1 text-xs font-semibold text-teal-700 hover:bg-teal-50 disabled:opacity-50">Collect</button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -232,6 +242,25 @@ export default function FamilyClient({ familyId }: { familyId: string }) {
               ))}
             </tbody>
           </table>
+        )}
+      </div>
+
+      {/* Communications */}
+      <h2 className="mb-2 mt-6 text-sm font-bold uppercase tracking-wider text-slate-400">Communications</h2>
+      <div className="card">
+        {comms.length === 0 ? <p className="p-4 text-sm text-slate-400">No reminders or messages sent yet.</p> : (
+          <ul className="divide-y divide-slate-50">
+            {comms.map((cl) => (
+              <li key={cl.id} className="px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <StageBadge label={cl.kind.replace(/_/g, " ")} accent={cl.kind === "manual_reminder" ? "violet" : cl.kind === "dd_incomplete" ? "amber" : "sky"} withDot={false} />
+                  <span className="text-sm font-medium text-slate-800">{cl.subject}</span>
+                  <span className="ml-auto text-xs text-slate-400">{cl.sent_at?.slice(0, 16).replace("T", " ")}</span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-xs text-slate-500">{cl.body}</p>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 

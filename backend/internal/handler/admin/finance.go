@@ -153,3 +153,35 @@ func (h *AdminFinanceHandler) Dashboard(w http.ResponseWriter, r *http.Request) 
 	}
 	response.OK(w, kpis)
 }
+
+// RunReminders triggers the reminder sweep for the caller's org on demand.
+func (h *AdminFinanceHandler) RunReminders(w http.ResponseWriter, r *http.Request) {
+	n, err := h.svc.RunReminderSweep(r.Context())
+	if err != nil {
+		response.InternalError(w, "reminder sweep failed")
+		return
+	}
+	h.audit.Record(r, "reminders_run", "finance", "", "Ran the fee reminder sweep", map[string]any{"sent": n})
+	response.OK(w, map[string]int{"sent": n})
+}
+
+// Remind sends a manual reminder for one charge.
+func (h *AdminFinanceHandler) Remind(w http.ResponseWriter, r *http.Request) {
+	chargeID := chi.URLParam(r, "chargeId")
+	log, err := h.svc.SendChargeReminder(r.Context(), chargeID)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "reminder_manual", "charge", chargeID, "Sent a manual payment reminder", nil)
+	response.OK(w, log)
+}
+
+func (h *AdminFinanceHandler) Communications(w http.ResponseWriter, r *http.Request) {
+	logs, err := h.svc.Communications(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		response.InternalError(w, "failed to fetch communications")
+		return
+	}
+	response.OK(w, logs)
+}

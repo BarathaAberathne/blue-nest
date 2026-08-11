@@ -45,6 +45,13 @@ type FinanceRepository interface {
 	ScheduleCreate(ctx context.Context, s *models.PaymentSchedule) error
 	ScheduleUpdate(ctx context.Context, id string, s models.PaymentSchedule) (*models.PaymentSchedule, error)
 
+	// Communication log (finance reminders/messages).
+	CommLogCreate(ctx context.Context, c *models.CommunicationLog) error
+	// CommLogExists reports whether a scheduled reminder with this dedup key
+	// was already sent.
+	CommLogExists(ctx context.Context, key string) bool
+	CommLogsByFamily(ctx context.Context, familyID string) ([]models.CommunicationLog, error)
+
 	// MarkEventProcessed inserts the Stripe event id; returns false when the
 	// event was already handled (duplicate delivery) — the idempotency guard.
 	MarkEventProcessed(ctx context.Context, eventID string) (bool, error)
@@ -55,6 +62,7 @@ type financeRepository struct {
 	charges   *TenantCollection
 	payments  *TenantCollection
 	schedules *TenantCollection
+	comms     *TenantCollection
 	events    *mongo.Collection // global (event ids are globally unique)
 }
 
@@ -80,6 +88,7 @@ func NewFinanceRepository(db *mongo.Database) FinanceRepository {
 		charges:   NewTenantCollectionFrom(db.Collection("charges")),
 		payments:  NewTenantCollectionFrom(db.Collection("payments")),
 		schedules: NewTenantCollectionFrom(db.Collection("payment_schedules")),
+		comms:     NewTenantCollectionFrom(db.Collection("communication_logs")),
 		events:    events,
 	}
 }
@@ -358,6 +367,37 @@ func (r *financeRepository) ScheduleUpdate(ctx context.Context, id string, s mod
 		return nil, err
 	}
 	return &out, nil
+}
+
+// ── Communication log ────────────────────────────────────────────────────────
+
+func (r *financeRepository) CommLogCreate(ctx context.Context, c *models.CommunicationLog) error {
+	c.SentAt = time.Now()
+	res, err := r.comms.InsertOne(ctx, c)
+	if err != nil {
+		return err
+	}
+	if o, ok := res.InsertedID.(primitive.ObjectID); ok {
+		c.ID = o
+	}
+	return nil
+}
+
+func (r *financeRepository) CommLogExists(ctx context.Context, key string) bool {
+	if key == "" {
+		return false
+	}
+	var out models.CommunicationLog
+	return r.comms.FindOne(ctx, bson.M{"key": key}).Decode(&out) == nil
+}
+
+func (r *financeRepository) CommLogsByFamily(ctx context.Context, familyID string) ([]models.CommunicationLog, error) {
+	cur, err := r.comms.Find(ctx, bson.M{"family_id": familyID}, options.Find().SetSort(bson.D{{Key: "sent_at", Value: -1}}))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.CommunicationLog, 0)
+	return out, cur.All(ctx, &out)
 }
 
 // ── Webhook idempotency ──────────────────────────────────────────────────────

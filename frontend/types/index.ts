@@ -2039,3 +2039,14 @@ export interface FinanceDashboard {
   families_total: number;
   families_without_dd: number;
 }
+
+export interface CommunicationLog {
+  id: string;
+  family_id: string;
+  charge_id?: string;
+  kind: string;
+  key?: string;
+  subject: string;
+  body: string;
+  sent_at: string;
+}

@@ -33,6 +33,7 @@ Body
 Call CatchError ../../cases/finance/FIN-TC-001-family-and-charges.bnrest.md
 Call CatchError ../../cases/finance/FIN-TC-002-payments-and-onboarding-gate.bnrest.md
 Call CatchError ../../cases/finance/FIN-TC-003-portal-finance-scope.bnrest.md
+Call CatchError ../../cases/finance/FIN-TC-004-reminders-and-communications.bnrest.md
 
 Teardown
 Delete /api/v1/admin/children/${child.id} Using adminSession.accessToken

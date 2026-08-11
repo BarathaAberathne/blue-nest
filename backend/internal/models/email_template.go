@@ -15,7 +15,8 @@ import (
 // Known template keys. Add a key here + to EmailTemplateCatalogue + wire the
 // send site to introduce a new customisable email.
 const (
-	EmailTplEnquiryAck = "enquiry_acknowledgement" // parent's "thanks for your enquiry" email
+	EmailTplEnquiryAck      = "enquiry_acknowledgement" // parent's "thanks for your enquiry" email
+	EmailTplPaymentReminder = "payment_reminder"        // fee reminder sent to the billing parent
 )
 
 // EmailTemplate is one org's customised copy for a template key.
@@ -57,6 +58,16 @@ var EmailTemplateCatalogue = []EmailTemplateInfo{
 			"Thank you for getting in touch with Blue Nest Montessori School. We've received your enquiry about " +
 			"{{type}} at our {{branch}} branch and a member of our team will get back to you within one working day.\n\n" +
 			"In the meantime, feel free to reach us on 020 8861 5574 or manager@bluenest.uk.",
+	},
+	{
+		Key:         EmailTplPaymentReminder,
+		Label:       "Payment reminder",
+		Description: "Sent to the billing parent when a fee charge is upcoming, due or overdue.",
+		Variables:   []string{"parent_name", "family_name", "description", "amount_due", "due_date"},
+		DefaultSubject: "Payment reminder - Blue Nest Montessori",
+		DefaultBody: "Hi {{parent_name}},\n\n" +
+			"This is a friendly reminder that {{description}} of {{amount_due}} for {{family_name}} is due on {{due_date}}.\n\n" +
+			"If you have already arranged payment, please ignore this message. If anything looks wrong, just reply or call us and we'll sort it out.",
 	},
 }
 

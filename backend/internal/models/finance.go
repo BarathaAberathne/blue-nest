@@ -167,3 +167,23 @@ type ManualPaymentRequest struct {
 	Note        string              `json:"note"`
 	Allocations []PaymentAllocation `json:"allocations"`
 }
+
+// ── Communication log (reminders & finance messages) ─────────────────────────
+
+// CommunicationLog records every finance reminder/message sent to a family —
+// the audit trail behind the reminder scheduler. Key dedupes scheduled sends
+// (e.g. "upcoming-7:<charge>"), so a sweep can run repeatedly without
+// re-sending.
+type CommunicationLog struct {
+	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	OrgID    string             `bson:"org_id,omitempty" json:"org_id,omitempty"`
+	FamilyID string             `bson:"family_id" json:"family_id"`
+	ChargeID string             `bson:"charge_id,omitempty" json:"charge_id,omitempty"`
+
+	Kind    string `bson:"kind" json:"kind"` // reminder_upcoming | reminder_due | reminder_overdue | dd_incomplete | manual_reminder
+	Key     string `bson:"key,omitempty" json:"key,omitempty"`
+	Subject string `bson:"subject" json:"subject"`
+	Body    string `bson:"body" json:"body"`
+
+	SentAt time.Time `bson:"sent_at" json:"sent_at"`
+}

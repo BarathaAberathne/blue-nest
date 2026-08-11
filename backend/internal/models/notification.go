@@ -15,6 +15,14 @@ const (
 	NotifLeaveRequested = "leave_requested" // → approvers: a leave request needs review
 	NotifLeaveApproved  = "leave_approved"  // → applicant: their leave was approved
 	NotifLeaveDeclined  = "leave_declined"  // → applicant: their leave was declined
+
+	NotifInductionSubmitted = "induction_submitted" // → reviewers: an induction needs the four-eyes review
+	NotifInductionReviewed  = "induction_reviewed"  // → submitter: the induction was reviewed & locked
+	NotifDDActive           = "dd_active"           // → finance + billing parent: the Bacs mandate went active
+	NotifPaymentReceived    = "payment_received"    // → billing parent: a payment was received & allocated
+	NotifPaymentFailed      = "payment_failed"      // → finance + billing parent: a collection failed
+	NotifPaymentReminder    = "payment_reminder"    // → billing parent: a charge is upcoming/due/overdue
+	NotifDDIncomplete       = "dd_incomplete"       // → billing parent: Direct Debit still needs setting up
 )
 
 // Notification is one in-app message addressed to a single user (recipient).
