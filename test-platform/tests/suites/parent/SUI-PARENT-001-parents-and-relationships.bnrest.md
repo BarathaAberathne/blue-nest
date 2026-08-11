@@ -33,6 +33,7 @@ Body
 Call CatchError ../../cases/parent/PARENT-TC-001-link-multi-guardian.bnrest.md
 Call CatchError ../../cases/parent/PARENT-TC-002-sibling-shares-parent.bnrest.md
 Call CatchError ../../cases/parent/PARENT-TC-003-portal-invitation-lifecycle.bnrest.md
+Call CatchError ../../cases/parent/PARENT-TC-004-portal-idor-scope.bnrest.md
 
 Teardown
 Delete /api/v1/admin/children/${child.id} Using adminSession.accessToken

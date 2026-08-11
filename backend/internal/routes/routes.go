@@ -231,6 +231,17 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/orders/{id}", orderH.Get)
 		})
 
+		// ── Parent portal (customer-role logins; every handler re-scopes the
+		// caller via ParentService.AuthorisedChildIDs — IDOR-proof) ─────────
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(jwtSecret))
+			r.Use(middleware.RequireRole("customer"))
+			portalH := handler.NewPortalHandler(svc.Parents, svc.Children)
+			r.Get("/portal/me", portalH.Me)
+			r.Get("/portal/children", portalH.Children)
+			r.Get("/portal/children/{id}", portalH.Child)
+		})
+
 		// ── Staff supply requests (staff + management, not customers) ───────
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtSecret))
