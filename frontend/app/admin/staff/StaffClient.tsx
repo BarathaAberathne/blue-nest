@@ -30,7 +30,9 @@ export default function StaffClient() {
   const [error, setError] = useState<string | null>(null);
 
   const [branchFilter, setBranchFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  // Default to the active roster — on-leave/inactive staff are a filter away,
+  // not mixed into the everyday view.
+  const [statusFilter, setStatusFilter] = useState("active");
   const [q, setQ] = useState("");
 
   const [form, setForm] = useState<StaffInput>(emptyForm);
