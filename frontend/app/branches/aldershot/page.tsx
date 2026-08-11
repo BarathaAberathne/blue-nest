@@ -27,7 +27,9 @@ import { faqPageJsonLd, branchFaqs } from "@/lib/faq";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/branches/aldershot" },
-  title: "Montessori Nursery in Aldershot | Blue Nest Montessori",
+  // The layout's title template appends "| Blue Nest Montessori" — don't
+  // repeat it here (it rendered doubled).
+  title: "Montessori Nursery in Aldershot — Ages 3 months to 5 years",
   description:
     "Montessori day nursery on Belle Vue Road, Aldershot (GU12) for ages 3 months\u20135 years. Forest school, 15/30 hours funded childcare, halal food. Book a visit.",
   keywords: [
