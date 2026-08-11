@@ -34,8 +34,8 @@ export default function TermsPage() {
       <h2>1. Who we are</h2>
       <p>
         Blue Nest Montessori School (&ldquo;Blue Nest&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;) is a group of
-        Ofsted-registered Montessori day nurseries operating in the London boroughs of Harrow, Pinner, Borehamwood,
-        Pinner Green and Northwood. Our registered office and head office are located in Harrow. You can reach us at
+        Ofsted-registered Montessori day nurseries operating in Harrow, Pinner, Borehamwood,
+        Pinner Green, Northwood and Aldershot. Our registered office and head office are located in Harrow. You can reach us at
         {" "}<a href="mailto:manager@bluenest.uk">manager@bluenest.uk</a> or by telephone via the contact page.
       </p>
 

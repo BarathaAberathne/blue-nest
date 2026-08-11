@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/our-charities" },
   title: "Our Charities — How Blue Nest Children Give Back",
   description:
-    "Charity projects we support at Blue Nest Montessori — Headstone Green, Sunny Days Fund, Crackerjacks and more. Each project teaches children kindness, empathy and the joy of community contribution in Harrow, Pinner and Borehamwood.",
+    "Charity projects we support at Blue Nest Montessori — Headstone Green, Sunny Days Fund, Crackerjacks and more. Each project teaches children kindness, empathy and the joy of community contribution in Harrow, Pinner, Borehamwood and Aldershot.",
   openGraph: {
     title: "Our Charities — Blue Nest Montessori School",
     description:

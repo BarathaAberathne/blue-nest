@@ -15,6 +15,9 @@ import {
   Phone,
 } from "lucide-react";
 import BranchMap from "./BranchMap";
+import { branchShortName } from "@/lib/branch";
+import { BRANCH_FALLBACKS } from "@/lib/branch-public";
+import type { Branch as ApiBranch } from "@/types";
 
 // ── Branch data ────────────────────────────────────────────────────────────────
 
@@ -33,78 +36,36 @@ interface Branch {
   status:   "active" | "coming-soon";
 }
 
-const BRANCHES: Branch[] = [
-  {
-    id:       "harrow",
-    name:     "Harrow",
-    address:  "29 Churchfield Close, Harrow",
-    postcode: "HA2 6BD",
-    phone:    "020 8861 5574",
-    tel:      "tel:02088615574",
-    hours:    "Mon–Fri, 07:30–18:30",
-    ageRange: "3 months – 5 years",
-    colour:   "#3aada9",
-    bg:       "rgba(127,216,210,0.13)",
-    mapUrl:   "https://www.google.com/maps/search/?api=1&query=29+Churchfield+Close+Harrow+HA2+6BD",
-    status:   "active",
-  },
-  {
-    id:       "pinner",
-    name:     "Pinner",
-    address:  "Cuckoo Hill Road, Pinner",
-    postcode: "HA5 1AY",
-    phone:    "020 8861 5574",
-    tel:      "tel:02088615574",
-    hours:    "Mon–Fri, 07:30–18:30",
-    ageRange: "3 months – 5 years",
-    colour:   "#cf7d9c",
-    bg:       "rgba(244,170,200,0.13)",
-    mapUrl:   "https://www.google.com/maps/search/?api=1&query=Cuckoo+Hill+Road+Pinner+HA5+1AY",
-    status:   "active",
-  },
-  {
-    id:       "borehamwood",
-    name:     "Borehamwood",
-    address:  "31-33 Farriers Way, Borehamwood",
-    postcode: "WD6 2TB",
-    phone:    "020 8861 5574",
-    tel:      "tel:02088615574",
-    hours:    "Mon–Fri, 07:30–18:30",
-    ageRange: "3 months – 5 years",
-    colour:   "#5fc8c7",
-    bg:       "rgba(127,216,210,0.13)",
-    mapUrl:   "https://www.google.com/maps/search/?api=1&query=31-33+Farriers+Way+Borehamwood+WD6+2TB",
-    status:   "active",
-  },
-  {
-    id:       "pinner-green",
-    name:     "Pinner Green",
-    address:  "Pinner Green, London",
-    postcode: "HA5",
-    phone:    "020 8861 5574",
-    tel:      "tel:02088615574",
-    hours:    "Opening soon",
-    ageRange: "3 months – 5 years",
-    colour:   "#5fa46e",
-    bg:       "rgba(159,198,168,0.18)",
-    mapUrl:   "https://www.google.com/maps/search/?api=1&query=Pinner+Green+HA5",
-    status:   "coming-soon",
-  },
-  {
-    id:       "northwood",
-    name:     "Northwood",
-    address:  "Sandy Lane, Northwood",
-    postcode: "HA6 3DA",
-    phone:    "020 8861 5574",
-    tel:      "tel:02088615574",
-    hours:    "Opening soon",
-    ageRange: "3 months – 5 years",
-    colour:   "#c49a00",
-    bg:       "rgba(247,215,116,0.16)",
-    mapUrl:   "https://www.google.com/maps/search/?api=1&query=Sandy+Lane+Northwood+HA6+3DA",
-    status:   "coming-soon",
-  },
-];
+// Fallback data derives from the ONE shared roster (lib/branch-public.ts);
+// only the presentation styling (dot colour / tint) stays local to this page.
+const BRANCH_STYLE: Record<string, { colour: string; bg: string }> = {
+  harrow:         { colour: "#3aada9", bg: "rgba(127,216,210,0.13)" },
+  borehamwood:    { colour: "#5fc8c7", bg: "rgba(127,216,210,0.13)" },
+  pinner:         { colour: "#cf7d9c", bg: "rgba(244,170,200,0.13)" },
+  aldershot:      { colour: "#e0965f", bg: "rgba(224,150,95,0.13)" },
+  "pinner-green": { colour: "#5fa46e", bg: "rgba(159,198,168,0.18)" },
+  northwood:      { colour: "#c49a00", bg: "rgba(247,215,116,0.16)" },
+};
+const DEFAULT_STYLE = { colour: "#3aada9", bg: "rgba(127,216,210,0.13)" };
+
+const BRANCHES: Branch[] = BRANCH_FALLBACKS.map((fb) => {
+  const style = BRANCH_STYLE[fb.slug] ?? DEFAULT_STYLE;
+  const phone = fb.phone ?? "";
+  return {
+    id:       fb.slug,
+    name:     fb.label,
+    address:  fb.address,
+    postcode: fb.postcode,
+    phone,
+    tel:      "tel:" + phone.replace(/\s+/g, ""),
+    hours:    fb.comingSoon ? "Opening soon" : "Mon\u2013Fri, 07:30\u201318:30",
+    ageRange: "3 months \u2013 5 years",
+    colour:   style.colour,
+    bg:       style.bg,
+    mapUrl:   "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(fb.address + " " + fb.postcode),
+    status:   fb.comingSoon ? "coming-soon" : "active",
+  };
+});
 
 const ENQUIRY_TYPES = [
   "Arrange a visit",
@@ -219,6 +180,55 @@ export default function ContactPageClient() {
   const [status,    setStatus]    = useState<"idle" | "submitting" | "success">("idle");
   const [submitErr, setSubmitErr] = useState<string | null>(null);
   const [feeQuote,  setFeeQuote]  = useState<Record<string, string | number | boolean> | null>(null);
+  // The branch roster's DATA (phone/address/hours/status) is live from the
+  // backend; the static array above is only the render fallback.
+  const [branchList, setBranchList] = useState<Branch[]>(BRANCHES);
+  useEffect(() => {
+    let alive = true;
+    api.getBranches()
+      .then((raw) => {
+        if (!alive) return;
+        const live = (raw as ApiBranch[]) ?? [];
+        if (!Array.isArray(live) || live.length === 0) return;
+        setBranchList((prev) => {
+          const bySlug = new Map(live.map((b) => [b.slug, b]));
+          const merged = prev.map((fb) => {
+            const b = bySlug.get(fb.id);
+            if (!b) return fb;
+            bySlug.delete(fb.id);
+            const phone = b.contact?.phone || fb.phone;
+            return {
+              ...fb,
+              name: branchShortName(b),
+              address: b.contact?.address || fb.address,
+              postcode: b.postcode || fb.postcode,
+              phone,
+              tel: "tel:" + phone.replace(/\s+/g, ""),
+              ageRange: b.admissions?.age_range || fb.ageRange,
+              mapUrl: b.google?.maps_url || fb.mapUrl,
+              status: (b.status === "coming_soon" ? "coming-soon" : "active") as Branch["status"],
+              hours: b.status === "coming_soon" ? "Opening soon" : fb.hours,
+            };
+          });
+          for (const b of bySlug.values()) {
+            const phone = b.contact?.phone || "";
+            merged.push({
+              id: b.slug, name: branchShortName(b),
+              address: b.contact?.address || "", postcode: b.postcode || "",
+              phone, tel: "tel:" + phone.replace(/\s+/g, ""),
+              hours: b.status === "coming_soon" ? "Opening soon" : "Mon–Fri, 07:30–18:30",
+              ageRange: b.admissions?.age_range || "3 months – 5 years",
+              colour: "#3aada9", bg: "rgba(127,216,210,0.13)",
+              mapUrl: b.google?.maps_url || "",
+              status: (b.status === "coming_soon" ? "coming-soon" : "active") as Branch["status"],
+            });
+          }
+          return merged;
+        });
+      })
+      .catch(() => { /* keep the fallback roster */ });
+    return () => { alive = false; };
+  }, []);
   const formRef = useRef<HTMLFormElement>(null);
   const searchParams = useSearchParams();
 
@@ -486,7 +496,7 @@ export default function ContactPageClient() {
                             className={`${SELECT_BASE} ${errors.branch ? INPUT_ERROR : INPUT_NORMAL}`}
                           >
                             <option value="">Select a branch…</option>
-                            {BRANCHES.map((b) => (
+                            {branchList.map((b) => (
                               <option key={b.id} value={b.id}>
                                 {b.name}{b.status === "coming-soon" ? " (Coming Soon)" : ""}
                               </option>
@@ -630,7 +640,7 @@ export default function ContactPageClient() {
                   Our Branches
                 </p>
                 <div className="divide-y divide-[rgba(90,74,66,0.06)]">
-                  {BRANCHES.map((branch) => {
+                  {branchList.map((branch) => {
                     const isComing = branch.status === "coming-soon";
                     return (
                       <div key={branch.id} className="flex items-center justify-between gap-3 py-3">

@@ -32,11 +32,11 @@ export const metadata: Metadata = {
   // the meta should push us into top-3 territory.
   title: "Forest School Nursery Harrow — Outdoor Montessori at Blue Nest",
   description:
-    "Woodland Forest School at Blue Nest Montessori — an outdoor nursery in Harrow, Pinner and Borehamwood for ages 2 to 5. Qualified Forest School leaders, nature-based EYFS learning, mud kitchen, gardening, den building and child-led outdoor play.",
+    "Woodland Forest School at Blue Nest Montessori — an outdoor nursery in Harrow, Pinner, Borehamwood and Aldershot for ages 2 to 5. Qualified Forest School leaders, nature-based EYFS learning, mud kitchen, gardening, den building and child-led outdoor play.",
   openGraph: {
     title: "Forest School Nursery Harrow — Blue Nest Montessori",
     description:
-      "Outdoor Montessori nursery & woodland learning in Harrow, Pinner and Borehamwood. Nature-based EYFS, qualified Forest School leaders, mud kitchen, gardening, den building.",
+      "Outdoor Montessori nursery & woodland learning in Harrow, Pinner, Borehamwood and Aldershot. Nature-based EYFS, qualified Forest School leaders, mud kitchen, gardening, den building.",
     url: "/forest-school",
     images: [{ url: "/home/forest-school.jpg", width: 1280, height: 854, alt: "Blue Nest Forest School — children learning outdoors" }],
     type: "website",
@@ -65,7 +65,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: "What age groups attend Forest School?",
-    a: "Our Forest School programme runs for children aged 2 to 5 across the Blue Nest Montessori nurseries in Harrow, Pinner and Borehamwood. Sessions are weekly and woven into our EYFS-aligned curriculum so every age group takes part at a developmentally appropriate level.",
+    a: "Our Forest School programme runs for children aged 2 to 5 across the Blue Nest Montessori nurseries in Harrow, Pinner, Borehamwood and Aldershot. Sessions are weekly and woven into our EYFS-aligned curriculum so every age group takes part at a developmentally appropriate level.",
   },
   {
     q: "Do children attend in all weather?",
@@ -432,7 +432,7 @@ export default function ForestSchoolPage() {
 
               <p className="max-w-md text-[0.95rem] leading-[1.75]" style={{ color: C.earthSoft }}>
                 Blue Nest is an <strong style={{ color: C.earth }}>outdoor Montessori nursery</strong> in
-                Harrow, Pinner and Borehamwood. Through woodland learning and child-led
+                Harrow, Pinner, Borehamwood and Aldershot. Through woodland learning and child-led
                 outdoor play, children connect with nature, build confidence and develop
                 essential life skills for the early years and beyond.
               </p>
@@ -769,7 +769,7 @@ export default function ForestSchoolPage() {
               Come and Experience Forest School
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-[0.95rem] leading-[1.75]" style={{ color: C.earth }}>
-              Book a visit to one of our <strong>outdoor nurseries in Harrow</strong>, Pinner or Borehamwood
+              Book a visit to one of our <strong>outdoor nurseries in Harrow</strong>, Pinner, Borehamwood or Aldershot
               and see how woodland learning helps children flourish. Places are limited, so book early.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">

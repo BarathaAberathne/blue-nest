@@ -5,7 +5,7 @@ import PublicLayout from "@/components/layout/PublicLayout";
 import Doodle from "@/components/ui/Doodle";
 import GalleryPageClient from "@/components/gallery/GalleryPageClient";
 
-const DESC = "Step inside Blue Nest Montessori — photos and videos of Montessori classrooms, forest school, outdoor play and enrichment activities at our Harrow, Pinner and Borehamwood nurseries.";
+const DESC = "Step inside Blue Nest Montessori — photos and videos of Montessori classrooms, forest school, outdoor play and enrichment activities at our Harrow, Pinner, Borehamwood and Aldershot nurseries.";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/gallery" },

@@ -18,6 +18,9 @@ type FeeConfigRepository interface {
 	FindAll(ctx context.Context) ([]models.FeeConfig, error)
 	FindByBranch(ctx context.Context, branch string) (*models.FeeConfig, error)
 	Upsert(ctx context.Context, branch string, set bson.M) (*models.FeeConfig, error)
+	// DeleteByBranch removes a branch's rates document; returns the number of
+	// documents removed (0 when none existed).
+	DeleteByBranch(ctx context.Context, branch string) (int64, error)
 }
 
 type feeConfigRepository struct {
@@ -57,4 +60,12 @@ func (r *feeConfigRepository) Upsert(ctx context.Context, branch string, set bso
 		return nil, err
 	}
 	return r.FindByBranch(ctx, branch)
+}
+
+func (r *feeConfigRepository) DeleteByBranch(ctx context.Context, branch string) (int64, error) {
+	res, err := r.col.DeleteOne(ctx, bson.M{"branch_slug": branch})
+	if err != nil {
+		return 0, err
+	}
+	return res.DeletedCount, nil
 }

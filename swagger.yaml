@@ -2659,8 +2659,13 @@ paths:
                 registration_date: { type: string, format: date-time, nullable: true }
                 expected_start_date: { type: string, format: date-time, nullable: true }
                 child_age_group: { type: string }
-                room_allocation: { type: string }
+                room_allocation: { type: string, description: Display name of the picked room }
+                room_id: { type: string, description: Canonical room id — allocates the new child to this room (best-effort, never unwinds the registration) }
                 funding_type: { type: string }
+                child_first_name: { type: string }
+                child_last_name: { type: string }
+                child_dob: { type: string, description: YYYY-MM-DD — creates the Child record when name + DOB present }
+                child_gender: { type: string }
       responses:
         '200': { description: Registered, content: { application/json: { schema: { $ref: '#/components/schemas/Enquiry' } } } }
 
@@ -3785,13 +3790,23 @@ paths:
   /admin/fee-config/{branch}:
     put:
       tags: [Configuration]
-      summary: Update one branch's fee schedule (permission branches.manage)
+      summary: Update one branch's fee schedule (permission branches.manage; the branch must exist)
       operationId: updateBranchFeeConfig
       security: [{ BearerAuth: [] }]
       parameters: [{ name: branch, in: path, required: true, schema: { type: string } }]
       requestBody: { required: true, content: { application/json: { schema: { type: object } } } }
       responses:
         '200': { description: Updated }
+        '400': { description: Unknown branch }
+    delete:
+      tags: [Configuration]
+      summary: Delete a branch's fee schedule, including orphan docs whose branch was archived/deleted (permission branches.manage)
+      operationId: deleteBranchFeeConfig
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: branch, in: path, required: true, schema: { type: string } }]
+      responses:
+        '204': { description: Deleted }
+        '404': { description: No fee config for that branch }
 
   /admin/branch-templates:
     get:

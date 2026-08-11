@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Baby, GraduationCap, Users } from "lucide-react";
 import feeData from "@/lib/fee-data.json";
+import { BRANCH_FALLBACKS, fallbackFor } from "@/lib/branch-public";
 import { api } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -22,8 +23,8 @@ const DISCOUNTS: { id: DiscountId; label: string; rate: number }[] = [
 type YearWeeks = 38 | 52;
 const TERM_WEEKS = 38; // government-funded term-time weeks in a year
 const YEAR_WEEKS_OPTIONS: { id: YearWeeks; title: string; sub: string }[] = [
-  { id: 38, title: "Term time only", sub: "38 weeks — funded weeks only" },
-  { id: 52, title: "All year round", sub: "52 weeks — holidays at full fee" },
+  { id: 38, title: "Term time only", sub: "38 weeks (funded weeks only)" },
+  { id: 52, title: "All year round", sub: "52 weeks (holidays at full fee)" },
 ];
 
 // Funding option. TFC is information-only — does not reduce the fee.
@@ -47,8 +48,9 @@ const SESSION_HOURS: Record<SessionId, number> = {
   full_day: 10, school: 7, morning: 5, afternoon: 5,
 };
 
-// Props use hyphenated slugs; JSON uses space variant for "pinner green"
-type BranchProp = "harrow" | "pinner" | "borehamwood" | "pinner-green" | "northwood";
+// Branch slugs are org-configurable data, not a closed union — new branches
+// (created in the admin) must appear here without a code change.
+type BranchProp = string;
 type AgeGroupId = "0-2" | "2-3" | "3-5";
 type SessionId  = "full_day" | "morning" | "afternoon" | "school";
 
@@ -74,15 +76,12 @@ const FALLBACK_BRANCHES: FeeBranches = Object.fromEntries(
 ) as FeeBranches;
 const FALLBACK_META: FeeMeta = feeData.meta as FeeMeta;
 
-const BRANCH_LABELS: Record<BranchProp, string> = {
-  harrow:        "Harrow",
-  pinner:        "Pinner",
-  borehamwood:   "Borehamwood",
-  "pinner-green": "Pinner Green",
-  northwood:     "Northwood",
-};
+// Chip labels come from the shared roster fallback; unknown slugs title-case.
+const branchLabel = (slug: string): string =>
+  fallbackFor(slug)?.label ??
+  slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
-const ALL_BRANCHES: BranchProp[] = ["harrow", "pinner", "borehamwood", "pinner-green", "northwood"];
+const FALLBACK_ROSTER: BranchProp[] = BRANCH_FALLBACKS.map((b) => b.slug);
 
 const AGE_GROUPS: { id: AgeGroupId; label: string; icon: typeof Baby }[] = [
   { id: "0-2", label: "3 months–2 yrs", icon: Baby },
@@ -307,6 +306,16 @@ export default function FeeCalculatorCard({
     return () => { alive = false; };
   }, []);
 
+  // The chip roster is the org's configured fee branches (from the live
+  // bundle), so a branch added in the admin shows up here automatically; the
+  // static roster only covers the fallback render. The backend bundle only
+  // serves real, non-archived branches, so no client-side filtering is needed.
+  const branchRoster: BranchProp[] = (() => {
+    const keys = Object.keys(branches);
+    const order = (k: string) => { const i = FALLBACK_ROSTER.indexOf(k); return i === -1 ? 999 : i; };
+    return keys.length > 0 ? [...keys].sort((a, b) => order(a) - order(b) || a.localeCompare(b)) : FALLBACK_ROSTER;
+  })();
+
   const branchData = branches[branch];
 
   // Guard: if branch doesn't have the selected age group, pick first available
@@ -330,6 +339,20 @@ export default function FeeCalculatorCard({
 
   const fundingInfo = FUNDING_INFO[`${funding}_${safeAgeGroup}`] ?? "";
 
+  // A branch with no rates yet (newly created, config pending) must render a
+  // graceful placeholder, never crash the page prerender.
+  if (!branchData || available.length === 0 || !safeAgeGroup) {
+    return (
+      <div className={`w-full overflow-hidden rounded-[2rem] bg-[rgba(255,253,249,0.97)] p-8 text-center shadow-[0_16px_50px_rgba(90,74,66,0.14)] ring-2 ring-[rgba(127,216,210,0.35)] ${compact ? "" : "max-w-[26rem]"}`}>
+        <p className="font-heading text-lg text-[var(--ink)]">Fee details coming soon</p>
+        <p className="body-text mt-2 text-sm">
+          We&apos;re finalising the fee schedule for this branch — please{" "}
+          <a href="/contact" className="font-semibold underline">contact us</a> for current pricing.
+        </p>
+      </div>
+    );
+  }
+
   const AgeIcon = AGE_GROUPS.find((g) => g.id === safeAgeGroup)!.icon;
 
   return (
@@ -348,7 +371,7 @@ export default function FeeCalculatorCard({
           <div>
             <p className="font-heading text-[1.45rem] leading-none text-white">Estimate Your Fees</p>
             <p className="mt-0.5 text-[0.72rem] text-white/85">
-              {BRANCH_LABELS[branch]} · indicative costs
+              {branchLabel(branch)} · indicative costs
             </p>
           </div>
         </div>
@@ -361,9 +384,9 @@ export default function FeeCalculatorCard({
         <div>
           <p className="mb-2 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Which nursery?</p>
           <div className="flex flex-wrap gap-1.5">
-            {ALL_BRANCHES.map((b) => (
+            {branchRoster.map((b) => (
               <Chip key={b} value={b} selected={branch === b} onClick={handleBranchChange} small>
-                {BRANCH_LABELS[b]}
+                {branchLabel(b)}
               </Chip>
             ))}
           </div>
@@ -387,16 +410,16 @@ export default function FeeCalculatorCard({
           </div>
         </div>
 
-        {/* Weekly schedule — a session (or day off) per weekday */}
+        {/* Weekly schedule a session (or day off) per weekday */}
         <div>
           <p className="mb-2 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">
-            Weekly schedule —{" "}
+            Weekly schedule{" "}
             <span className="font-extrabold text-[var(--ink)]">
               {bookedDays} day{bookedDays !== 1 ? "s" : ""}
             </span>
           </p>
           <p className="mb-2 text-[0.62rem] leading-snug text-[var(--muted)]">
-            Choose a session for each day your child attends — times shown are drop-off to pick-up.
+            Choose a session for each day your child attends. Times shown are drop-off to pick-up.
           </p>
 
           {/* Quick presets: set every weekday at once */}
@@ -505,7 +528,7 @@ export default function FeeCalculatorCard({
           <p className="mb-1 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[var(--muted)]">Weeks per year</p>
           <p className="mb-2 text-[0.62rem] leading-snug text-[var(--muted)]">
             Funding covers 38 term-time weeks. Pick &ldquo;all year round&rdquo; if your child also attends in
-            the school holidays — those weeks are charged at the full (unfunded) rate.
+            the school holidays; those weeks are charged at the full (unfunded) rate.
           </p>
           <div className="grid gap-1.5">
             {YEAR_WEEKS_OPTIONS.map((y) => (

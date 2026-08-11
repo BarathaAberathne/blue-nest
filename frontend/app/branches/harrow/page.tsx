@@ -28,6 +28,7 @@ import { Reveal } from "@/components/ui/Motion";
 import { LightboxGallery } from "@/components/ui/LightboxGallery";
 import BranchMap from "@/components/contact/BranchMap";
 import BranchHero from "@/components/sections/BranchHero";
+import { branchContactView, getPublicBranch } from "@/lib/branch-public";
 import BranchEnrichmentSection, { type EnrichmentActivity } from "@/components/sections/BranchEnrichmentSection";
 import FeeCalculatorCard from "@/components/ui/FeeCalculatorCard";
 
@@ -320,7 +321,11 @@ const gallery = [
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
-export default function HarrowBranchPage() {
+export default async function HarrowBranchPage() {
+  // Live contact data (phone/address/hours) from the backend; the literals in
+  // this file remain only inside the roster fallback (lib/branch-public).
+  const branch = await getPublicBranch("harrow");
+  const c = branchContactView("harrow", branch);
   return (
     <PublicLayout>
       <script
@@ -582,7 +587,7 @@ export default function HarrowBranchPage() {
                       <MapPin className="h-4 w-4 text-[#5fc8c7]" />
                     </div>
                     <address className="not-italic text-sm font-semibold leading-relaxed text-[rgba(90,74,66,0.85)]">
-                      29 Churchfield Close<br />Harrow HA2 6BD
+                      {c.address}
                     </address>
                   </div>
                   <div className="flex items-center gap-3">
@@ -590,10 +595,10 @@ export default function HarrowBranchPage() {
                       <Phone className="h-4 w-4 text-[#5fc8c7]" />
                     </div>
                     <a
-                      href="tel:02088615574"
+                      href={c.telHref}
                       className="text-sm font-semibold text-[rgba(90,74,66,0.85)] transition hover:text-[var(--ink)]"
                     >
-                      020 8861 5574
+                      {c.phone}
                     </a>
                   </div>
                   <div className="flex items-center gap-3">
@@ -601,10 +606,10 @@ export default function HarrowBranchPage() {
                       <Mail className="h-4 w-4 text-[#5fc8c7]" />
                     </div>
                     <a
-                      href="mailto:manager@bluenest.uk"
+                      href={"mailto:" + c.email}
                       className="text-sm font-semibold text-[rgba(90,74,66,0.85)] transition hover:text-[var(--ink)]"
                     >
-                      manager@bluenest.uk
+                      {c.email}
                     </a>
                   </div>
                   <div className="flex items-start gap-3">
@@ -612,8 +617,8 @@ export default function HarrowBranchPage() {
                       <SunMedium className="h-4 w-4 text-[#5fc8c7]" />
                     </div>
                     <div className="text-sm font-semibold leading-relaxed text-[rgba(90,74,66,0.85)]">
-                      <div>Monday – Friday</div>
-                      <div>7:30 am – 6:00 pm</div>
+                      <div>{c.hoursLine1}</div>
+                      <div>{c.hoursLine2}</div>
                     </div>
                   </div>
                 </div>

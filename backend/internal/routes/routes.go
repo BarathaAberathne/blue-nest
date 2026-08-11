@@ -292,7 +292,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			// Enquiries / admissions CRM.
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermEnquiriesManage))
-				adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Auth, svc.Audit, svc.Children)
+				adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Auth, svc.Audit, svc.Children, svc.ChildRoomAssign)
 				r.Get("/admin/enquiries", adminEnquiryH.List)
 				r.Get("/admin/enquiries/export", adminEnquiryH.Export)
 				r.Post("/admin/enquiries", adminEnquiryH.Create)
@@ -520,6 +520,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 						r.Put("/admin/terms/{id}", adminTermH.Update)
 						r.Delete("/admin/terms/{id}", adminTermH.Delete)
 						r.Put("/admin/fee-config/{branch}", adminFeeH.UpdateBranch)
+						r.Delete("/admin/fee-config/{branch}", adminFeeH.Delete)
 						r.Put("/admin/fee-config", adminFeeH.UpdateMeta)
 						r.Post("/admin/branch-templates", adminBranchTplH.Create)
 						r.Put("/admin/branch-templates/{id}", adminBranchTplH.Update)

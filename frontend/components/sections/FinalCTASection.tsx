@@ -16,7 +16,7 @@ export default function FinalCTASection() {
             <h2 className="section-title mt-4">Book a Visit to Blue Nest</h2>
             <p className="section-subtitle mx-auto max-w-lg">
               Come and experience Blue Nest in person — see our classrooms, meet our team and
-              discover why families across Harrow, Pinner and Borehamwood love us.
+              discover why families across Harrow, Pinner, Borehamwood and Aldershot love us.
             </p>
             <div className="mt-8">
               <PastelButton

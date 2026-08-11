@@ -19,7 +19,9 @@ import { ACCENT, CHART_COLORS, type AccentName } from "@/lib/admin-theme";
 import { fmtBranch, fmtDateShort } from "@/lib/enquiry";
 import type { EnquiryStats, EnquiryTaskItem, EnquiryTasks } from "@/types";
 
-const BRANCHES = ["harrow", "pinner", "borehamwood", "pinner-green", "northwood"];
+// Fallback only — the live list comes from the caller's scoped GET
+// /admin/branches (fetched below), so new branches appear without a code change.
+const BRANCHES_FALLBACK = ["harrow", "borehamwood", "pinner", "aldershot", "pinner-green", "northwood"];
 
 function fmtResponse(hours: number): string {
   if (hours < 1) return `${Math.round(hours * 60)}m`;
@@ -68,6 +70,7 @@ export default function InquiryDashboardClient() {
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  const [branchSlugs, setBranchSlugs] = useState<string[]>(BRANCHES_FALLBACK);
   useEffect(() => setMounted(true), []);
   useEffect(() => {
     const token = getAccessToken();
@@ -76,6 +79,12 @@ export default function InquiryDashboardClient() {
       .then(([s, t]) => { setStats(s); setTasks(t); })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load stats"))
       .finally(() => setLoading(false));
+    api.adminGetBranches(token)
+      .then((raw) => {
+        const list = (raw as { slug: string }[]) ?? [];
+        if (Array.isArray(list) && list.length) setBranchSlugs(list.map((b) => b.slug));
+      })
+      .catch(() => { /* keep fallback */ });
   }, []);
 
   if (loading) {
@@ -151,7 +160,7 @@ export default function InquiryDashboardClient() {
       <section className="mb-8">
         <SectionHeading>Branch comparison</SectionHeading>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {BRANCHES.map((slug) => {
+          {branchSlugs.map((slug) => {
             const label = fmtBranch(slug);
             const b = stats.branch_comparison.find((x) => x.branch === label);
             const stat = (v: number) => <span className="font-semibold text-slate-800">{v}</span>;

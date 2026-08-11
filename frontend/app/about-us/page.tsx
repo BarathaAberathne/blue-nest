@@ -19,13 +19,13 @@ import ZigzagBand from "@/components/ui/ZigzagBand";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/about-us" },
-  title: "About Us — Blue Nest Montessori School in Harrow, Pinner & Borehamwood",
+  title: "About Us — Blue Nest Montessori School in Harrow, Pinner, Borehamwood & Aldershot",
   description:
-    "Learn about Blue Nest Montessori School — our story, our mission and the values behind our Harrow, Pinner and Borehamwood nurseries. A home away from home blending the Montessori method with the UK EYFS framework for children aged 3 months to 5 years.",
+    "Learn about Blue Nest Montessori School — our story, our mission and the values behind our Harrow, Pinner, Borehamwood and Aldershot nurseries. A home away from home blending the Montessori method with the UK EYFS framework for children aged 3 months to 5 years.",
   openGraph: {
     title: "About Us — Blue Nest Montessori School",
     description:
-      "Our story, mission and values. A home away from home blending Montessori with the EYFS framework across Harrow, Pinner and Borehamwood.",
+      "Our story, mission and values. A home away from home blending Montessori with the EYFS framework across Harrow, Pinner, Borehamwood and Aldershot.",
     url: "/about-us",
     images: [{ url: "/home/about-us-hero.jpg", width: 3109, height: 3051, alt: "A Blue Nest Montessori educator exploring a sensory craft activity with a child" }],
     type: "website",
@@ -44,8 +44,8 @@ const aboutJsonLd = {
     name: "Blue Nest Montessori School",
     url: "https://bluenest.uk",
     description:
-      "A family of Montessori day nurseries in Harrow, Pinner and Borehamwood for children aged 3 months to 5 years, blending the Montessori method with the UK EYFS framework.",
-    areaServed: ["Harrow", "Pinner", "Borehamwood"],
+      "A family of Montessori day nurseries in Harrow, Pinner, Borehamwood and Aldershot for children aged 3 months to 5 years, blending the Montessori method with the UK EYFS framework.",
+    areaServed: ["Harrow", "Pinner", "Borehamwood", "Aldershot"],
   },
 };
 
@@ -395,7 +395,7 @@ export default function AboutUsPage() {
                 The best way to know Blue Nest is to visit
               </h2>
               <p className="body-text mx-auto mt-5 max-w-lg">
-                Book a visit at our Harrow, Pinner or Borehamwood nursery. We&rsquo;ll show you the
+                Book a visit at our Harrow, Pinner, Borehamwood or Aldershot nursery. We&rsquo;ll show you the
                 rooms, introduce your child&rsquo;s key person and talk you through fees and funded
                 childcare.
               </p>

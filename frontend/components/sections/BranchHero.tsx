@@ -20,6 +20,10 @@ interface BranchHeroProps {
   primaryCta:   Cta;
   secondaryCta: Cta;
   badge?:       string;
+  // Trust line under the CTAs. Defaults to the group-wide line; pages for
+  // pre-inspection branches must pass a rating-free variant (advertising
+  // rules: never claim an Ofsted rating a site does not hold).
+  trustLine?:   string;
 }
 
 export default function BranchHero({
@@ -31,6 +35,7 @@ export default function BranchHero({
   primaryCta,
   secondaryCta,
   badge,
+  trustLine = "Ofsted Good Provider\u2002\u00b7\u20025-Star Food Hygiene Rated\u2002\u00b7\u2002Mon\u2013Fri 7:30 am \u2013 6:00 pm",
 }: BranchHeroProps) {
   return (
     <section className="relative flex flex-col lg:flex-row lg:items-start">
@@ -108,7 +113,7 @@ export default function BranchHero({
 
             {/* Trust line */}
             <p className="text-[0.68rem] text-white/90 hidden sm:block lg:text-[rgba(90,74,66,0.85)]">
-              Ofsted Good Provider&ensp;·&ensp;5-Star Food Hygiene Rated&ensp;·&ensp;Mon–Fri 7:30 am – 6:00 pm
+              {trustLine}
             </p>
 
           </Reveal>

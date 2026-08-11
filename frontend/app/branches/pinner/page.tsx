@@ -28,6 +28,7 @@ import { LightboxGallery } from "@/components/ui/LightboxGallery";
 import BranchMap from "@/components/contact/BranchMap";
 import BranchEnrichmentSection, { type EnrichmentActivity } from "@/components/sections/BranchEnrichmentSection";
 import BranchHero from "@/components/sections/BranchHero";
+import { branchContactView, getPublicBranch } from "@/lib/branch-public";
 import FeeCalculatorCard from "@/components/ui/FeeCalculatorCard";
 
 // Pinner branch JSON-LD. Preschool is the most-recognised early-years
@@ -251,7 +252,11 @@ const gallery = [
   },
 ];
 
-export default function PinnerBranchPage() {
+export default async function PinnerBranchPage() {
+  // Live contact data (phone/address/hours) from the backend; the literals in
+  // this file remain only inside the roster fallback (lib/branch-public).
+  const branch = await getPublicBranch("pinner");
+  const c = branchContactView("pinner", branch);
   return (
     <PublicLayout>
       <script
@@ -469,23 +474,23 @@ export default function PinnerBranchPage() {
                       <MapPin className="h-4 w-4 text-[#5fc8c7]" />
                     </div>
                     <address className="not-italic text-sm font-semibold leading-relaxed text-[rgba(90,74,66,0.85)]">
-                      Cuckoo Hill Road<br />Pinner HA5 1AY
+                      {c.address}
                     </address>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.06)]">
                       <Phone className="h-4 w-4 text-[#5fc8c7]" />
                     </div>
-                    <a href="tel:07400430630" className="text-sm font-semibold text-[rgba(90,74,66,0.85)] transition hover:text-[var(--ink)]">
-                      07400 430630
+                    <a href={c.telHref} className="text-sm font-semibold text-[rgba(90,74,66,0.85)] transition hover:text-[var(--ink)]">
+                      {c.phone}
                     </a>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(90,74,66,0.06)]">
                       <Mail className="h-4 w-4 text-[#5fc8c7]" />
                     </div>
-                    <a href="mailto:manager@bluenest.uk" className="text-sm font-semibold text-[rgba(90,74,66,0.85)] transition hover:text-[var(--ink)]">
-                      manager@bluenest.uk
+                    <a href={"mailto:" + c.email} className="text-sm font-semibold text-[rgba(90,74,66,0.85)] transition hover:text-[var(--ink)]">
+                      {c.email}
                     </a>
                   </div>
                   <div className="flex items-start gap-3">
@@ -493,8 +498,8 @@ export default function PinnerBranchPage() {
                       <SunMedium className="h-4 w-4 text-[#5fc8c7]" />
                     </div>
                     <div className="text-sm font-semibold leading-relaxed text-[rgba(90,74,66,0.85)]">
-                      <div>Monday – Friday</div>
-                      <div>7:30 am – 6:00 pm</div>
+                      <div>{c.hoursLine1}</div>
+                      <div>{c.hoursLine2}</div>
                     </div>
                   </div>
                 </div>
