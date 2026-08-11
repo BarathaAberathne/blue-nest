@@ -351,56 +351,56 @@
       "ageGroups": {
         "0-2": {
           "full_day": {
-            "daily": 110,
-            "weekly": 539
+            "daily": 83,
+            "weekly": 407
           },
           "morning": {
-            "daily": 65,
-            "weekly": 318
+            "daily": 48,
+            "weekly": 236
           },
           "afternoon": {
-            "daily": 60,
-            "weekly": 294
+            "daily": 46,
+            "weekly": 226
           },
           "school": {
-            "daily": 101,
-            "weekly": 494
+            "daily": 64,
+            "weekly": 314
           }
         },
         "2-3": {
           "full_day": {
-            "daily": 105,
-            "weekly": 514
+            "daily": 79,
+            "weekly": 387
           },
           "morning": {
-            "daily": 62,
-            "weekly": 303
+            "daily": 45,
+            "weekly": 220
           },
           "afternoon": {
-            "daily": 57,
-            "weekly": 279
+            "daily": 41,
+            "weekly": 200
           },
           "school": {
-            "daily": 95,
-            "weekly": 465
+            "daily": 58,
+            "weekly": 284
           }
         },
         "3-5": {
           "full_day": {
-            "daily": 100,
-            "weekly": 490
+            "daily": 75,
+            "weekly": 368
           },
           "morning": {
-            "daily": 58,
-            "weekly": 284
+            "daily": 43,
+            "weekly": 211
           },
           "afternoon": {
-            "daily": 53,
-            "weekly": 259
+            "daily": 37,
+            "weekly": 181
           },
           "school": {
-            "daily": 85,
-            "weekly": 416
+            "daily": 53,
+            "weekly": 260
           }
         }
       },
