@@ -684,7 +684,8 @@ export type Permission =
   | "staff.manage"
   | "daily_logs.manage"
   | "daily_logs.approve"
-  | "leave.approve";
+  | "leave.approve"
+  | "parents.manage";
 
 // ── Staff leave / holiday ────────────────────────────────────────────────────
 export type LeaveStatus = "pending" | "approved" | "declined" | "cancelled";
@@ -1794,3 +1795,77 @@ export interface ReviewsAnalytics {
 
 export interface PerfDimension { label: string; score: number; weight: number; }
 export interface BranchPerformance { overall: number; dimensions: PerfDimension[]; }
+
+// ── Parents / guardians (canonical model — family onboarding Phase 3) ────────
+
+export type PortalAccessState = "" | "invited" | "temporary" | "active" | "restricted" | "suspended";
+
+export interface Parent {
+  id: string;
+  ref?: string;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  profession?: string;
+  mobile_phone?: string;
+  work_phone?: string;
+  home_phone?: string;
+  home_address?: string;
+  work_address?: string;
+  portal_state?: PortalAccessState;
+  user_id?: string;
+  invite_expires_at?: string;
+  temporary_until?: string;
+  contact_prefs?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChildParentRelationship {
+  id: string;
+  child_id: string;
+  parent_id: string;
+  relationship: string;
+  parental_responsibility: boolean;
+  primary_contact: boolean;
+  emergency_contact: boolean;
+  authorised_collection: boolean;
+  billing_contact: boolean;
+  receives_communications: boolean;
+  lives_with_child: boolean;
+  portal_access: boolean;
+  finance_access: boolean;
+  legal_contact?: boolean;
+  contact_arrangements?: string;
+  priority?: number;
+  parent_name?: string;
+  child_name?: string;
+}
+
+export interface ParentInput {
+  first_name: string;
+  last_name: string;
+  email?: string;
+  profession?: string;
+  mobile_phone?: string;
+  work_phone?: string;
+  home_phone?: string;
+  home_address?: string;
+  work_address?: string;
+}
+
+export interface RelationshipFlagsInput {
+  relationship: string;
+  parental_responsibility?: boolean;
+  primary_contact?: boolean;
+  emergency_contact?: boolean;
+  authorised_collection?: boolean;
+  billing_contact?: boolean;
+  receives_communications?: boolean;
+  lives_with_child?: boolean;
+  portal_access?: boolean;
+  finance_access?: boolean;
+  legal_contact?: boolean;
+  contact_arrangements?: string;
+  priority?: number;
+}
