@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, Parent, ParentInput, ChildParentRelationship, RelationshipFlagsInput, KioskSession, KioskStaffResult, LeaveRequest, LeaveRequestInput, LeaveBalances, MeAttendance, MeProfileInput, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, FeeConfigBundle, FeeBranchConfig, FeeConfigInput, FeeMeta, BranchTemplate, BranchTemplateInput, BranchTemplateApplyResult, EmailTemplate, EmailTemplateInput, NotificationPreferences, NotificationsResponse, User } from "@/types";
+import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, Parent, ParentInput, ChildParentRelationship, RelationshipFlagsInput, InductionBundle, ChildInduction, Consent, ConsentsBundle, OnboardingView, KioskSession, KioskStaffResult, LeaveRequest, LeaveRequestInput, LeaveBalances, MeAttendance, MeProfileInput, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, FeeConfigBundle, FeeBranchConfig, FeeConfigInput, FeeMeta, BranchTemplate, BranchTemplateInput, BranchTemplateApplyResult, EmailTemplate, EmailTemplateInput, NotificationPreferences, NotificationsResponse, User } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -731,6 +731,35 @@ export const api = {
     apiFetch<Child>(`/api/v1/admin/children/${childId}/key-person`, { method: "PATCH", body: JSON.stringify({ staff_id: staffId }), token }),
   // Marks a leaving child as left (status=left + leave_date) and ends live
   // room placements; leave_date defaults to today when omitted.
+  // ── Induction, consents & onboarding ───────────────────────────────────────
+  adminGetInduction: (token: string, childId: string) =>
+    apiFetch<InductionBundle>(`/api/v1/admin/children/${childId}/induction`, { token }),
+  adminSaveInductionSection: (token: string, childId: string, key: string, body: { data: Record<string, unknown>; complete: boolean }) =>
+    apiFetch<ChildInduction>(`/api/v1/admin/children/${childId}/induction/sections/${key}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminSubmitInduction: (token: string, childId: string) =>
+    apiFetch<ChildInduction>(`/api/v1/admin/children/${childId}/induction/submit`, { method: "POST", body: "{}", token }),
+  adminReviewInduction: (token: string, childId: string, note: string) =>
+    apiFetch<ChildInduction>(`/api/v1/admin/children/${childId}/induction/review`, { method: "POST", body: JSON.stringify({ note }), token }),
+  adminGetConsents: (token: string, childId: string) =>
+    apiFetch<ConsentsBundle>(`/api/v1/admin/children/${childId}/consents`, { token }),
+  adminRecordConsent: (token: string, childId: string, body: { key: string; granted: boolean; note?: string; signature_name: string }) =>
+    apiFetch<Consent>(`/api/v1/admin/children/${childId}/consents`, { method: "POST", body: JSON.stringify(body), token }),
+  adminGetOnboarding: (token: string, childId: string) =>
+    apiFetch<OnboardingView>(`/api/v1/admin/children/${childId}/onboarding`, { token }),
+  adminGetOnboardingBoard: (token: string, branch?: string) =>
+    apiFetch<OnboardingView[]>(`/api/v1/admin/onboarding${branch ? `?branch=${encodeURIComponent(branch)}` : ""}`, { token }),
+  portalGetInduction: (token: string, childId: string) =>
+    apiFetch<InductionBundle>(`/api/v1/portal/children/${childId}/induction`, { token }),
+  portalSaveInductionSection: (token: string, childId: string, key: string, body: { data: Record<string, unknown>; complete: boolean }) =>
+    apiFetch<ChildInduction>(`/api/v1/portal/children/${childId}/induction/sections/${key}`, { method: "PUT", body: JSON.stringify(body), token }),
+  portalSubmitInduction: (token: string, childId: string) =>
+    apiFetch<ChildInduction>(`/api/v1/portal/children/${childId}/induction/submit`, { method: "POST", body: "{}", token }),
+  portalGetConsents: (token: string, childId: string) =>
+    apiFetch<ConsentsBundle>(`/api/v1/portal/children/${childId}/consents`, { token }),
+  portalRecordConsent: (token: string, childId: string, body: { key: string; granted: boolean; note?: string; signature_name: string }) =>
+    apiFetch<Consent>(`/api/v1/portal/children/${childId}/consents`, { method: "POST", body: JSON.stringify(body), token }),
+  portalGetOnboarding: (token: string, childId: string) =>
+    apiFetch<OnboardingView>(`/api/v1/portal/children/${childId}/onboarding`, { token }),
   // ── Parents / guardians (canonical model) ──────────────────────────────────
   adminGetParents: (token: string, q?: string) =>
     apiFetch<Parent[]>(`/api/v1/admin/parents${q ? `?q=${encodeURIComponent(q)}` : ""}`, { token }),

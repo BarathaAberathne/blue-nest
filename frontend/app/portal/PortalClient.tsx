@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Baby, CalendarDays, DoorOpen, LogOut, UtensilsCrossed } from "lucide-react";
 import { api } from "@/lib/api";
+import type { OnboardingView } from "@/types";
 import { clearAuthSession, getAccessToken, getAuthUser } from "@/lib/auth";
 import { ageLabel, fmtDate, fundingLabel } from "@/lib/child";
 import type { Child } from "@/types";
@@ -19,6 +20,7 @@ import type { Child } from "@/types";
 export default function PortalClient() {
   const router = useRouter();
   const [children, setChildren] = useState<Child[]>([]);
+  const [onboarding, setOnboarding] = useState<Map<string, OnboardingView>>(new Map());
   const [firstName, setFirstName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +30,12 @@ export default function PortalClient() {
     if (!token) { router.replace("/login?next=%2Fportal"); return; }
     setFirstName(getAuthUser()?.first_name ?? "");
     api.portalGetChildren(token)
-      .then((kids) => { setChildren(kids ?? []); setError(null); })
+      .then(async (kids) => {
+        setChildren(kids ?? []);
+        setError(null);
+        const views = await Promise.all((kids ?? []).map((k) => api.portalGetOnboarding(token, k.id).catch(() => null)));
+        setOnboarding(new Map(views.filter(Boolean).map((v) => [(v as OnboardingView).child_id, v as OnboardingView])));
+      })
       .catch((e) => setError(e instanceof Error ? e.message : "We could not load your family right now."))
       .finally(() => setLoading(false));
   }, [router]);
@@ -77,6 +84,28 @@ export default function PortalClient() {
                   <div className="flex items-center gap-2 text-slate-600"><DoorOpen className="h-4 w-4 text-slate-400" /> {c.room_name || "Room to be confirmed"}</div>
                   <div className="flex items-center gap-2 text-slate-600"><UtensilsCrossed className="h-4 w-4 text-slate-400" /> Funding: {fundingLabel(c.funding_type)}</div>
                 </dl>
+                {onboarding.get(c.id) && (
+                  <div className="mt-4">
+                    <div className="mb-1 flex items-center justify-between text-xs">
+                      <span className="text-slate-500">Profile completion</span>
+                      <span className="font-semibold text-slate-700">{onboarding.get(c.id)!.percent}%</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-full rounded-full bg-teal-500" style={{ width: `${onboarding.get(c.id)!.percent}%` }} />
+                    </div>
+                    {(() => {
+                      const missing = onboarding.get(c.id)!.categories.flatMap((cat) => cat.missing ?? []).slice(0, 3);
+                      return missing.length > 0 ? (
+                        <ul className="mt-2 space-y-0.5 text-xs text-slate-500">
+                          {missing.map((m) => <li key={m}>• {m}</li>)}
+                        </ul>
+                      ) : null;
+                    })()}
+                    <Link href={`/portal/children/${c.id}/induction`} className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">
+                      {onboarding.get(c.id)!.induction_status === "reviewed" ? "View induction" : "Complete profile"}
+                    </Link>
+                  </div>
+                )}
                 {(c.allergy_tags?.length || c.dietary_tags?.length) ? (
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {(c.allergy_tags ?? []).map((t) => <span key={t} className="rounded-full bg-red-100 px-2 py-0.5 text-[0.65rem] font-semibold text-red-700">{t}</span>)}

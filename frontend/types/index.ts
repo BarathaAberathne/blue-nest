@@ -1869,3 +1869,72 @@ export interface RelationshipFlagsInput {
   contact_arrangements?: string;
   priority?: number;
 }
+
+// ── Induction, consents & onboarding (family onboarding Phase 4) ─────────────
+
+export type InductionStatus = "not_started" | "in_progress" | "submitted" | "reviewed";
+
+export interface InductionSectionDef { key: string; label: string; required: boolean }
+
+export interface InductionSection {
+  data?: Record<string, unknown>;
+  complete: boolean;
+  updated_at: string;
+  updated_by?: string;
+}
+
+export interface ChildInduction {
+  id: string;
+  child_id: string;
+  status: InductionStatus;
+  sections?: Record<string, InductionSection>;
+  submitted_by?: string;
+  submitted_at?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  review_note?: string;
+}
+
+export interface InductionBundle {
+  induction: ChildInduction;
+  sections: InductionSectionDef[];
+  consent_catalogue: ConsentDef[];
+}
+
+export interface ConsentDef { key: string; label: string; required: boolean }
+
+export interface Consent {
+  id: string;
+  child_id: string;
+  key: string;
+  granted: boolean;
+  note?: string;
+  signed_by_parent_id?: string;
+  signed_by_user_id?: string;
+  signature_name: string;
+  created_at: string;
+}
+
+export interface ConsentsBundle {
+  consents: Consent[];
+  latest: Record<string, Consent>;
+  catalogue: ConsentDef[];
+}
+
+export interface CompletenessCategory {
+  key: string;
+  label: string;
+  weight: number;
+  percent: number;
+  missing?: string[];
+}
+
+export interface OnboardingView {
+  child_id: string;
+  child_name?: string;
+  branch_slug?: string;
+  percent: number;
+  status: string;
+  categories: CompletenessCategory[];
+  induction_status: InductionStatus;
+}
