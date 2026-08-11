@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Archive, ArrowLeft, Pencil, Plus, Save, Trash2, UserCheck, X } from "lucide-react";
+import { Archive, ArrowLeft, ArrowRightLeft, Pencil, Plus, Save, Trash2, UserCheck, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import ChildRoomAllocations from "@/components/admin/rooms/ChildRoomAllocations";
+import PickerModal from "@/components/admin/ui/PickerModal";
 import DailyLogForm from "@/components/admin/daily/DailyLogForm";
 import { usePermissions } from "@/lib/usePermissions";
 import { ageLabel, childStatusAccent, fmtDate, fundingLabel } from "@/lib/child";
@@ -35,6 +36,9 @@ export default function ChildDetailClient({ id }: { id: string }) {
   const [branchStaff, setBranchStaff] = useState<Staff[]>([]);
   const [archiving, setArchiving] = useState(false);
   const [leaveDateDraft, setLeaveDateDraft] = useState("");
+  // Incremented by the ROOM row's Assign/Change button — opens the room
+  // allocation popup down in the ChildRoomAllocations panel.
+  const [roomOpenRequest, setRoomOpenRequest] = useState(0);
 
   // Configurable, per-branch lists drive the session picker + tag chips.
   const taxBranch = form?.branch_slug ?? child?.branch_slug ?? "";
@@ -188,7 +192,17 @@ export default function ChildDetailClient({ id }: { id: string }) {
               <Item label="Date of birth" value={fmtDate(child.dob)} />
               <Item label="Gender" value={child.gender || "—"} />
               <Item label="Branch" value={branchName.get(child.branch_slug) ?? child.branch_slug} />
-              <Item label="Room" value={child.room_id ? roomName.get(child.room_id) ?? "—" : "—"} />
+              <div>
+                <dt className="text-xs uppercase tracking-wider text-slate-400">Room</dt>
+                <dd className="mt-0.5 flex items-center gap-2 text-slate-800">
+                  {child.room_id ? roomName.get(child.room_id) ?? child.room_name ?? "—" : "—"}
+                  {has("children.manage") && child.status !== "left" && (
+                    <button type="button" onClick={() => setRoomOpenRequest((n) => n + 1)} className="inline-flex items-center gap-1 text-xs font-medium text-teal-600 hover:underline">
+                      <ArrowRightLeft className="h-3.5 w-3.5" /> {child.room_id ? "Change" : "Assign"}
+                    </button>
+                  )}
+                </dd>
+              </div>
               <Item label="Funding" value={fundingLabel(child.funding_type)} />
               <Item label="Start date" value={fmtDate(child.start_date)} />
               {child.status === "left" && <Item label="Left on" value={fmtDate(child.leave_date)} />}
@@ -292,6 +306,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
               branchSlug={child.branch_slug}
               canManage={has("children.manage")}
               onChange={() => { void load(); }}
+              openRequest={roomOpenRequest}
             />
           </div>
 
@@ -418,33 +433,27 @@ export default function ChildDetailClient({ id }: { id: string }) {
       )}
 
       {pickingKeyPerson && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
-            <h2 className="mb-1 text-lg font-bold text-slate-900">Assign key person</h2>
-            <p className="mb-4 text-sm text-slate-500">Active staff at {branchName.get(child.branch_slug) ?? child.branch_slug}.</p>
-            {branchStaff.length === 0 ? (
-              <p className="text-sm text-slate-400">No active staff found at this branch.</p>
-            ) : (
-              <ul className="max-h-72 space-y-1 overflow-y-auto">
-                {branchStaff.map((s) => (
-                  <li key={s.id}>
-                    <button type="button" onClick={() => assignKeyPerson(s.id)}
-                      className={`w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-teal-50 ${s.id === child.key_person_id ? "bg-teal-50 font-semibold text-teal-700" : "text-slate-700"}`}>
-                      {s.first_name} {s.last_name}
-                      {s.job_title && <span className="ml-2 text-xs text-slate-400">{s.job_title}</span>}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="mt-4 flex justify-between">
-              {child.key_person_id ? (
-                <button type="button" onClick={() => assignKeyPerson("")} className="text-sm font-medium text-red-500 hover:underline">Clear key person</button>
-              ) : <span />}
-              <button type="button" onClick={() => setPickingKeyPerson(false)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Close</button>
+        <PickerModal
+          title="Assign key person"
+          subtitle={`Active staff at ${branchName.get(child.branch_slug) ?? child.branch_slug}.`}
+          options={branchStaff.map((s) => ({
+            id: s.id,
+            label: `${s.first_name} ${s.last_name}`,
+            detail: s.job_title || undefined,
+            badge: s.id === child.key_person_id ? "current" : undefined,
+            badgeTone: "teal" as const,
+          }))}
+          selectedId={child.key_person_id}
+          onSelect={(id) => { void assignKeyPerson(id); }}
+          onClose={() => setPickingKeyPerson(false)}
+          emptyText="No active staff found at this branch."
+        >
+          {child.key_person_id && (
+            <div className="mt-3 flex justify-start">
+              <button type="button" onClick={() => assignKeyPerson("")} className="text-sm font-medium text-red-500 hover:underline">Clear key person</button>
             </div>
-          </div>
-        </div>
+          )}
+        </PickerModal>
       )}
 
       {archiving && (
