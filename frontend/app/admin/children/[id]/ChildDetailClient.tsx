@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { Archive, ArrowLeft, Pencil, Plus, Save, Trash2, UserCheck, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
@@ -14,7 +14,7 @@ import { usePermissions } from "@/lib/usePermissions";
 import { ageLabel, childStatusAccent, fmtDate, fundingLabel } from "@/lib/child";
 import { dailyTypeAccent, dailyTypeLabel } from "@/lib/daily";
 import { useTaxonomy, sessionOptions } from "@/lib/useTaxonomy";
-import type { Branch, Child, ChildInput, ChildSession, DailyRecord, Guardian, Room } from "@/types";
+import type { Branch, Child, ChildInput, ChildSession, DailyRecord, Guardian, Room, Staff } from "@/types";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
@@ -30,6 +30,11 @@ export default function ChildDetailClient({ id }: { id: string }) {
   const [saving, setSaving] = useState(false);
   const { has } = usePermissions();
   const [showLog, setShowLog] = useState(false);
+  // Key-person picker + archive flow (both children.manage-gated).
+  const [pickingKeyPerson, setPickingKeyPerson] = useState(false);
+  const [branchStaff, setBranchStaff] = useState<Staff[]>([]);
+  const [archiving, setArchiving] = useState(false);
+  const [leaveDateDraft, setLeaveDateDraft] = useState("");
 
   // Configurable, per-branch lists drive the session picker + tag chips.
   const taxBranch = form?.branch_slug ?? child?.branch_slug ?? "";
@@ -87,6 +92,37 @@ export default function ChildDetailClient({ id }: { id: string }) {
 
   const setField = (patch: Partial<ChildInput>) => setForm((f) => (f ? { ...f, ...patch } : f));
 
+  const openKeyPersonPicker = async () => {
+    const token = getAccessToken();
+    if (!token || !child) return;
+    setPickingKeyPerson(true);
+    try {
+      const staff = await api.adminGetStaff(token, { branch: child.branch_slug, status: "active" });
+      setBranchStaff((staff as Staff[]) ?? []);
+    } catch { setBranchStaff([]); }
+  };
+  const assignKeyPerson = async (staffId: string) => {
+    const token = getAccessToken();
+    if (!token) return;
+    setError(null);
+    try {
+      const updated = await api.adminSetChildKeyPerson(token, id, staffId);
+      setChild(updated as Child);
+      setPickingKeyPerson(false);
+    } catch (err) { setError(err instanceof Error ? err.message : "Failed to set key person"); }
+  };
+
+  const archive = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    setError(null);
+    try {
+      const updated = await api.adminArchiveChild(token, id, leaveDateDraft || undefined);
+      setChild(updated as Child);
+      setArchiving(false);
+    } catch (err) { setError(err instanceof Error ? err.message : "Failed to archive"); }
+  };
+
   const setGuardian = (i: number, patch: Partial<Guardian>) =>
     setForm((f) => (f ? { ...f, guardians: (f.guardians ?? []).map((g, gi) => (gi === i ? { ...g, ...patch } : g)) } : f));
   const addGuardian = () =>
@@ -125,9 +161,16 @@ export default function ChildDetailClient({ id }: { id: string }) {
           <p className="mt-1 font-mono text-xs text-slate-400">{child.ref ?? child.id}</p>
         </div>
         {!editing ? (
-          <button type="button" onClick={startEdit} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-            <Pencil className="h-4 w-4" /> Edit
-          </button>
+          <div className="flex items-center gap-2">
+            {has("children.manage") && child.status !== "left" && (
+              <button type="button" onClick={() => { setLeaveDateDraft(new Date().toISOString().slice(0, 10)); setArchiving(true); }} className="inline-flex items-center gap-2 rounded-lg border border-amber-200 px-3 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50">
+                <Archive className="h-4 w-4" /> Mark as left
+              </button>
+            )}
+            <button type="button" onClick={startEdit} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+              <Pencil className="h-4 w-4" /> Edit
+            </button>
+          </div>
         ) : (
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => setEditing(false)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"><X className="h-4 w-4" /> Cancel</button>
@@ -148,23 +191,78 @@ export default function ChildDetailClient({ id }: { id: string }) {
               <Item label="Room" value={child.room_id ? roomName.get(child.room_id) ?? "—" : "—"} />
               <Item label="Funding" value={fundingLabel(child.funding_type)} />
               <Item label="Start date" value={fmtDate(child.start_date)} />
-              <Item label="Key person" value={child.key_person_name || "—"} />
+              {child.status === "left" && <Item label="Left on" value={fmtDate(child.leave_date)} />}
+              <div>
+                <dt className="text-xs uppercase tracking-wider text-slate-400">Key person</dt>
+                <dd className="mt-0.5 flex items-center gap-2 text-slate-800">
+                  {child.key_person_name || "—"}
+                  {has("children.manage") && (
+                    <button type="button" onClick={openKeyPersonPicker} className="inline-flex items-center gap-1 text-xs font-medium text-teal-600 hover:underline">
+                      <UserCheck className="h-3.5 w-3.5" /> {child.key_person_id ? "Change" : "Assign"}
+                    </button>
+                  )}
+                </dd>
+              </div>
             </dl>
 
-            <h2 className="mb-3 mt-6 text-sm font-bold uppercase tracking-widest text-slate-400">Care notes</h2>
-            <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
-              <Item label="Allergies" value={child.allergies || "None recorded"} />
-              <Item label="Dietary" value={child.dietary_reqs || "None recorded"} />
+            <h2 className="mb-3 mt-6 text-sm font-bold uppercase tracking-widest text-slate-400">Allergies & dietary</h2>
+            <div className="space-y-3 text-sm">
+              <div>
+                <dt className="mb-1.5 text-xs uppercase tracking-wider text-slate-400">Allergies</dt>
+                {(child.allergy_tags ?? []).length === 0 && !child.allergies ? (
+                  <p className="text-slate-400">None recorded</p>
+                ) : (
+                  <>
+                    {(child.allergy_tags ?? []).length > 0 && (
+                      <div className="mb-1.5 flex flex-wrap gap-1.5">
+                        {(child.allergy_tags ?? []).map((code) => (
+                          <span key={code} className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700">
+                            {allergyTerms.find((t) => t.code === code)?.label ?? code}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {child.allergies && <p className="text-slate-800">{child.allergies}</p>}
+                  </>
+                )}
+              </div>
+              <div>
+                <dt className="mb-1.5 text-xs uppercase tracking-wider text-slate-400">Dietary</dt>
+                {(child.dietary_tags ?? []).length === 0 && !child.dietary_reqs ? (
+                  <p className="text-slate-400">None recorded</p>
+                ) : (
+                  <>
+                    {(child.dietary_tags ?? []).length > 0 && (
+                      <div className="mb-1.5 flex flex-wrap gap-1.5">
+                        {(child.dietary_tags ?? []).map((code) => (
+                          <span key={code} className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                            {dietaryTerms.find((t) => t.code === code)?.label ?? code}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {child.dietary_reqs && <p className="text-slate-800">{child.dietary_reqs}</p>}
+                  </>
+                )}
+              </div>
               <Item label="Medical" value={child.medical_notes || "None recorded"} />
-            </dl>
+            </div>
 
-            {child.sessions && child.sessions.length > 0 && (
-              <>
-                <h2 className="mb-3 mt-6 text-sm font-bold uppercase tracking-widest text-slate-400">Weekly sessions</h2>
-                <div className="flex flex-wrap gap-2">
-                  {child.sessions.map((s, i) => <StageBadge key={i} label={`${s.day} · ${sessionLabel(s.type)}`} accent="sky" withDot={false} />)}
-                </div>
-              </>
+            <h2 className="mb-3 mt-6 text-sm font-bold uppercase tracking-widest text-slate-400">Weekly sessions</h2>
+            {(!child.sessions || child.sessions.length === 0) ? (
+              <p className="text-sm text-slate-400">No sessions recorded — set the weekly pattern via Edit.</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {WEEKDAYS.map((day) => {
+                  const s = child.sessions?.find((x) => x.day === day);
+                  return (
+                    <div key={day} className={`rounded-lg border px-3 py-2 text-center text-sm ${s ? "border-sky-200 bg-sky-50 text-sky-800" : "border-slate-100 text-slate-300"}`}>
+                      <p className="text-xs font-medium uppercase tracking-wider">{day}</p>
+                      <p className="mt-0.5">{s ? sessionLabel(s.type) : "—"}</p>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
 
@@ -315,6 +413,59 @@ export default function ChildDetailClient({ id }: { id: string }) {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {pickingKeyPerson && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+            <h2 className="mb-1 text-lg font-bold text-slate-900">Assign key person</h2>
+            <p className="mb-4 text-sm text-slate-500">Active staff at {branchName.get(child.branch_slug) ?? child.branch_slug}.</p>
+            {branchStaff.length === 0 ? (
+              <p className="text-sm text-slate-400">No active staff found at this branch.</p>
+            ) : (
+              <ul className="max-h-72 space-y-1 overflow-y-auto">
+                {branchStaff.map((s) => (
+                  <li key={s.id}>
+                    <button type="button" onClick={() => assignKeyPerson(s.id)}
+                      className={`w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-teal-50 ${s.id === child.key_person_id ? "bg-teal-50 font-semibold text-teal-700" : "text-slate-700"}`}>
+                      {s.first_name} {s.last_name}
+                      {s.job_title && <span className="ml-2 text-xs text-slate-400">{s.job_title}</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-4 flex justify-between">
+              {child.key_person_id ? (
+                <button type="button" onClick={() => assignKeyPerson("")} className="text-sm font-medium text-red-500 hover:underline">Clear key person</button>
+              ) : <span />}
+              <button type="button" onClick={() => setPickingKeyPerson(false)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {archiving && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+            <h2 className="mb-1 text-lg font-bold text-slate-900">Mark {child.first_name} as left</h2>
+            <p className="mb-4 text-sm text-slate-500">
+              Sets the status to <strong>Left</strong> and ends any live room placement so the space frees up.
+              Nothing is deleted — the profile, history and daily records stay, and the status can be set back
+              to Active from Edit if needed.
+            </p>
+            <label className="mb-4 block text-sm">
+              <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">Leaving date</span>
+              <input type="date" value={leaveDateDraft} onChange={(e) => setLeaveDateDraft(e.target.value)} className="inp" />
+            </label>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setArchiving(false)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+              <button type="button" onClick={archive} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">
+                <Archive className="h-4 w-4" /> Mark as left
+              </button>
+            </div>
           </div>
         </div>
       )}

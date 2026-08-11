@@ -116,9 +116,12 @@ func (r *childRepository) Update(ctx context.Context, id string, c models.Child)
 		"guardians":     c.Guardians,
 		"funding_type":  c.FundingType,
 		"sessions":      c.Sessions,
+		"allergy_tags":  c.AllergyTags,
+		"dietary_tags":  c.DietaryTags,
 		"allergies":     c.Allergies,
 		"dietary_reqs":  c.DietaryReqs,
 		"medical_notes": c.MedicalNotes,
+		"leave_date":    c.LeaveDate,
 		"updated_at":    time.Now(),
 	}}
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)

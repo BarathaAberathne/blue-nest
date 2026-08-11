@@ -1115,6 +1115,8 @@ export interface Child {
   enquiry_id?: string;
   key_person_id?: string;
   key_person_name?: string;
+  /** Set by the archive action alongside status "left" (YYYY-MM-DD). */
+  leave_date?: string;
   created_at?: string;
   updated_at?: string;
 }
