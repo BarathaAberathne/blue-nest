@@ -138,9 +138,23 @@ func (r *parentRepository) Update(ctx context.Context, id string, p models.Paren
 	delete(set, "org_id")
 	delete(set, "ref")
 	delete(set, "created_at")
+	// omitempty drops cleared fields from the marshal, so "" / nil would
+	// silently KEEP the stored value — for the invite token that would make
+	// "single-use" a lie (caught by PARENT-TC-003). Explicitly unset any
+	// clearable security/lifecycle field the struct no longer carries.
+	unset := bson.M{}
+	for _, f := range []string{"invite_token_hash", "invite_expires_at", "temporary_until"} {
+		if _, ok := set[f]; !ok {
+			unset[f] = ""
+		}
+	}
+	update := bson.M{"$set": set}
+	if len(unset) > 0 {
+		update["$unset"] = unset
+	}
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
 	var out models.Parent
-	if err := r.col.FindOneAndUpdate(ctx, bson.M{"_id": oid}, bson.M{"$set": set}, opts).Decode(&out); err != nil {
+	if err := r.col.FindOneAndUpdate(ctx, bson.M{"_id": oid}, update, opts).Decode(&out); err != nil {
 		return nil, err
 	}
 	return &out, nil

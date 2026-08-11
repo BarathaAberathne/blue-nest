@@ -13,6 +13,8 @@ import (
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/platform/email"
 	"github.com/blue-nest-montessori/api/internal/repository"
+	"github.com/blue-nest-montessori/api/pkg/response"
+	"github.com/blue-nest-montessori/api/pkg/validator"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -41,6 +43,7 @@ type Services struct {
 	DashboardProfiles service.DashboardProfileService
 	Rooms             service.RoomService
 	Children          service.ChildService
+	Parents           service.ParentService
 	Attendance        service.AttendanceService
 	Staff             service.StaffService
 	StaffAttendance   service.StaffAttendanceService
@@ -106,6 +109,23 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Post("/admin/auth/login", authH.AdminLogin)
 		})
 		r.Post("/auth/register", authH.Register)
+	// Parent portal activation: single-use invitation token → password set.
+	// NOTE: runs under DefaultTenant — like all public routes — so invitations
+	// currently activate for the default org only (multi-org portal activation
+	// follows the kiosk cross-org pattern later).
+	r.Post("/auth/portal/activate", func(w http.ResponseWriter, req *http.Request) {
+		var body models.InviteAcceptRequest
+		if err := validator.DecodeJSON(req, &body); err != nil {
+			response.BadRequest(w, err.Error())
+			return
+		}
+		p, err := svc.Parents.AcceptInvite(req.Context(), body)
+		if err != nil {
+			response.BadRequest(w, err.Error())
+			return
+		}
+		response.OK(w, p)
+	})
 		r.Post("/auth/logout", authH.Logout)
 		r.Post("/auth/refresh", authH.Refresh)
 
@@ -410,6 +430,25 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Patch("/admin/children/{id}/key-person", adminChildH.SetKeyPerson)
 				r.Post("/admin/children/{id}/archive", adminChildH.Archive)
 				r.Delete("/admin/children/{id}", adminChildH.Delete)
+			})
+
+			// Parents / guardians — canonical person records, child links and
+			// portal invitations (permission parents.manage).
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermParentsManage))
+				adminParentH := adminHandler.NewAdminParentHandler(svc.Parents, svc.Audit)
+				r.Get("/admin/parents", adminParentH.List)
+				r.Post("/admin/parents", adminParentH.Create)
+				r.Get("/admin/parents/{id}", adminParentH.Get)
+				r.Put("/admin/parents/{id}", adminParentH.Update)
+				r.Delete("/admin/parents/{id}", adminParentH.Delete)
+				r.Get("/admin/parents/{id}/children", adminParentH.ForParent)
+				r.Post("/admin/parents/{id}/invite", adminParentH.Invite)
+				r.Post("/admin/parents/{id}/portal-state", adminParentH.SetPortalState)
+				r.Get("/admin/children/{id}/parents", adminParentH.ForChild)
+				r.Post("/admin/children/{id}/parents", adminParentH.LinkChild)
+				r.Put("/admin/parent-relationships/{id}", adminParentH.UpdateRelationship)
+				r.Delete("/admin/parent-relationships/{id}", adminParentH.Unlink)
 			})
 
 			// Nursery - daily attendance register.

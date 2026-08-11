@@ -81,6 +81,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	dashboardProfileRepo := repository.NewDashboardProfileRepository(db)
 	roomRepo := repository.NewRoomRepository(db)
 	childRepo := repository.NewChildRepository(db)
+	parentRepo := repository.NewParentRepository(db)
+	childParentRepo := repository.NewChildParentRepository(db)
 	attendanceRepo := repository.NewAttendanceRepository(db)
 	staffRepo := repository.NewStaffRepository(db)
 	staffRoomAssignRepo := repository.NewStaffRoomAssignmentRepository(db)
@@ -114,6 +116,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo, staffRoomAssignRepo, termRepo, orgRepo)
 	notifPrefRepo := repository.NewNotificationPreferenceRepository(db)
 	notifSvc := service.NewNotificationServiceWithEmail(notificationRepo, mailer, userRepo, notifPrefRepo, cfg.FrontendURL, cfg.NotifyEmailEnabled)
+	parentSvc := service.NewParentService(parentRepo, childParentRepo, childRepo, userRepo, counterRepo, mailer, cfg.FrontendURL)
 	roleSvc := service.NewRoleService(roleRepo)
 	orgSvc := service.NewOrganisationService(orgRepo, authSvc, roleSvc)
 	// Resolve the default tenant for public/unauthenticated requests. Empty until
@@ -158,6 +161,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		DashboardProfiles: service.NewDashboardProfileService(dashboardProfileRepo),
 		Rooms:             roomSvc,
 		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo, childRoomAssignSvc, taxonomyRepo),
+		Parents:           parentSvc,
 		Attendance:        service.NewAttendanceService(attendanceRepo, childRepo, childRoomAssignRepo),
 		Staff:             service.NewStaffService(staffRepo, counterRepo, authSvc, staffRoomAssignSvc, roomRepo),
 		StaffRoomAssign:   staffRoomAssignSvc,
