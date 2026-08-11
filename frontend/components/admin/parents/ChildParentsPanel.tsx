@@ -8,9 +8,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Mail, Pencil, Plus, Send, Trash2, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Mail, Pencil, Plus, PoundSterling, Send, Trash2, Users } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
+import { usePermissions } from "@/lib/usePermissions";
 import PickerModal from "@/components/admin/ui/PickerModal";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import type { ChildParentRelationship, Parent, ParentInput, RelationshipFlagsInput } from "@/types";
@@ -58,6 +60,8 @@ function FlagEditor({ value, onChange }: { value: RelationshipFlagsInput; onChan
 }
 
 export default function ChildParentsPanel({ childId, canManage }: { childId: string; canManage: boolean }) {
+  const router = useRouter();
+  const { has } = usePermissions();
   const [rels, setRels] = useState<ChildParentRelationship[]>([]);
   const [parents, setParents] = useState<Map<string, Parent>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -172,9 +176,26 @@ export default function ChildParentsPanel({ childId, canManage }: { childId: str
           <Users className="h-4 w-4 text-teal-600" /> Parents & Guardians
         </h3>
         {canManage && (
-          <button type="button" onClick={openAdd} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
-            <Plus className="h-3.5 w-3.5" /> Add parent
-          </button>
+          <div className="flex items-center gap-2">
+            {rels.length > 0 && has("finance.manage") && (
+              <button
+                type="button"
+                onClick={() => {
+                  const token = getAccessToken();
+                  if (!token) return;
+                  void api.adminEnsureFamily(token, childId)
+                    .then((fam) => router.push(`/admin/finance/${fam.id}`))
+                    .catch((e) => setError(e instanceof Error ? e.message : "Could not open the family account"));
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              >
+                <PoundSterling className="h-3.5 w-3.5" /> Family account
+              </button>
+            )}
+            <button type="button" onClick={openAdd} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+              <Plus className="h-3.5 w-3.5" /> Add parent
+            </button>
+          </div>
         )}
       </div>
 

@@ -10,11 +10,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Baby, CalendarDays, DoorOpen, LogOut, UtensilsCrossed } from "lucide-react";
+import { Baby, Banknote, CalendarDays, DoorOpen, LogOut, UtensilsCrossed } from "lucide-react";
 import { api } from "@/lib/api";
-import type { OnboardingView } from "@/types";
+import type { FamilyView, OnboardingView } from "@/types";
 import { clearAuthSession, getAccessToken, getAuthUser } from "@/lib/auth";
 import { ageLabel, fmtDate, fundingLabel } from "@/lib/child";
+import { formatPence, mandateStatusLabel } from "@/lib/finance";
 import type { Child } from "@/types";
 
 export default function PortalClient() {
@@ -22,6 +23,9 @@ export default function PortalClient() {
   const [children, setChildren] = useState<Child[]>([]);
   const [onboarding, setOnboarding] = useState<Map<string, OnboardingView>>(new Map());
   const [firstName, setFirstName] = useState("");
+  const [finance, setFinance] = useState<FamilyView | null>(null);
+  const [ddBusy, setDdBusy] = useState(false);
+  const [ddNotice, setDdNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +42,26 @@ export default function PortalClient() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : "We could not load your family right now."))
       .finally(() => setLoading(false));
+    api.portalGetFinance(token)
+      .then((v) => { if (v && "charges" in v) setFinance(v as FamilyView); })
+      .catch(() => null);
+    const dd = new URLSearchParams(window.location.search).get("dd");
+    if (dd === "success") setDdNotice("Thank you — your Direct Debit is being set up. It becomes active once the bank confirms the mandate.");
+    if (dd === "cancelled") setDdNotice("Direct Debit setup was cancelled. You can restart it below whenever you are ready.");
   }, [router]);
+
+  const startDirectDebit = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    setDdBusy(true);
+    try {
+      const { setup_url } = await api.portalSetupDirectDebit(token);
+      window.location.href = setup_url;
+    } catch (e) {
+      setDdNotice(e instanceof Error ? e.message : "We could not start Direct Debit setup — please contact the nursery.");
+      setDdBusy(false);
+    }
+  };
 
   const signOut = () => { clearAuthSession(); router.replace("/login"); };
 
@@ -115,6 +138,69 @@ export default function PortalClient() {
               </div>
             ))}
           </div>
+        )}
+
+        {finance?.family && (
+          <section className="mt-8">
+            <h2 className="flex items-center gap-2 font-heading text-lg font-bold text-slate-900"><Banknote className="h-5 w-5 text-teal-600" /> Fees &amp; payments</h2>
+            {ddNotice && <p className="mt-3 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">{ddNotice}</p>}
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Outstanding balance</p>
+                <p className={`mt-1 text-2xl font-bold ${finance.family.balance_pence > 0 ? "text-slate-900" : "text-green-700"}`}>{formatPence(finance.family.balance_pence)}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Next payment</p>
+                {finance.next_payment ? (
+                  <>
+                    <p className="mt-1 text-2xl font-bold text-slate-900">{formatPence(finance.next_payment.amount_pence - (finance.next_payment.paid_pence ?? 0))}</p>
+                    <p className="text-xs text-slate-500">due {fmtDate(finance.next_payment.due_date)} · {finance.next_payment.description}</p>
+                  </>
+                ) : (
+                  <p className="mt-1 text-sm text-slate-500">Nothing due — you are all settled.</p>
+                )}
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Direct Debit</p>
+                <p className="mt-1 text-sm font-semibold text-slate-800">{mandateStatusLabel[finance.family.mandate_status] ?? finance.family.mandate_status}</p>
+                {finance.family.mandate_status !== "active" && (
+                  <button
+                    type="button"
+                    onClick={() => void startDirectDebit()}
+                    disabled={ddBusy}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-50"
+                  >
+                    {ddBusy ? "Redirecting…" : "Set up Direct Debit"}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {finance.payments.length > 0 && (
+              <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <table className="w-full min-w-[480px] text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wider text-slate-400">
+                      <th className="px-4 py-3">Date</th>
+                      <th className="px-4 py-3">Method</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {finance.payments.slice(0, 8).map((p) => (
+                      <tr key={p.id} className="border-b border-slate-50">
+                        <td className="px-4 py-2.5 text-slate-500">{fmtDate(p.created_at?.slice(0, 10))}</td>
+                        <td className="px-4 py-2.5 text-slate-600">{p.method === "bacs_debit" ? "Direct Debit" : p.method === "manual" ? "Bank / cash" : p.method}</td>
+                        <td className="px-4 py-2.5 text-slate-600">{p.status}</td>
+                        <td className="px-4 py-2.5 text-right font-semibold text-slate-800">{formatPence(p.amount_pence)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         )}
       </main>
     </div>

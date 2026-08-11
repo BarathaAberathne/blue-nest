@@ -685,7 +685,9 @@ export type Permission =
   | "daily_logs.manage"
   | "daily_logs.approve"
   | "leave.approve"
-  | "parents.manage";
+  | "parents.manage"
+  | "finance.manage"
+  | "finance.adjust";
 
 // ── Staff leave / holiday ────────────────────────────────────────────────────
 export type LeaveStatus = "pending" | "approved" | "declined" | "cancelled";
@@ -1937,4 +1939,103 @@ export interface OnboardingView {
   status: string;
   categories: CompletenessCategory[];
   induction_status: InductionStatus;
+}
+
+// ── Finance: families, charges, payments, schedules ──────────────────────────
+
+export type MandateStatus = "" | "pending" | "active" | "failed" | "cancelled";
+
+export type ChargeStatus =
+  | "draft"
+  | "upcoming"
+  | "due"
+  | "processing"
+  | "paid"
+  | "partially_paid"
+  | "overdue"
+  | "failed"
+  | "cancelled"
+  | "refunded"
+  | "written_off";
+
+export interface Family {
+  id: string;
+  ref?: string;
+  name: string;
+  parent_ids?: string[];
+  billing_parent_id?: string;
+  child_ids?: string[];
+  stripe_customer_id?: string;
+  stripe_payment_method_id?: string;
+  stripe_mandate_id?: string;
+  mandate_status: MandateStatus;
+  created_at: string;
+  updated_at: string;
+  billing_parent_name?: string;
+  balance_pence: number;
+}
+
+export interface Charge {
+  id: string;
+  ref?: string;
+  family_id: string;
+  child_id?: string;
+  description: string;
+  amount_pence: number;
+  due_date: string;
+  status: ChargeStatus;
+  first_payment?: boolean;
+  paid_pence?: number;
+  paid_at?: string;
+  created_at: string;
+  child_name?: string;
+}
+
+export interface PaymentAllocation {
+  charge_id: string;
+  amount_pence: number;
+}
+
+export interface FamilyPayment {
+  id: string;
+  family_id: string;
+  amount_pence: number;
+  method: string;
+  status: string;
+  failure_note?: string;
+  allocations?: PaymentAllocation[];
+  created_at: string;
+}
+
+export interface PaymentScheduleItem {
+  id: string;
+  family_id: string;
+  child_id: string;
+  amount_pence: number;
+  day_of_month: number;
+  start_month: string;
+  end_month?: string;
+  active: boolean;
+  last_generated?: string;
+}
+
+export interface FamilyView {
+  family: Family;
+  charges: Charge[];
+  payments: FamilyPayment[];
+  schedules: PaymentScheduleItem[];
+  next_payment?: Charge | null;
+}
+
+export interface FinanceDashboard {
+  outstanding_pence: number;
+  due_this_week_pence: number;
+  overdue_pence: number;
+  overdue_count: number;
+  failed_pence: number;
+  failed_count: number;
+  expected_month_pence: number;
+  collected_month_pence: number;
+  families_total: number;
+  families_without_dd: number;
 }

@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, Parent, ParentInput, ChildParentRelationship, RelationshipFlagsInput, InductionBundle, ChildInduction, Consent, ConsentsBundle, OnboardingView, KioskSession, KioskStaffResult, LeaveRequest, LeaveRequestInput, LeaveBalances, MeAttendance, MeProfileInput, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, FeeConfigBundle, FeeBranchConfig, FeeConfigInput, FeeMeta, BranchTemplate, BranchTemplateInput, BranchTemplateApplyResult, EmailTemplate, EmailTemplateInput, NotificationPreferences, NotificationsResponse, User } from "@/types";
+import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, Parent, ParentInput, ChildParentRelationship, RelationshipFlagsInput, InductionBundle, ChildInduction, Consent, ConsentsBundle, OnboardingView, KioskSession, KioskStaffResult, LeaveRequest, LeaveRequestInput, LeaveBalances, MeAttendance, MeProfileInput, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, FeeConfigBundle, FeeBranchConfig, FeeConfigInput, FeeMeta, BranchTemplate, BranchTemplateInput, BranchTemplateApplyResult, EmailTemplate, EmailTemplateInput, NotificationPreferences, NotificationsResponse, User, Family, FamilyView, Charge, FamilyPayment, PaymentScheduleItem, FinanceDashboard } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -791,6 +791,31 @@ export const api = {
     apiFetch<{ parent: Parent; children: ChildParentRelationship[] }>("/api/v1/portal/me", { token }),
   portalGetChildren: (token: string) =>
     apiFetch<Child[]>("/api/v1/portal/children", { token }),
+  // ── Finance: families, charges, payments, Direct Debit ─────────────────────
+  adminGetFamilies: (token: string) =>
+    apiFetch<Family[]>("/api/v1/admin/families", { token }),
+  adminGetFamily: (token: string, id: string) =>
+    apiFetch<FamilyView>(`/api/v1/admin/families/${id}`, { token }),
+  adminEnsureFamily: (token: string, childId: string) =>
+    apiFetch<Family>(`/api/v1/admin/children/${childId}/family`, { method: "POST", body: "{}", token }),
+  adminCreateCharge: (token: string, familyId: string, body: { child_id?: string; description: string; amount_pence: number; due_date: string; first_payment?: boolean }) =>
+    apiFetch<Charge>(`/api/v1/admin/families/${familyId}/charges`, { method: "POST", body: JSON.stringify(body), token }),
+  adminCreateFirstPayment: (token: string, familyId: string, body: { child_id: string; deposit_pence: number; first_month_pence: number; due_date: string }) =>
+    apiFetch<Charge[]>(`/api/v1/admin/families/${familyId}/first-payment`, { method: "POST", body: JSON.stringify(body), token }),
+  adminCreateSchedule: (token: string, familyId: string, body: { child_id: string; amount_pence: number; day_of_month: number; start_month: string; end_month?: string }) =>
+    apiFetch<PaymentScheduleItem>(`/api/v1/admin/families/${familyId}/schedule`, { method: "POST", body: JSON.stringify(body), token }),
+  adminRecordManualPayment: (token: string, familyId: string, body: { amount_pence: number; note?: string }) =>
+    apiFetch<FamilyPayment>(`/api/v1/admin/families/${familyId}/manual-payment`, { method: "POST", body: JSON.stringify(body), token }),
+  adminMarkMandate: (token: string, familyId: string, reference: string) =>
+    apiFetch<Family>(`/api/v1/admin/families/${familyId}/mandate`, { method: "POST", body: JSON.stringify({ reference }), token }),
+  adminCollectCharge: (token: string, chargeId: string) =>
+    apiFetch<Charge>(`/api/v1/admin/charges/${chargeId}/collect`, { method: "POST", body: "{}", token }),
+  adminGetFinanceDashboard: (token: string) =>
+    apiFetch<FinanceDashboard>("/api/v1/admin/finance/dashboard", { token }),
+  portalGetFinance: (token: string) =>
+    apiFetch<FamilyView | { family: null }>("/api/v1/portal/finance", { token }),
+  portalSetupDirectDebit: (token: string) =>
+    apiFetch<{ setup_url: string }>("/api/v1/portal/finance/direct-debit", { method: "POST", body: "{}", token }),
   adminArchiveChild: (token: string, childId: string, leaveDate?: string) =>
     apiFetch<Child>(`/api/v1/admin/children/${childId}/archive`, { method: "POST", body: JSON.stringify({ leave_date: leaveDate ?? "" }), token }),
   adminGetStaffKeyChildren: (token: string, staffId: string) =>

@@ -85,6 +85,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Children",         href: "/admin/children",   icon: Baby, permission: "children.manage" },
       { label: "Parents",          href: "/admin/parents",    icon: Users, permission: "parents.manage" },
       { label: "Onboarding",       href: "/admin/onboarding", icon: ClipboardList, permission: "children.manage" },
+      { label: "Finance",          href: "/admin/finance",    icon: PoundSterling, permission: "finance.manage" },
       { label: "Child Attendance", href: "/admin/attendance", icon: CalendarCheck, permission: "attendance.manage" },
       { label: "Daily Log",        href: "/admin/daily-log",  icon: NotebookPen, permission: "daily_logs.manage" },
     ],

@@ -242,10 +242,12 @@ type onboardingService struct {
 	inductions repository.InductionRepository
 	rels       repository.ChildParentRepository
 	consents   repository.ConsentRepository
+	// finance reports the DD + first-payment gate (nil-safe for unit tests).
+	finance FinanceService
 }
 
-func NewOnboardingService(children repository.ChildRepository, inductions repository.InductionRepository, rels repository.ChildParentRepository, consents repository.ConsentRepository) OnboardingService {
-	return &onboardingService{children: children, inductions: inductions, rels: rels, consents: consents}
+func NewOnboardingService(children repository.ChildRepository, inductions repository.InductionRepository, rels repository.ChildParentRepository, consents repository.ConsentRepository, finance FinanceService) OnboardingService {
+	return &onboardingService{children: children, inductions: inductions, rels: rels, consents: consents, finance: finance}
 }
 
 func (s *onboardingService) ForChild(ctx context.Context, childID string) (*OnboardingView, error) {
@@ -259,6 +261,10 @@ func (s *onboardingService) ForChild(ctx context.Context, childID string) (*Onbo
 	}
 	in.Rels, _ = s.rels.FindByChild(ctx, childID)
 	in.Consents, _ = s.consents.FindByChild(ctx, childID)
+	if s.finance != nil {
+		fc := s.finance.FinanceCompleteForChild(ctx, childID)
+		in.FinanceComplete = &fc
+	}
 	v := computeOnboarding(in)
 	return &v, nil
 }
@@ -291,9 +297,12 @@ func (s *onboardingService) Board(ctx context.Context, branch string) ([]Onboard
 		}
 		id := k.ID.Hex()
 		rels, _ := s.rels.FindByChild(ctx, id)
-		out = append(out, computeOnboarding(onboardingInputs{
-			Child: k, Induction: indBy[id], Rels: rels, Consents: consBy[id],
-		}))
+		bi := onboardingInputs{Child: k, Induction: indBy[id], Rels: rels, Consents: consBy[id]}
+		if s.finance != nil {
+			fc := s.finance.FinanceCompleteForChild(ctx, id)
+			bi.FinanceComplete = &fc
+		}
+		out = append(out, computeOnboarding(bi))
 	}
 	return out, nil
 }

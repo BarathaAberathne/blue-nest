@@ -14,6 +14,7 @@ const (
 	CounterBranch       = "branch"
 	CounterParent       = "parent"
 	CounterFamily       = "family"
+	CounterCharge       = "charge"
 )
 
 // Ref prefixes for each entity (human-readable ID = PREFIX-YEAR-NNNNNN).

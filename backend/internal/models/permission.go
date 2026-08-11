@@ -31,6 +31,8 @@ const (
 	// Staff leave / holiday approvals (HR)
 	PermLeaveApprove Permission = "leave.approve" // approve/decline staff leave requests (managers/HR)
 	PermParentsManage Permission = "parents.manage" // parent/guardian records, child links, portal invitations
+	PermFinanceManage Permission = "finance.manage" // families, charges, payments, schedules, reminders
+	PermFinanceAdjust Permission = "finance.adjust" // credits, write-offs, refunds, manual mandates
 )
 
 // AllPermissions is the full set, granted to super_admin/admin.
@@ -39,7 +41,7 @@ var AllPermissions = []Permission{
 	PermProcurementView, PermProcurementManage, PermSuppliersManage,
 	PermFinanceView, PermAuditView, PermBranchesManage, PermBranchAdmin, PermUsersManage,
 	PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
-	PermParentsManage,
+	PermParentsManage, PermFinanceManage, PermFinanceAdjust,
 }
 
 // rolePermissions maps each role to its capability set. Customers/staff have no
@@ -53,12 +55,14 @@ var rolePermissions = map[Role][]Permission{
 		PermProcurementView, PermProcurementManage, PermSuppliersManage,
 		PermFinanceView, PermAuditView, PermBranchesManage,
 		PermChildrenManage, PermParentsManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
+		PermFinanceManage, PermFinanceAdjust,
 	},
 	RoleBranchManager: {
 		PermDashboardView, PermStoreManage, PermBlogManage, PermEnquiriesManage,
 		PermProcurementView, PermProcurementManage, PermSuppliersManage,
 		PermFinanceView, PermAuditView, PermBranchesManage,
 		PermChildrenManage, PermParentsManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
+		PermFinanceManage,
 	},
 	// Director (Managing Director): broad executive oversight across the whole
 	// back office — same reach as a general manager, minus account management.
@@ -67,9 +71,10 @@ var rolePermissions = map[Role][]Permission{
 		PermProcurementView, PermProcurementManage, PermSuppliersManage,
 		PermFinanceView, PermAuditView, PermBranchesManage,
 		PermChildrenManage, PermParentsManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
+		PermFinanceManage, PermFinanceAdjust,
 	},
 	RoleFinance: {
-		PermDashboardView, PermFinanceView, PermProcurementView, PermAuditView,
+		PermDashboardView, PermFinanceView, PermFinanceManage, PermFinanceAdjust, PermProcurementView, PermAuditView,
 	},
 	RoleAdmissions: {
 		PermDashboardView, PermEnquiriesManage,

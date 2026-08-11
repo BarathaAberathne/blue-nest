@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/internal/platform/email"
 	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/pkg/response"
@@ -32,6 +33,8 @@ type StripeWebhookHandler struct {
 	mailer        MailSender
 	orderAdminTo  string
 	orderBATo     string
+	// finance handles Bacs Direct Debit + family payment events (nil-safe).
+	finance service.FinanceService
 }
 
 func NewStripeWebhookHandler(
@@ -42,6 +45,7 @@ func NewStripeWebhookHandler(
 	mailer MailSender,
 	orderAdminTo string,
 	orderBATo string,
+	finance service.FinanceService,
 ) *StripeWebhookHandler {
 	return &StripeWebhookHandler{
 		webhookSecret: secret,
@@ -51,6 +55,7 @@ func NewStripeWebhookHandler(
 		mailer:        mailer,
 		orderAdminTo:  orderAdminTo,
 		orderBATo:     orderBATo,
+		finance:       finance,
 	}
 }
 
@@ -89,6 +94,16 @@ func (h *StripeWebhookHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		h.handleSessionFailed(r.Context(), event)
 	case stripe.EventTypePaymentIntentPaymentFailed:
 		h.handlePaymentIntentFailed(r.Context(), event)
+		h.handleFinanceIntent(r.Context(), event, models.PaymentFailed)
+	// ── Finance module (family billing / Bacs Direct Debit) ──────────────
+	case "setup_intent.succeeded":
+		h.handleFinanceSetup(r.Context(), event)
+	case stripe.EventTypePaymentIntentSucceeded:
+		h.handleFinanceIntent(r.Context(), event, models.PaymentSucceeded)
+	case "payment_intent.processing":
+		h.handleFinanceIntent(r.Context(), event, models.PaymentProcessing)
+	case "charge.refunded":
+		h.handleFinanceRefund(r.Context(), event)
 	}
 
 	// Always 200 so Stripe doesn't retry indefinitely — handlers are idempotent
@@ -333,4 +348,59 @@ func firstNonEmpty(vals ...string) string {
 		}
 	}
 	return ""
+}
+
+// ── Finance module events (idempotent via MarkEventProcessed) ────────────────
+// NOTE: like every public route this runs under the DEFAULT tenant — family
+// billing webhooks currently resolve for the default org (multi-org follows
+// the kiosk cross-org pattern later).
+
+func (h *StripeWebhookHandler) handleFinanceSetup(ctx context.Context, event stripe.Event) {
+	if h.finance == nil || !h.finance.MarkEventProcessed(ctx, event.ID) {
+		return
+	}
+	var si struct {
+		Customer      string `json:"customer"`
+		PaymentMethod string `json:"payment_method"`
+		Mandate       string `json:"mandate"`
+	}
+	if err := json.Unmarshal(event.Data.Raw, &si); err != nil || si.Customer == "" {
+		return
+	}
+	if err := h.finance.OnSetupCompleted(ctx, si.Customer, si.PaymentMethod, si.Mandate); err != nil {
+		slog.Error("stripe webhook: finance setup", "err", err)
+	}
+}
+
+func (h *StripeWebhookHandler) handleFinanceIntent(ctx context.Context, event stripe.Event, status models.PaymentStatus) {
+	if h.finance == nil || !h.finance.MarkEventProcessed(ctx, event.ID) {
+		return
+	}
+	var pi struct {
+		ID            string `json:"id"`
+		LastPaymentError struct {
+			Message string `json:"message"`
+		} `json:"last_payment_error"`
+	}
+	if err := json.Unmarshal(event.Data.Raw, &pi); err != nil || pi.ID == "" {
+		return
+	}
+	if err := h.finance.OnPaymentIntent(ctx, pi.ID, status, pi.LastPaymentError.Message); err != nil {
+		slog.Error("stripe webhook: finance intent", "err", err)
+	}
+}
+
+func (h *StripeWebhookHandler) handleFinanceRefund(ctx context.Context, event stripe.Event) {
+	if h.finance == nil || !h.finance.MarkEventProcessed(ctx, event.ID) {
+		return
+	}
+	var ch struct {
+		PaymentIntent string `json:"payment_intent"`
+	}
+	if err := json.Unmarshal(event.Data.Raw, &ch); err != nil || ch.PaymentIntent == "" {
+		return
+	}
+	if err := h.finance.OnPaymentIntent(ctx, ch.PaymentIntent, models.PaymentRefunded, "refunded"); err != nil {
+		slog.Error("stripe webhook: finance refund", "err", err)
+	}
 }

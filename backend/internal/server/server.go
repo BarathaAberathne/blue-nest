@@ -119,6 +119,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	notifPrefRepo := repository.NewNotificationPreferenceRepository(db)
 	notifSvc := service.NewNotificationServiceWithEmail(notificationRepo, mailer, userRepo, notifPrefRepo, cfg.FrontendURL, cfg.NotifyEmailEnabled)
 	parentSvc := service.NewParentService(parentRepo, childParentRepo, childRepo, userRepo, counterRepo, mailer, cfg.FrontendURL)
+	financeRepo := repository.NewFinanceRepository(db)
+	financeSvc := service.NewFinanceService(financeRepo, childParentRepo, parentRepo, childRepo, counterRepo, cfg.Stripe.SecretKey != "")
 	roleSvc := service.NewRoleService(roleRepo)
 	orgSvc := service.NewOrganisationService(orgRepo, authSvc, roleSvc)
 	// Resolve the default tenant for public/unauthenticated requests. Empty until
@@ -165,7 +167,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo, childRoomAssignSvc, taxonomyRepo, childParentRepo, parentRepo),
 		Parents:           parentSvc,
 		Induction:         service.NewInductionService(inductionRepo, consentRepo, childRepo),
-		Onboarding:        service.NewOnboardingService(childRepo, inductionRepo, childParentRepo, consentRepo),
+		Onboarding:        service.NewOnboardingService(childRepo, inductionRepo, childParentRepo, consentRepo, financeSvc),
+		Finance:           financeSvc,
 		Attendance:        service.NewAttendanceService(attendanceRepo, childRepo, childRoomAssignRepo),
 		Staff:             service.NewStaffService(staffRepo, counterRepo, authSvc, staffRoomAssignSvc, roomRepo),
 		StaffRoomAssign:   staffRoomAssignSvc,

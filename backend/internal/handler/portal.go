@@ -20,10 +20,12 @@ type PortalHandler struct {
 	children   service.ChildService
 	induction  service.InductionService
 	onboarding service.OnboardingService
+	finance    service.FinanceService
+	frontend   string
 }
 
-func NewPortalHandler(parents service.ParentService, children service.ChildService, induction service.InductionService, onboarding service.OnboardingService) *PortalHandler {
-	return &PortalHandler{parents: parents, children: children, induction: induction, onboarding: onboarding}
+func NewPortalHandler(parents service.ParentService, children service.ChildService, induction service.InductionService, onboarding service.OnboardingService, finance service.FinanceService, frontendURL string) *PortalHandler {
+	return &PortalHandler{parents: parents, children: children, induction: induction, onboarding: onboarding, finance: finance, frontend: frontendURL}
 }
 
 func (h *PortalHandler) scope(w http.ResponseWriter, r *http.Request) (*models.Parent, map[string]bool, bool) {
@@ -209,4 +211,45 @@ func (h *PortalHandler) Onboarding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.OK(w, v)
+}
+
+// ── Finance (parent-facing; only the caller's own family) ────────────────────
+
+func (h *PortalHandler) Finance(w http.ResponseWriter, r *http.Request) {
+	parent, _, ok := h.scope(w, r)
+	if !ok {
+		return
+	}
+	fam, err := h.finance.FamilyForParent(r.Context(), parent.ID.Hex())
+	if err != nil {
+		response.OK(w, map[string]any{"family": nil})
+		return
+	}
+	view, err := h.finance.FamilyView(r.Context(), fam.ID.Hex())
+	if err != nil {
+		response.InternalError(w, "failed to load your account")
+		return
+	}
+	response.OK(w, view)
+}
+
+// DirectDebitSetup returns the hosted Stripe Bacs setup URL for the caller's
+// own family.
+func (h *PortalHandler) DirectDebitSetup(w http.ResponseWriter, r *http.Request) {
+	parent, _, ok := h.scope(w, r)
+	if !ok {
+		return
+	}
+	fam, err := h.finance.FamilyForParent(r.Context(), parent.ID.Hex())
+	if err != nil {
+		response.BadRequest(w, "no family billing account yet — please contact the nursery")
+		return
+	}
+	url, err := h.finance.SetupDirectDebit(r.Context(), fam.ID.Hex(),
+		h.frontend+"/portal?dd=success", h.frontend+"/portal?dd=cancelled")
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	response.OK(w, map[string]string{"setup_url": url})
 }

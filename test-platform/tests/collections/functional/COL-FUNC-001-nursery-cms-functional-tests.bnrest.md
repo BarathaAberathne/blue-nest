@@ -70,5 +70,8 @@ Call CatchError ../../suites/export/SUI-EXPORT-001-csv-exports.bnrest.md
 Call CatchError ../../suites/dailylogapproval/SUI-DAILYLOG-001-approval.bnrest.md
 Call CatchError ../../suites/leave/SUI-LEAVE-001-leave-requests.bnrest.md
 Call CatchError ../../suites/me/SUI-ME-001-my-profile.bnrest.md
+Call CatchError ../../suites/parent/SUI-PARENT-001-parents-and-relationships.bnrest.md
+Call CatchError ../../suites/induction/SUI-INDUCT-001-induction-and-consents.bnrest.md
+Call CatchError ../../suites/finance/SUI-FINANCE-001-family-billing.bnrest.md
 Call CatchError ../../suites/auth/SUI-AUTH-001-authentication.bnrest.md
 ```

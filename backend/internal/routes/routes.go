@@ -46,6 +46,7 @@ type Services struct {
 	Parents           service.ParentService
 	Induction         service.InductionService
 	Onboarding        service.OnboardingService
+	Finance           service.FinanceService
 	Attendance        service.AttendanceService
 	Staff             service.StaffService
 	StaffAttendance   service.StaffAttendanceService
@@ -87,7 +88,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 	r.Get("/api/v1/health", health.Check)
 
 	// ── Stripe webhook (raw body required before JSON middleware) ───────────
-	stripeWH := webhooks.NewStripeWebhookHandler(stripeWebhookSecret, repos.Orders, repos.Products, repos.Branches, repos.Mailer, repos.OrderAdminTo, repos.OrderBATo)
+	stripeWH := webhooks.NewStripeWebhookHandler(stripeWebhookSecret, repos.Orders, repos.Products, repos.Branches, repos.Mailer, repos.OrderAdminTo, repos.OrderBATo, svc.Finance)
 	r.Post("/api/v1/webhooks/stripe", stripeWH.Handle)
 
 	// ── GBP digest ingest (shared-secret webhook, no user JWT) ──────────────
@@ -238,7 +239,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtSecret))
 			r.Use(middleware.RequireRole("customer"))
-			portalH := handler.NewPortalHandler(svc.Parents, svc.Children, svc.Induction, svc.Onboarding)
+			portalH := handler.NewPortalHandler(svc.Parents, svc.Children, svc.Induction, svc.Onboarding, svc.Finance, cfg.FrontendURL)
 			r.Get("/portal/me", portalH.Me)
 			r.Get("/portal/children", portalH.Children)
 			r.Get("/portal/children/{id}", portalH.Child)
@@ -248,6 +249,8 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/portal/children/{id}/consents", portalH.Consents)
 			r.Post("/portal/children/{id}/consents", portalH.RecordConsent)
 			r.Get("/portal/children/{id}/onboarding", portalH.Onboarding)
+			r.Get("/portal/finance", portalH.Finance)
+			r.Post("/portal/finance/direct-debit", portalH.DirectDebitSetup)
 		})
 
 		// ── Staff supply requests (staff + management, not customers) ───────
@@ -460,6 +463,25 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Post("/admin/children/{id}/consents", adminInductionH.RecordConsent)
 				r.Get("/admin/children/{id}/onboarding", adminInductionH.Onboarding)
 				r.Get("/admin/onboarding", adminInductionH.Board)
+			})
+
+			// Finance — family billing, charges, payments, Direct Debit.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermFinanceManage))
+				adminFinanceH := adminHandler.NewAdminFinanceHandler(svc.Finance, svc.Audit)
+				r.Get("/admin/finance/dashboard", adminFinanceH.Dashboard)
+				r.Get("/admin/families", adminFinanceH.Families)
+				r.Get("/admin/families/{id}", adminFinanceH.Family)
+				r.Post("/admin/children/{id}/family", adminFinanceH.EnsureFamily)
+				r.Post("/admin/families/{id}/charges", adminFinanceH.CreateCharge)
+				r.Post("/admin/families/{id}/first-payment", adminFinanceH.FirstPayment)
+				r.Post("/admin/families/{id}/schedule", adminFinanceH.CreateSchedule)
+				r.Post("/admin/families/{id}/manual-payment", adminFinanceH.ManualPayment)
+				r.Post("/admin/charges/{chargeId}/collect", adminFinanceH.Collect)
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequirePermission(models.PermFinanceAdjust))
+					r.Post("/admin/families/{id}/mandate", adminFinanceH.MarkMandate)
+				})
 			})
 
 			// Parents / guardians — canonical person records, child links and
