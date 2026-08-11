@@ -110,6 +110,7 @@ func (r *childRepository) Update(ctx context.Context, id string, c models.Child)
 		"last_name":     c.LastName,
 		"dob":           c.DOB,
 		"gender":        c.Gender,
+		"address":       c.Address,
 		"branch_slug":   c.BranchSlug,
 		"status":        c.Status,
 		"start_date":    c.StartDate,

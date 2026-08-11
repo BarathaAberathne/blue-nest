@@ -7,6 +7,7 @@ import (
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
+	"github.com/blue-nest-montessori/api/pkg/validator"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -15,12 +16,14 @@ import (
 // children) — the server-side scope that makes changing an id in the URL
 // useless (IDOR-proof by construction).
 type PortalHandler struct {
-	parents  service.ParentService
-	children service.ChildService
+	parents    service.ParentService
+	children   service.ChildService
+	induction  service.InductionService
+	onboarding service.OnboardingService
 }
 
-func NewPortalHandler(parents service.ParentService, children service.ChildService) *PortalHandler {
-	return &PortalHandler{parents: parents, children: children}
+func NewPortalHandler(parents service.ParentService, children service.ChildService, induction service.InductionService, onboarding service.OnboardingService) *PortalHandler {
+	return &PortalHandler{parents: parents, children: children, induction: induction, onboarding: onboarding}
 }
 
 func (h *PortalHandler) scope(w http.ResponseWriter, r *http.Request) (*models.Parent, map[string]bool, bool) {
@@ -84,4 +87,126 @@ func (h *PortalHandler) Child(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.OK(w, c)
+}
+
+// ── Induction, consents & onboarding (parent-facing) ─────────────────────────
+
+func (h *PortalHandler) Induction(w http.ResponseWriter, r *http.Request) {
+	_, authorised, ok := h.scope(w, r)
+	if !ok {
+		return
+	}
+	id := chi.URLParam(r, "id")
+	if !authorised[id] {
+		response.NotFound(w, "child not found")
+		return
+	}
+	ind, err := h.induction.Get(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "child not found")
+		return
+	}
+	// The legal_contact section is safeguarding-sensitive: parents complete
+	// their own family details but never see manager-side safeguarding notes.
+	response.OK(w, map[string]any{"induction": ind, "sections": models.InductionSections, "consent_catalogue": models.ConsentCatalogue})
+}
+
+func (h *PortalHandler) SaveInductionSection(w http.ResponseWriter, r *http.Request) {
+	parent, authorised, ok := h.scope(w, r)
+	if !ok {
+		return
+	}
+	id := chi.URLParam(r, "id")
+	if !authorised[id] {
+		response.NotFound(w, "child not found")
+		return
+	}
+	var req models.SectionSaveRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	ind, err := h.induction.SaveSection(r.Context(), id, chi.URLParam(r, "key"), req, parent.UserID)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	response.OK(w, ind)
+}
+
+func (h *PortalHandler) SubmitInduction(w http.ResponseWriter, r *http.Request) {
+	parent, authorised, ok := h.scope(w, r)
+	if !ok {
+		return
+	}
+	id := chi.URLParam(r, "id")
+	if !authorised[id] {
+		response.NotFound(w, "child not found")
+		return
+	}
+	ind, err := h.induction.Submit(r.Context(), id, parent.UserID)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	response.OK(w, ind)
+}
+
+func (h *PortalHandler) Consents(w http.ResponseWriter, r *http.Request) {
+	_, authorised, ok := h.scope(w, r)
+	if !ok {
+		return
+	}
+	id := chi.URLParam(r, "id")
+	if !authorised[id] {
+		response.NotFound(w, "child not found")
+		return
+	}
+	rows, err := h.induction.Consents(r.Context(), id)
+	if err != nil {
+		response.InternalError(w, "failed to fetch consents")
+		return
+	}
+	response.OK(w, map[string]any{"consents": rows, "latest": service.LatestConsents(rows), "catalogue": models.ConsentCatalogue})
+}
+
+func (h *PortalHandler) RecordConsent(w http.ResponseWriter, r *http.Request) {
+	parent, authorised, ok := h.scope(w, r)
+	if !ok {
+		return
+	}
+	id := chi.URLParam(r, "id")
+	if !authorised[id] {
+		response.NotFound(w, "child not found")
+		return
+	}
+	var req models.ConsentRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	c, err := h.induction.RecordConsent(r.Context(), id, req, parent.ID.Hex(), parent.UserID)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	response.Created(w, c)
+}
+
+func (h *PortalHandler) Onboarding(w http.ResponseWriter, r *http.Request) {
+	_, authorised, ok := h.scope(w, r)
+	if !ok {
+		return
+	}
+	id := chi.URLParam(r, "id")
+	if !authorised[id] {
+		response.NotFound(w, "child not found")
+		return
+	}
+	v, err := h.onboarding.ForChild(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "child not found")
+		return
+	}
+	response.OK(w, v)
 }

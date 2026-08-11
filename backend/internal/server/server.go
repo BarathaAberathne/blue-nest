@@ -83,6 +83,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	childRepo := repository.NewChildRepository(db)
 	parentRepo := repository.NewParentRepository(db)
 	childParentRepo := repository.NewChildParentRepository(db)
+	inductionRepo := repository.NewInductionRepository(db)
+	consentRepo := repository.NewConsentRepository(db)
 	attendanceRepo := repository.NewAttendanceRepository(db)
 	staffRepo := repository.NewStaffRepository(db)
 	staffRoomAssignRepo := repository.NewStaffRoomAssignmentRepository(db)
@@ -162,6 +164,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Rooms:             roomSvc,
 		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo, childRoomAssignSvc, taxonomyRepo, childParentRepo, parentRepo),
 		Parents:           parentSvc,
+		Induction:         service.NewInductionService(inductionRepo, consentRepo, childRepo),
+		Onboarding:        service.NewOnboardingService(childRepo, inductionRepo, childParentRepo, consentRepo),
 		Attendance:        service.NewAttendanceService(attendanceRepo, childRepo, childRoomAssignRepo),
 		Staff:             service.NewStaffService(staffRepo, counterRepo, authSvc, staffRoomAssignSvc, roomRepo),
 		StaffRoomAssign:   staffRoomAssignSvc,

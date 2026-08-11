@@ -44,6 +44,8 @@ type Services struct {
 	Rooms             service.RoomService
 	Children          service.ChildService
 	Parents           service.ParentService
+	Induction         service.InductionService
+	Onboarding        service.OnboardingService
 	Attendance        service.AttendanceService
 	Staff             service.StaffService
 	StaffAttendance   service.StaffAttendanceService
@@ -236,10 +238,16 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtSecret))
 			r.Use(middleware.RequireRole("customer"))
-			portalH := handler.NewPortalHandler(svc.Parents, svc.Children)
+			portalH := handler.NewPortalHandler(svc.Parents, svc.Children, svc.Induction, svc.Onboarding)
 			r.Get("/portal/me", portalH.Me)
 			r.Get("/portal/children", portalH.Children)
 			r.Get("/portal/children/{id}", portalH.Child)
+			r.Get("/portal/children/{id}/induction", portalH.Induction)
+			r.Put("/portal/children/{id}/induction/sections/{key}", portalH.SaveInductionSection)
+			r.Post("/portal/children/{id}/induction/submit", portalH.SubmitInduction)
+			r.Get("/portal/children/{id}/consents", portalH.Consents)
+			r.Post("/portal/children/{id}/consents", portalH.RecordConsent)
+			r.Get("/portal/children/{id}/onboarding", portalH.Onboarding)
 		})
 
 		// ── Staff supply requests (staff + management, not customers) ───────
@@ -441,6 +449,17 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Patch("/admin/children/{id}/key-person", adminChildH.SetKeyPerson)
 				r.Post("/admin/children/{id}/archive", adminChildH.Archive)
 				r.Delete("/admin/children/{id}", adminChildH.Delete)
+
+				// Induction, consents & derived onboarding (children.manage).
+				adminInductionH := adminHandler.NewAdminInductionHandler(svc.Induction, svc.Onboarding, svc.Audit)
+				r.Get("/admin/children/{id}/induction", adminInductionH.Get)
+				r.Put("/admin/children/{id}/induction/sections/{key}", adminInductionH.SaveSection)
+				r.Post("/admin/children/{id}/induction/submit", adminInductionH.Submit)
+				r.Post("/admin/children/{id}/induction/review", adminInductionH.Review)
+				r.Get("/admin/children/{id}/consents", adminInductionH.Consents)
+				r.Post("/admin/children/{id}/consents", adminInductionH.RecordConsent)
+				r.Get("/admin/children/{id}/onboarding", adminInductionH.Onboarding)
+				r.Get("/admin/onboarding", adminInductionH.Board)
 			})
 
 			// Parents / guardians — canonical person records, child links and

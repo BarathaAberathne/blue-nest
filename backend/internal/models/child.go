@@ -56,6 +56,9 @@ type Child struct {
 	LastName     string             `bson:"last_name"            json:"last_name"`
 	DOB          string             `bson:"dob"                  json:"dob"` // YYYY-MM-DD
 	Gender       string             `bson:"gender,omitempty"     json:"gender,omitempty"`
+	// Address is the child's home address (induction form; write-through from
+	// the child_details section).
+	Address string `bson:"address,omitempty" json:"address,omitempty"`
 	BranchSlug   string             `bson:"branch_slug"          json:"branch_slug"`
 	Status       ChildStatus        `bson:"status"               json:"status"`
 	StartDate    string             `bson:"start_date,omitempty" json:"start_date,omitempty"`
