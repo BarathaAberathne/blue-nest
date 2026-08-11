@@ -8,11 +8,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/admission/application-form" },
   title: "Apply Online — Nursery Application",
   description:
-    "Apply for a nursery place at Blue Nest Montessori in Harrow, Pinner or Borehamwood. Quick online application form — choose your branch, sessions and start week. We respond within two working days.",
+    "Apply for a nursery place at Blue Nest Montessori in Harrow, Pinner, Borehamwood or Aldershot. Quick online application form — choose your branch, sessions and start week. We respond within two working days.",
   openGraph: {
     title: "Apply Online — Blue Nest Montessori",
     description:
-      "Online nursery application form for Blue Nest Montessori in Harrow, Pinner and Borehamwood. Two-working-day response.",
+      "Online nursery application form for Blue Nest Montessori in Harrow, Pinner, Borehamwood and Aldershot. Two-working-day response.",
     url: "/admission/application-form",
     images: [{ url: "/home/branches/harrow/harrow-home-hero.jpg", width: 1920, height: 1440, alt: "Blue Nest Montessori application form" }],
     type: "website",
@@ -32,7 +32,7 @@ const NEXT_STEPS = [
     color: "#cf7d9c",
     bg:    "rgba(246,213,223,0.35)",
     title: "Branch visit",
-    desc:  "We arrange a visit to your chosen Harrow, Pinner or Borehamwood nursery so you can meet the team.",
+    desc:  "We arrange a visit to your chosen Harrow, Pinner, Borehamwood or Aldershot nursery so you can meet the team.",
   },
   {
     icon: Sparkles,
@@ -55,7 +55,7 @@ export default function ApplicationFormPage() {
               Apply for a place at Blue Nest Montessori
             </h1>
             <p className="body-text mx-auto mt-4 max-w-xl">
-              Children aged 3 months to 5 years are welcome at our Harrow, Pinner and Borehamwood
+              Children aged 3 months to 5 years are welcome at our Harrow, Pinner, Borehamwood and Aldershot
               Montessori day nurseries. The form below takes about five minutes — choose your
               branch, sessions and preferred start week. We accept 15 and 30 hours of funded
               childcare. Need to estimate fees first?{" "}

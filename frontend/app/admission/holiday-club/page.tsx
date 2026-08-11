@@ -26,13 +26,13 @@ export const metadata: Metadata = {
   // Yell shows /product-page/holiday-club-pinner and similar legacy URLs
   // still pull organic traffic for "holiday club pinner" and
   // "nursery holiday club". Lead the title with the strongest phrase.
-  title: "Holiday Club — Nursery Holiday Childcare in Harrow, Pinner & Borehamwood",
+  title: "Holiday Club — Nursery Holiday Childcare in Harrow, Pinner, Borehamwood & Aldershot",
   description:
-    "School holiday childcare at Blue Nest Montessori — themed activities, forest school, indoor and outdoor play for ages 2-5. Holiday club Pinner, Harrow and Borehamwood. Term-break and half-term sessions, weekly bookings welcome.",
+    "School holiday childcare at Blue Nest Montessori — themed activities, forest school, indoor and outdoor play for ages 2-5. Holiday club Pinner, Harrow, Borehamwood and Aldershot. Term-break and half-term sessions, weekly bookings welcome.",
   openGraph: {
     title: "Holiday Club — Blue Nest Montessori",
     description:
-      "Term-break and half-term nursery holiday club for ages 2-5 in Harrow, Pinner and Borehamwood. Forest school, themed activities and warm Montessori care.",
+      "Term-break and half-term nursery holiday club for ages 2-5 in Harrow, Pinner, Borehamwood and Aldershot. Forest school, themed activities and warm Montessori care.",
     url: "/admission/holiday-club",
     images: [{ url: "/home/branches/harrow/harrow-home-hero.jpg", width: 1920, height: 1440, alt: "Blue Nest Montessori holiday club" }],
     type: "website",
@@ -56,7 +56,7 @@ const faqJsonLd = {
       name: "Which branches run a holiday club?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Holiday club currently runs at our Harrow, Pinner and Borehamwood Montessori nurseries during half-term weeks and main school holidays. Some weeks may run at fewer branches depending on demand — please check with the branch when you enquire.",
+        text: "Holiday club currently runs at our Harrow, Pinner, Borehamwood and Aldershot Montessori nurseries during half-term weeks and main school holidays. Some weeks may run at fewer branches depending on demand — please check with the branch when you enquire.",
       },
     },
     {
@@ -185,12 +185,12 @@ export default function HolidayClubPage() {
             <div className="mx-auto max-w-3xl text-center">
               <span className="section-kicker">Holiday childcare</span>
               <h1 className="mt-4 font-heading text-[2.5rem] leading-[1.1] text-[var(--ink)] sm:text-[3rem] lg:text-[3.4rem]">
-                Nursery Holiday Club in Harrow, Pinner &amp; Borehamwood
+                Nursery Holiday Club in Harrow, Pinner, Borehamwood &amp; Aldershot
               </h1>
               <p className="body-text mx-auto mt-5 max-w-2xl">
                 Warm, structured school holiday childcare for children aged 2 to 5. Forest school
                 adventures, Montessori practical-life sessions and themed weekly fun across our
-                Harrow, Pinner and Borehamwood Montessori nurseries.
+                Harrow, Pinner, Borehamwood and Aldershot Montessori nurseries.
               </p>
               <div className="mt-7 flex flex-wrap justify-center gap-3">
                 <PastelButton href="/contact?enquiry=holiday-club" variant="rose">
@@ -430,7 +430,7 @@ export default function HolidayClubPage() {
                 A nursery holiday club children love
               </h2>
               <p className="body-text mx-auto mt-5 max-w-lg">
-                Whether you&rsquo;re searching for holiday club Pinner, Harrow or Borehamwood —
+                Whether you&rsquo;re searching for holiday club Pinner, Harrow, Borehamwood or Aldershot —
                 we&rsquo;d love to welcome your child to Blue Nest these school holidays.
               </p>
               <div className="mt-8">

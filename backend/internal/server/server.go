@@ -149,7 +149,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		OrderTemplates:    service.NewOrderTemplateService(orderTemplateRepo),
 		Suppliers:         service.NewSupplierService(supplierRepo),
 		Taxonomy:          service.NewTaxonomyService(taxonomyRepo),
-		FeeConfig:         service.NewFeeConfigService(feeConfigRepo),
+		FeeConfig:         service.NewFeeConfigService(feeConfigRepo, branchRepo),
 		BranchTemplates:   service.NewBranchTemplateService(repository.NewBranchTemplateRepository(db), roomSvc, branchSvc),
 		EmailTemplates:    emailTemplateSvc,
 		Terms:             service.NewTermService(termRepo),

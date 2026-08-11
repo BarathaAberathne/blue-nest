@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/home-learning" },
   title: "Home Learning Kit — Montessori Activities for Parents",
   description:
-    "The Blue Nest Home Learning Kit — Montessori-inspired activity guides, speech and language tips, routine cards and play-based learning resources for parents. Extend your child's nursery learning at home across Harrow, Pinner and Borehamwood.",
+    "The Blue Nest Home Learning Kit — Montessori-inspired activity guides, speech and language tips, routine cards and play-based learning resources for parents. Extend your child's nursery learning at home across Harrow, Pinner, Borehamwood and Aldershot.",
   openGraph: {
     title: "Home Learning — Blue Nest Montessori School",
     description:

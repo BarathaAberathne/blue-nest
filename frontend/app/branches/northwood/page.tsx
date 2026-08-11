@@ -5,6 +5,7 @@ import PastelButton from "@/components/ui/PastelButton";
 import { Reveal } from "@/components/ui/Motion";
 import BranchFeeCalculatorSection from "@/components/sections/BranchFeeCalculatorSection";
 import BranchHero from "@/components/sections/BranchHero";
+import { getPublicBranch, branchContactView } from "@/lib/branch-public";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/branches/northwood" },
@@ -21,15 +22,29 @@ export const metadata: Metadata = {
   },
 };
 
-const details = [
-  { icon: MapPin, label: "Location", value: "Sandy Lane, Northwood, HA6 3DA"  },
-  { icon: Clock,  label: "Hours",   value: "Mon–Fri, 7:30am–6:00pm"  },
-  { icon: Mail,   label: "Email",   value: "manager@bluenest.uk"       },
-];
-
-export default function NorthwoodBranchPage() {
+export default async function NorthwoodBranchPage() {
+  const branch = await getPublicBranch("northwood");
+  const c = branchContactView("northwood", branch);
+  const details = [
+    { icon: MapPin, label: "Location", value: c.address },
+    { icon: Clock,  label: "Hours",   value: `${c.hoursLine1}, ${c.hoursLine2}` },
+    { icon: Mail,   label: "Email",   value: c.email },
+  ];
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://bluenest.uk/" },
+      { "@type": "ListItem", position: 2, name: "Branches", item: "https://bluenest.uk/branches" },
+      { "@type": "ListItem", position: 3, name: "Northwood", item: "https://bluenest.uk/branches/northwood" },
+    ],
+  };
   return (
     <PublicLayout>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
 
       <BranchHero
         location="Northwood, London · HA6"

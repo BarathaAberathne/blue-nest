@@ -5,8 +5,10 @@ import { motion } from "framer-motion";
 import { X, Loader2, CheckCircle2 } from "lucide-react";
 import { useChatBot } from "./ChatBotContext";
 import type { LeadFormData } from "@/types/chat";
+import { BRANCH_FALLBACKS } from "@/lib/branch-public";
 
-const BRANCHES = ["Harrow", "Pinner", "Borehamwood", "Northwood (Coming Soon)"];
+// Sourced from the shared roster so a new branch appears without a code change.
+const BRANCHES = BRANCH_FALLBACKS.map((b) => b.comingSoon ? `${b.label} (Coming Soon)` : b.label);
 const AGES = [
   "Under 1 year",
   "1–2 years",

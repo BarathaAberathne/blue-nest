@@ -18,14 +18,15 @@ import (
 )
 
 type AdminEnquiryHandler struct {
-	svc      service.EnquiryService
-	auth     service.AuthService
-	audit    service.AuditService
-	children service.ChildService
+	svc        service.EnquiryService
+	auth       service.AuthService
+	audit      service.AuditService
+	children   service.ChildService
+	childRooms service.ChildRoomAssignmentService
 }
 
-func NewAdminEnquiryHandler(svc service.EnquiryService, auth service.AuthService, audit service.AuditService, children service.ChildService) *AdminEnquiryHandler {
-	return &AdminEnquiryHandler{svc: svc, auth: auth, audit: audit, children: children}
+func NewAdminEnquiryHandler(svc service.EnquiryService, auth service.AuthService, audit service.AuditService, children service.ChildService, childRooms service.ChildRoomAssignmentService) *AdminEnquiryHandler {
+	return &AdminEnquiryHandler{svc: svc, auth: auth, audit: audit, children: children, childRooms: childRooms}
 }
 
 // actor pulls the authenticated staff identity off the request for note/activity
@@ -463,11 +464,34 @@ func (h *AdminEnquiryHandler) Register(w http.ResponseWriter, r *http.Request) {
 		if body.ExpectedStartDate != nil {
 			childReq.StartDate = body.ExpectedStartDate.Format("2006-01-02")
 		}
-		if _, err := h.children.EnsureFromEnquiry(r.Context(), id, childReq); err != nil {
+		child, err := h.children.EnsureFromEnquiry(r.Context(), id, childReq)
+		if err != nil {
 			response.InternalError(w, "registered the enquiry but failed to create the child record: "+err.Error())
 			return
 		}
 		summary = "Registered enquiry and added " + body.ChildFirstName + " " + body.ChildLastName + " to Children"
+
+		// Room picked on the registration panel → create the CANONICAL room
+		// assignment for the new child (start = expected start date), the same
+		// allocation the child-create screen issues. Best-effort: a failed
+		// capacity/age check must not unwind an already-confirmed registration,
+		// so the warning is surfaced in the response message instead.
+		if body.RoomID != "" && child != nil {
+			role, scope := caller(r)
+			assignReq := models.ChildRoomAssignmentRequest{ChildID: child.ID.Hex(), RoomID: body.RoomID}
+			if body.ExpectedStartDate != nil {
+				assignReq.StartDate = body.ExpectedStartDate.Format("2006-01-02")
+			}
+			if created, aerr := h.childRooms.Assign(r.Context(), assignReq, actorID(r), policy.AllowedOrNil(role, scope)); aerr != nil {
+				// Surface the failure ON the enquiry (note + audit) — the fresh
+				// enquiry this handler returns carries it into the UI timeline.
+				_, _ = h.svc.AddNote(r.Context(), id,
+					"Room allocation failed during registration: "+aerr.Error()+". Allocate a room from the child's profile.", actor(r))
+				h.audit.Record(r, "register", "enquiry", id, "Room allocation on registration failed: "+aerr.Error(), nil)
+			} else if created != nil {
+				summary += " and allocated to " + created.RoomName
+			}
+		}
 	}
 	h.audit.Record(r, "register", "enquiry", id, summary, nil)
 	h.respondUpdated(w, r, id)

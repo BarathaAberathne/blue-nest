@@ -1,7 +1,8 @@
 import FeeCalculatorCard from "@/components/ui/FeeCalculatorCard";
 import { Reveal } from "@/components/ui/Motion";
 
-type BranchSlug = "harrow" | "pinner" | "borehamwood" | "pinner-green" | "northwood";
+// Branch slugs are data, not a closed union — any configured branch works.
+type BranchSlug = string;
 
 interface Props {
   branch:     BranchSlug;

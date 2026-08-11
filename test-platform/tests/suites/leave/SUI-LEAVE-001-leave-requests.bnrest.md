@@ -67,4 +67,5 @@ Body
 Call CatchError ../../cases/leave/LEAVE-TC-001-apply-review-cancel.bnrest.md
 Call CatchError ../../cases/leave/LEAVE-TC-002-balance-and-manager-file.bnrest.md
 Call CatchError ../../cases/leave/LEAVE-TC-003-approved-blocks-rota.bnrest.md
+Call CatchError ../../cases/leave/LEAVE-TC-004-notification-links-resolve.bnrest.md
 ```

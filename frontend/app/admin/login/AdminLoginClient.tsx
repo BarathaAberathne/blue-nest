@@ -22,6 +22,7 @@ import {
 import { api } from "@/lib/api";
 import { storeAuthResponse } from "@/lib/auth";
 import type { AuthResponse } from "@/types";
+import { BRANCH_FALLBACKS } from "@/lib/branch-public";
 
 const LOGO = "/logo/bluenest-logo.png";
 
@@ -31,7 +32,8 @@ const VALUES = [
   { icon: Leaf, label: "Outdoor play" },
 ];
 
-const BRANCHES = ["Harrow", "Pinner", "Borehamwood", "Pinner Green"];
+// Decorative strip only — sourced from the shared roster so it never drifts.
+const BRANCHES = BRANCH_FALLBACKS.filter((b) => !b.comingSoon).map((b) => b.label);
 
 export default function AdminLoginClient() {
   const router = useRouter();

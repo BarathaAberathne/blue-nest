@@ -21,6 +21,7 @@ const staticRoutes: { url: string; priority: number; changeFrequency: MetadataRo
   { url: "/branches/borehamwood",           priority: 0.9, changeFrequency: "monthly" },
   { url: "/branches/northwood",             priority: 0.6, changeFrequency: "monthly" },
   { url: "/branches/pinner-green",          priority: 0.7, changeFrequency: "monthly" },
+  { url: "/branches/aldershot",             priority: 0.9, changeFrequency: "monthly" },
   { url: "/gallery",                        priority: 0.7, changeFrequency: "weekly"  },
   { url: "/our-team",                       priority: 0.7, changeFrequency: "monthly" },
   { url: "/our-charities",                  priority: 0.6, changeFrequency: "monthly" },

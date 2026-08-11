@@ -51,6 +51,27 @@ func (h *AdminFeeConfigHandler) UpdateBranch(w http.ResponseWriter, r *http.Requ
 	response.OK(w, cfg)
 }
 
+// Delete prunes a branch's fee-config document. Works for any slug — including
+// orphans whose branch was archived/deleted — so leftover docs can be cleaned.
+func (h *AdminFeeConfigHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	branch := chi.URLParam(r, "branch")
+	if branch == "" {
+		response.BadRequest(w, "branch is required")
+		return
+	}
+	removed, err := h.svc.DeleteBranch(r.Context(), branch)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	if !removed {
+		response.NotFound(w, "no fee config for branch "+branch)
+		return
+	}
+	h.audit.Record(r, "delete", "fee_config", branch, "Deleted fee rules for "+branch, nil)
+	response.NoContent(w)
+}
+
 // UpdateMeta upserts the org-wide ancillary pricing + disclaimer.
 func (h *AdminFeeConfigHandler) UpdateMeta(w http.ResponseWriter, r *http.Request) {
 	var meta models.FeeMeta

@@ -33,11 +33,17 @@ import {
   statusLabel,
   toDateInput,
 } from "@/lib/enquiry";
+import { useTaxonomy } from "@/lib/useTaxonomy";
 import { ENQUIRY_STATUSES } from "@/types";
-import type { Enquiry, EnquiryAssignee, EnquiryPriority, EnquiryStatus } from "@/types";
+import type { Enquiry, EnquiryAssignee, EnquiryPriority, EnquiryStatus, Room } from "@/types";
 
 type Toast = { kind: "success" | "error" | "info"; msg: string };
 const PRIORITIES: EnquiryPriority[] = ["low", "medium", "high"];
+const GENDER_OPTIONS = ["Female", "Male", "Other"];
+const FUNDING_OPTIONS = ["Private (none)", "15 hours funded", "30 hours funded"];
+// Fallback when the org hasn't configured age_group taxonomy terms yet —
+// mirrors the built-in occupancy bands.
+const AGE_GROUP_FALLBACK = ["Under 2", "2–3 years", "3+ years"];
 
 // Parsed as UTC midnight (note the "Z") so the stored instant's calendar date
 // always matches what the user typed, regardless of the browser's local
@@ -106,6 +112,21 @@ export default function AdminInquiryDetailClient({ id }: { id: string }) {
     registration_date: "", expected_start_date: "", child_age_group: "", room_allocation: "", funding_type: "",
     child_first_name: "", child_last_name: "", child_dob: "", child_gender: "",
   });
+
+  // The registration panel's pickers source from the real lists: the branch's
+  // rooms (canonical allocation) and the org's configured age-group taxonomy.
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const ageGroupTerms = useTaxonomy("age_group", enquiry?.branch ?? "");
+  const ageGroupOptions = ageGroupTerms.length ? ageGroupTerms.map((t) => t.label) : AGE_GROUP_FALLBACK;
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token || !enquiry?.branch) return;
+    let alive = true;
+    api.adminGetRooms(token, enquiry.branch)
+      .then((r) => { if (alive) setRooms(r ?? []); })
+      .catch(() => { if (alive) setRooms([]); });
+    return () => { alive = false; };
+  }, [enquiry?.branch]);
 
   const showToast = useCallback((t: Toast) => {
     setToast(t);
@@ -228,6 +249,10 @@ export default function AdminInquiryDetailClient({ id }: { id: string }) {
       expected_start_date: dateInputToISO(reg.expected_start_date),
       child_age_group: reg.child_age_group,
       room_allocation: reg.room_allocation,
+      // The picked room's id drives the CANONICAL room assignment the backend
+      // creates alongside the child; the name (room_allocation) stays as the
+      // registration sub-doc's display string.
+      room_id: rooms.find((r) => r.name === reg.room_allocation)?.id ?? "",
       funding_type: reg.funding_type,
       child_first_name: reg.child_first_name,
       child_last_name: reg.child_last_name,
@@ -437,17 +462,33 @@ export default function AdminInquiryDetailClient({ id }: { id: string }) {
               <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Date of birth *</span>
                 <input type="date" max={new Date().toISOString().slice(0, 10)} value={reg.child_dob} onChange={(ev) => setReg({ ...reg, child_dob: ev.target.value })} className={inputCls} /></label>
               <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Gender</span>
-                <input type="text" value={reg.child_gender} onChange={(ev) => setReg({ ...reg, child_gender: ev.target.value })} placeholder="Optional" className={inputCls} /></label>
+                <select value={reg.child_gender} onChange={(ev) => setReg({ ...reg, child_gender: ev.target.value })} className={inputCls}>
+                  <option value="">—</option>
+                  {GENDER_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
+                  {reg.child_gender && !GENDER_OPTIONS.includes(reg.child_gender) && <option value={reg.child_gender}>{reg.child_gender}</option>}
+                </select></label>
               <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Registration date</span>
                 <input type="date" value={reg.registration_date} onChange={(ev) => setReg({ ...reg, registration_date: ev.target.value })} className={inputCls} /></label>
               <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Expected start date *</span>
                 <input type="date" value={reg.expected_start_date} onChange={(ev) => setReg({ ...reg, expected_start_date: ev.target.value })} className={inputCls} /></label>
               <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Child age group</span>
-                <input type="text" value={reg.child_age_group} onChange={(ev) => setReg({ ...reg, child_age_group: ev.target.value })} placeholder="e.g. 2–3 years" className={inputCls} /></label>
+                <select value={reg.child_age_group} onChange={(ev) => setReg({ ...reg, child_age_group: ev.target.value })} className={inputCls}>
+                  <option value="">Select age group…</option>
+                  {ageGroupOptions.map((g) => <option key={g} value={g}>{g}</option>)}
+                  {reg.child_age_group && !ageGroupOptions.includes(reg.child_age_group) && <option value={reg.child_age_group}>{reg.child_age_group}</option>}
+                </select></label>
               <label className="text-sm"><span className="mb-1 block font-medium text-slate-600">Room allocation</span>
-                <input type="text" value={reg.room_allocation} onChange={(ev) => setReg({ ...reg, room_allocation: ev.target.value })} placeholder="e.g. Sunflower Room" className={inputCls} /></label>
+                <select value={reg.room_allocation} onChange={(ev) => setReg({ ...reg, room_allocation: ev.target.value })} className={inputCls}>
+                  <option value="">No room yet</option>
+                  {rooms.map((r) => <option key={r.id} value={r.name}>{r.name}</option>)}
+                  {reg.room_allocation && !rooms.some((r) => r.name === reg.room_allocation) && <option value={reg.room_allocation}>{reg.room_allocation}</option>}
+                </select></label>
               <label className="text-sm sm:col-span-2"><span className="mb-1 block font-medium text-slate-600">Funding type</span>
-                <input type="text" value={reg.funding_type} onChange={(ev) => setReg({ ...reg, funding_type: ev.target.value })} placeholder="e.g. 15h / 30h funded, private" className={inputCls} /></label>
+                <select value={reg.funding_type} onChange={(ev) => setReg({ ...reg, funding_type: ev.target.value })} className={inputCls}>
+                  <option value="">Select funding…</option>
+                  {FUNDING_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+                  {reg.funding_type && !FUNDING_OPTIONS.includes(reg.funding_type) && <option value={reg.funding_type}>{reg.funding_type}</option>}
+                </select></label>
             </div>
             <div className="mt-4 flex justify-end">
               <button type="button" onClick={submitRegistration} disabled={busy} className="btn-primary py-2 text-sm disabled:opacity-50">{e.registration?.is_registered ? "Update registration" : "Confirm registration"}</button>

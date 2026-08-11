@@ -261,7 +261,11 @@ type EnquiryRegisterRequest struct {
 	ExpectedStartDate *time.Time `json:"expected_start_date"`
 	ChildAgeGroup     string     `json:"child_age_group"`
 	RoomAllocation    string     `json:"room_allocation"`
-	FundingType       string     `json:"funding_type"`
+	// RoomID (optional) is the canonical room to allocate the child to on
+	// registration — the room picker on the registration panel sends both the
+	// id (for the real assignment) and the display name (RoomAllocation).
+	RoomID      string `json:"room_id"`
+	FundingType string `json:"funding_type"`
 	// Child identity — required to actually create the Child record alongside
 	// marking the enquiry registered (see AdminEnquiryHandler.Register). Left
 	// empty (e.g. a stale registration saved before this field existed), no
