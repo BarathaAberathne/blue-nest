@@ -160,7 +160,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		DashboardLayouts:  service.NewDashboardLayoutService(dashboardLayoutRepo),
 		DashboardProfiles: service.NewDashboardProfileService(dashboardProfileRepo),
 		Rooms:             roomSvc,
-		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo, childRoomAssignSvc, taxonomyRepo),
+		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo, childRoomAssignSvc, taxonomyRepo, childParentRepo, parentRepo),
 		Parents:           parentSvc,
 		Attendance:        service.NewAttendanceService(attendanceRepo, childRepo, childRoomAssignRepo),
 		Staff:             service.NewStaffService(staffRepo, counterRepo, authSvc, staffRoomAssignSvc, roomRepo),
