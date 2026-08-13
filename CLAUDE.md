@@ -694,7 +694,9 @@ Amazon Business API (Product Search → Cart → Ordering), then full inventory/
     succeeded`, `payment_intent.succeeded/processing/payment_failed`, `charge.refunded`) are signature-
     verified and **idempotent via a unique-`event_id` insert into the global `webhook_events` collection**
     (`MarkEventProcessed`). An audited **paper-mandate path** (`finance.adjust`) keeps everything testable
-    without Stripe. **Onboarding finance gate** = mandate active AND ≥1 first-payment charge AND all
+    without Stripe. **⚠ Prod gap: Bacs DD is NOT yet enabled on the live Stripe account — online DD
+    setup/collection fails in prod until then (paper mandates + manual payments cover the gate); see
+    the OPEN PRODUCTION GAP notice in `docs/features/family-onboarding-finance-plan.md`.** **Onboarding finance gate** = mandate active AND ≥1 first-payment charge AND all
     first-payment charges paid. Permissions `finance.manage` (routes) / `finance.adjust` (mandate);
     UI `/admin/finance` (KPI dashboard + families) + family detail (charges/payments/schedules/comms +
     Raise charge / First payment / Record payment / Schedule / Paper mandate / Collect / Remind), child
