@@ -267,6 +267,7 @@ export default function ApplicationFormClient() {
   const [gender,       setGender]       = useState("");
   const [waitingList,  setWaitingList]  = useState("");
   const [hasSignature, setHasSignature] = useState(false);
+  const [acceptTerms,  setAcceptTerms]  = useState(false);
   const [attempted,    setAttempted]    = useState(false);
   const [sessions, setSessions] = useState<Record<string, Set<string>>>({});
   // Live session options from the configurable list (org-wide), fallback to the
@@ -319,7 +320,7 @@ export default function ApplicationFormClient() {
     setSubmitError(null);
 
     // Manual validation for fields that aren't standard form inputs.
-    if (!branch || !waitingList || !hasSignature) return;
+    if (!branch || !waitingList || !hasSignature || !acceptTerms) return;
 
     // Let the browser surface its native validity messages for required
     // text/date inputs (`required` is already on each one).
@@ -373,6 +374,7 @@ export default function ApplicationFormClient() {
           waiting_list: waitingList === "Yes",
           sessions:     sessionsList,
           signature_data_url: signatureDataUrl,
+          terms_accepted: true,
         },
       });
       // GA4 conversion — application submitted. No PII; only the
@@ -397,6 +399,7 @@ export default function ApplicationFormClient() {
   const errBranch = attempted && !branch;
   const errWait   = attempted && !waitingList;
   const errSig    = attempted && !hasSignature;
+  const errTerms  = attempted && !acceptTerms;
   const submitting = status === "submitting";
 
   return (
@@ -599,9 +602,29 @@ export default function ApplicationFormClient() {
                   </div>
                 </div>
 
+                {/* Terms & Conditions acceptance */}
+                <div className="mt-5">
+                  <label className="flex cursor-pointer items-start gap-2.5 text-[0.78rem] leading-snug text-[var(--ink)]">
+                    <input
+                      type="checkbox"
+                      checked={acceptTerms}
+                      onChange={(e) => setAcceptTerms(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded"
+                    />
+                    <span>
+                      I have read and agree to the{" "}
+                      <a href="/terms-and-conditions" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#6ecfc9] underline hover:text-[var(--ink)]">
+                        Terms and Conditions
+                      </a>{" "}
+                      of Blue Nest Montessori School, which form part of the agreement upon registration.<Req />
+                    </span>
+                  </label>
+                  <Err show={errTerms} msg="Please accept the Terms and Conditions to submit your application" />
+                </div>
+
                 {/* Submit */}
                 <div className="mt-6 border-t border-[rgba(90,74,66,0.07)] pt-5">
-                  {attempted && (!branch || !waitingList || !hasSignature) && (
+                  {attempted && (!branch || !waitingList || !hasSignature || !acceptTerms) && (
                     <p className="mb-3 text-center text-[0.7rem] font-semibold text-[#e8719a]" role="alert">
                       Please complete all required fields before submitting.
                     </p>
@@ -616,8 +639,9 @@ export default function ApplicationFormClient() {
                   )}
                   <button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || !acceptTerms}
                     aria-busy={submitting}
+                    title={acceptTerms ? undefined : "Please accept the Terms and Conditions first"}
                     className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Sparkles className="h-4 w-4" aria-hidden="true" />
