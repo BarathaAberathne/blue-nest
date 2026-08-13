@@ -117,7 +117,7 @@ const ALL_STAFF: TeamMember[] = [
     qualifications: ["Level 3 Early Years"],
   },
   {
-    name: "Dolvy Colaco", role: "Nursery Manager",
+    name: "Dolvy Colaco", role: "Area Manager",
     branch: "Harrow", category: "Manager", initial: "D", colour: c(1),
     photo: "/team/dolvy-colaco.jpg",
     qualifications: ["Level 5 Early Years"],
@@ -129,7 +129,7 @@ const ALL_STAFF: TeamMember[] = [
     qualifications: [],
   },
   {
-    name: "Ishinda Abeywickrema", role: "Facilities & Business Development Manager",
+    name: "Ishinda Abeywickrema", role: "Compliance & Business Development Manager",
     branch: "Harrow", category: "Manager", initial: "I", colour: c(3),
     photo: "/team/ishinda-dinal-abeywickrema.jpg",
     qualifications: [],
@@ -140,6 +140,12 @@ const ALL_STAFF: TeamMember[] = [
     name: "Ami Mehta", role: "Deputy Manager",
     branch: "Harrow", category: "Deputy", initial: "A", colour: c(0),
     photo: "/team/ami-mehta.jpg",
+    qualifications: [],
+  },
+  {
+    name: "Wasana Owitigala", role: "Deputy Manager",
+    branch: "Harrow", category: "Deputy", initial: "W", colour: c(1),
+    photo: "/team/wasana-owitigala.jpg",
     qualifications: [],
   },
 
@@ -167,12 +173,6 @@ const ALL_STAFF: TeamMember[] = [
     branch: "Harrow", category: "Academic", initial: "K", colour: c(3),
     photo: "/team/krishna-patel.jpg",
     qualifications: [],
-  },
-  {
-    name: "Neha Shah", role: "Senior Practitioner",
-    branch: "Harrow", category: "Academic", initial: "N", colour: c(4),
-    photo: "/team/neha-shah.jpg",
-    qualifications: ["Level 3 Early Years"],
   },
   {
     name: "Nilakshi Bandara", role: "Nursery Practitioner",
@@ -203,12 +203,6 @@ const ALL_STAFF: TeamMember[] = [
     branch: "Harrow", category: "Academic", initial: "S", colour: c(3),
     photo: "/team/sophia-agard.jpg",
     qualifications: ["Level 5 Early Years"],
-  },
-  {
-    name: "Wasana Owitigala", role: "Deputy Manager",
-    branch: "Harrow", category: "Academic", initial: "W", colour: c(4),
-    photo: "/team/wasana-owitigala.jpg",
-    qualifications: [],
   },
   {
     name: "Xhensaura Jenny", role: "3rd In Charge",
@@ -393,7 +387,7 @@ const ALL_STAFF: TeamMember[] = [
 
   // Manager ────────────────────────────────────────────
   {
-    name: "Deepti Mishra", role: "Deputy Manager",
+    name: "Deepti Mishra", role: "Nursery Manager",
     branch: "Pinner", category: "Manager", initial: "D", colour: c(0),
     photo: "/team/deepti-mishra.jpg",
     qualifications: [],
@@ -435,12 +429,6 @@ const ALL_STAFF: TeamMember[] = [
 
   // Support ────────────────────────────────────────────
   {
-    name: "Amelie Hogberg", role: "Bank Staff",
-    branch: "Pinner", category: "Support", initial: "A", colour: c(0),
-    // photo: "/team/amelie-marie-hogberg.jpg",
-    qualifications: [],
-  },
-  {
     name: "Poornima Ratnayake", role: "Nursery Assistant",
     branch: "Pinner", category: "Support", initial: "P", colour: c(1),
     photo: "/team/poornima-ratnayake.jpg",
@@ -450,12 +438,6 @@ const ALL_STAFF: TeamMember[] = [
     name: "Sandhya Mehrotra", role: "Bank Staff",
     branch: "Pinner", category: "Support", initial: "S", colour: c(2),
     photo: "/team/sandhya-mehrotra.jpg",
-    qualifications: [],
-  },
-  {
-    name: "Sanduni Mudiyanselage", role: "Bank Staff",
-    branch: "Pinner", category: "Support", initial: "S", colour: c(3),
-    // photo: "/team/sanduni-mudiyanselage.jpg",
     qualifications: [],
   },
 ];
