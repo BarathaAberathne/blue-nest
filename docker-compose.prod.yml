@@ -52,7 +52,7 @@ services:
       # backend never reverts to the dev localhost default (which 'Failed to
       # fetch'-blocks the live store) if FRONTEND_URL is missing from .env.
       # Override in .env to change; keep https:// and no trailing slash.
-      FRONTEND_URL: ${FRONTEND_URL:-https://blue-nest.com,https://www.blue-nest.com,https://bluenest.uk,https://www.bluenest.uk}
+      FRONTEND_URL: ${FRONTEND_URL:-https://bluenest.uk,https://www.bluenest.uk,https://blue-nest.com,https://www.blue-nest.com}
       # On-demand Next.js cache revalidation: the backend calls the frontend
       # in-network when public data (branch status etc.) changes. Secret must
       # be set in .env (empty = feature off, pages fall back to 5-min ISR).
@@ -77,7 +77,7 @@ services:
         # API origin so a rebuild never bakes the dev localhost default (which
         # makes the browser hit http://localhost:8080 → 'Failed to fetch') if
         # NEXT_PUBLIC_API_URL is missing from .env. Override in .env to change.
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.blue-nest.com}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.bluenest.uk}
         NEXT_PUBLIC_API_INTERNAL_URL: http://backend:8080
     ports: !override
       - "127.0.0.1:3000:3000"
