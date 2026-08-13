@@ -73,9 +73,12 @@ type Child struct {
 	EnquiryID    string             `bson:"enquiry_id,omitempty"   json:"enquiry_id,omitempty"` // originating admissions enquiry
 	// KeyPersonID links the child to their key person (a staff record id). The
 	// key person builds a secure attachment and tracks the child's development.
-	KeyPersonID string    `bson:"key_person_id,omitempty" json:"key_person_id,omitempty"`
-	CreatedAt   time.Time `bson:"created_at"           json:"created_at"`
-	UpdatedAt   time.Time `bson:"updated_at"           json:"updated_at"`
+	KeyPersonID string `bson:"key_person_id,omitempty" json:"key_person_id,omitempty"`
+	// LeaveDate records when the child left the nursery (set by the archive
+	// action alongside Status=left). Additive — legacy records omit it.
+	LeaveDate string    `bson:"leave_date,omitempty" json:"leave_date,omitempty"` // YYYY-MM-DD
+	CreatedAt time.Time `bson:"created_at"           json:"created_at"`
+	UpdatedAt time.Time `bson:"updated_at"           json:"updated_at"`
 
 	// KeyPersonName is resolved from the staff record for display; never stored.
 	KeyPersonName string `bson:"-" json:"key_person_name,omitempty"`
@@ -92,6 +95,13 @@ type Child struct {
 // key person.
 type ChildKeyPersonRequest struct {
 	StaffID string `json:"staff_id"`
+}
+
+// ChildArchiveRequest marks a leaving child as left. LeaveDate is optional
+// (YYYY-MM-DD; defaults to today) — the archive action also ends any live
+// room placements so the child stops occupying capacity.
+type ChildArchiveRequest struct {
+	LeaveDate string `json:"leave_date"`
 }
 
 type ChildRequest struct {

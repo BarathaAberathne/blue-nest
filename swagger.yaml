@@ -1846,6 +1846,25 @@ paths:
       responses:
         '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Child' } } } }
 
+  /admin/children/{id}/archive:
+    post:
+      tags: [Children]
+      summary: Mark a leaving child as left (sets leave_date, ends live room placements; nothing deleted)
+      operationId: archiveChild
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                leave_date: { type: string, description: YYYY-MM-DD; empty defaults to today }
+      responses:
+        '200': { description: Archived, content: { application/json: { schema: { $ref: '#/components/schemas/Child' } } } }
+        '400': { description: Already left / invalid leave_date }
+
   # ─────────────────────────────────────────────────────────────────────────────
   # Rooms (children.manage)
   # ─────────────────────────────────────────────────────────────────────────────

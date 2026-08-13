@@ -34,6 +34,9 @@ type ChildService interface {
 	SetKeyPerson(ctx context.Context, childID, staffID string) (*models.Child, error)
 	// KeyChildren lists the children a staff member is key person for.
 	KeyChildren(ctx context.Context, staffID string) ([]models.Child, error)
+	// Archive marks a leaving child as left (status=left + leave_date) and
+	// ends any live room placements so the child stops occupying capacity.
+	Archive(ctx context.Context, id, leaveDate string) (*models.Child, error)
 	// CapacityForecast projects each room's booked children forward across
 	// `weeks` (bounded to [1, maxCapacityForecastWeeks]) from the active
 	// roster's weekly Sessions pattern — the Room planner / Future
@@ -322,6 +325,46 @@ func (s *childService) Update(ctx context.Context, id string, req models.ChildRe
 	}
 	// KeyPersonName + RoomName are transient (bson:"-"), resolved from their
 	// canonical sources — re-resolve so an edit doesn't appear to blank them.
+	s.resolveKeyPerson(ctx, updated)
+	s.resolveRoom(ctx, updated)
+	return updated, nil
+}
+
+// normalizeLeaveDate defaults an empty leave date to today and validates the
+// YYYY-MM-DD format otherwise.
+func normalizeLeaveDate(s string) (string, error) {
+	if s == "" {
+		return time.Now().Format("2006-01-02"), nil
+	}
+	if _, err := time.Parse("2006-01-02", s); err != nil {
+		return "", errors.New("leave_date must be YYYY-MM-DD")
+	}
+	return s, nil
+}
+
+func (s *childService) Archive(ctx context.Context, id, leaveDate string) (*models.Child, error) {
+	existing, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if existing.Status == models.ChildLeft {
+		return nil, errors.New("child is already marked as left")
+	}
+	leaveDate, err = normalizeLeaveDate(leaveDate)
+	if err != nil {
+		return nil, err
+	}
+	existing.Status = models.ChildLeft
+	existing.LeaveDate = leaveDate
+	updated, err := s.repo.Update(ctx, id, *existing)
+	if err != nil {
+		return nil, err
+	}
+	// End (never delete) live placements so the room's capacity frees up and
+	// history stays intact.
+	if s.roomAssignments != nil {
+		s.roomAssignments.EndAllForChild(ctx, id, "child-left")
+	}
 	s.resolveKeyPerson(ctx, updated)
 	s.resolveRoom(ctx, updated)
 	return updated, nil

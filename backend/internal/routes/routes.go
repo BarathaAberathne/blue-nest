@@ -408,6 +408,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Post("/admin/children", adminChildH.Create)
 				r.Put("/admin/children/{id}", adminChildH.Update)
 				r.Patch("/admin/children/{id}/key-person", adminChildH.SetKeyPerson)
+				r.Post("/admin/children/{id}/archive", adminChildH.Archive)
 				r.Delete("/admin/children/{id}", adminChildH.Delete)
 			})
 

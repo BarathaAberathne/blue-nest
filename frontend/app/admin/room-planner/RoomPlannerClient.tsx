@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { getAccessToken, scopedBranches } from "@/lib/auth";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { branchShortName } from "@/lib/branch";
+import { PickerList } from "@/components/admin/ui/PickerModal";
 import type { Branch, CapacityDay, CapacityForecast, CapacityWeek, Child, RoomCapacityForecast } from "@/types";
 
 type Tab = "planner" | "availability";
@@ -271,15 +272,21 @@ function AssignChildModal({ room, onClose, onDone }: { room: RoomCapacityForecas
           <button type="button" onClick={onClose} aria-label="Close" className="text-slate-400 hover:text-slate-700"><X className="h-5 w-5" /></button>
         </div>
         {err && <p className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{err}</p>}
-        <label className="mb-3 block text-sm">
+        <div className="mb-3">
           <span className="mb-1 block text-xs font-medium text-slate-500">Child ({children.length} at this branch)</span>
-          <select value={childId} onChange={(e) => { setChildId(e.target.value); setErr(null); setNeedsOverride(false); }} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
-            <option value="">Select a child…</option>
-            {children.map((c) => (
-              <option key={c.id} value={c.id}>{c.first_name} {c.last_name}{c.room_name ? ` — currently ${c.room_name}` : " — no room"}</option>
-            ))}
-          </select>
-        </label>
+          <PickerList
+            options={children.map((c) => ({
+              id: c.id,
+              label: `${c.first_name} ${c.last_name}`,
+              detail: c.room_name ? `currently ${c.room_name}` : "no room",
+              badge: c.room_name ? "transfer" : undefined,
+              badgeTone: "amber" as const,
+            }))}
+            selectedId={childId}
+            onSelect={(id) => { setChildId(id); setErr(null); setNeedsOverride(false); }}
+            emptyText="No eligible children at this branch."
+          />
+        </div>
         {isTransfer && (
           <label className="mb-3 block text-sm">
             <span className="mb-1 block text-xs font-medium text-slate-500">Reason for transfer (required)</span>

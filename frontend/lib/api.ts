@@ -729,6 +729,10 @@ export const api = {
   // children a staff member is key person for.
   adminSetChildKeyPerson: (token: string, childId: string, staffId: string) =>
     apiFetch<Child>(`/api/v1/admin/children/${childId}/key-person`, { method: "PATCH", body: JSON.stringify({ staff_id: staffId }), token }),
+  // Marks a leaving child as left (status=left + leave_date) and ends live
+  // room placements; leave_date defaults to today when omitted.
+  adminArchiveChild: (token: string, childId: string, leaveDate?: string) =>
+    apiFetch<Child>(`/api/v1/admin/children/${childId}/archive`, { method: "POST", body: JSON.stringify({ leave_date: leaveDate ?? "" }), token }),
   adminGetStaffKeyChildren: (token: string, staffId: string) =>
     apiFetch<Child[]>(`/api/v1/admin/staff/${staffId}/key-children`, { token }),
 
