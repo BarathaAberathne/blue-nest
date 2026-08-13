@@ -53,6 +53,11 @@ services:
       # fetch'-blocks the live store) if FRONTEND_URL is missing from .env.
       # Override in .env to change; keep https:// and no trailing slash.
       FRONTEND_URL: ${FRONTEND_URL:-https://blue-nest.com,https://www.blue-nest.com,https://bluenest.uk,https://www.bluenest.uk}
+      # On-demand Next.js cache revalidation: the backend calls the frontend
+      # in-network when public data (branch status etc.) changes. Secret must
+      # be set in .env (empty = feature off, pages fall back to 5-min ISR).
+      FRONTEND_INTERNAL_URL: http://frontend:3000
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
       MONGODB_URI: mongodb://${MONGO_APP_USERNAME}:${MONGO_APP_PASSWORD}@mongodb:27017/${MONGODB_DATABASE:-blue_nest_montessori}?authSource=${MONGODB_DATABASE:-blue_nest_montessori}
       MONGODB_DATABASE: ${MONGODB_DATABASE:-blue_nest_montessori}
     deploy:
@@ -79,6 +84,7 @@ services:
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_INTERNAL_URL: http://backend:8080
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:-}
     deploy:
       resources:
         limits:

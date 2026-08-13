@@ -37,6 +37,10 @@ services:
       MONGODB_URI: mongodb://mongodb:27017
       MONGODB_DATABASE: blue_nest_montessori
       FRONTEND_URL: http://localhost:3000
+      # In-network Next.js address + shared secret for on-demand cache
+      # revalidation (branch changes bust the public route cache instantly).
+      FRONTEND_INTERNAL_URL: http://frontend:3000
+      REVALIDATE_SECRET: dev-revalidate-secret
     volumes:
       - uploads_data:/app/uploads
     depends_on:
@@ -68,6 +72,8 @@ services:
       NODE_ENV: production
       # Runtime env for the rewrites() function (read at server startup, not baked)
       NEXT_PUBLIC_API_INTERNAL_URL: http://backend:8080
+      # Shared secret for backend-triggered cache revalidation (/api/revalidate)
+      REVALIDATE_SECRET: dev-revalidate-secret
     depends_on:
       backend:
         condition: service_healthy
