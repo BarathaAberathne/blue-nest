@@ -13,6 +13,7 @@ import ProfilePhotoUploader from "@/components/admin/ui/ProfilePhotoUploader";
 import ChildRoomAllocations from "@/components/admin/rooms/ChildRoomAllocations";
 import ChildParentsPanel from "@/components/admin/parents/ChildParentsPanel";
 import SendSupportPanel from "@/components/admin/send/SendSupportPanel";
+import ChildInductionPanel from "@/components/admin/induction/ChildInductionPanel";
 import { sendActive } from "@/lib/send";
 import PickerModal from "@/components/admin/ui/PickerModal";
 import DailyLogForm from "@/components/admin/daily/DailyLogForm";
@@ -303,6 +304,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
 
           <div className="space-y-4">
             <ChildParentsPanel childId={child.id} canManage={has("parents.manage")} />
+            <ChildInductionPanel childId={child.id} canReview={has("children.manage")} />
             {has("send.manage") && (
               <SendSupportPanel
                 childId={child.id}

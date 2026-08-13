@@ -32,6 +32,27 @@ const FLAG_FIELDS: { key: keyof RelationshipFlagsInput; label: string }[] = [
 ];
 
 const emptyParent: ParentInput = { first_name: "", last_name: "", email: "", mobile_phone: "" };
+
+// pickFlags extracts ONLY the editable flag fields from a full relationship —
+// spreading the whole object would smuggle id/child_id/parent_id/timestamps
+// into the update payload, which the backend's DisallowUnknownFields rejects.
+function pickFlags(r: ChildParentRelationship): RelationshipFlagsInput {
+  return {
+    relationship: r.relationship,
+    parental_responsibility: !!r.parental_responsibility,
+    primary_contact: !!r.primary_contact,
+    emergency_contact: !!r.emergency_contact,
+    authorised_collection: !!r.authorised_collection,
+    billing_contact: !!r.billing_contact,
+    receives_communications: !!r.receives_communications,
+    lives_with_child: !!r.lives_with_child,
+    portal_access: !!r.portal_access,
+    finance_access: !!r.finance_access,
+    legal_contact: !!r.legal_contact,
+    contact_arrangements: r.contact_arrangements ?? "",
+    priority: r.priority ?? 0,
+  };
+}
 const emptyFlags: RelationshipFlagsInput = { relationship: "mother", parental_responsibility: true, primary_contact: false, emergency_contact: true, receives_communications: true, portal_access: true };
 
 const portalAccent: Record<string, "slate" | "teal" | "amber" | "red" | "indigo"> = {
@@ -224,7 +245,7 @@ export default function ChildParentsPanel({ childId, canManage }: { childId: str
                           <Send className="h-3 w-3" /> {p.portal_state === "invited" ? "Re-invite" : "Invite"}
                         </button>
                       )}
-                      <button type="button" onClick={() => { setEditingRel(r); setEditFlags({ ...r }); }} title="Edit relationship" className="text-slate-400 hover:text-teal-600">
+                      <button type="button" onClick={() => { setEditingRel(r); setEditFlags(pickFlags(r)); }} title="Edit relationship" className="text-slate-400 hover:text-teal-600">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button type="button" onClick={() => unlink(r)} disabled={busy} title="Remove relationship" className="text-slate-400 hover:text-red-500 disabled:opacity-50">
