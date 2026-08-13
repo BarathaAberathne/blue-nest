@@ -154,6 +154,10 @@ func (c *TenantCollection) FindOneAndDelete(ctx context.Context, filter interfac
 	return c.col.FindOneAndDelete(ctx, scopeFilter(ctx, filter), opts...)
 }
 
+func (c *TenantCollection) DeleteMany(ctx context.Context, filter interface{}, opts ...*options.DeleteOptions) (*mongo.DeleteResult, error) {
+	return c.col.DeleteMany(ctx, scopeFilter(ctx, filter), opts...)
+}
+
 func (c *TenantCollection) DeleteOne(ctx context.Context, filter interface{}, opts ...*options.DeleteOptions) (*mongo.DeleteResult, error) {
 	return c.col.DeleteOne(ctx, scopeFilter(ctx, filter), opts...)
 }

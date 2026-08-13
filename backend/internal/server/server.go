@@ -45,6 +45,43 @@ type Server struct {
 	cancel context.CancelFunc
 }
 
+// runFinanceReminders sweeps fee reminders per organisation. Rules are
+// day-granular and dedupe via the communication log, so a 6-hourly tick keeps
+// them timely without re-sending.
+func runFinanceReminders(ctx context.Context, finance service.FinanceService, orgs repository.OrganisationRepository, log *slog.Logger) {
+	run := func() {
+		all, err := orgs.FindAll(ctx)
+		if err != nil {
+			log.Error("finance reminders: listing organisations", "err", err)
+			return
+		}
+		for _, org := range all {
+			octx := repository.WithOrg(ctx, org.ID.Hex())
+			if n, err := finance.RunReminderSweep(octx); err != nil {
+				log.Error("finance reminders", "org", org.Slug, "err", err)
+			} else if n > 0 {
+				log.Info("finance reminders sent", "org", org.Slug, "count", n)
+			}
+		}
+	}
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(time.Minute):
+		run()
+	}
+	ticker := time.NewTicker(6 * time.Hour)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			run()
+		}
+	}
+}
+
 func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	mongoClient, err := mongoPlatform.Connect(context.Background(), cfg.Mongo.URI, cfg.Mongo.Database, log)
 	if err != nil {
@@ -82,6 +119,10 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	dashboardProfileRepo := repository.NewDashboardProfileRepository(db)
 	roomRepo := repository.NewRoomRepository(db)
 	childRepo := repository.NewChildRepository(db)
+	parentRepo := repository.NewParentRepository(db)
+	childParentRepo := repository.NewChildParentRepository(db)
+	inductionRepo := repository.NewInductionRepository(db)
+	consentRepo := repository.NewConsentRepository(db)
 	attendanceRepo := repository.NewAttendanceRepository(db)
 	staffRepo := repository.NewStaffRepository(db)
 	staffRoomAssignRepo := repository.NewStaffRoomAssignmentRepository(db)
@@ -115,6 +156,11 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	staffAttSvc := service.NewStaffAttendanceService(staffAttendanceRepo, staffRepo, shiftRepo, roomRepo, staffRoomAssignRepo, termRepo, orgRepo)
 	notifPrefRepo := repository.NewNotificationPreferenceRepository(db)
 	notifSvc := service.NewNotificationServiceWithEmail(notificationRepo, mailer, userRepo, notifPrefRepo, cfg.FrontendURL, cfg.NotifyEmailEnabled)
+	parentSvc := service.NewParentService(parentRepo, childParentRepo, childRepo, userRepo, counterRepo, mailer, cfg.FrontendURL)
+	sendSupportRepo := repository.NewSendSupportRepository(db)
+	financeRepo := repository.NewFinanceRepository(db)
+	emailTemplateSvc := service.NewEmailTemplateService(repository.NewEmailTemplateRepository(db))
+	financeSvc := service.NewFinanceService(financeRepo, childParentRepo, parentRepo, childRepo, counterRepo, userRepo, notifSvc, emailTemplateSvc, cfg.Stripe.SecretKey != "")
 	roleSvc := service.NewRoleService(roleRepo)
 	orgSvc := service.NewOrganisationService(orgRepo, authSvc, roleSvc)
 	// Resolve the default tenant for public/unauthenticated requests. Empty until
@@ -132,7 +178,6 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	roomSvc := service.NewRoomServiceWithGuards(roomRepo, staffRoomAssignRepo, childRoomAssignRepo)
 	revalNotifier := revalidate.NewNotifier(cfg.FrontendInternalURL, cfg.RevalidateSecret)
 	branchSvc := service.NewBranchService(branchRepo, counterRepo, revalNotifier)
-	emailTemplateSvc := service.NewEmailTemplateService(repository.NewEmailTemplateRepository(db))
 	svc := routes.Services{
 		Organisations:     orgSvc,
 		DefaultOrgID:      defaultOrgID,
@@ -151,6 +196,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		OrderTemplates:    service.NewOrderTemplateService(orderTemplateRepo),
 		Suppliers:         service.NewSupplierService(supplierRepo),
 		Taxonomy:          service.NewTaxonomyService(taxonomyRepo),
+		SendSupport:       service.NewSendSupportService(sendSupportRepo, childRepo, staffRepo, roomRepo, childRoomAssignRepo),
 		FeeConfig:         service.NewFeeConfigService(feeConfigRepo, branchRepo),
 		BranchTemplates:   service.NewBranchTemplateService(repository.NewBranchTemplateRepository(db), roomSvc, branchSvc),
 		EmailTemplates:    emailTemplateSvc,
@@ -159,7 +205,11 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		DashboardLayouts:  service.NewDashboardLayoutService(dashboardLayoutRepo),
 		DashboardProfiles: service.NewDashboardProfileService(dashboardProfileRepo),
 		Rooms:             roomSvc,
-		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo, childRoomAssignSvc, taxonomyRepo),
+		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo, childRoomAssignSvc, taxonomyRepo, childParentRepo, parentRepo),
+		Parents:           parentSvc,
+		Induction:         service.NewInductionService(inductionRepo, consentRepo, childRepo, userRepo, notifSvc),
+		Onboarding:        service.NewOnboardingService(childRepo, inductionRepo, childParentRepo, consentRepo, financeSvc),
+		Finance:           financeSvc,
 		Attendance:        service.NewAttendanceService(attendanceRepo, childRepo, childRoomAssignRepo),
 		Staff:             service.NewStaffService(staffRepo, counterRepo, authSvc, staffRoomAssignSvc, roomRepo),
 		StaffRoomAssign:   staffRoomAssignSvc,
@@ -220,6 +270,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 
 	bgCtx, cancel := context.WithCancel(context.Background())
 	go runBlogPublisher(bgCtx, svc.Blog, log)
+	go runFinanceReminders(bgCtx, financeSvc, orgRepo, log)
 
 	return &Server{
 		http: &http.Server{

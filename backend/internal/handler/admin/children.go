@@ -159,6 +159,36 @@ func (h *AdminChildHandler) Update(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, updated)
 }
 
+// SetPhoto sets (or clears) a child's profile photo.
+func (h *AdminChildHandler) SetPhoto(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	child, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "child not found")
+		return
+	}
+	if !inScope(r, child.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	var req models.ChildPhotoRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	updated, err := h.svc.SetPhoto(r.Context(), id, req.PhotoURL)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	summary := "Removed profile photo for " + updated.FirstName + " " + updated.LastName
+	if updated.PhotoURL != "" {
+		summary = "Updated profile photo for " + updated.FirstName + " " + updated.LastName
+	}
+	h.audit.Record(r, "child_photo", "child", id, summary, nil)
+	response.OK(w, updated)
+}
+
 // SetKeyPerson assigns (or clears) a child's key person.
 func (h *AdminChildHandler) SetKeyPerson(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")

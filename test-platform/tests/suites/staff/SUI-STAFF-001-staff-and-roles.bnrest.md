@@ -107,6 +107,8 @@ Call CatchError ../../cases/staff/STAFF-TC-003-duplicate-email-create-rejected.b
 Call CatchError ../../cases/staff/STAFF-TC-004-duplicate-email-update-rejected.bnrest.md
 Call CatchError ../../cases/staff/STAFF-TC-005-own-unchanged-email-allowed.bnrest.md
 Call CatchError ../../cases/staff/STAFF-TC-006-partial-update-preserves-fields.bnrest.md
+Call CatchError ../../cases/staff/STAFF-TC-007-profile-photo.bnrest.md
+Call CatchError ../../cases/staff/STAFF-TC-008-link-existing-user-login.bnrest.md
 Call CatchError ../../cases/role/ROLE-TC-001-branch-manager-scoped.bnrest.md
 Call CatchError ../../cases/role/ROLE-TC-002-branch-manager-cannot-branch-lifecycle.bnrest.md
 Call CatchError ../../cases/role/ROLE-TC-003-deputy-can-operate-on-enquiries.bnrest.md

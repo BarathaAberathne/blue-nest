@@ -126,7 +126,7 @@ func newHarness(branchSlug string) (*StripeWebhookHandler, *fakeOrderRepo, *fake
 	}
 	prodRepo := &fakeProductRepo{}
 	sender := &fakeSender{}
-	h := NewStripeWebhookHandler("whsec_test", orderRepo, prodRepo, &fakeBranchRepo{}, sender, "admin@bluenest.uk", "ba@bluenest.uk")
+	h := NewStripeWebhookHandler("whsec_test", orderRepo, prodRepo, &fakeBranchRepo{}, sender, "admin@bluenest.uk", "ba@bluenest.uk", nil)
 	return h, orderRepo, prodRepo, sender
 }
 

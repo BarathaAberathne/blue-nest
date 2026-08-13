@@ -9,6 +9,8 @@ import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
+import Avatar from "@/components/admin/ui/Avatar";
+import { sendActive } from "@/lib/send";
 import { ageLabel, childStatusAccent, fundingLabel } from "@/lib/child";
 import { useTaxonomy, sessionOptions } from "@/lib/useTaxonomy";
 import type { Branch, Child, ChildInput, ChildSession, ChildStats, Room } from "@/types";
@@ -36,6 +38,7 @@ export default function ChildrenClient() {
   // Default to the active roster — waitlist/left children are a filter away,
   // not mixed into the everyday view.
   const [statusFilter, setStatusFilter] = useState("active");
+  const [sendFilter, setSendFilter] = useState("");
   const [q, setQ] = useState("");
 
   const [form, setForm] = useState<ChildInput>(emptyForm);
@@ -76,6 +79,8 @@ export default function ChildrenClient() {
     const filtered = children.filter((c) => {
       if (branchFilter && c.branch_slug !== branchFilter) return false;
       if (statusFilter && c.status !== statusFilter) return false;
+      if (sendFilter === "send" && !sendActive(c.send_status)) return false;
+      if (sendFilter === "non_send" && sendActive(c.send_status)) return false;
       if (needle) {
         const hay = `${c.first_name} ${c.last_name} ${c.ref ?? ""} ${roomName(c.room_id)}`.toLowerCase();
         if (!hay.includes(needle)) return false;
@@ -88,7 +93,7 @@ export default function ChildrenClient() {
       if (byBranch !== 0) return byBranch;
       return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, undefined, { sensitivity: "base" });
     });
-  }, [children, branchFilter, statusFilter, q, branchName, roomName]);
+  }, [children, branchFilter, statusFilter, sendFilter, q, branchName, roomName]);
 
   const roomsForBranch = useMemo(
     () => rooms.filter((r) => r.branch_slug === form.branch_slug),
@@ -214,6 +219,11 @@ export default function ChildrenClient() {
           <option value="waitlist">Waitlist</option>
           <option value="left">Left</option>
         </select>
+        <select value={sendFilter} onChange={(e) => setSendFilter(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <option value="">All children</option>
+          <option value="send">SEND / additional support</option>
+          <option value="non_send">Non-SEND</option>
+        </select>
         <span className="ml-auto text-sm text-slate-400">{rows.length} shown</span>
       </div>
 
@@ -232,7 +242,13 @@ export default function ChildrenClient() {
               )}
               <tr className="cursor-pointer hover:bg-slate-50">
                 <td className="px-4 py-3 font-mono text-xs text-slate-500"><Link href={`/admin/children/${c.id}`} className="hover:text-teal-600">{c.ref ?? "—"}</Link></td>
-                <td className="px-4 py-3 font-medium text-slate-900"><Link href={`/admin/children/${c.id}`} className="hover:text-teal-600">{c.first_name} {c.last_name}</Link></td>
+                <td className="px-4 py-3 font-medium text-slate-900">
+                  <Link href={`/admin/children/${c.id}`} className="flex items-center gap-2.5 hover:text-teal-600">
+                    <Avatar name={`${c.first_name} ${c.last_name}`} src={c.photo_url} size="sm" />
+                    {c.first_name} {c.last_name}
+                    {sendActive(c.send_status) && <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-violet-700">SEND</span>}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-slate-500">{ageLabel(c.dob)}</td>
                 <td className="px-4 py-3 text-slate-500">{branchName(c.branch_slug)}</td>
                 <td className="px-4 py-3 text-slate-500">{roomName(c.room_id)}</td>

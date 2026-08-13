@@ -9,6 +9,7 @@ import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
+import Avatar from "@/components/admin/ui/Avatar";
 import { dbsExpiry, staffStatusAccent, staffStatusLabel, staffTypeAccent, staffTypeLabel } from "@/lib/staff";
 import type { Branch, Room, Staff, StaffInput, StaffStats } from "@/types";
 
@@ -206,7 +207,10 @@ export default function StaffClient() {
                 <tr className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-mono text-xs text-slate-500"><Link href={`/admin/staff/${s.id}`} className="hover:text-teal-600">{s.ref ?? "—"}</Link></td>
                   <td className="px-4 py-3 font-medium text-slate-900">
-                    <Link href={`/admin/staff/${s.id}`} className="hover:text-teal-600">{s.first_name} {s.last_name}</Link>
+                    <Link href={`/admin/staff/${s.id}`} className="inline-flex items-center gap-2.5 align-middle hover:text-teal-600">
+                      <Avatar name={`${s.first_name} ${s.last_name}`} src={s.photo_url} size="sm" />
+                      {s.first_name} {s.last_name}
+                    </Link>
                     {s.user_id && <span className="ml-2 inline-flex items-center gap-1 align-middle text-[0.7rem] font-medium text-teal-600" title="Has a system login"><KeyRound className="h-3 w-3" /> login</span>}
                   </td>
                   <td className="px-4 py-3 text-slate-500">{s.job_title || "—"}</td>

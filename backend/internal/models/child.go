@@ -56,6 +56,15 @@ type Child struct {
 	LastName     string             `bson:"last_name"            json:"last_name"`
 	DOB          string             `bson:"dob"                  json:"dob"` // YYYY-MM-DD
 	Gender       string             `bson:"gender,omitempty"     json:"gender,omitempty"`
+	// Address is the child's home address (induction form; write-through from
+	// the child_details section).
+	Address string `bson:"address,omitempty" json:"address,omitempty"`
+	// PhotoURL is the uploaded profile picture (served from /uploads).
+	PhotoURL string `bson:"photo_url,omitempty" json:"photo_url,omitempty"`
+	// SendStatus is the operational SEND/additional-support marker (badge/
+	// filter tier). Set ONLY by the SEND service as a projection of the
+	// ChildSendSupport profile — never via the child create/update DTOs.
+	SendStatus SendStatus `bson:"send_status,omitempty" json:"send_status,omitempty"`
 	BranchSlug   string             `bson:"branch_slug"          json:"branch_slug"`
 	Status       ChildStatus        `bson:"status"               json:"status"`
 	StartDate    string             `bson:"start_date,omitempty" json:"start_date,omitempty"`
@@ -93,6 +102,11 @@ type Child struct {
 
 // ChildKeyPersonRequest assigns (or clears, with an empty staff_id) a child's
 // key person.
+// ChildPhotoRequest sets (or clears, with an empty URL) the profile photo.
+type ChildPhotoRequest struct {
+	PhotoURL string `json:"photo_url"`
+}
+
 type ChildKeyPersonRequest struct {
 	StaffID string `json:"staff_id"`
 }
@@ -175,6 +189,7 @@ type RoomCapacityForecast struct {
 	BranchSlug string         `json:"branch_slug"`
 	Capacity   int            `json:"capacity"`
 	StaffRatio int            `json:"staff_ratio"`
+	Provision  RoomProvision  `json:"provision,omitempty"`
 	Weeks      []CapacityWeek `json:"weeks"`
 }
 

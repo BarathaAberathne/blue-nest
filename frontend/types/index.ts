@@ -685,7 +685,11 @@ export type Permission =
   | "staff.manage"
   | "daily_logs.manage"
   | "daily_logs.approve"
-  | "leave.approve";
+  | "leave.approve"
+  | "parents.manage"
+  | "finance.manage"
+  | "finance.adjust"
+  | "send.manage";
 
 // ── Staff leave / holiday ────────────────────────────────────────────────────
 export type LeaveStatus = "pending" | "approved" | "declined" | "cancelled";
@@ -978,6 +982,7 @@ export interface Room {
   max_age_months?: number;
   capacity: number;
   staff_ratio?: number;
+  provision?: RoomProvision;
   status?: "active" | "inactive";
   opening_date?: string;
   closing_date?: string;
@@ -995,6 +1000,7 @@ export interface RoomInput {
   max_age_months?: number;
   capacity?: number;
   staff_ratio?: number;
+  provision?: RoomProvision;
   opening_date?: string;
   closing_date?: string;
 }
@@ -1076,6 +1082,7 @@ export interface RoomCapacitySummary {
   staff_allocated: number;
   present_children: number;
   occupancy_rate: number;
+  send_children: number;
 }
 
 export type ChildStatus = "active" | "waitlist" | "left";
@@ -1098,6 +1105,8 @@ export interface Child {
   ref?: string; // CHD-YYYY-NNNNNN
   first_name: string;
   last_name: string;
+  photo_url?: string;
+  send_status?: SendStatus;
   dob?: string; // YYYY-MM-DD
   gender?: string;
   branch_slug: string;
@@ -1342,6 +1351,7 @@ export interface RoomCapacityForecast {
   branch_slug: string;
   capacity: number;
   staff_ratio: number;
+  provision?: RoomProvision;
   weeks: CapacityWeek[];
 }
 
@@ -1402,6 +1412,7 @@ export interface Staff {
   ref?: string; // STF-YYYY-NNNNNN
   first_name: string;
   last_name: string;
+  photo_url?: string;
   email?: string;
   phone?: string;
   branch_slug: string;
@@ -1602,6 +1613,7 @@ export interface KioskStaffResult {
   id: string;
   name: string;
   job_title?: string;
+  photo_url?: string;
   room_name?: string;
   has_pin: boolean;
   clocked_in: boolean;
@@ -1795,3 +1807,317 @@ export interface ReviewsAnalytics {
 
 export interface PerfDimension { label: string; score: number; weight: number; }
 export interface BranchPerformance { overall: number; dimensions: PerfDimension[]; }
+
+// ── Parents / guardians (canonical model — family onboarding Phase 3) ────────
+
+export type PortalAccessState = "" | "invited" | "temporary" | "active" | "restricted" | "suspended";
+
+export interface Parent {
+  id: string;
+  ref?: string;
+  first_name: string;
+  last_name: string;
+  email?: string;
+  profession?: string;
+  mobile_phone?: string;
+  work_phone?: string;
+  home_phone?: string;
+  home_address?: string;
+  work_address?: string;
+  portal_state?: PortalAccessState;
+  user_id?: string;
+  invite_expires_at?: string;
+  temporary_until?: string;
+  contact_prefs?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChildParentRelationship {
+  id: string;
+  child_id: string;
+  parent_id: string;
+  relationship: string;
+  parental_responsibility: boolean;
+  primary_contact: boolean;
+  emergency_contact: boolean;
+  authorised_collection: boolean;
+  billing_contact: boolean;
+  receives_communications: boolean;
+  lives_with_child: boolean;
+  portal_access: boolean;
+  finance_access: boolean;
+  legal_contact?: boolean;
+  contact_arrangements?: string;
+  priority?: number;
+  parent_name?: string;
+  child_name?: string;
+}
+
+export interface ParentInput {
+  first_name: string;
+  last_name: string;
+  email?: string;
+  profession?: string;
+  mobile_phone?: string;
+  work_phone?: string;
+  home_phone?: string;
+  home_address?: string;
+  work_address?: string;
+}
+
+export interface RelationshipFlagsInput {
+  relationship: string;
+  parental_responsibility?: boolean;
+  primary_contact?: boolean;
+  emergency_contact?: boolean;
+  authorised_collection?: boolean;
+  billing_contact?: boolean;
+  receives_communications?: boolean;
+  lives_with_child?: boolean;
+  portal_access?: boolean;
+  finance_access?: boolean;
+  legal_contact?: boolean;
+  contact_arrangements?: string;
+  priority?: number;
+}
+
+// ── Induction, consents & onboarding (family onboarding Phase 4) ─────────────
+
+export type InductionStatus = "not_started" | "in_progress" | "submitted" | "reviewed";
+
+export interface InductionSectionDef { key: string; label: string; required: boolean }
+
+export interface InductionSection {
+  data?: Record<string, unknown>;
+  complete: boolean;
+  updated_at: string;
+  updated_by?: string;
+}
+
+export interface ChildInduction {
+  id: string;
+  child_id: string;
+  status: InductionStatus;
+  sections?: Record<string, InductionSection>;
+  submitted_by?: string;
+  submitted_at?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  review_note?: string;
+}
+
+export interface InductionBundle {
+  induction: ChildInduction;
+  sections: InductionSectionDef[];
+  consent_catalogue: ConsentDef[];
+}
+
+export interface ConsentDef { key: string; label: string; required: boolean }
+
+export interface Consent {
+  id: string;
+  child_id: string;
+  key: string;
+  granted: boolean;
+  note?: string;
+  signed_by_parent_id?: string;
+  signed_by_user_id?: string;
+  signature_name: string;
+  created_at: string;
+}
+
+export interface ConsentsBundle {
+  consents: Consent[];
+  latest: Record<string, Consent>;
+  catalogue: ConsentDef[];
+}
+
+export interface CompletenessCategory {
+  key: string;
+  label: string;
+  weight: number;
+  percent: number;
+  missing?: string[];
+}
+
+export interface OnboardingView {
+  child_id: string;
+  child_name?: string;
+  branch_slug?: string;
+  percent: number;
+  status: string;
+  categories: CompletenessCategory[];
+  induction_status: InductionStatus;
+}
+
+// ── Finance: families, charges, payments, schedules ──────────────────────────
+
+export type MandateStatus = "" | "pending" | "active" | "failed" | "cancelled";
+
+export type ChargeStatus =
+  | "draft"
+  | "upcoming"
+  | "due"
+  | "processing"
+  | "paid"
+  | "partially_paid"
+  | "overdue"
+  | "failed"
+  | "cancelled"
+  | "refunded"
+  | "written_off";
+
+export interface Family {
+  id: string;
+  ref?: string;
+  name: string;
+  parent_ids?: string[];
+  billing_parent_id?: string;
+  child_ids?: string[];
+  stripe_customer_id?: string;
+  stripe_payment_method_id?: string;
+  stripe_mandate_id?: string;
+  mandate_status: MandateStatus;
+  created_at: string;
+  updated_at: string;
+  billing_parent_name?: string;
+  balance_pence: number;
+}
+
+export interface Charge {
+  id: string;
+  ref?: string;
+  family_id: string;
+  child_id?: string;
+  description: string;
+  amount_pence: number;
+  due_date: string;
+  status: ChargeStatus;
+  first_payment?: boolean;
+  paid_pence?: number;
+  paid_at?: string;
+  created_at: string;
+  child_name?: string;
+}
+
+export interface PaymentAllocation {
+  charge_id: string;
+  amount_pence: number;
+}
+
+export interface FamilyPayment {
+  id: string;
+  family_id: string;
+  amount_pence: number;
+  method: string;
+  status: string;
+  failure_note?: string;
+  allocations?: PaymentAllocation[];
+  created_at: string;
+}
+
+export interface PaymentScheduleItem {
+  id: string;
+  family_id: string;
+  child_id: string;
+  amount_pence: number;
+  day_of_month: number;
+  start_month: string;
+  end_month?: string;
+  active: boolean;
+  last_generated?: string;
+}
+
+export interface FamilyView {
+  family: Family;
+  charges: Charge[];
+  payments: FamilyPayment[];
+  schedules: PaymentScheduleItem[];
+  next_payment?: Charge | null;
+}
+
+export interface FinanceDashboard {
+  outstanding_pence: number;
+  due_this_week_pence: number;
+  overdue_pence: number;
+  overdue_count: number;
+  failed_pence: number;
+  failed_count: number;
+  expected_month_pence: number;
+  collected_month_pence: number;
+  families_total: number;
+  families_without_dd: number;
+}
+
+export interface CommunicationLog {
+  id: string;
+  family_id: string;
+  charge_id?: string;
+  kind: string;
+  key?: string;
+  subject: string;
+  body: string;
+  sent_at: string;
+}
+
+// ── SEND / additional support ────────────────────────────────────────────────
+
+export type SendStatus = "" | "monitoring" | "sen_support" | "ehcp" | "ended";
+export type SendPlanStatus = "" | "draft" | "active" | "ended";
+export type RoomProvision = "" | "send_dedicated";
+
+export interface ChildSendSupport {
+  id: string;
+  child_id: string;
+  status: SendStatus;
+  summary?: string;
+  categories?: string[];
+  send_lead_staff_id?: string;
+  send_lead_name?: string;
+  plan_status: SendPlanStatus;
+  review_date?: string;
+  start_date?: string;
+  end_date?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SendSupportInput {
+  status: SendStatus;
+  summary: string;
+  categories: string[];
+  send_lead_staff_id: string;
+  plan_status: SendPlanStatus;
+  review_date: string;
+  start_date: string;
+  end_date: string;
+}
+
+export interface SendOverviewRow {
+  child_id: string;
+  child_name: string;
+  age_label?: string;
+  branch_slug: string;
+  room_id?: string;
+  room_name?: string;
+  provision: "mainstream" | "send_dedicated" | "unallocated";
+  status: SendStatus;
+  plan_status?: string;
+  send_lead?: string;
+  key_person?: string;
+  review_date?: string;
+}
+
+export interface SendOverview {
+  total_send: number;
+  monitoring: number;
+  sen_support: number;
+  ehcp: number;
+  dedicated_rooms: number;
+  in_specialist: number;
+  in_mainstream: number;
+  unallocated: number;
+  active_plans: number;
+  rows: SendOverviewRow[];
+}

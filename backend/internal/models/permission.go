@@ -30,6 +30,13 @@ const (
 	PermDailyLogsApprove Permission = "daily_logs.approve" // four-eyes review: approve/reject a submitted log (approvers only)
 	// Staff leave / holiday approvals (HR)
 	PermLeaveApprove Permission = "leave.approve" // approve/decline staff leave requests (managers/HR)
+	PermParentsManage Permission = "parents.manage" // parent/guardian records, child links, portal invitations
+	PermFinanceManage Permission = "finance.manage" // families, charges, payments, schedules, reminders
+	PermFinanceAdjust Permission = "finance.adjust" // credits, write-offs, refunds, manual mandates
+	// PermSendManage gates the sensitive SEND/additional-support profile and
+	// the branch SEND view. The operational send_status badge/filter needs
+	// only children.manage.
+	PermSendManage Permission = "send.manage"
 )
 
 // AllPermissions is the full set, granted to super_admin/admin.
@@ -38,6 +45,7 @@ var AllPermissions = []Permission{
 	PermProcurementView, PermProcurementManage, PermSuppliersManage,
 	PermFinanceView, PermAuditView, PermBranchesManage, PermBranchAdmin, PermUsersManage,
 	PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
+	PermParentsManage, PermFinanceManage, PermFinanceAdjust, PermSendManage,
 }
 
 // rolePermissions maps each role to its capability set. Customers/staff have no
@@ -50,13 +58,15 @@ var rolePermissions = map[Role][]Permission{
 		PermDashboardView, PermStoreManage, PermBlogManage, PermEnquiriesManage,
 		PermProcurementView, PermProcurementManage, PermSuppliersManage,
 		PermFinanceView, PermAuditView, PermBranchesManage,
-		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
+		PermChildrenManage, PermParentsManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
+		PermFinanceManage, PermFinanceAdjust,
 	},
 	RoleBranchManager: {
 		PermDashboardView, PermStoreManage, PermBlogManage, PermEnquiriesManage,
 		PermProcurementView, PermProcurementManage, PermSuppliersManage,
 		PermFinanceView, PermAuditView, PermBranchesManage,
-		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
+		PermChildrenManage, PermParentsManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
+		PermFinanceManage, PermSendManage,
 	},
 	// Director (Managing Director): broad executive oversight across the whole
 	// back office — same reach as a general manager, minus account management.
@@ -64,10 +74,11 @@ var rolePermissions = map[Role][]Permission{
 		PermDashboardView, PermStoreManage, PermBlogManage, PermEnquiriesManage,
 		PermProcurementView, PermProcurementManage, PermSuppliersManage,
 		PermFinanceView, PermAuditView, PermBranchesManage,
-		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
+		PermChildrenManage, PermParentsManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
+		PermFinanceManage, PermFinanceAdjust, PermSendManage,
 	},
 	RoleFinance: {
-		PermDashboardView, PermFinanceView, PermProcurementView, PermAuditView,
+		PermDashboardView, PermFinanceView, PermFinanceManage, PermFinanceAdjust, PermProcurementView, PermAuditView,
 	},
 	RoleAdmissions: {
 		PermDashboardView, PermEnquiriesManage,
@@ -81,7 +92,8 @@ var rolePermissions = map[Role][]Permission{
 	RoleRegionalManager: {
 		PermDashboardView, PermBranchesManage, PermEnquiriesManage,
 		PermFinanceView, PermAuditView,
-		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
+		PermChildrenManage, PermParentsManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove, PermLeaveApprove,
+		PermSendManage,
 	},
 	// Deputy Manager: assists one branch — same operational reach as a branch
 	// manager minus leave and finance/payroll approval. Leave approval is a
@@ -89,12 +101,13 @@ var rolePermissions = map[Role][]Permission{
 	// Builder if a deputy should approve leave).
 	RoleDeputyManager: {
 		PermDashboardView, PermBranchesManage, PermEnquiriesManage,
-		PermChildrenManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove,
+		PermChildrenManage, PermParentsManage, PermAttendanceManage, PermStaffManage, PermDailyLogsManage, PermDailyLogsApprove,
+		PermSendManage,
 	},
 	// ── Enterprise catalogue (B3) — sensible starting sets, editable by super
 	// admin via the Permission Builder. ────────────────────────────────────────
-	RoleEYFSLead:          {PermDashboardView, PermChildrenManage, PermAttendanceManage, PermDailyLogsManage, PermDailyLogsApprove},
-	RoleSENCO:             {PermDashboardView, PermChildrenManage, PermDailyLogsManage},
+	RoleEYFSLead:          {PermDashboardView, PermChildrenManage, PermAttendanceManage, PermDailyLogsManage, PermDailyLogsApprove, PermSendManage},
+	RoleSENCO:             {PermDashboardView, PermChildrenManage, PermDailyLogsManage, PermSendManage},
 	RoleOfficeAdmin:       {PermDashboardView, PermEnquiriesManage, PermChildrenManage, PermAttendanceManage},
 	RoleFinanceOfficer:    {PermDashboardView, PermFinanceView, PermProcurementView, PermAuditView},
 	RoleHROfficer:         {PermDashboardView, PermStaffManage, PermAuditView, PermLeaveApprove},
@@ -121,6 +134,7 @@ var PermissionCatalogue = []PermissionInfo{
 	{PermBranchesManage, "Manage branches (in scope)", "Organisation"},
 	{PermBranchAdmin, "Branch lifecycle (create/delete/assign)", "Organisation"},
 	{PermChildrenManage, "Manage children & rooms", "Children"},
+	{PermParentsManage, "Manage parents, guardians & portal invitations", "Children"},
 	{PermAttendanceManage, "Child attendance register", "Children"},
 	{PermDailyLogsManage, "Observations, safeguarding, medication", "Children"},
 	{PermStaffManage, "Manage staff & rota", "Staff"},

@@ -8,7 +8,12 @@ import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StageBadge from "@/components/admin/ui/StageBadge";
+import Avatar from "@/components/admin/ui/Avatar";
+import ProfilePhotoUploader from "@/components/admin/ui/ProfilePhotoUploader";
 import ChildRoomAllocations from "@/components/admin/rooms/ChildRoomAllocations";
+import ChildParentsPanel from "@/components/admin/parents/ChildParentsPanel";
+import SendSupportPanel from "@/components/admin/send/SendSupportPanel";
+import { sendActive } from "@/lib/send";
 import PickerModal from "@/components/admin/ui/PickerModal";
 import DailyLogForm from "@/components/admin/daily/DailyLogForm";
 import { usePermissions } from "@/lib/usePermissions";
@@ -157,12 +162,28 @@ export default function ChildDetailClient({ id }: { id: string }) {
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="font-heading text-2xl font-bold text-slate-900">{child.first_name} {child.last_name}</h1>
-            <StageBadge label={child.status} accent={childStatusAccent[child.status]} withDot />
+        <div className="flex items-start gap-4">
+          {has("children.manage") ? (
+            <ProfilePhotoUploader
+              name={`${child.first_name} ${child.last_name}`}
+              photoUrl={child.photo_url}
+              size="lg"
+              onSave={async (token, url) => {
+                const updated = await api.adminSetChildPhoto(token, child.id, url);
+                setChild((c) => (c ? { ...c, photo_url: updated.photo_url } : c));
+              }}
+            />
+          ) : (
+            <Avatar name={`${child.first_name} ${child.last_name}`} src={child.photo_url} size="lg" />
+          )}
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="font-heading text-2xl font-bold text-slate-900">{child.first_name} {child.last_name}</h1>
+              <StageBadge label={child.status} accent={childStatusAccent[child.status]} withDot />
+              {sendActive(child.send_status) && <StageBadge label="Additional support" accent="violet" withDot={false} />}
+            </div>
+            <p className="mt-1 font-mono text-xs text-slate-400">{child.ref ?? child.id}</p>
           </div>
-          <p className="mt-1 font-mono text-xs text-slate-400">{child.ref ?? child.id}</p>
         </div>
         {!editing ? (
           <div className="flex items-center gap-2">
@@ -280,21 +301,14 @@ export default function ChildDetailClient({ id }: { id: string }) {
             )}
           </div>
 
-          <div className="card p-5">
-            <h2 className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-400">Guardians</h2>
-            {(!child.guardians || child.guardians.length === 0) ? (
-              <p className="text-sm text-slate-400">No guardians recorded.</p>
-            ) : (
-              <ul className="space-y-4">
-                {child.guardians.map((g, i) => (
-                  <li key={i} className="text-sm">
-                    <p className="font-medium text-slate-900">{g.name} {g.primary && <span className="ml-1 align-middle"><StageBadge label="primary" accent="teal" withDot={false} /></span>}</p>
-                    <p className="text-slate-500">{g.relation}</p>
-                    {g.email && <p className="text-slate-500">{g.email}</p>}
-                    {g.phone && <p className="text-slate-500">{g.phone}</p>}
-                  </li>
-                ))}
-              </ul>
+          <div className="space-y-4">
+            <ChildParentsPanel childId={child.id} canManage={has("parents.manage")} />
+            {has("send.manage") && (
+              <SendSupportPanel
+                childId={child.id}
+                branchSlug={child.branch_slug}
+                onStatusChange={(status) => setChild((c) => (c ? { ...c, send_status: status } : c))}
+              />
             )}
           </div>
 
@@ -305,6 +319,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
               childId={child.id}
               branchSlug={child.branch_slug}
               canManage={has("children.manage")}
+              sendChild={sendActive(child.send_status)}
               onChange={() => { void load(); }}
               openRequest={roomOpenRequest}
             />
@@ -399,36 +414,8 @@ export default function ChildDetailClient({ id }: { id: string }) {
             </div>
           </div>
 
-          <div className="sm:col-span-2">
-            <div className="mb-2 flex items-center justify-between">
-              <label className="block text-xs uppercase tracking-wider text-slate-400">Guardians</label>
-              <button type="button" onClick={addGuardian} className="inline-flex items-center gap-1 text-xs font-medium text-teal-600 hover:underline">
-                <Plus className="h-3.5 w-3.5" /> Add guardian
-              </button>
-            </div>
-            {(!form.guardians || form.guardians.length === 0) ? (
-              <p className="text-sm text-slate-400">No guardians recorded.</p>
-            ) : (
-              <div className="space-y-3">
-                {form.guardians.map((g, i) => (
-                  <div key={i} className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 p-3 sm:grid-cols-2">
-                    <input value={g.name} onChange={(e) => setGuardian(i, { name: e.target.value })} placeholder="Name" className="inp" />
-                    <input value={g.relation ?? ""} onChange={(e) => setGuardian(i, { relation: e.target.value })} placeholder="Relation (e.g. Mother, Father)" className="inp" />
-                    <input value={g.email ?? ""} onChange={(e) => setGuardian(i, { email: e.target.value })} placeholder="Email" type="email" className="inp" />
-                    <input value={g.phone ?? ""} onChange={(e) => setGuardian(i, { phone: e.target.value })} placeholder="Phone" className="inp" />
-                    <div className="flex items-center justify-between sm:col-span-2">
-                      <label className="inline-flex items-center gap-1.5 text-xs text-slate-500">
-                        <input type="radio" name="primary-guardian" checked={!!g.primary} onChange={() => setPrimaryGuardian(i)} /> Primary contact
-                      </label>
-                      <button type="button" onClick={() => removeGuardian(i)} className="inline-flex items-center gap-1 text-xs font-medium text-red-500 hover:underline">
-                        <Trash2 className="h-3.5 w-3.5" /> Remove
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Guardians are managed by the Parents & Guardians panel (canonical
+              child-parent relationships) — not this edit form. */}
         </div>
       )}
 

@@ -68,6 +68,8 @@ type Staff struct {
 	LastName          string             `bson:"last_name"              json:"last_name"`
 	Email             string             `bson:"email,omitempty"        json:"email,omitempty"`
 	Phone             string             `bson:"phone,omitempty"        json:"phone,omitempty"`
+	// PhotoURL is the uploaded profile picture (served from /uploads).
+	PhotoURL          string             `bson:"photo_url,omitempty"    json:"photo_url,omitempty"`
 	BranchSlug        string             `bson:"branch_slug"            json:"branch_slug"`
 	JobTitle          string             `bson:"job_title,omitempty"    json:"job_title,omitempty"`
 	StaffType         StaffType          `bson:"staff_type"             json:"staff_type"`
@@ -153,4 +155,9 @@ type StaffStats struct {
 	Absent         int               `json:"absent"` // unauthorised / unexplained absence
 	DBSExpiring    int               `json:"dbs_expiring"` // valid DBS expiring within 90 days
 	Branches       []BranchStaffStat `json:"branches"`
+}
+
+// StaffPhotoRequest sets (or clears, with an empty URL) the profile photo.
+type StaffPhotoRequest struct {
+	PhotoURL string `json:"photo_url"`
 }

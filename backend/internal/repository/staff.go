@@ -25,6 +25,10 @@ type StaffRepository interface {
 	FindAll(ctx context.Context, f StaffFilter) ([]models.Staff, error)
 	FindByID(ctx context.Context, id string) (*models.Staff, error)
 	Update(ctx context.Context, id string, s models.Staff) (*models.Staff, error)
+	SetPhoto(ctx context.Context, id, url string) (*models.Staff, error)
+	// FindByUserID resolves the staff record a login account belongs to (nil,
+	// err when the user is not any staff member's login).
+	FindByUserID(ctx context.Context, userID string) (*models.Staff, error)
 	SetPINHash(ctx context.Context, id, hash string) error
 	Delete(ctx context.Context, id string) error
 }
@@ -154,4 +158,31 @@ func (r *staffRepository) Delete(ctx context.Context, id string) error {
 	}
 	_, err = r.col.DeleteOne(ctx, bson.M{"_id": oid})
 	return err
+}
+
+func (r *staffRepository) SetPhoto(ctx context.Context, id, url string) (*models.Staff, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	update := bson.M{"$set": bson.M{"updated_at": time.Now()}}
+	if url == "" {
+		update["$unset"] = bson.M{"photo_url": ""}
+	} else {
+		update["$set"].(bson.M)["photo_url"] = url
+	}
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	var out models.Staff
+	if err := r.col.FindOneAndUpdate(ctx, bson.M{"_id": oid}, update, opts).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (r *staffRepository) FindByUserID(ctx context.Context, userID string) (*models.Staff, error) {
+	var out models.Staff
+	if err := r.col.FindOne(ctx, bson.M{"user_id": userID}).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }

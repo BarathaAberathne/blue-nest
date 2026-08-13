@@ -32,6 +32,8 @@ type ChildService interface {
 	// SetKeyPerson assigns (or clears, with empty staffID) the child's key
 	// person. The key person must be an active staff member at the child's branch.
 	SetKeyPerson(ctx context.Context, childID, staffID string) (*models.Child, error)
+	// SetPhoto sets (or clears, with an empty URL) the child's profile photo.
+	SetPhoto(ctx context.Context, childID, url string) (*models.Child, error)
 	// KeyChildren lists the children a staff member is key person for.
 	KeyChildren(ctx context.Context, staffID string) ([]models.Child, error)
 	// Archive marks a leaving child as left (status=left + leave_date) and
@@ -56,10 +58,15 @@ type childService struct {
 	// taxonomy supplies the org-configurable age bands for Stats bucketing;
 	// nil-safe — when absent, Stats falls back to the built-in default bands.
 	taxonomy repository.TaxonomyRepository
+	// parentRels/parents back the computed Guardians projection: once a child
+	// has canonical child_parent_relationships, they REPLACE the legacy
+	// embedded guardians array at read time (nil-safe for unit tests).
+	parentRels repository.ChildParentRepository
+	parents    repository.ParentRepository
 }
 
-func NewChildService(repo repository.ChildRepository, rooms repository.RoomRepository, counters repository.CounterRepository, staff repository.StaffRepository, roomAssignments ChildRoomAssignmentService, taxonomy repository.TaxonomyRepository) ChildService {
-	return &childService{repo: repo, rooms: rooms, counters: counters, staff: staff, roomAssignments: roomAssignments, taxonomy: taxonomy}
+func NewChildService(repo repository.ChildRepository, rooms repository.RoomRepository, counters repository.CounterRepository, staff repository.StaffRepository, roomAssignments ChildRoomAssignmentService, taxonomy repository.TaxonomyRepository, parentRels repository.ChildParentRepository, parents repository.ParentRepository) ChildService {
+	return &childService{repo: repo, rooms: rooms, counters: counters, staff: staff, roomAssignments: roomAssignments, taxonomy: taxonomy, parentRels: parentRels, parents: parents}
 }
 
 func (s *childService) List(ctx context.Context, f repository.ChildFilter) ([]models.Child, error) {
@@ -88,7 +95,55 @@ func (s *childService) GetByID(ctx context.Context, id string) (*models.Child, e
 	}
 	s.resolveKeyPerson(ctx, c)
 	s.resolveRoom(ctx, c)
+	s.resolveGuardians(ctx, c)
 	return c, nil
+}
+
+// resolveGuardians projects the canonical child_parent_relationships onto the
+// legacy Guardians shape for display compatibility. Once ANY relationship
+// exists the projection wins; children not yet migrated keep their embedded
+// array. (Same playbook as room_id → room assignments.)
+func (s *childService) resolveGuardians(ctx context.Context, c *models.Child) {
+	if c == nil || s.parentRels == nil || s.parents == nil {
+		return
+	}
+	rels, err := s.parentRels.FindByChild(ctx, c.ID.Hex())
+	if err != nil || len(rels) == 0 {
+		return
+	}
+	ids := make([]string, 0, len(rels))
+	for _, r := range rels {
+		ids = append(ids, r.ParentID)
+	}
+	people, err := s.parents.FindByIDs(ctx, ids)
+	if err != nil {
+		return
+	}
+	byID := map[string]models.Parent{}
+	for _, p := range people {
+		byID[p.ID.Hex()] = p
+	}
+	out := make([]models.Guardian, 0, len(rels))
+	for _, r := range rels {
+		p, ok := byID[r.ParentID]
+		if !ok {
+			continue
+		}
+		phone := p.MobilePhone
+		if phone == "" {
+			phone = p.HomePhone
+		}
+		out = append(out, models.Guardian{
+			Name:     strings.TrimSpace(p.FirstName + " " + p.LastName),
+			Relation: r.Relationship,
+			Email:    p.Email,
+			Phone:    phone,
+			Primary:  r.PrimaryContact,
+		})
+	}
+	if len(out) > 0 {
+		c.Guardians = out
+	}
 }
 
 // resolveRoom fills the transient RoomID/RoomName from the child's current
@@ -131,6 +186,29 @@ func (s *childService) resolveKeyPerson(ctx context.Context, c *models.Child) {
 	if st, err := s.staff.FindByID(ctx, c.KeyPersonID); err == nil && st != nil {
 		c.KeyPersonName = strings.TrimSpace(st.FirstName + " " + st.LastName)
 	}
+}
+
+// validPhotoURL accepts our own uploads (absolute or /uploads-relative) only —
+// the photo must come through POST /admin/uploads/image, never an arbitrary
+// external hotlink.
+func validPhotoURL(u string) bool {
+	return strings.Contains(u, "/uploads/") &&
+		(strings.HasPrefix(u, "/uploads/") || strings.HasPrefix(u, "http://") || strings.HasPrefix(u, "https://"))
+}
+
+func (s *childService) SetPhoto(ctx context.Context, childID, url string) (*models.Child, error) {
+	url = strings.TrimSpace(url)
+	if url != "" && !validPhotoURL(url) {
+		return nil, errors.New("photo_url must reference an uploaded image")
+	}
+	updated, err := s.repo.SetPhoto(ctx, childID, url)
+	if err != nil {
+		return nil, errors.New("child not found")
+	}
+	s.resolveKeyPerson(ctx, updated)
+	s.resolveRoom(ctx, updated)
+	s.resolveGuardians(ctx, updated)
+	return updated, nil
 }
 
 func (s *childService) SetKeyPerson(ctx context.Context, childID, staffID string) (*models.Child, error) {
@@ -728,7 +806,7 @@ func (s *childService) CapacityForecast(ctx context.Context, branch string, week
 		roomID := room.ID.Hex()
 		rf := models.RoomCapacityForecast{
 			RoomID: roomID, RoomName: room.Name, BranchSlug: room.BranchSlug,
-			Capacity: room.Capacity, StaffRatio: room.StaffRatio,
+			Capacity: room.Capacity, StaffRatio: room.StaffRatio, Provision: room.Provision,
 		}
 		for i := 0; i < weeks; i++ {
 			weekMonday := firstMonday.AddDate(0, 0, 7*i)

@@ -16,6 +16,8 @@ type StaffService interface {
 	GetByID(ctx context.Context, id string) (*models.Staff, error)
 	Create(ctx context.Context, req models.StaffRequest) (*models.Staff, error)
 	Update(ctx context.Context, id string, req models.StaffRequest) (*models.Staff, error)
+	// SetPhoto sets (or clears, with an empty URL) the staff profile photo.
+	SetPhoto(ctx context.Context, id, url string) (*models.Staff, error)
 	Delete(ctx context.Context, id string) error
 }
 
@@ -50,7 +52,7 @@ func NewStaffService(repo repository.StaffRepository, counters repository.Counte
 func (s *staffService) provisionLogin(ctx context.Context, st *models.Staff, req models.StaffRequest) error {
 	email := strings.TrimSpace(st.Email)
 	if email == "" {
-		return errors.New("an email is required to enable a system login")
+		return errors.New("a login email is required to enable a system login — enter one in the Login email field")
 	}
 	role := req.LoginRole
 	if role == "" {
@@ -63,8 +65,12 @@ func (s *staffService) provisionLogin(ctx context.Context, st *models.Staff, req
 		_, err := s.accounts.UpdateUser(ctx, st.UserID, models.AdminUpdateUserRequest{Role: role, BranchSlugs: scope})
 		return err
 	}
-	// An account with this email already exists → link + rescope it.
+	// An account with this email already exists → link + rescope it, but never
+	// steal a login that is already another staff member's identity.
 	if existing, err := s.accounts.FindUserByEmail(ctx, email); err == nil && existing != nil {
+		if other, oerr := s.repo.FindByUserID(ctx, existing.ID.Hex()); oerr == nil && other != nil && other.ID != st.ID {
+			return errors.New("that email's login already belongs to " + other.FirstName + " " + other.LastName + " — use a different email")
+		}
 		if _, uerr := s.accounts.UpdateUser(ctx, existing.ID.Hex(), models.AdminUpdateUserRequest{Role: role, BranchSlugs: scope}); uerr != nil {
 			return uerr
 		}
@@ -297,4 +303,17 @@ func (s *staffService) Delete(ctx context.Context, id string) error {
 		s.roomAssignments.EndAllForStaff(ctx, id, "staff-deleted")
 	}
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *staffService) SetPhoto(ctx context.Context, id, url string) (*models.Staff, error) {
+	url = strings.TrimSpace(url)
+	if url != "" && !validPhotoURL(url) {
+		return nil, errors.New("photo_url must reference an uploaded image")
+	}
+	updated, err := s.repo.SetPhoto(ctx, id, url)
+	if err != nil {
+		return nil, errors.New("staff member not found")
+	}
+	s.resolveRoom(ctx, updated)
+	return updated, nil
 }

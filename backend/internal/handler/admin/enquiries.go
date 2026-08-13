@@ -23,10 +23,11 @@ type AdminEnquiryHandler struct {
 	audit      service.AuditService
 	children   service.ChildService
 	childRooms service.ChildRoomAssignmentService
+	parents    service.ParentService
 }
 
-func NewAdminEnquiryHandler(svc service.EnquiryService, auth service.AuthService, audit service.AuditService, children service.ChildService, childRooms service.ChildRoomAssignmentService) *AdminEnquiryHandler {
-	return &AdminEnquiryHandler{svc: svc, auth: auth, audit: audit, children: children, childRooms: childRooms}
+func NewAdminEnquiryHandler(svc service.EnquiryService, auth service.AuthService, audit service.AuditService, children service.ChildService, childRooms service.ChildRoomAssignmentService, parents service.ParentService) *AdminEnquiryHandler {
+	return &AdminEnquiryHandler{svc: svc, auth: auth, audit: audit, children: children, childRooms: childRooms, parents: parents}
 }
 
 // actor pulls the authenticated staff identity off the request for note/activity
@@ -471,6 +472,26 @@ func (h *AdminEnquiryHandler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 		summary = "Registered enquiry and added " + body.ChildFirstName + " " + body.ChildLastName + " to Children"
 
+		// Create/link the CANONICAL parent record from the enquiry contact —
+		// existing parents (matched by email) are reused so siblings share one
+		// person. Best-effort: a failure never unwinds the registration (the
+		// embedded guardian snapshot above still captures the contact), and a
+		// duplicate link (re-register retry) is simply already-linked.
+		if h.parents != nil && child != nil && strings.TrimSpace(enquiry.Name) != "" {
+			first, last := splitName(enquiry.Name)
+			if _, perr := h.parents.LinkChild(r.Context(), models.LinkChildRequest{
+				ChildID: child.ID.Hex(),
+				Parent:  &models.ParentRequest{FirstName: first, LastName: last, Email: enquiry.Email, MobilePhone: enquiry.Phone},
+				RelationshipFlags: models.RelationshipFlags{
+					Relationship: "parent", ParentalResponsibility: true, PrimaryContact: true,
+					EmergencyContact: true, ReceivesComms: true, LivesWithChild: true,
+					PortalAccess: true, FinanceAccess: true, Priority: 1,
+				},
+			}); perr != nil && !strings.Contains(perr.Error(), "already linked") {
+				h.audit.Record(r, "register", "enquiry", id, "Parent link on registration failed: "+perr.Error(), nil)
+			}
+		}
+
 		// Room picked on the registration panel → create the CANONICAL room
 		// assignment for the new child (start = expected start date), the same
 		// allocation the child-create screen issues. Best-effort: a failed
@@ -537,4 +558,18 @@ func (h *AdminEnquiryHandler) respondUpdated(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	response.OK(w, enquiry)
+}
+
+// splitName splits an enquiry's free-text contact name into first/last for
+// the canonical parent record ("Sofia Marino" → "Sofia", "Marino"; a single
+// token becomes the first name).
+func splitName(full string) (string, string) {
+	parts := strings.Fields(strings.TrimSpace(full))
+	if len(parts) == 0 {
+		return "", ""
+	}
+	if len(parts) == 1 {
+		return parts[0], parts[0]
+	}
+	return parts[0], strings.Join(parts[1:], " ")
 }
