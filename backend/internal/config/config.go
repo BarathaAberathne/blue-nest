@@ -19,6 +19,12 @@ type Config struct {
 	SMTP        SMTPConfig
 	Sourcing    SourcingConfig
 	FrontendURL string
+	// FrontendInternalURL is the in-network address the backend uses to call
+	// the Next.js server (cache revalidation). Defaults to FrontendURL.
+	FrontendInternalURL string
+	// RevalidateSecret authenticates backend→frontend cache-revalidation calls
+	// (REVALIDATE_SECRET, shared with the frontend). Empty = feature off.
+	RevalidateSecret string
 	// NotifyEmailEnabled turns on email delivery of in-app notifications
 	// (NOTIFY_EMAIL_ENABLED). Opt-in (default off) so dev/test never sends real
 	// mail via the configured SMTP; prod sets it true.
@@ -138,7 +144,9 @@ func Load() *Config {
 		CORS: CORSConfig{
 			AllowedOrigins: frontendOrigins,
 		},
-		FrontendURL:        frontendOrigins[0],
+		FrontendURL:         frontendOrigins[0],
+		FrontendInternalURL: getEnv("FRONTEND_INTERNAL_URL", frontendOrigins[0]),
+		RevalidateSecret:    getEnv("REVALIDATE_SECRET", ""),
 		NotifyEmailEnabled: strings.EqualFold(getEnv("NOTIFY_EMAIL_ENABLED", "false"), "true"),
 		GBPIngestSecret:    getEnv("GBP_INGEST_SECRET", ""),
 		SMTP: SMTPConfig{
