@@ -81,6 +81,14 @@ tags:
   - name: Configuration
     description: Org-scoped configuration — taxonomy lists, term dates, fee schedules, branch + email templates
   - name: Exports
+  - name: Parents
+    description: Canonical parent/guardian records, child relationships & portal access
+  - name: Portal
+    description: Parent-facing endpoints (server-side scoped to the caller's own children/family)
+  - name: Induction
+    description: Child induction sections, consents & derived onboarding completeness
+  - name: Finance
+    description: Family billing accounts, charges, payments, schedules, Direct Debit & reminders
     description: Server-side list exports (CSV default, ?format=xlsx for Excel)
 
 paths:
@@ -4035,6 +4043,418 @@ paths:
       responses:
         '200': { description: Reverted }
 
+
+  # ── Parents & relationships (permission parents.manage) ─────────────────────
+  /admin/parents:
+    get:
+      tags: [Parents]
+      summary: List parents (optional ?q name/email search)
+      operationId: listParents
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: q, in: query, required: false, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Parent' } } } } }
+    post:
+      tags: [Parents]
+      summary: Create a parent (create-or-link by email — an existing email returns the existing record)
+      operationId: createParent
+      security: [{ BearerAuth: [] }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ParentInput' } } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Parent' } } } }
+  /admin/parents/{id}:
+    get:
+      tags: [Parents]
+      summary: Parent detail
+      operationId: getParent
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Parent' } } } }
+    put:
+      tags: [Parents]
+      summary: Update a parent's contact details
+      operationId: updateParent
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ParentInput' } } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Parent' } } } }
+    delete:
+      tags: [Parents]
+      summary: Delete a parent (blocked while child relationships exist)
+      operationId: deleteParent
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '204': { description: Deleted }
+  /admin/parents/{id}/children:
+    get:
+      tags: [Parents]
+      summary: The parent's child relationships
+      operationId: getParentChildren
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ChildParentRelationship' } } } } }
+  /admin/parents/{id}/invite:
+    post:
+      tags: [Parents]
+      summary: Issue a single-use portal invitation (bcrypt token hash stored; activation link emailed + returned)
+      operationId: inviteParent
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: false, content: { application/json: { schema: { type: object, properties: { temporary_days: { type: integer, description: "0 = org default temporary window" } } } } } }
+      responses:
+        '200': { description: 'Invitation issued ({activation_link, parent_id, token})' }
+  /admin/parents/{id}/portal-state:
+    post:
+      tags: [Parents]
+      summary: Set portal access state (active/temporary/restricted/suspended; audited)
+      operationId: setParentPortalState
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [state], properties: { state: { type: string, enum: [active, temporary, restricted, suspended] }, temporary_days: { type: integer } } } } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Parent' } } } }
+  /admin/children/{id}/parents:
+    get:
+      tags: [Parents]
+      summary: A child's parent relationships (canonical guardians source)
+      operationId: getChildParents
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ChildParentRelationship' } } } } }
+    post:
+      tags: [Parents]
+      summary: Link a parent to the child (existing parent_id OR inline parent create-or-link by email)
+      operationId: linkChildParent
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ChildParentLinkRequest' } } } }
+      responses:
+        '201': { description: Linked, content: { application/json: { schema: { $ref: '#/components/schemas/ChildParentRelationship' } } } }
+  /admin/parent-relationships/{id}:
+    put:
+      tags: [Parents]
+      summary: Update relationship flags
+      operationId: updateParentRelationship
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RelationshipFlags' } } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChildParentRelationship' } } } }
+    delete:
+      tags: [Parents]
+      summary: Unlink a parent from a child
+      operationId: unlinkParentRelationship
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '204': { description: Unlinked }
+
+  # ── Portal (parent-facing; every route scoped to the caller's own children) ─
+  /auth/portal/activate:
+    post:
+      tags: [Portal]
+      summary: Activate a portal invitation (single-use token; sets the parent's password)
+      operationId: portalActivate
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [parent_id, token, password], properties: { parent_id: { type: string }, token: { type: string }, password: { type: string, minLength: 8 } } } } } }
+      responses:
+        '200': { description: Activated, content: { application/json: { schema: { $ref: '#/components/schemas/Parent' } } } }
+  /portal/me:
+    get:
+      tags: [Portal]
+      summary: The signed-in parent + their child relationships
+      operationId: portalMe
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+  /portal/children:
+    get:
+      tags: [Portal]
+      summary: The caller's authorised children (portal_access relationships only)
+      operationId: portalChildren
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+  /portal/children/{id}/induction:
+    get:
+      tags: [Portal]
+      summary: The child's induction bundle (404 for a child not linked to the caller)
+      operationId: portalGetInduction
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+        '404': { description: Not your child }
+  /portal/children/{id}/induction/sections/{key}:
+    put:
+      tags: [Portal]
+      summary: Save one induction section (save & resume; post-submit saves revert to in_progress)
+      operationId: portalSaveInductionSection
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: key, in: path, required: true, schema: { type: string } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/InductionSectionInput' } } } }
+      responses:
+        '200': { description: OK }
+  /portal/children/{id}/induction/submit:
+    post:
+      tags: [Portal]
+      summary: Submit the induction (gated on required sections; notifies branch reviewers)
+      operationId: portalSubmitInduction
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Submitted }
+  /portal/children/{id}/consents:
+    get:
+      tags: [Portal]
+      summary: Consent history + latest-per-key reduction
+      operationId: portalGetConsents
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Portal]
+      summary: Sign a consent (append-only; recorded against the caller's parent id)
+      operationId: portalRecordConsent
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ConsentRequest' } } } }
+      responses:
+        '201': { description: Recorded }
+  /portal/children/{id}/onboarding:
+    get:
+      tags: [Portal]
+      summary: The child's derived onboarding view (completeness + status)
+      operationId: portalOnboarding
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/OnboardingView' } } } }
+  /portal/finance:
+    get:
+      tags: [Portal]
+      summary: "The caller's OWN family finance view ({family: null} when no account exists yet)"
+      operationId: portalFinance
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+  /portal/finance/direct-debit:
+    post:
+      tags: [Portal]
+      summary: Start Bacs Direct Debit setup (returns the hosted Stripe setup URL)
+      operationId: portalSetupDirectDebit
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: 'OK ({setup_url})' }
+
+  # ── Induction & onboarding (admin; permission children.manage) ──────────────
+  /admin/children/{id}/induction:
+    get:
+      tags: [Induction]
+      summary: Induction bundle (sections catalogue + saved data + status)
+      operationId: adminGetInduction
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+  /admin/children/{id}/induction/sections/{key}:
+    put:
+      tags: [Induction]
+      summary: Save one section (write-through — allergies/dietary/medical/address land on the canonical Child fields)
+      operationId: adminSaveInductionSection
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: key, in: path, required: true, schema: { type: string } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/InductionSectionInput' } } } }
+      responses:
+        '200': { description: OK }
+  /admin/children/{id}/induction/submit:
+    post:
+      tags: [Induction]
+      summary: Submit (required sections must be complete)
+      operationId: adminSubmitInduction
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Submitted }
+  /admin/children/{id}/induction/review:
+    post:
+      tags: [Induction]
+      summary: Four-eyes review sign-off (reviewer must differ from submitter; notifies the submitter)
+      operationId: adminReviewInduction
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: false, content: { application/json: { schema: { type: object, properties: { note: { type: string } } } } } }
+      responses:
+        '200': { description: Reviewed }
+  /admin/children/{id}/consents:
+    get:
+      tags: [Induction]
+      summary: Consent history + latest map
+      operationId: adminGetConsents
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Induction]
+      summary: Record a consent decision (append-only)
+      operationId: adminRecordConsent
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ConsentRequest' } } } }
+      responses:
+        '201': { description: Recorded }
+  /admin/children/{id}/onboarding:
+    get:
+      tags: [Induction]
+      summary: Derived onboarding view for one child
+      operationId: adminGetOnboarding
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/OnboardingView' } } } }
+  /admin/onboarding:
+    get:
+      tags: [Induction]
+      summary: Manager onboarding board (every non-left child; optional ?branch, policy-scoped)
+      operationId: onboardingBoard
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: branch, in: query, required: false, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/OnboardingView' } } } } }
+
+  # ── Finance (permission finance.manage; mandate = finance.adjust) ───────────
+  /admin/finance/dashboard:
+    get:
+      tags: [Finance]
+      summary: Collection KPIs (outstanding, due-this-week, overdue, failed, month expected/collected, DD coverage)
+      operationId: financeDashboard
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+  /admin/families:
+    get:
+      tags: [Finance]
+      summary: All family accounts with derived balances
+      operationId: listFamilies
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Family' } } } } }
+  /admin/families/{id}:
+    get:
+      tags: [Finance]
+      summary: Family view (family + charges + payments + schedules + next payment)
+      operationId: getFamily
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+  /admin/children/{id}/family:
+    post:
+      tags: [Finance]
+      summary: Ensure the child's family account (idempotent; siblings sharing a parent join the same family)
+      operationId: ensureFamily
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Family' } } } }
+        '400': { description: No parent linked yet }
+  /admin/families/{id}/charges:
+    post:
+      tags: [Finance]
+      summary: Raise a charge (INV- ref; child must belong to the family)
+      operationId: createCharge
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ChargeRequest' } } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Charge' } } } }
+  /admin/families/{id}/first-payment:
+    post:
+      tags: [Finance]
+      summary: Raise the onboarding-gating first-payment charges (deposit + first month)
+      operationId: createFirstPayment
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [child_id, due_date], properties: { child_id: { type: string }, deposit_pence: { type: integer }, first_month_pence: { type: integer }, due_date: { type: string, format: date } } } } } }
+      responses:
+        '201': { description: 'Created (first_payment-flagged charges)' }
+  /admin/families/{id}/schedule:
+    post:
+      tags: [Finance]
+      summary: Create a monthly charge schedule (day 1-28; idempotent generation via last_generated cursor)
+      operationId: createSchedule
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [child_id, amount_pence, day_of_month, start_month], properties: { child_id: { type: string }, amount_pence: { type: integer }, day_of_month: { type: integer, minimum: 1, maximum: 28 }, start_month: { type: string, example: '2026-09' }, end_month: { type: string } } } } } }
+      responses:
+        '201': { description: Created }
+  /admin/families/{id}/manual-payment:
+    post:
+      tags: [Finance]
+      summary: Record a manual payment (unallocated amounts auto-allocate oldest-first)
+      operationId: recordManualPayment
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [amount_pence], properties: { amount_pence: { type: integer }, note: { type: string }, allocations: { type: array, items: { type: object, properties: { charge_id: { type: string }, amount_pence: { type: integer } } } } } } } } }
+      responses:
+        '201': { description: Recorded }
+  /admin/families/{id}/mandate:
+    post:
+      tags: [Finance]
+      summary: Record an offline/paper Bacs mandate as active (permission finance.adjust; audited)
+      operationId: markMandateActive
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: false, content: { application/json: { schema: { type: object, properties: { reference: { type: string } } } } } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Family' } } } }
+  /admin/families/{id}/communications:
+    get:
+      tags: [Finance]
+      summary: The family's reminder/message log
+      operationId: familyCommunications
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+  /admin/charges/{chargeId}/collect:
+    post:
+      tags: [Finance]
+      summary: Raise an off-session Bacs PaymentIntent for the charge's remainder (mandate must be active)
+      operationId: collectCharge
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: chargeId, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: 'Collection raised (charge -> processing)' }
+  /admin/charges/{chargeId}/remind:
+    post:
+      tags: [Finance]
+      summary: Send a manual payment reminder for one charge (logged in communication_logs)
+      operationId: remindCharge
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: chargeId, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Sent }
+        '400': { description: Nothing outstanding }
+  /admin/finance/reminders/run:
+    post:
+      tags: [Finance]
+      summary: Run the reminder sweep now (schedule generation + upcoming/due/overdue + DD-incomplete; deduped per rule)
+      operationId: runReminderSweep
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: 'OK ({sent})' }
+
 components:
   securitySchemes:
     BearerAuth:
@@ -5325,3 +5745,127 @@ components:
         subject: { type: string }
         body: { type: string, description: "Message text with {{placeholders}}; the service wraps it in the branded shell" }
         updated_at: { type: string, format: date-time }
+
+    Parent:
+      type: object
+      properties:
+        id: { type: string }
+        ref: { type: string, example: PAR-2026-000015 }
+        first_name: { type: string }
+        last_name: { type: string }
+        email: { type: string }
+        mobile_phone: { type: string }
+        portal_state: { type: string, enum: ['', invited, temporary, active, restricted, suspended] }
+        user_id: { type: string, description: Customer-role login created on activation }
+        temporary_until: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ParentInput:
+      type: object
+      required: [first_name, last_name]
+      properties:
+        first_name: { type: string }
+        last_name: { type: string }
+        email: { type: string }
+        mobile_phone: { type: string }
+    RelationshipFlags:
+      type: object
+      properties:
+        relationship: { type: string, example: mother }
+        parental_responsibility: { type: boolean }
+        emergency_contact: { type: boolean }
+        authorised_collection: { type: boolean }
+        billing_contact: { type: boolean }
+        portal_access: { type: boolean }
+        finance_access: { type: boolean }
+        legal_contact: { type: boolean }
+        lives_with_child: { type: boolean }
+    ChildParentRelationship:
+      allOf:
+        - $ref: '#/components/schemas/RelationshipFlags'
+        - type: object
+          properties:
+            id: { type: string }
+            child_id: { type: string }
+            parent_id: { type: string }
+            parent_name: { type: string }
+    ChildParentLinkRequest:
+      type: object
+      description: Provide parent_id OR an inline parent (create-or-link by email) plus relationship flags
+      properties:
+        parent_id: { type: string }
+        parent: { $ref: '#/components/schemas/ParentInput' }
+        relationship: { type: string }
+        parental_responsibility: { type: boolean }
+        emergency_contact: { type: boolean }
+        billing_contact: { type: boolean }
+        portal_access: { type: boolean }
+    InductionSectionInput:
+      type: object
+      required: [data]
+      properties:
+        data: { type: object, additionalProperties: true }
+        complete: { type: boolean }
+    ConsentRequest:
+      type: object
+      required: [key, signature_name]
+      properties:
+        key: { type: string, example: photos_marketing }
+        granted: { type: boolean }
+        note: { type: string }
+        signature_name: { type: string, description: Typed signature (required) }
+    OnboardingView:
+      type: object
+      properties:
+        child_id: { type: string }
+        child_name: { type: string }
+        branch_slug: { type: string }
+        percent: { type: integer }
+        status: { type: string, enum: [registration_started, induction_required, induction_in_progress, awaiting_review, finance_setup_required, ready_to_start, active, withdrawn] }
+        induction_status: { type: string, enum: [not_started, in_progress, submitted, reviewed] }
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              key: { type: string }
+              label: { type: string }
+              weight: { type: integer }
+              percent: { type: integer }
+              missing: { type: array, items: { type: string } }
+    Family:
+      type: object
+      properties:
+        id: { type: string }
+        ref: { type: string, example: FAM-2026-000007 }
+        name: { type: string }
+        parent_ids: { type: array, items: { type: string } }
+        billing_parent_id: { type: string }
+        billing_parent_name: { type: string }
+        child_ids: { type: array, items: { type: string } }
+        mandate_status: { type: string, enum: ['', pending, active, failed, cancelled] }
+        balance_pence: { type: integer, description: Derived (charges - paid), never stored }
+    ChargeRequest:
+      type: object
+      required: [description, amount_pence, due_date]
+      properties:
+        child_id: { type: string }
+        description: { type: string }
+        amount_pence: { type: integer }
+        due_date: { type: string, format: date }
+        first_payment: { type: boolean }
+    Charge:
+      type: object
+      properties:
+        id: { type: string }
+        ref: { type: string, example: INV-2026-000010 }
+        family_id: { type: string }
+        child_id: { type: string }
+        child_name: { type: string }
+        description: { type: string }
+        amount_pence: { type: integer }
+        paid_pence: { type: integer }
+        due_date: { type: string, format: date }
+        status: { type: string, enum: [draft, upcoming, due, processing, paid, partially_paid, overdue, failed, cancelled, refunded, written_off] }
+        first_payment: { type: boolean }
+        paid_at: { type: string, format: date-time }

@@ -1,6 +1,17 @@
 # Child Induction, Parent Portal & Finance — Discovery Report + Architecture Plan
 
-Status: **APPROVED** (decisions 2026-08-11: Stripe Bacs DD · calculator-prefilled fees with manager confirm · /portal in the main app · first payment = deposit + first month)
+Status: **DELIVERED** (P1–P8 complete on `feature/family-onboarding`, 2026-08-13). Decisions 2026-08-11:
+Stripe Bacs DD · calculator-prefilled fees with manager confirm · /portal in the main app · first payment =
+deposit + first month.
+
+Delivery record: P3 parents/relationships + portal (commits 7681b1e…6273a92), P4 induction/consents/
+onboarding (2531ba2, ce8ab32), P5 finance (b9d27fc), P6–P7 notifications + reminder scheduler (60e4a41).
+Verification: unit tests (onboarding math, allocation/gate/webhook/sweep), bnrest suites SUI-PARENT-001 (4),
+SUI-INDUCT-001 (3), SUI-FINANCE-001 (4) all green and registered in COL-FUNC-001; legacy REST-Assured
+regression subset green; browser-verified E2E on localhost (invite → activate → portal wizard → first payment
+→ allocation → mandate → onboarding finance gate → portal fees view → reminder sweep). Known follow-ups:
+live Bacs webhook round-trip needs `stripe listen` + a Bacs-enabled account (offline-mandate path covers
+localhost); bulk reminders UI and org-configurable reminder offsets are future polish.
 Source of truth for induction fields: `Child Induction Form.pdf` (11 pages, analysed 2026-08-11).
 
 ---
