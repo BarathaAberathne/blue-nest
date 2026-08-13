@@ -8,11 +8,10 @@ type Props = {
   kicker: string;
   title: string;
   intro: string;
-  lastReviewed: string;
   children: React.ReactNode;
 };
 
-export default function LegalPageShell({ kicker, title, intro, lastReviewed, children }: Props) {
+export default function LegalPageShell({ kicker, title, intro, children }: Props) {
   return (
     <PublicLayout>
       {/* ──────────────────────────────────────────────────────────
@@ -29,9 +28,6 @@ export default function LegalPageShell({ kicker, title, intro, lastReviewed, chi
               {title}
             </h1>
             <p className="section-subtitle max-w-2xl">{intro}</p>
-            <p className="mt-6 text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[rgba(90,74,66,0.85)]">
-              Last reviewed: {lastReviewed} · Final legal review pending
-            </p>
           </Reveal>
         </div>
       </section>

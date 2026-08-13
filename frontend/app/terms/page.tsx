@@ -21,7 +21,6 @@ export default function TermsPage() {
       kicker="Policies"
       title="Terms of Use"
       intro="These terms govern your use of bluenest.uk, including the parent-facing pages, the chatbot assistant, the nursery store and any forms or downloads we make available. By using the website you agree to be bound by them."
-      lastReviewed="19 May 2026"
     >
       <p>
         Blue Nest Montessori School operates this website to provide information about our nurseries, our Montessori

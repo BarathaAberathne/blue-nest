@@ -21,7 +21,6 @@ export default function PrivacyPage() {
       kicker="Policies"
       title="Privacy & Cookie Policy"
       intro="Blue Nest Montessori School is committed to protecting the privacy of our families, children, staff and website visitors. This policy explains what personal information we collect, why we collect it, how we use it, and the rights you have under UK GDPR."
-      lastReviewed="19 May 2026"
     >
       <p>
         <strong>Blue Nest Montessori School</strong> (&ldquo;Blue Nest&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;) is the
