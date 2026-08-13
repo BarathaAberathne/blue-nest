@@ -27,6 +27,7 @@ type ChildRepository interface {
 	// SetKeyPerson assigns the child's key person (empty staffID clears it).
 	SetKeyPerson(ctx context.Context, id, staffID string) (*models.Child, error)
 	SetPhoto(ctx context.Context, id, url string) (*models.Child, error)
+	SetSendStatus(ctx context.Context, id string, status models.SendStatus) (*models.Child, error)
 	FindByEnquiryID(ctx context.Context, enquiryID string) (*models.Child, error)
 	Update(ctx context.Context, id string, c models.Child) (*models.Child, error)
 	Delete(ctx context.Context, id string) error
@@ -158,6 +159,27 @@ func (r *childRepository) SetPhoto(ctx context.Context, id, url string) (*models
 		update["$unset"] = bson.M{"photo_url": ""}
 	} else {
 		update["$set"].(bson.M)["photo_url"] = url
+	}
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	var out models.Child
+	if err := r.col.FindOneAndUpdate(ctx, bson.M{"_id": oid}, update, opts).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// SetSendStatus writes the operational SEND marker — called ONLY by the SEND
+// service as a projection of the ChildSendSupport profile.
+func (r *childRepository) SetSendStatus(ctx context.Context, id string, status models.SendStatus) (*models.Child, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	update := bson.M{"$set": bson.M{"updated_at": time.Now()}}
+	if status == models.SendNone {
+		update["$unset"] = bson.M{"send_status": ""}
+	} else {
+		update["$set"].(bson.M)["send_status"] = status
 	}
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
 	var out models.Child

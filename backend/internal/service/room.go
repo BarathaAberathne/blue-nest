@@ -77,6 +77,8 @@ func applyRoom(room *models.Room, req models.RoomRequest) {
 	if v := strings.TrimSpace(req.ClosingDate); v != "" {
 		room.ClosingDate = v
 	}
+	// Provision always overwrites (a plain select in the UI): "" = mainstream.
+	room.Provision = models.RoomProvision(strings.TrimSpace(req.Provision))
 }
 
 // duplicateName reports whether branch already has a room named name, other
@@ -131,6 +133,9 @@ func (s *roomService) validate(ctx context.Context, req models.RoomRequest, excl
 	}
 	if req.MinAgeMonths > 0 && req.MaxAgeMonths > 0 && req.MinAgeMonths > req.MaxAgeMonths {
 		return errors.New("minimum age cannot exceed maximum age")
+	}
+	if !models.ValidRoomProvision(models.RoomProvision(strings.TrimSpace(req.Provision))) {
+		return errors.New("provision must be empty (mainstream) or send_dedicated")
 	}
 	if dup, err := s.duplicateName(ctx, branch, name, excludeID); err != nil {
 		return err

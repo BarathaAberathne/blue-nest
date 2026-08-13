@@ -821,6 +821,12 @@ func (s *childRoomAssignmentService) summaryForRoom(ctx context.Context, room *m
 		return nil, err
 	}
 	allocated := len(active)
+	sendCount := 0
+	for _, a := range active {
+		if c, err := s.children.FindByID(ctx, a.ChildID); err == nil && c != nil && models.SendStatusActive(c.SendStatus) {
+			sendCount++
+		}
+	}
 	available := room.Capacity - allocated
 	if available < 0 {
 		available = 0
@@ -846,6 +852,7 @@ func (s *childRoomAssignmentService) summaryForRoom(ctx context.Context, room *m
 		StaffAllocated:    len(staffActive),
 		PresentChildren:   present,
 		OccupancyRate:     rate,
+		SendChildren:      sendCount,
 	}, nil
 }
 

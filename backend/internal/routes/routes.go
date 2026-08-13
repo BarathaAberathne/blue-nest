@@ -61,6 +61,7 @@ type Services struct {
 	GBP               service.GBPService
 	Roles             service.RoleService
 	Taxonomy          service.TaxonomyService
+	SendSupport       service.SendSupportService
 	Terms             service.TermService
 	Notifications     service.NotificationService
 	FeeConfig         service.FeeConfigService
@@ -470,6 +471,15 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Post("/admin/children/{id}/consents", adminInductionH.RecordConsent)
 				r.Get("/admin/children/{id}/onboarding", adminInductionH.Onboarding)
 				r.Get("/admin/onboarding", adminInductionH.Board)
+			})
+
+			// SEND / additional support — sensitive profiles + branch overview.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermSendManage))
+				adminSendH := adminHandler.NewAdminSendSupportHandler(svc.SendSupport, svc.Children, svc.Audit)
+				r.Get("/admin/children/{id}/send-support", adminSendH.Get)
+				r.Put("/admin/children/{id}/send-support", adminSendH.Upsert)
+				r.Get("/admin/send/overview", adminSendH.Overview)
 			})
 
 			// Finance — family billing, charges, payments, Direct Debit.

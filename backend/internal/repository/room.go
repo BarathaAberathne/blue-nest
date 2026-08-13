@@ -77,6 +77,7 @@ func (r *roomRepository) Update(ctx context.Context, id string, room models.Room
 		"max_age_months": room.MaxAgeMonths,
 		"capacity":       room.Capacity,
 		"staff_ratio":    room.StaffRatio,
+		"provision":      room.Provision,
 		"status":         room.Status,
 		"opening_date":   room.OpeningDate,
 		"closing_date":   room.ClosingDate,

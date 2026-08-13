@@ -15,6 +15,7 @@ const CATEGORIES: { key: string; label: string; hasTimes: boolean; hasAges: bool
   { key: "age_group", label: "Age groups", hasTimes: false, hasAges: true, help: "The age bands used for occupancy breakdowns and room age ranges. Bounds are in months; leave Max at 0 for an unbounded top band (e.g. 3+ years)." },
   { key: "allergy_type", label: "Allergy types", hasTimes: false, hasAges: false, help: "Allergy tags selectable on a child's profile." },
   { key: "dietary_label", label: "Dietary labels", hasTimes: false, hasAges: false, help: "Dietary tags selectable on a child's profile." },
+  { key: "send_category", label: "SEND areas of need", hasTimes: false, hasAges: false, help: "Broad areas of need selectable on a child's SEND/additional-support profile." },
 ];
 
 const blankForm: TaxonomyInput = { category: "session_type", branch_slug: "", label: "", code: "", start_time: "", end_time: "", min_age_months: 0, max_age_months: 0, active: true };

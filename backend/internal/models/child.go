@@ -61,6 +61,10 @@ type Child struct {
 	Address string `bson:"address,omitempty" json:"address,omitempty"`
 	// PhotoURL is the uploaded profile picture (served from /uploads).
 	PhotoURL string `bson:"photo_url,omitempty" json:"photo_url,omitempty"`
+	// SendStatus is the operational SEND/additional-support marker (badge/
+	// filter tier). Set ONLY by the SEND service as a projection of the
+	// ChildSendSupport profile — never via the child create/update DTOs.
+	SendStatus SendStatus `bson:"send_status,omitempty" json:"send_status,omitempty"`
 	BranchSlug   string             `bson:"branch_slug"          json:"branch_slug"`
 	Status       ChildStatus        `bson:"status"               json:"status"`
 	StartDate    string             `bson:"start_date,omitempty" json:"start_date,omitempty"`

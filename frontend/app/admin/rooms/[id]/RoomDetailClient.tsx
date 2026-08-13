@@ -86,6 +86,7 @@ export default function RoomDetailClient({ id }: { id: string }) {
             <h1 className="font-heading text-2xl font-bold text-slate-900">{room.name}</h1>
             {room.code && <span className="font-mono text-xs text-slate-400">{room.code}</span>}
             <StageBadge label={room.status === "inactive" ? "Inactive" : "Active"} accent={room.status === "inactive" ? "slate" : "teal"} withDot={false} />
+            <StageBadge label={room.provision === "send_dedicated" ? "SEND-dedicated provision" : "Mainstream"} accent={room.provision === "send_dedicated" ? "violet" : "slate"} withDot={false} />
           </div>
           <p className="mt-1 text-sm text-slate-500">{branchLabel}{room.age_range ? ` · ${room.age_range}` : ""}</p>
         </div>
@@ -93,11 +94,12 @@ export default function RoomDetailClient({ id }: { id: string }) {
 
       {/* KPI strip */}
       {capacity && (
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
           <StatCard label="Capacity" value={capacity.capacity} icon={DoorOpen} accent="blue" />
           <StatCard label="Children placed" value={capacity.allocated_children} sub={`${capacity.future_children} scheduled`} icon={Users} accent="teal" />
           <StatCard label="Available spaces" value={capacity.available_spaces} sub={capacity.over_capacity ? "over capacity" : undefined} icon={Users} accent={capacity.over_capacity ? "amber" : "teal"} />
           <StatCard label="Staff allocated" value={capacity.staff_allocated} sub={`${capacity.present_children} present today`} icon={Users} accent="slate" />
+          <StatCard label="SEND children" value={capacity.send_children} sub="count toward normal capacity" icon={Users} accent="violet" />
         </div>
       )}
 

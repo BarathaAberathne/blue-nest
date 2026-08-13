@@ -687,7 +687,8 @@ export type Permission =
   | "leave.approve"
   | "parents.manage"
   | "finance.manage"
-  | "finance.adjust";
+  | "finance.adjust"
+  | "send.manage";
 
 // ── Staff leave / holiday ────────────────────────────────────────────────────
 export type LeaveStatus = "pending" | "approved" | "declined" | "cancelled";
@@ -980,6 +981,7 @@ export interface Room {
   max_age_months?: number;
   capacity: number;
   staff_ratio?: number;
+  provision?: RoomProvision;
   status?: "active" | "inactive";
   opening_date?: string;
   closing_date?: string;
@@ -997,6 +999,7 @@ export interface RoomInput {
   max_age_months?: number;
   capacity?: number;
   staff_ratio?: number;
+  provision?: RoomProvision;
   opening_date?: string;
   closing_date?: string;
 }
@@ -1078,6 +1081,7 @@ export interface RoomCapacitySummary {
   staff_allocated: number;
   present_children: number;
   occupancy_rate: number;
+  send_children: number;
 }
 
 export type ChildStatus = "active" | "waitlist" | "left";
@@ -1101,6 +1105,7 @@ export interface Child {
   first_name: string;
   last_name: string;
   photo_url?: string;
+  send_status?: SendStatus;
   dob?: string; // YYYY-MM-DD
   gender?: string;
   branch_slug: string;
@@ -2052,4 +2057,65 @@ export interface CommunicationLog {
   subject: string;
   body: string;
   sent_at: string;
+}
+
+// ── SEND / additional support ────────────────────────────────────────────────
+
+export type SendStatus = "" | "monitoring" | "sen_support" | "ehcp" | "ended";
+export type SendPlanStatus = "" | "draft" | "active" | "ended";
+export type RoomProvision = "" | "send_dedicated";
+
+export interface ChildSendSupport {
+  id: string;
+  child_id: string;
+  status: SendStatus;
+  summary?: string;
+  categories?: string[];
+  send_lead_staff_id?: string;
+  send_lead_name?: string;
+  plan_status: SendPlanStatus;
+  review_date?: string;
+  start_date?: string;
+  end_date?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SendSupportInput {
+  status: SendStatus;
+  summary: string;
+  categories: string[];
+  send_lead_staff_id: string;
+  plan_status: SendPlanStatus;
+  review_date: string;
+  start_date: string;
+  end_date: string;
+}
+
+export interface SendOverviewRow {
+  child_id: string;
+  child_name: string;
+  age_label?: string;
+  branch_slug: string;
+  room_id?: string;
+  room_name?: string;
+  provision: "mainstream" | "send_dedicated" | "unallocated";
+  status: SendStatus;
+  plan_status?: string;
+  send_lead?: string;
+  key_person?: string;
+  review_date?: string;
+}
+
+export interface SendOverview {
+  total_send: number;
+  monitoring: number;
+  sen_support: number;
+  ehcp: number;
+  dedicated_rooms: number;
+  in_specialist: number;
+  in_mainstream: number;
+  unallocated: number;
+  active_plans: number;
+  rows: SendOverviewRow[];
 }
