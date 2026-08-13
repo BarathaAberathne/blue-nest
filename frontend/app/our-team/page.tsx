@@ -128,6 +128,12 @@ const ALL_STAFF: TeamMember[] = [
     photo: "/team/ioana-pintilei.jpg",
     qualifications: [],
   },
+  {
+    name: "Ishinda Abeywickrema", role: "Facilities & Compliance Officer",
+    branch: "Harrow", category: "Manager", initial: "I", colour: c(3),
+    photo: "/team/ishinda-dinal-abeywickrema.jpg",
+    qualifications: [],
+  },
 
   // Deputy ─────────────────────────────────────────────
   {
@@ -360,12 +366,6 @@ const ALL_STAFF: TeamMember[] = [
     name: "Dulanga Wijesekara", role: "Nursery Assistant",
     branch: "Borehamwood", category: "Support", initial: "D", colour: c(2),
     // photo: "/team/dulanga-dilrangi-wijesekara.jpg",
-    qualifications: [],
-  },
-  {
-    name: "Ishinda Abeywickrema", role: "Facilities & Compliance Officer",
-    branch: "Borehamwood", category: "Support", initial: "I", colour: c(3),
-    photo: "/team/ishinda-dinal-abeywickrema.jpg",
     qualifications: [],
   },
   {
