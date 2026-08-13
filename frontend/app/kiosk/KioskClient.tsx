@@ -213,7 +213,12 @@ export default function KioskClient() {
         <div className="k-overlay" onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}>
           <div className="k-modal">
             <div className="k-person">
-              <span className="avatar-lg">{initials(selected.name)}</span>
+              {selected.photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={selected.photo_url} alt="" className="avatar-lg" style={{ objectFit: "cover" }} />
+              ) : (
+                <span className="avatar-lg">{initials(selected.name)}</span>
+              )}
               <span className="n">{selected.name}</span>
               <span className="r">{roleLine(selected)}</span>
               <span className="prompt">Enter your PIN to clock {action === "in" ? "in" : "out"}</span>
@@ -254,7 +259,12 @@ export default function KioskClient() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {results.map((s) => (
                     <button key={s.id} className="k-method" style={{ flexDirection: "row", justifyContent: "flex-start", gap: 16, padding: "16px 18px" }} onClick={() => pickStaff(s)}>
-                      <span className="k-ava" style={{ height: 48, width: 48, fontSize: 17 }}>{initials(s.name)}</span>
+                      {s.photo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={s.photo_url} alt="" style={{ height: 48, width: 48, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                      ) : (
+                        <span className="k-ava" style={{ height: 48, width: 48, fontSize: 17 }}>{initials(s.name)}</span>
+                      )}
                       <span style={{ flex: 1, textAlign: "left" }}>
                         <span style={{ display: "block", fontSize: 18, fontWeight: 700 }}>{s.name}</span>
                         <span style={{ display: "block", fontSize: 13, color: "var(--k-muted)" }}>{roleLine(s)}</span>

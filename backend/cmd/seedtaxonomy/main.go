@@ -55,6 +55,12 @@ func defaults() []term {
 		{models.TaxonomyDietaryLabel, "gluten_free", "Gluten-free", "", "", 6},
 		{models.TaxonomyDietaryLabel, "no_pork", "No pork", "", "", 7},
 		{models.TaxonomyDietaryLabel, "nut_free", "Nut-free", "", "", 8},
+		// SEND broad areas — the four statutory EYFS/SEND Code of Practice
+		// categories; orgs customise the list at /admin/lists.
+		{models.TaxonomySendCategory, "communication_interaction", "Communication and interaction", "", "", 1},
+		{models.TaxonomySendCategory, "cognition_learning", "Cognition and learning", "", "", 2},
+		{models.TaxonomySendCategory, "semh", "Social, emotional and mental health", "", "", 3},
+		{models.TaxonomySendCategory, "sensory_physical", "Sensory and/or physical needs", "", "", 4},
 	}
 }
 

@@ -226,6 +226,7 @@ func (s *kioskService) SearchStaff(ctx context.Context, branch, q string) ([]mod
 			ID:       id,
 			Name:     strings.TrimSpace(p.FirstName + " " + p.LastName),
 			JobTitle: p.JobTitle,
+			PhotoURL: p.PhotoURL,
 			RoomName: roomName[primaryRoom[id]],
 			HasPIN:   p.PINHash != "",
 		}

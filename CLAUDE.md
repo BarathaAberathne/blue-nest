@@ -715,6 +715,41 @@ Amazon Business API (Product Search → Cart → Ordering), then full inventory/
     `SUI-FINANCE-001` (2.31) — all in `COL-FUNC-001`. Portal activation + finance webhooks run under
     `DefaultTenant` (default-org-only for now — the kiosk cross-org token pattern is the future fix).
 
+- **Profile photos (children + staff, delivered):** `Child.PhotoURL`/`Staff.PhotoURL` set ONLY via the
+  dedicated `PATCH /admin/children/{id}/photo` / `PATCH /admin/staff/{id}/photo` (empty URL clears; a normal
+  profile `PUT` never touches the photo). `validPhotoURL` accepts only our own uploads (`/uploads/…`, relative
+  or absolute) — external hotlinks are rejected. Uploads go through the SHARED `POST /admin/uploads/image`,
+  which moved from the blog permission group to the ManagementOnly root (it serves blog covers, daily-log
+  attachments AND profile photos — the per-module permission gate belongs on the write that references the
+  URL, not the byte upload). Frontend: `components/admin/ui/Avatar` (photo or deterministic initials
+  fallback — the one component for every thumbnail) + `ProfilePhotoUploader` (detail-page avatar with
+  camera/remove, 5 MB cap). Thumbnails render on: children list + detail, staff list + detail, portal child
+  cards, and the kiosk staff search/PIN screens (`KioskStaffResult.PhotoURL`). Tests: `photo_url_test.go`
+  (URL validation) + `STAFF-TC-007`/`REG-TC-007` (set/clear round-trip, hotlink 400, photo survives profile
+  update).
+
+- **SEND / Additional Support (delivered; design record `docs/send/*`):** two-tier model — SEND status
+  describes the CHILD, provision describes the ROOM, the canonical `ChildRoomAssignment` connects them,
+  and the three are independent (never `SEND child → SEND room`). `Child.SendStatus` (enum ""/monitoring/
+  sen_support/ehcp/ended; `models.SendStatusActive` is the single filter/KPI classifier) is the operational
+  badge/filter marker, set ONLY by the SEND service — never via child DTOs. The sensitive detail lives in
+  `child_send_support` (tenant-scoped, unique per child, **absent doc = nothing recorded** — zero migration)
+  behind the new **`send.manage`** permission (granted: admin/super_admin/director/regional/branch/deputy +
+  senco/eyfs_lead; practitioners see only the badge via children.manage; parents see nothing). Profile
+  fields: status, summary, categories (NEW org-configurable taxonomy `send_category`, seeded with the four
+  statutory EYFS broad areas), SEND-lead staff reference (a responsibility, not a role), plan status,
+  review/start/end dates. `Room.Provision` ("" mainstream | "send_dedicated") is a label only — allocation
+  is NEVER blocked on SEND grounds; the assign/transfer modal shows informational notices and management
+  applies policy. SEND children count toward NORMAL capacity (`RoomCapacitySummary.SendChildren` is an
+  extra operational count). Endpoints: `GET/PUT /admin/children/{id}/send-support` +
+  `GET /admin/send/overview` (KPIs + rows, `policy.EffectiveBranch`-scoped; specialist + mainstream +
+  unallocated always reconciles to total). UI: child-profile "Additional Support / SEND" card
+  (send.manage) + restrained header badge, children-list SEND filter + badge, room provision select/badges
+  + SEND stat, `/admin/send` branch view (nav gated). Audited: `send_support_update` with prev→new status.
+  Tests: `send_support_test.go` + `SUI-SEND-001` (2.32, 6 cases: lifecycle/permissions/cross-branch/audit)
+  + `SUI-SENDROOM-001` (2.33, 4 cases: provision, mainstream + specialist placement via the NORMAL
+  assignment/transfer, profile survival, KPI reconciliation).
+
 ## Procurement Management module — roadmap (Phases 1–4 DELIVERED)
 Goal: turn the procurement pieces into one connected **Procurement Management** module so the journey
 feels like a single process: **Supply Request → Approve → Purchase Order → Place → Track → Receive →

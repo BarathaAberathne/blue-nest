@@ -96,7 +96,12 @@ export default function PortalClient() {
             {children.map((c) => (
               <div key={c.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-teal-50 text-teal-600"><Baby className="h-5 w-5" /></span>
+                  {c.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={c.photo_url} alt={`${c.first_name} ${c.last_name}`} className="h-11 w-11 rounded-full border border-slate-200 object-cover" />
+                  ) : (
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-teal-50 text-teal-600"><Baby className="h-5 w-5" /></span>
+                  )}
                   <div>
                     <h2 className="font-heading text-lg font-bold text-slate-900">{c.first_name} {c.last_name}</h2>
                     <p className="text-xs text-slate-500">{ageLabel(c.dob)}{c.room_name ? ` · ${c.room_name}` : ""}</p>

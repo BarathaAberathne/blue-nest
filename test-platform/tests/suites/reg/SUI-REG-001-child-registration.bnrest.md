@@ -57,6 +57,7 @@ Call CatchError ../../cases/reg/REG-TC-003-repeat-registration-idempotent.bnrest
 Call CatchError ../../cases/reg/REG-TC-004-registration-not-atomic-gap-lock.bnrest.md
 Call CatchError ../../cases/reg/REG-TC-005-future-dob-rejected.bnrest.md
 Call CatchError ../../cases/reg/REG-TC-006-room-allocation-on-registration.bnrest.md
+Call CatchError ../../cases/reg/REG-TC-007-child-profile-photo.bnrest.md
 
 Teardown
 Call ../../utils/branch/BRANCH-FIX-002-archive-test-branch.bnrest.md With Json Into cleanup
