@@ -10,8 +10,17 @@ Verification: unit tests (onboarding math, allocation/gate/webhook/sweep), bnres
 SUI-INDUCT-001 (3), SUI-FINANCE-001 (4) all green and registered in COL-FUNC-001; legacy REST-Assured
 regression subset green; browser-verified E2E on localhost (invite → activate → portal wizard → first payment
 → allocation → mandate → onboarding finance gate → portal fees view → reminder sweep). Known follow-ups:
-live Bacs webhook round-trip needs `stripe listen` + a Bacs-enabled account (offline-mandate path covers
-localhost); bulk reminders UI and org-configurable reminder offsets are future polish.
+bulk reminders UI and org-configurable reminder offsets are future polish.
+
+**⚠ OPEN PRODUCTION GAP — Bacs Direct Debit not yet enabled on the live Stripe account
+(as of 2026-08-13, when the module merged to develop via PRs #149/#158).** Until the user enables Bacs
+on the Stripe dashboard: online DD setup (`SetupDirectDebit` → hosted Checkout) and off-session
+collection (`CollectCharge`) will FAIL in production; the audited **offline paper-mandate path**
+(`finance.adjust` → `MarkMandateActive`) + manual payments fully cover the onboarding finance gate
+meanwhile. When Bacs is enabled: verify the prod webhook (already on
+`https://api.bluenest.uk/api/v1/webhooks/stripe`) has the finance events subscribed
+(`setup_intent.succeeded`, `payment_intent.succeeded/processing/payment_failed`, `charge.refunded`)
+and run one live setup + collection round-trip. Remove this notice once verified.
 Source of truth for induction fields: `Child Induction Form.pdf` (11 pages, analysed 2026-08-11).
 
 ---
