@@ -888,12 +888,22 @@ function IdentityEditForm({ form, member, branches, setField }: { form: StaffInp
         </label>
         {form.enable_login && (
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {!member.user_id && (
+              <Field label="Login email (required)">
+                <input type="email" value={form.email ?? ""} onChange={(e) => setField({ email: e.target.value })} placeholder="e.g. name@bluenest.uk" className="inp" />
+              </Field>
+            )}
             <Field label="Login role">
               <select value={form.login_role} onChange={(e) => setField({ login_role: e.target.value as StaffInput["login_role"] })} className="inp bg-white">
                 {["staff", "branch_manager", "deputy_manager", "regional_manager", "finance", "admissions", "procurement"].map((r) => <option key={r} value={r}>{r.replace("_", " ")}</option>)}
               </select>
             </Field>
             {!member.user_id && <Field label="Password (min 8 chars)"><input type="password" value={form.login_password ?? ""} onChange={(e) => setField({ login_password: e.target.value })} placeholder="Leave blank to link existing account" className="inp" /></Field>}
+            {!member.user_id && (
+              <p className="text-xs text-slate-500 sm:col-span-2">
+                If a user account with this email already exists, it is linked to this staff profile directly (leave the password blank). Otherwise a new login is created with the password above.
+              </p>
+            )}
           </div>
         )}
       </div>

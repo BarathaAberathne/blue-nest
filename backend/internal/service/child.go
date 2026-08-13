@@ -806,7 +806,7 @@ func (s *childService) CapacityForecast(ctx context.Context, branch string, week
 		roomID := room.ID.Hex()
 		rf := models.RoomCapacityForecast{
 			RoomID: roomID, RoomName: room.Name, BranchSlug: room.BranchSlug,
-			Capacity: room.Capacity, StaffRatio: room.StaffRatio,
+			Capacity: room.Capacity, StaffRatio: room.StaffRatio, Provision: room.Provision,
 		}
 		for i := 0; i < weeks; i++ {
 			weekMonday := firstMonday.AddDate(0, 0, 7*i)

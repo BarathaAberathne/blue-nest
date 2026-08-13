@@ -1350,6 +1350,7 @@ export interface RoomCapacityForecast {
   branch_slug: string;
   capacity: number;
   staff_ratio: number;
+  provision?: RoomProvision;
   weeks: CapacityWeek[];
 }
 

@@ -189,6 +189,7 @@ type RoomCapacityForecast struct {
 	BranchSlug string         `json:"branch_slug"`
 	Capacity   int            `json:"capacity"`
 	StaffRatio int            `json:"staff_ratio"`
+	Provision  RoomProvision  `json:"provision,omitempty"`
 	Weeks      []CapacityWeek `json:"weeks"`
 }
 

@@ -7,6 +7,7 @@ import { getAccessToken, scopedBranches } from "@/lib/auth";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { branchShortName } from "@/lib/branch";
 import { PickerList } from "@/components/admin/ui/PickerModal";
+import { sendActive } from "@/lib/send";
 import type { Branch, CapacityDay, CapacityForecast, CapacityWeek, Child, RoomCapacityForecast } from "@/types";
 
 type Tab = "planner" | "availability";
@@ -278,7 +279,7 @@ function AssignChildModal({ room, onClose, onDone }: { room: RoomCapacityForecas
             options={children.map((c) => ({
               id: c.id,
               label: `${c.first_name} ${c.last_name}`,
-              detail: c.room_name ? `currently ${c.room_name}` : "no room",
+              detail: [c.room_name ? `currently ${c.room_name}` : "no room", sendActive(c.send_status) ? "SEND support" : ""].filter(Boolean).join(" · "),
               badge: c.room_name ? "transfer" : undefined,
               badgeTone: "amber" as const,
             }))}
@@ -287,6 +288,14 @@ function AssignChildModal({ room, onClose, onDone }: { room: RoomCapacityForecas
             emptyText="No eligible children at this branch."
           />
         </div>
+        {(room.provision === "send_dedicated" || sendActive(children.find((c) => c.id === childId)?.send_status)) && (
+          <p className="mb-3 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-700">
+            {[
+              room.provision === "send_dedicated" ? "This room is configured as SEND-dedicated provision." : "",
+              sendActive(children.find((c) => c.id === childId)?.send_status) ? "This child is recorded as requiring additional SEND support." : "",
+            ].filter(Boolean).join(" ")} Allocation is at management&apos;s discretion.
+          </p>
+        )}
         {isTransfer && (
           <label className="mb-3 block text-sm">
             <span className="mb-1 block text-xs font-medium text-slate-500">Reason for transfer (required)</span>
