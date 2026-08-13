@@ -185,7 +185,7 @@ over your pinned tag.)
   product data. The deployer uses plain `docker compose` only.
 - **Seeding on prod = run the compiled binary _inside_ the backend container**
   (reaches prod Mongo over the compose network; never the host `make seed-*`).
-  These two are safe & idempotent (upsert-only, no collection drop, only touch
+  These are safe & idempotent (upsert-only, no collection drop, only touch
   their own collection — other tables are untouched):
   ```bash
   cd ~/app
@@ -193,8 +193,19 @@ over your pinned tag.)
   docker compose -f docker-compose.yml -f docker-compose.prod.yml exec backend ./seedusers
   # supply catalogue from the embedded Gompels order CSVs:
   docker compose -f docker-compose.yml -f docker-compose.prod.yml exec backend ./seedcatalogue
+  # per-branch fee schedules + org-wide fee meta ($setOnInsert per org — never
+  # overwrites rates an admin has already entered in Settings → Fees):
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml exec backend ./seedfees
+  # configurable lists (session types / allergies / dietary / age groups), same class:
+  docker compose -f docker-compose.yml -f docker-compose.prod.yml exec backend ./seedtaxonomy
   ```
   Run these only **after** deploying the new image (the binary + embedded CSVs
   ship in it). `cmd/seed` (products) is NOT safe — it drops the collection — so
   never run it against prod.
+  **`./seedfees` is a required one-time step on any FRESH environment** — the
+  binary ships in the image but nothing executes it automatically. Found live
+  (2026-08-11): prod's `fee_configs` had never been seeded, so the public fee
+  calculator silently served its bundled fallback JSON while `/admin/fees`
+  showed all-zero drafts. (Prod itself is now populated — via the admin API —
+  so this is a fresh-environment step, and re-running it on prod is harmless.)
 - Branch protection: require PRs into `main` (from `develop`) with `ci.yml` green.

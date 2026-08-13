@@ -379,6 +379,9 @@ export default function AdminInquiryDetailClient({ id }: { id: string }) {
                       <img src={app.signature_data_url} alt={`Signature from ${app.parent?.name ?? e.name}`} className="max-h-32 rounded-lg border border-slate-200 bg-white p-2" />
                     </div>
                   )}
+                  {app.terms_accepted && (
+                    <p className="mt-3 text-xs font-medium text-teal-700">✓ Terms and Conditions accepted at submission</p>
+                  )}
                 </>
               ) : (
                 <p className="text-sm text-slate-500">Application form submitted by {app.parent?.name || e.name}. Click “Show” to view child, parent, session and signature details.</p>

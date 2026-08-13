@@ -236,6 +236,7 @@ export default function Footer() {
             <Link href="/terms" className="transition hover:text-[var(--ink)]">Terms of Use</Link>
             <span aria-hidden="true" className="text-[rgba(90,74,66,0.85)]">·</span>
             <Link href="/privacy" className="transition hover:text-[var(--ink)]">Privacy &amp; Cookie Policy</Link>
+            <Link href="/terms-and-conditions" className="transition hover:text-[var(--ink)]">Terms &amp; Conditions</Link>
             <span aria-hidden="true" className="text-[rgba(90,74,66,0.85)]">·</span>
             <Link href="/trading-terms" className="transition hover:text-[var(--ink)]">Trading Terms</Link>
             <span aria-hidden="true" className="text-[rgba(90,74,66,0.85)]">·</span>
