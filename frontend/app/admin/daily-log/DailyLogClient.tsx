@@ -6,21 +6,17 @@ import { approvalLabel, approvalAccent } from "@/lib/dailyLog";
 import { BookOpen, CheckCircle2, Download, HeartPulse, Plus, Search, ShieldAlert, TriangleAlert, Utensils, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken, scopedBranches } from "@/lib/auth";
+import DailyLogForm from "@/components/admin/daily/DailyLogForm";
 import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import { fmtDate } from "@/lib/child";
-import { dailyStatusAccent, dailyStatusLabel, dailyTypeAccent, dailyTypeLabel, severityAccent, EYFS_AREAS } from "@/lib/daily";
+import { dailyStatusAccent, dailyStatusLabel, dailyTypeAccent, dailyTypeLabel, severityAccent } from "@/lib/daily";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import SearchSelect from "@/components/ui/SearchSelect";
-import type { Branch, Child, DailyRecord, DailyRecordInput, DailyRecordType, DailyStats } from "@/types";
+import type { Branch, Child, DailyRecord, DailyRecordType, DailyStats } from "@/types";
 
 const TYPES: DailyRecordType[] = ["observation", "incident", "safeguarding", "medication", "meal"];
-
-const emptyForm: DailyRecordInput = {
-  type: "observation", child_id: "", branch_slug: "", title: "", detail: "", date: "",
-  severity: "medium", eyfs_areas: [], next_steps: "", medication: "", dose: "", meal_type: "lunch", eaten: "most",
-};
 
 export default function DailyLogClient() {
   const [records, setRecords] = useState<DailyRecord[]>([]);
@@ -35,24 +31,20 @@ export default function DailyLogClient() {
   const [approval, setApproval] = useState("approved"); // approved | pending | rejected | "" (all)
   const [q, setQ] = useState("");
 
-  const [form, setForm] = useState<DailyRecordInput>(emptyForm);
   const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = async () => {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
-    const [r, s, b, c] = await Promise.allSettled([
+    const [r, s, b] = await Promise.allSettled([
       api.adminGetDailyRecords(token, { type: typeFilter, branch: branchFilter, approval, q, limit: 500 }),
       api.adminGetDailyStats(token),
       api.adminGetBranches(token),
-      api.adminGetChildren(token),
     ]);
     if (r.status === "fulfilled") setRecords((r.value as DailyRecord[]) ?? []);
     if (s.status === "fulfilled") setStats(s.value as DailyStats);
     if (b.status === "fulfilled") setBranches(scopedBranches((b.value as Branch[]) ?? []));
-    if (c.status === "fulfilled") setChildren((c.value as Child[]) ?? []);
     setLoading(false);
   };
   useEffect(() => { void load(); }, [typeFilter, branchFilter, approval, q]);
@@ -65,32 +57,8 @@ export default function DailyLogClient() {
     return (slug: string) => m.get(slug) ?? slug;
   }, [branches]);
 
-  const childrenForBranch = useMemo(
-    () => children.filter((c) => !form.branch_slug || c.branch_slug === form.branch_slug),
-    [children, form.branch_slug],
-  );
-  const childOptions = useMemo(
-    () => childrenForBranch.map((c) => ({ value: c.id, label: `${c.first_name} ${c.last_name}` })),
-    [childrenForBranch],
-  );
 
-  const openCreate = () => {
-    setForm({ ...emptyForm, branch_slug: branchFilter || branches[0]?.slug || "", eyfs_areas: [] });
-    setShowForm(true);
-  };
-
-  const save = async () => {
-    const token = getAccessToken();
-    if (!token || !form.title.trim() || !form.branch_slug) { setError("Title and branch are required."); return; }
-    setSaving(true); setError(null);
-    try {
-      await api.adminCreateDailyRecord(token, form);
-      setShowForm(false);
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save record");
-    } finally { setSaving(false); }
-  };
+  const openCreate = () => setShowForm(true);
 
   const setStatus = async (rec: DailyRecord, status: string) => {
     const token = getAccessToken();
@@ -113,11 +81,6 @@ export default function DailyLogClient() {
     URL.revokeObjectURL(url);
   };
 
-  const setField = (patch: Partial<DailyRecordInput>) => setForm((f) => ({ ...f, ...patch }));
-  const toggleArea = (area: string) => setForm((f) => {
-    const cur = f.eyfs_areas ?? [];
-    return { ...f, eyfs_areas: cur.includes(area) ? cur.filter((a) => a !== area) : [...cur, area] };
-  });
 
   return (
     <>
@@ -203,87 +166,12 @@ export default function DailyLogClient() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-2xl max-h-[85vh] overflow-auto rounded-xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-              <h2 className="text-lg font-heading font-bold text-slate-900">Add daily record</h2>
-              <button type="button" onClick={() => setShowForm(false)} aria-label="Close" className="text-slate-400 hover:text-slate-700"><X className="h-5 w-5" /></button>
-            </div>
-            <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
-              <Field label="Type *">
-                <select value={form.type} onChange={(e) => setField({ type: e.target.value as DailyRecordType })} className="inp bg-white">
-                  {TYPES.map((t) => <option key={t} value={t}>{dailyTypeLabel[t]}</option>)}
-                </select>
-              </Field>
-              <Field label="Branch *">
-                <select value={form.branch_slug} onChange={(e) => setField({ branch_slug: e.target.value, child_id: "" })} className="inp bg-white">
-                  <option value="">Select branch…</option>
-                  {branches.map((b) => <option key={b.slug} value={b.slug}>{branchShortName(b)}</option>)}
-                </select>
-              </Field>
-              <Field label="Child (optional)">
-                <SearchSelect
-                  options={childOptions}
-                  value={form.child_id ?? ""}
-                  onChange={(v) => setField({ child_id: v })}
-                  placeholder={form.branch_slug ? "Search children…" : "Select a branch first"}
-                  extraOption={{ value: "", label: "Branch-wide / none" }}
-                  disabled={!form.branch_slug}
-                />
-              </Field>
-              <Field label="Date"><input type="date" value={form.date} onChange={(e) => setField({ date: e.target.value })} className="inp" /></Field>
-              <div className="sm:col-span-2"><Field label="Title *"><input value={form.title} onChange={(e) => setField({ title: e.target.value })} placeholder={form.type === "observation" ? "e.g. Counting to 20" : form.type === "medication" ? "e.g. Calpol" : "Short summary"} className="inp" /></Field></div>
-
-              {(form.type === "incident" || form.type === "safeguarding") && (
-                <Field label="Severity">
-                  <select value={form.severity} onChange={(e) => setField({ severity: e.target.value })} className="inp bg-white">
-                    <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
-                  </select>
-                </Field>
-              )}
-              {form.type === "medication" && (
-                <>
-                  <Field label="Medication"><input value={form.medication} onChange={(e) => setField({ medication: e.target.value })} className="inp" /></Field>
-                  <Field label="Dose"><input value={form.dose} onChange={(e) => setField({ dose: e.target.value })} placeholder="e.g. 5ml" className="inp" /></Field>
-                </>
-              )}
-              {form.type === "meal" && (
-                <>
-                  <Field label="Meal">
-                    <select value={form.meal_type} onChange={(e) => setField({ meal_type: e.target.value })} className="inp bg-white">
-                      <option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="snack">Snack</option><option value="tea">Tea</option>
-                    </select>
-                  </Field>
-                  <Field label="Amount eaten">
-                    <select value={form.eaten} onChange={(e) => setField({ eaten: e.target.value })} className="inp bg-white">
-                      <option value="all">All</option><option value="most">Most</option><option value="some">Some</option><option value="none">None</option>
-                    </select>
-                  </Field>
-                </>
-              )}
-              {form.type === "observation" && (
-                <div className="sm:col-span-2">
-                  <label className="mb-1 block text-xs uppercase tracking-wider text-slate-400">EYFS areas</label>
-                  <div className="flex flex-wrap gap-2">
-                    {EYFS_AREAS.map((a) => {
-                      const on = (form.eyfs_areas ?? []).includes(a);
-                      return <button key={a} type="button" onClick={() => toggleArea(a)} className={`rounded-full px-3 py-1 text-xs font-medium ${on ? "bg-sky-100 text-sky-700" : "border border-slate-200 text-slate-500 hover:bg-slate-50"}`}>{a}</button>;
-                    })}
-                  </div>
-                </div>
-              )}
-
-              <div className="sm:col-span-2"><Field label="Detail"><textarea value={form.detail} onChange={(e) => setField({ detail: e.target.value })} rows={2} className="inp" /></Field></div>
-              {form.type === "observation" && (
-                <div className="sm:col-span-2"><Field label="Next steps"><textarea value={form.next_steps} onChange={(e) => setField({ next_steps: e.target.value })} rows={2} className="inp" /></Field></div>
-              )}
-            </div>
-            <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-4">
-              <button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
-              <button type="button" onClick={save} disabled={saving} className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">{saving ? "Saving…" : "Add record"}</button>
-            </div>
-          </div>
-        </div>
+        <DailyLogForm
+          branches={branches}
+          defaultBranch={branchFilter}
+          onClose={() => setShowForm(false)}
+          onSaved={() => { setShowForm(false); void load(); }}
+        />
       )}
 
       <style jsx>{`
@@ -293,11 +181,3 @@ export default function DailyLogClient() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="mb-1 block text-xs uppercase tracking-wider text-slate-400">{label}</label>
-      {children}
-    </div>
-  );
-}
