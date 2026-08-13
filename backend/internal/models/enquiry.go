@@ -138,6 +138,9 @@ type Application struct {
 	WaitingList      bool                 `bson:"waiting_list"                json:"waiting_list"`
 	Sessions         []ApplicationSession `bson:"sessions,omitempty"          json:"sessions,omitempty"`
 	SignatureDataURL string               `bson:"signature_data_url,omitempty" json:"signature_data_url,omitempty"`
+	// TermsAccepted records the parent's acceptance of the Terms and
+	// Conditions at submission time (required by the public form).
+	TermsAccepted bool `bson:"terms_accepted,omitempty" json:"terms_accepted,omitempty"`
 }
 
 // ── CRM sub-documents ────────────────────────────────────────────────────────
