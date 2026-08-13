@@ -26,6 +26,9 @@ type StaffRepository interface {
 	FindByID(ctx context.Context, id string) (*models.Staff, error)
 	Update(ctx context.Context, id string, s models.Staff) (*models.Staff, error)
 	SetPhoto(ctx context.Context, id, url string) (*models.Staff, error)
+	// FindByUserID resolves the staff record a login account belongs to (nil,
+	// err when the user is not any staff member's login).
+	FindByUserID(ctx context.Context, userID string) (*models.Staff, error)
 	SetPINHash(ctx context.Context, id, hash string) error
 	Delete(ctx context.Context, id string) error
 }
@@ -171,6 +174,14 @@ func (r *staffRepository) SetPhoto(ctx context.Context, id, url string) (*models
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
 	var out models.Staff
 	if err := r.col.FindOneAndUpdate(ctx, bson.M{"_id": oid}, update, opts).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (r *staffRepository) FindByUserID(ctx context.Context, userID string) (*models.Staff, error) {
+	var out models.Staff
+	if err := r.col.FindOne(ctx, bson.M{"user_id": userID}).Decode(&out); err != nil {
 		return nil, err
 	}
 	return &out, nil

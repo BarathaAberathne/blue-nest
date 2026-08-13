@@ -18,12 +18,17 @@ export default function ChildRoomAllocations({
   childId,
   branchSlug,
   canManage,
+  sendChild,
   onChange,
   openRequest,
 }: {
   childId: string;
   branchSlug: string;
   canManage: boolean;
+  /** The child is recorded as requiring additional SEND support (operational
+      marker only). Drives an informational notice — never a block: SEND
+      status must not determine room allocation. */
+  sendChild?: boolean;
   onChange?: () => void;
   /** Increment to open the assign/transfer popup from elsewhere on the page
       (e.g. the profile's ROOM row Change button). */
@@ -80,6 +85,12 @@ export default function ChildRoomAllocations({
   // the manager sees why an override may be needed before confirming.
   const chosen = capacity[roomId];
   const capacityWarning = chosen && chosen.available_spaces <= 0 ? "This room is at capacity." : null;
+  // SEND notices are informational only — management applies nursery policy;
+  // no override is required and nothing is blocked.
+  const chosenRoom = rooms.find((r) => r.id === roomId);
+  const sendNotices: string[] = [];
+  if (chosenRoom?.provision === "send_dedicated") sendNotices.push("This room is configured as SEND-dedicated provision.");
+  if (sendChild) sendNotices.push("This child is recorded as requiring additional SEND support.");
 
   function reset() {
     setMode(null);
@@ -200,6 +211,11 @@ export default function ChildRoomAllocations({
             {capacityWarning && (
               <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
                 {capacityWarning} An override reason is required to proceed.
+              </p>
+            )}
+            {sendNotices.length > 0 && (
+              <p className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-700">
+                {sendNotices.join(" ")} Allocation is at management&apos;s discretion.
               </p>
             )}
             <input

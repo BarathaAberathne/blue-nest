@@ -15,12 +15,13 @@ const (
 	TaxonomyAllergyType  = "allergy_type"  // child allergy tags
 	TaxonomyDietaryLabel = "dietary_label" // child dietary tags
 	TaxonomyAgeGroup     = "age_group"     // configurable age bands (carry min/max age in months)
+	TaxonomySendCategory = "send_category" // SEND/additional-support broad areas (EYFS statutory four by default)
 )
 
 // ValidTaxonomyCategory reports whether a category string is a known list.
 func ValidTaxonomyCategory(c string) bool {
 	switch c {
-	case TaxonomySessionType, TaxonomyAllergyType, TaxonomyDietaryLabel, TaxonomyAgeGroup:
+	case TaxonomySessionType, TaxonomyAllergyType, TaxonomyDietaryLabel, TaxonomyAgeGroup, TaxonomySendCategory:
 		return true
 	}
 	return false

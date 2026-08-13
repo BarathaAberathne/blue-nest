@@ -10,7 +10,7 @@ import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import type { Branch, Room, RoomInput, TaxonomyTerm } from "@/types";
 
-const emptyForm: RoomInput = { branch_slug: "", name: "", code: "", age_range: "", min_age_months: 0, max_age_months: 0, capacity: 0, staff_ratio: 0 };
+const emptyForm: RoomInput = { branch_slug: "", name: "", code: "", age_range: "", min_age_months: 0, max_age_months: 0, capacity: 0, staff_ratio: 0, provision: "" };
 
 export default function RoomsClient() {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -62,7 +62,7 @@ export default function RoomsClient() {
     setForm({
       branch_slug: r.branch_slug, name: r.name, code: r.code ?? "", age_range: r.age_range ?? "",
       min_age_months: r.min_age_months ?? 0, max_age_months: r.max_age_months ?? 0,
-      capacity: r.capacity ?? 0, staff_ratio: r.staff_ratio ?? 0,
+      capacity: r.capacity ?? 0, staff_ratio: r.staff_ratio ?? 0, provision: r.provision ?? "",
     });
     setShowForm(true);
   };
@@ -141,6 +141,7 @@ export default function RoomsClient() {
               <tr className="hover:bg-slate-50">
                 <td className="px-4 py-3 font-medium text-slate-900">
                   <Link href={`/admin/rooms/${r.id}`} className="hover:text-teal-600 hover:underline">{r.name}</Link>
+                  {r.provision === "send_dedicated" && <span className="ml-2 rounded-full bg-violet-100 px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-violet-700">SEND</span>}
                 </td>
                 <td className="px-4 py-3 text-slate-500">{r.code || "—"}</td>
                 <td className="px-4 py-3"><StageBadge label={branchName(r.branch_slug)} accent="slate" withDot={false} /></td>
@@ -194,6 +195,12 @@ export default function RoomsClient() {
               <Field label="Max age (months)"><input type="number" min={0} value={form.max_age_months ?? 0} onChange={(e) => setField({ max_age_months: Number(e.target.value) })} placeholder="0 = no limit" className="inp" /></Field>
               <Field label="Capacity"><input type="number" min={0} value={form.capacity} onChange={(e) => setField({ capacity: Number(e.target.value) })} className="inp" /></Field>
               <Field label="Staff ratio (1:x)"><input type="number" min={0} value={form.staff_ratio} onChange={(e) => setField({ staff_ratio: Number(e.target.value) })} placeholder="e.g. 4" className="inp" /></Field>
+              <Field label="Provision">
+                <select value={form.provision ?? ""} onChange={(e) => setField({ provision: e.target.value as RoomInput["provision"] })} className="inp bg-white">
+                  <option value="">Mainstream</option>
+                  <option value="send_dedicated">SEND-dedicated</option>
+                </select>
+              </Field>
             </div>
             <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-4">
               <button type="button" onClick={() => setShowForm(false)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>

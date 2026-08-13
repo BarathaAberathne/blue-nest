@@ -12,6 +12,8 @@ import Avatar from "@/components/admin/ui/Avatar";
 import ProfilePhotoUploader from "@/components/admin/ui/ProfilePhotoUploader";
 import ChildRoomAllocations from "@/components/admin/rooms/ChildRoomAllocations";
 import ChildParentsPanel from "@/components/admin/parents/ChildParentsPanel";
+import SendSupportPanel from "@/components/admin/send/SendSupportPanel";
+import { sendActive } from "@/lib/send";
 import PickerModal from "@/components/admin/ui/PickerModal";
 import DailyLogForm from "@/components/admin/daily/DailyLogForm";
 import { usePermissions } from "@/lib/usePermissions";
@@ -178,6 +180,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
             <div className="flex items-center gap-3">
               <h1 className="font-heading text-2xl font-bold text-slate-900">{child.first_name} {child.last_name}</h1>
               <StageBadge label={child.status} accent={childStatusAccent[child.status]} withDot />
+              {sendActive(child.send_status) && <StageBadge label="Additional support" accent="violet" withDot={false} />}
             </div>
             <p className="mt-1 font-mono text-xs text-slate-400">{child.ref ?? child.id}</p>
           </div>
@@ -298,8 +301,15 @@ export default function ChildDetailClient({ id }: { id: string }) {
             )}
           </div>
 
-          <div>
+          <div className="space-y-4">
             <ChildParentsPanel childId={child.id} canManage={has("parents.manage")} />
+            {has("send.manage") && (
+              <SendSupportPanel
+                childId={child.id}
+                branchSlug={child.branch_slug}
+                onStatusChange={(status) => setChild((c) => (c ? { ...c, send_status: status } : c))}
+              />
+            )}
           </div>
 
           {/* Room placement — current room, transfer with capacity/age
@@ -309,6 +319,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
               childId={child.id}
               branchSlug={child.branch_slug}
               canManage={has("children.manage")}
+              sendChild={sendActive(child.send_status)}
               onChange={() => { void load(); }}
               openRequest={roomOpenRequest}
             />

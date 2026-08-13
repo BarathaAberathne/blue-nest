@@ -141,4 +141,8 @@ type RoomCapacitySummary struct {
 	StaffAllocated    int    `json:"staff_allocated"`    // current active staff assignments
 	PresentChildren   int    `json:"present_children"`   // today's attendance, informational
 	OccupancyRate     int    `json:"occupancy_rate"`     // allocated ÷ capacity, percent
+	// SendChildren counts currently-allocated children with an active SEND
+	// status — an operational count only (no sensitive detail); SEND children
+	// count toward the NORMAL capacity above, never a second calculation.
+	SendChildren int `json:"send_children"`
 }

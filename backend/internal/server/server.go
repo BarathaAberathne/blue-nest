@@ -157,6 +157,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	notifPrefRepo := repository.NewNotificationPreferenceRepository(db)
 	notifSvc := service.NewNotificationServiceWithEmail(notificationRepo, mailer, userRepo, notifPrefRepo, cfg.FrontendURL, cfg.NotifyEmailEnabled)
 	parentSvc := service.NewParentService(parentRepo, childParentRepo, childRepo, userRepo, counterRepo, mailer, cfg.FrontendURL)
+	sendSupportRepo := repository.NewSendSupportRepository(db)
 	financeRepo := repository.NewFinanceRepository(db)
 	emailTemplateSvc := service.NewEmailTemplateService(repository.NewEmailTemplateRepository(db))
 	financeSvc := service.NewFinanceService(financeRepo, childParentRepo, parentRepo, childRepo, counterRepo, userRepo, notifSvc, emailTemplateSvc, cfg.Stripe.SecretKey != "")
@@ -195,6 +196,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		OrderTemplates:    service.NewOrderTemplateService(orderTemplateRepo),
 		Suppliers:         service.NewSupplierService(supplierRepo),
 		Taxonomy:          service.NewTaxonomyService(taxonomyRepo),
+		SendSupport:       service.NewSendSupportService(sendSupportRepo, childRepo, staffRepo, roomRepo, childRoomAssignRepo),
 		FeeConfig:         service.NewFeeConfigService(feeConfigRepo, branchRepo),
 		BranchTemplates:   service.NewBranchTemplateService(repository.NewBranchTemplateRepository(db), roomSvc, branchSvc),
 		EmailTemplates:    emailTemplateSvc,
