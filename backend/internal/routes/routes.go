@@ -13,6 +13,8 @@ import (
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/platform/email"
 	"github.com/blue-nest-montessori/api/internal/repository"
+	"github.com/blue-nest-montessori/api/pkg/response"
+	"github.com/blue-nest-montessori/api/pkg/validator"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
@@ -41,6 +43,10 @@ type Services struct {
 	DashboardProfiles service.DashboardProfileService
 	Rooms             service.RoomService
 	Children          service.ChildService
+	Parents           service.ParentService
+	Induction         service.InductionService
+	Onboarding        service.OnboardingService
+	Finance           service.FinanceService
 	Attendance        service.AttendanceService
 	Staff             service.StaffService
 	StaffAttendance   service.StaffAttendanceService
@@ -82,7 +88,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 	r.Get("/api/v1/health", health.Check)
 
 	// ── Stripe webhook (raw body required before JSON middleware) ───────────
-	stripeWH := webhooks.NewStripeWebhookHandler(stripeWebhookSecret, repos.Orders, repos.Products, repos.Branches, repos.Mailer, repos.OrderAdminTo, repos.OrderBATo)
+	stripeWH := webhooks.NewStripeWebhookHandler(stripeWebhookSecret, repos.Orders, repos.Products, repos.Branches, repos.Mailer, repos.OrderAdminTo, repos.OrderBATo, svc.Finance)
 	r.Post("/api/v1/webhooks/stripe", stripeWH.Handle)
 
 	// ── GBP digest ingest (shared-secret webhook, no user JWT) ──────────────
@@ -106,6 +112,23 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Post("/admin/auth/login", authH.AdminLogin)
 		})
 		r.Post("/auth/register", authH.Register)
+	// Parent portal activation: single-use invitation token → password set.
+	// NOTE: runs under DefaultTenant — like all public routes — so invitations
+	// currently activate for the default org only (multi-org portal activation
+	// follows the kiosk cross-org pattern later).
+	r.Post("/auth/portal/activate", func(w http.ResponseWriter, req *http.Request) {
+		var body models.InviteAcceptRequest
+		if err := validator.DecodeJSON(req, &body); err != nil {
+			response.BadRequest(w, err.Error())
+			return
+		}
+		p, err := svc.Parents.AcceptInvite(req.Context(), body)
+		if err != nil {
+			response.BadRequest(w, err.Error())
+			return
+		}
+		response.OK(w, p)
+	})
 		r.Post("/auth/logout", authH.Logout)
 		r.Post("/auth/refresh", authH.Refresh)
 
@@ -211,6 +234,25 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/orders/{id}", orderH.Get)
 		})
 
+		// ── Parent portal (customer-role logins; every handler re-scopes the
+		// caller via ParentService.AuthorisedChildIDs — IDOR-proof) ─────────
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(jwtSecret))
+			r.Use(middleware.RequireRole("customer"))
+			portalH := handler.NewPortalHandler(svc.Parents, svc.Children, svc.Induction, svc.Onboarding, svc.Finance, cfg.FrontendURL)
+			r.Get("/portal/me", portalH.Me)
+			r.Get("/portal/children", portalH.Children)
+			r.Get("/portal/children/{id}", portalH.Child)
+			r.Get("/portal/children/{id}/induction", portalH.Induction)
+			r.Put("/portal/children/{id}/induction/sections/{key}", portalH.SaveInductionSection)
+			r.Post("/portal/children/{id}/induction/submit", portalH.SubmitInduction)
+			r.Get("/portal/children/{id}/consents", portalH.Consents)
+			r.Post("/portal/children/{id}/consents", portalH.RecordConsent)
+			r.Get("/portal/children/{id}/onboarding", portalH.Onboarding)
+			r.Get("/portal/finance", portalH.Finance)
+			r.Post("/portal/finance/direct-debit", portalH.DirectDebitSetup)
+		})
+
 		// ── Staff supply requests (staff + management, not customers) ───────
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtSecret))
@@ -292,7 +334,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			// Enquiries / admissions CRM.
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermEnquiriesManage))
-				adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Auth, svc.Audit, svc.Children, svc.ChildRoomAssign)
+				adminEnquiryH := adminHandler.NewAdminEnquiryHandler(svc.Enquiries, svc.Auth, svc.Audit, svc.Children, svc.ChildRoomAssign, svc.Parents)
 				r.Get("/admin/enquiries", adminEnquiryH.List)
 				r.Get("/admin/enquiries/export", adminEnquiryH.Export)
 				r.Post("/admin/enquiries", adminEnquiryH.Create)
@@ -410,6 +452,58 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Patch("/admin/children/{id}/key-person", adminChildH.SetKeyPerson)
 				r.Post("/admin/children/{id}/archive", adminChildH.Archive)
 				r.Delete("/admin/children/{id}", adminChildH.Delete)
+
+				// Induction, consents & derived onboarding (children.manage).
+				adminInductionH := adminHandler.NewAdminInductionHandler(svc.Induction, svc.Onboarding, svc.Audit)
+				r.Get("/admin/children/{id}/induction", adminInductionH.Get)
+				r.Put("/admin/children/{id}/induction/sections/{key}", adminInductionH.SaveSection)
+				r.Post("/admin/children/{id}/induction/submit", adminInductionH.Submit)
+				r.Post("/admin/children/{id}/induction/review", adminInductionH.Review)
+				r.Get("/admin/children/{id}/consents", adminInductionH.Consents)
+				r.Post("/admin/children/{id}/consents", adminInductionH.RecordConsent)
+				r.Get("/admin/children/{id}/onboarding", adminInductionH.Onboarding)
+				r.Get("/admin/onboarding", adminInductionH.Board)
+			})
+
+			// Finance — family billing, charges, payments, Direct Debit.
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermFinanceManage))
+				adminFinanceH := adminHandler.NewAdminFinanceHandler(svc.Finance, svc.Audit)
+				r.Get("/admin/finance/dashboard", adminFinanceH.Dashboard)
+				r.Get("/admin/families", adminFinanceH.Families)
+				r.Get("/admin/families/{id}", adminFinanceH.Family)
+				r.Post("/admin/children/{id}/family", adminFinanceH.EnsureFamily)
+				r.Post("/admin/families/{id}/charges", adminFinanceH.CreateCharge)
+				r.Post("/admin/families/{id}/first-payment", adminFinanceH.FirstPayment)
+				r.Post("/admin/families/{id}/schedule", adminFinanceH.CreateSchedule)
+				r.Post("/admin/families/{id}/manual-payment", adminFinanceH.ManualPayment)
+				r.Post("/admin/charges/{chargeId}/collect", adminFinanceH.Collect)
+				r.Post("/admin/charges/{chargeId}/remind", adminFinanceH.Remind)
+				r.Get("/admin/families/{id}/communications", adminFinanceH.Communications)
+				r.Post("/admin/finance/reminders/run", adminFinanceH.RunReminders)
+				r.Group(func(r chi.Router) {
+					r.Use(middleware.RequirePermission(models.PermFinanceAdjust))
+					r.Post("/admin/families/{id}/mandate", adminFinanceH.MarkMandate)
+				})
+			})
+
+			// Parents / guardians — canonical person records, child links and
+			// portal invitations (permission parents.manage).
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequirePermission(models.PermParentsManage))
+				adminParentH := adminHandler.NewAdminParentHandler(svc.Parents, svc.Audit)
+				r.Get("/admin/parents", adminParentH.List)
+				r.Post("/admin/parents", adminParentH.Create)
+				r.Get("/admin/parents/{id}", adminParentH.Get)
+				r.Put("/admin/parents/{id}", adminParentH.Update)
+				r.Delete("/admin/parents/{id}", adminParentH.Delete)
+				r.Get("/admin/parents/{id}/children", adminParentH.ForParent)
+				r.Post("/admin/parents/{id}/invite", adminParentH.Invite)
+				r.Post("/admin/parents/{id}/portal-state", adminParentH.SetPortalState)
+				r.Get("/admin/children/{id}/parents", adminParentH.ForChild)
+				r.Post("/admin/children/{id}/parents", adminParentH.LinkChild)
+				r.Put("/admin/parent-relationships/{id}", adminParentH.UpdateRelationship)
+				r.Delete("/admin/parent-relationships/{id}", adminParentH.Unlink)
 			})
 
 			// Nursery - daily attendance register.

@@ -68,7 +68,7 @@ And Assert registered.body.data.status == "registered"
 # so assert on the assignment history endpoint instead.
 When Get /api/v1/admin/children Into kids Using adminSession.accessToken
 Then AssertStatus kids 200
-CopyJson kids "$.body.data[?(@.first_name=='QA-AUTOTEST-Reg006')]" Into regChild
+CopyJson kids "$.body.data[?(@.last_name=='Child-${reg006Suffix}')]" Into regChild
 Then Assert regChild.id != null
 
 When Get /api/v1/admin/children/${regChild.id}/room-assignments Into placements Using adminSession.accessToken
@@ -99,4 +99,11 @@ When Post /api/v1/admin/enquiries/${regEnquiryB.id}/register Into registeredB Us
 }
 Then AssertStatus registeredB 200
 And Assert registeredB.body.data.status == "registered"
+
+Teardown
+When Get /api/v1/admin/children Into cleanupKids Using adminSession.accessToken
+CopyJson cleanupKids "$.body.data[?(@.last_name=='Child-${reg006Suffix}')]" Into cleanA
+Delete /api/v1/admin/children/${cleanA.id} Using adminSession.accessToken
+CopyJson cleanupKids "$.body.data[?(@.last_name=='Child-${reg006bSuffix}')]" Into cleanB
+Delete /api/v1/admin/children/${cleanB.id} Using adminSession.accessToken
 ```

@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, KioskSession, KioskStaffResult, LeaveRequest, LeaveRequestInput, LeaveBalances, MeAttendance, MeProfileInput, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, FeeConfigBundle, FeeBranchConfig, FeeConfigInput, FeeMeta, BranchTemplate, BranchTemplateInput, BranchTemplateApplyResult, EmailTemplate, EmailTemplateInput, NotificationPreferences, NotificationsResponse, User } from "@/types";
+import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, Parent, ParentInput, ChildParentRelationship, RelationshipFlagsInput, InductionBundle, ChildInduction, Consent, ConsentsBundle, OnboardingView, KioskSession, KioskStaffResult, LeaveRequest, LeaveRequestInput, LeaveBalances, MeAttendance, MeProfileInput, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, FeeConfigBundle, FeeBranchConfig, FeeConfigInput, FeeMeta, BranchTemplate, BranchTemplateInput, BranchTemplateApplyResult, EmailTemplate, EmailTemplateInput, NotificationPreferences, NotificationsResponse, User, Family, FamilyView, Charge, FamilyPayment, PaymentScheduleItem, FinanceDashboard, CommunicationLog } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -731,6 +731,97 @@ export const api = {
     apiFetch<Child>(`/api/v1/admin/children/${childId}/key-person`, { method: "PATCH", body: JSON.stringify({ staff_id: staffId }), token }),
   // Marks a leaving child as left (status=left + leave_date) and ends live
   // room placements; leave_date defaults to today when omitted.
+  // ── Induction, consents & onboarding ───────────────────────────────────────
+  adminGetInduction: (token: string, childId: string) =>
+    apiFetch<InductionBundle>(`/api/v1/admin/children/${childId}/induction`, { token }),
+  adminSaveInductionSection: (token: string, childId: string, key: string, body: { data: Record<string, unknown>; complete: boolean }) =>
+    apiFetch<ChildInduction>(`/api/v1/admin/children/${childId}/induction/sections/${key}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminSubmitInduction: (token: string, childId: string) =>
+    apiFetch<ChildInduction>(`/api/v1/admin/children/${childId}/induction/submit`, { method: "POST", body: "{}", token }),
+  adminReviewInduction: (token: string, childId: string, note: string) =>
+    apiFetch<ChildInduction>(`/api/v1/admin/children/${childId}/induction/review`, { method: "POST", body: JSON.stringify({ note }), token }),
+  adminGetConsents: (token: string, childId: string) =>
+    apiFetch<ConsentsBundle>(`/api/v1/admin/children/${childId}/consents`, { token }),
+  adminRecordConsent: (token: string, childId: string, body: { key: string; granted: boolean; note?: string; signature_name: string }) =>
+    apiFetch<Consent>(`/api/v1/admin/children/${childId}/consents`, { method: "POST", body: JSON.stringify(body), token }),
+  adminGetOnboarding: (token: string, childId: string) =>
+    apiFetch<OnboardingView>(`/api/v1/admin/children/${childId}/onboarding`, { token }),
+  adminGetOnboardingBoard: (token: string, branch?: string) =>
+    apiFetch<OnboardingView[]>(`/api/v1/admin/onboarding${branch ? `?branch=${encodeURIComponent(branch)}` : ""}`, { token }),
+  portalGetInduction: (token: string, childId: string) =>
+    apiFetch<InductionBundle>(`/api/v1/portal/children/${childId}/induction`, { token }),
+  portalSaveInductionSection: (token: string, childId: string, key: string, body: { data: Record<string, unknown>; complete: boolean }) =>
+    apiFetch<ChildInduction>(`/api/v1/portal/children/${childId}/induction/sections/${key}`, { method: "PUT", body: JSON.stringify(body), token }),
+  portalSubmitInduction: (token: string, childId: string) =>
+    apiFetch<ChildInduction>(`/api/v1/portal/children/${childId}/induction/submit`, { method: "POST", body: "{}", token }),
+  portalGetConsents: (token: string, childId: string) =>
+    apiFetch<ConsentsBundle>(`/api/v1/portal/children/${childId}/consents`, { token }),
+  portalRecordConsent: (token: string, childId: string, body: { key: string; granted: boolean; note?: string; signature_name: string }) =>
+    apiFetch<Consent>(`/api/v1/portal/children/${childId}/consents`, { method: "POST", body: JSON.stringify(body), token }),
+  portalGetOnboarding: (token: string, childId: string) =>
+    apiFetch<OnboardingView>(`/api/v1/portal/children/${childId}/onboarding`, { token }),
+  // ── Parents / guardians (canonical model) ──────────────────────────────────
+  adminGetParents: (token: string, q?: string) =>
+    apiFetch<Parent[]>(`/api/v1/admin/parents${q ? `?q=${encodeURIComponent(q)}` : ""}`, { token }),
+  adminGetParent: (token: string, id: string) =>
+    apiFetch<Parent>(`/api/v1/admin/parents/${id}`, { token }),
+  adminCreateParent: (token: string, body: ParentInput) =>
+    apiFetch<Parent>("/api/v1/admin/parents", { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateParent: (token: string, id: string, body: ParentInput) =>
+    apiFetch<Parent>(`/api/v1/admin/parents/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminDeleteParent: (token: string, id: string) =>
+    apiFetch<void>(`/api/v1/admin/parents/${id}`, { method: "DELETE", token }),
+  adminGetChildParents: (token: string, childId: string) =>
+    apiFetch<ChildParentRelationship[]>(`/api/v1/admin/children/${childId}/parents`, { token }),
+  adminLinkChildParent: (token: string, childId: string, body: { parent_id?: string; parent?: ParentInput } & RelationshipFlagsInput) =>
+    apiFetch<ChildParentRelationship>(`/api/v1/admin/children/${childId}/parents`, { method: "POST", body: JSON.stringify(body), token }),
+  adminUpdateParentRelationship: (token: string, id: string, body: RelationshipFlagsInput) =>
+    apiFetch<ChildParentRelationship>(`/api/v1/admin/parent-relationships/${id}`, { method: "PUT", body: JSON.stringify(body), token }),
+  adminUnlinkParentRelationship: (token: string, id: string) =>
+    apiFetch<void>(`/api/v1/admin/parent-relationships/${id}`, { method: "DELETE", token }),
+  adminGetParentChildren: (token: string, parentId: string) =>
+    apiFetch<ChildParentRelationship[]>(`/api/v1/admin/parents/${parentId}/children`, { token }),
+  adminInviteParent: (token: string, parentId: string, temporaryDays?: number) =>
+    apiFetch<{ activation_link: string; parent_id: string; token: string }>(`/api/v1/admin/parents/${parentId}/invite`, { method: "POST", body: JSON.stringify({ temporary_days: temporaryDays ?? 0 }), token }),
+  adminSetParentPortalState: (token: string, parentId: string, state: string, temporaryDays?: number) =>
+    apiFetch<Parent>(`/api/v1/admin/parents/${parentId}/portal-state`, { method: "POST", body: JSON.stringify({ state, temporary_days: temporaryDays ?? 0 }), token }),
+  portalActivate: (parentId: string, tokenValue: string, password: string) =>
+    apiFetch<Parent>("/api/v1/auth/portal/activate", { method: "POST", body: JSON.stringify({ parent_id: parentId, token: tokenValue, password }) }),
+  portalGetMe: (token: string) =>
+    apiFetch<{ parent: Parent; children: ChildParentRelationship[] }>("/api/v1/portal/me", { token }),
+  portalGetChildren: (token: string) =>
+    apiFetch<Child[]>("/api/v1/portal/children", { token }),
+  // ── Finance: families, charges, payments, Direct Debit ─────────────────────
+  adminGetFamilies: (token: string) =>
+    apiFetch<Family[]>("/api/v1/admin/families", { token }),
+  adminGetFamily: (token: string, id: string) =>
+    apiFetch<FamilyView>(`/api/v1/admin/families/${id}`, { token }),
+  adminEnsureFamily: (token: string, childId: string) =>
+    apiFetch<Family>(`/api/v1/admin/children/${childId}/family`, { method: "POST", body: "{}", token }),
+  adminCreateCharge: (token: string, familyId: string, body: { child_id?: string; description: string; amount_pence: number; due_date: string; first_payment?: boolean }) =>
+    apiFetch<Charge>(`/api/v1/admin/families/${familyId}/charges`, { method: "POST", body: JSON.stringify(body), token }),
+  adminCreateFirstPayment: (token: string, familyId: string, body: { child_id: string; deposit_pence: number; first_month_pence: number; due_date: string }) =>
+    apiFetch<Charge[]>(`/api/v1/admin/families/${familyId}/first-payment`, { method: "POST", body: JSON.stringify(body), token }),
+  adminCreateSchedule: (token: string, familyId: string, body: { child_id: string; amount_pence: number; day_of_month: number; start_month: string; end_month?: string }) =>
+    apiFetch<PaymentScheduleItem>(`/api/v1/admin/families/${familyId}/schedule`, { method: "POST", body: JSON.stringify(body), token }),
+  adminRecordManualPayment: (token: string, familyId: string, body: { amount_pence: number; note?: string }) =>
+    apiFetch<FamilyPayment>(`/api/v1/admin/families/${familyId}/manual-payment`, { method: "POST", body: JSON.stringify(body), token }),
+  adminMarkMandate: (token: string, familyId: string, reference: string) =>
+    apiFetch<Family>(`/api/v1/admin/families/${familyId}/mandate`, { method: "POST", body: JSON.stringify({ reference }), token }),
+  adminCollectCharge: (token: string, chargeId: string) =>
+    apiFetch<Charge>(`/api/v1/admin/charges/${chargeId}/collect`, { method: "POST", body: "{}", token }),
+  adminGetFinanceDashboard: (token: string) =>
+    apiFetch<FinanceDashboard>("/api/v1/admin/finance/dashboard", { token }),
+  adminSendChargeReminder: (token: string, chargeId: string) =>
+    apiFetch<CommunicationLog>(`/api/v1/admin/charges/${chargeId}/remind`, { method: "POST", body: "{}", token }),
+  adminGetFamilyCommunications: (token: string, familyId: string) =>
+    apiFetch<CommunicationLog[]>(`/api/v1/admin/families/${familyId}/communications`, { token }),
+  adminRunReminderSweep: (token: string) =>
+    apiFetch<{ sent: number }>("/api/v1/admin/finance/reminders/run", { method: "POST", body: "{}", token }),
+  portalGetFinance: (token: string) =>
+    apiFetch<FamilyView | { family: null }>("/api/v1/portal/finance", { token }),
+  portalSetupDirectDebit: (token: string) =>
+    apiFetch<{ setup_url: string }>("/api/v1/portal/finance/direct-debit", { method: "POST", body: "{}", token }),
   adminArchiveChild: (token: string, childId: string, leaveDate?: string) =>
     apiFetch<Child>(`/api/v1/admin/children/${childId}/archive`, { method: "POST", body: JSON.stringify({ leave_date: leaveDate ?? "" }), token }),
   adminGetStaffKeyChildren: (token: string, staffId: string) =>

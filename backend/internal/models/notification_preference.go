@@ -31,6 +31,13 @@ var NotificationTypeCatalogue = []NotificationTypeInfo{
 	{NotifDailyLogSubmitted, "Daily log needs your review"},
 	{NotifDailyLogApproved, "Your daily log was approved"},
 	{NotifDailyLogRejected, "Your daily log was rejected"},
+	{NotifInductionSubmitted, "Induction form needs your review"},
+	{NotifInductionReviewed, "An induction you submitted was reviewed"},
+	{NotifDDActive, "Direct Debit mandate activated"},
+	{NotifPaymentReceived, "Payment received"},
+	{NotifPaymentFailed, "Payment failed"},
+	{NotifPaymentReminder, "Payment reminders"},
+	{NotifDDIncomplete, "Direct Debit setup reminders"},
 }
 
 // NotificationPreferenceRequest is the self-service update payload.
