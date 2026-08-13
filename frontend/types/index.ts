@@ -560,6 +560,7 @@ export interface Application {
   waiting_list: boolean;
   sessions?: ApplicationSession[];
   signature_data_url?: string;
+  terms_accepted?: boolean;
 }
 
 export interface Enquiry {

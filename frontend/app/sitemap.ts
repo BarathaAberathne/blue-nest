@@ -36,6 +36,7 @@ const staticRoutes: { url: string; priority: number; changeFrequency: MetadataRo
   { url: "/blog",                           priority: 0.7, changeFrequency: "weekly"  },
   { url: "/contact",                        priority: 0.8, changeFrequency: "monthly" },
   { url: "/privacy",                        priority: 0.3, changeFrequency: "yearly"  },
+  { url: "/terms-and-conditions",           priority: 0.3, changeFrequency: "yearly"  },
   { url: "/terms",                          priority: 0.3, changeFrequency: "yearly"  },
   { url: "/trading-terms",                  priority: 0.3, changeFrequency: "yearly"  },
 ];
