@@ -129,7 +129,7 @@ const ALL_STAFF: TeamMember[] = [
     qualifications: [],
   },
   {
-    name: "Ishinda Abeywickrema", role: "Facilities & Compliance Officer",
+    name: "Ishinda Abeywickrema", role: "Facilities & Business Development Manager",
     branch: "Harrow", category: "Manager", initial: "I", colour: c(3),
     photo: "/team/ishinda-dinal-abeywickrema.jpg",
     qualifications: [],
