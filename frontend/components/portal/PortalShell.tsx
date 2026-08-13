@@ -12,6 +12,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, Baby, CreditCard, LayoutDashboard, LogOut, Menu, UserCircle, X } from "lucide-react";
 import { api } from "@/lib/api";
+import NotificationBell from "@/components/admin/NotificationBell";
 import { clearAuthSession, getAccessToken, getAuthUser } from "@/lib/auth";
 import type { Child } from "@/types";
 
@@ -162,6 +163,7 @@ export default function PortalShell({ children: content }: { children: React.Rea
               <p className="truncate text-lg font-bold leading-tight text-[var(--adm-ink)]">{currentPage}</p>
             </div>
             <div className="ml-auto flex items-center gap-2.5">
+              <NotificationBell variant="parent" />
               <Link
                 href="/portal/profile"
                 title="My profile"

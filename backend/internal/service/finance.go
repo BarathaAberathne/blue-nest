@@ -91,27 +91,33 @@ func NewFinanceService(repo repository.FinanceRepository, rels repository.ChildP
 // (their portal user) and, when includeFinance is set, every user holding
 // finance.manage. Best-effort — finance actions never fail on notification
 // problems.
+// notifyFamily notifies the billing parent (with a PARENT-facing link) and,
+// when includeFinance is set, finance-manage staff (with the staff link the
+// caller supplied in n.Link). Parents must never receive /admin URLs.
 func (s *financeService) notifyFamily(ctx context.Context, f *models.Family, includeFinance bool, n models.Notification) {
 	if s.notifs == nil || f == nil {
 		return
 	}
-	var recipients []string
+	n.EntityType = "family"
+	n.EntityID = f.ID.Hex()
+
 	if p, err := s.parents.FindByID(ctx, f.BillingParentID); err == nil && p != nil && p.UserID != "" {
-		recipients = append(recipients, p.UserID)
+		parentNotif := n
+		parentNotif.Link = "/portal/payments"
+		_ = s.notifs.NotifyMany(ctx, []string{p.UserID}, parentNotif)
 	}
 	if includeFinance && s.users != nil {
 		orgID, _ := repository.OrgFromContext(ctx)
+		var staff []string
 		if users, err := s.users.FindAll(ctx); err == nil {
 			for _, u := range users {
 				if models.HasPermission(orgID, u.Role, models.PermFinanceManage) {
-					recipients = appendUnique(recipients, u.ID.Hex())
+					staff = append(staff, u.ID.Hex())
 				}
 			}
 		}
+		_ = s.notifs.NotifyMany(ctx, staff, n)
 	}
-	n.EntityType = "family"
-	n.EntityID = f.ID.Hex()
-	_ = s.notifs.NotifyMany(ctx, recipients, n)
 }
 
 func (s *financeService) ref(ctx context.Context, counter, prefix string) string {
