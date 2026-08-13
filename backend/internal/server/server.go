@@ -12,6 +12,7 @@ import (
 	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/platform/email"
 	mongoPlatform "github.com/blue-nest-montessori/api/internal/platform/mongo"
+	"github.com/blue-nest-montessori/api/internal/platform/revalidate"
 	"github.com/blue-nest-montessori/api/internal/platform/sourcing"
 	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/internal/routes"
@@ -129,7 +130,8 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	// Hoisted so the branch-template service can reuse the same room + branch
 	// services (apply-template creates rooms; capture-from-branch reads them).
 	roomSvc := service.NewRoomServiceWithGuards(roomRepo, staffRoomAssignRepo, childRoomAssignRepo)
-	branchSvc := service.NewBranchService(branchRepo, counterRepo)
+	revalNotifier := revalidate.NewNotifier(cfg.FrontendInternalURL, cfg.RevalidateSecret)
+	branchSvc := service.NewBranchService(branchRepo, counterRepo, revalNotifier)
 	emailTemplateSvc := service.NewEmailTemplateService(repository.NewEmailTemplateRepository(db))
 	svc := routes.Services{
 		Organisations:     orgSvc,

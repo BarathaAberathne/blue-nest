@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/platform/revalidate"
 	"github.com/blue-nest-montessori/api/internal/repository"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -26,10 +27,20 @@ type BranchService interface {
 type branchService struct {
 	repo     repository.BranchRepository
 	counters repository.CounterRepository
+	// reval busts the public site's Next.js route cache when branch data
+	// changes (status/coming-soon, contact details, archive) so admin edits
+	// show immediately instead of after the ISR window. Nil-safe.
+	reval revalidate.Notifier
 }
 
-func NewBranchService(repo repository.BranchRepository, counters repository.CounterRepository) BranchService {
-	return &branchService{repo: repo, counters: counters}
+func NewBranchService(repo repository.BranchRepository, counters repository.CounterRepository, reval revalidate.Notifier) BranchService {
+	return &branchService{repo: repo, counters: counters, reval: reval}
+}
+
+func (s *branchService) revalidateSite() {
+	if s.reval != nil {
+		s.reval.Site()
+	}
 }
 
 func (s *branchService) List(ctx context.Context) ([]models.Branch, error) {
@@ -107,6 +118,7 @@ func (s *branchService) Create(ctx context.Context, req models.BranchRequest) (*
 		}
 		return nil, err
 	}
+	s.revalidateSite()
 	return b, nil
 }
 
@@ -116,7 +128,12 @@ func (s *branchService) Update(ctx context.Context, slug string, req models.Bran
 		return nil, err
 	}
 	applyBranch(existing, req)
-	return s.repo.Update(ctx, slug, *existing)
+	updated, err := s.repo.Update(ctx, slug, *existing)
+	if err != nil {
+		return nil, err
+	}
+	s.revalidateSite()
+	return updated, nil
 }
 
 func (s *branchService) SetManagers(ctx context.Context, slug string, m models.BranchManagers) (*models.Branch, error) {
@@ -124,5 +141,9 @@ func (s *branchService) SetManagers(ctx context.Context, slug string, m models.B
 }
 
 func (s *branchService) Archive(ctx context.Context, slug string, archived bool) error {
-	return s.repo.Archive(ctx, slug, archived)
+	if err := s.repo.Archive(ctx, slug, archived); err != nil {
+		return err
+	}
+	s.revalidateSite()
+	return nil
 }
