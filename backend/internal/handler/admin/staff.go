@@ -112,6 +112,36 @@ func (h *AdminStaffHandler) Create(w http.ResponseWriter, r *http.Request) {
 	response.Created(w, created)
 }
 
+// SetPhoto sets (or clears) a staff member's profile photo.
+func (h *AdminStaffHandler) SetPhoto(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	existing, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "staff not found")
+		return
+	}
+	if !inScope(r, existing.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	var req models.StaffPhotoRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	updated, err := h.svc.SetPhoto(r.Context(), id, req.PhotoURL)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	summary := "Removed profile photo for " + updated.FirstName + " " + updated.LastName
+	if updated.PhotoURL != "" {
+		summary = "Updated profile photo for " + updated.FirstName + " " + updated.LastName
+	}
+	h.audit.Record(r, "staff_photo", "staff", id, summary, nil)
+	response.OK(w, updated)
+}
+
 func (h *AdminStaffHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var req models.StaffRequest

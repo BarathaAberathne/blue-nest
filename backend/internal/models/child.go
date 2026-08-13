@@ -59,6 +59,8 @@ type Child struct {
 	// Address is the child's home address (induction form; write-through from
 	// the child_details section).
 	Address string `bson:"address,omitempty" json:"address,omitempty"`
+	// PhotoURL is the uploaded profile picture (served from /uploads).
+	PhotoURL string `bson:"photo_url,omitempty" json:"photo_url,omitempty"`
 	BranchSlug   string             `bson:"branch_slug"          json:"branch_slug"`
 	Status       ChildStatus        `bson:"status"               json:"status"`
 	StartDate    string             `bson:"start_date,omitempty" json:"start_date,omitempty"`
@@ -96,6 +98,11 @@ type Child struct {
 
 // ChildKeyPersonRequest assigns (or clears, with an empty staff_id) a child's
 // key person.
+// ChildPhotoRequest sets (or clears, with an empty URL) the profile photo.
+type ChildPhotoRequest struct {
+	PhotoURL string `json:"photo_url"`
+}
+
 type ChildKeyPersonRequest struct {
 	StaffID string `json:"staff_id"`
 }

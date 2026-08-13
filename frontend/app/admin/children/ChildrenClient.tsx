@@ -9,6 +9,7 @@ import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
+import Avatar from "@/components/admin/ui/Avatar";
 import { ageLabel, childStatusAccent, fundingLabel } from "@/lib/child";
 import { useTaxonomy, sessionOptions } from "@/lib/useTaxonomy";
 import type { Branch, Child, ChildInput, ChildSession, ChildStats, Room } from "@/types";
@@ -232,7 +233,12 @@ export default function ChildrenClient() {
               )}
               <tr className="cursor-pointer hover:bg-slate-50">
                 <td className="px-4 py-3 font-mono text-xs text-slate-500"><Link href={`/admin/children/${c.id}`} className="hover:text-teal-600">{c.ref ?? "—"}</Link></td>
-                <td className="px-4 py-3 font-medium text-slate-900"><Link href={`/admin/children/${c.id}`} className="hover:text-teal-600">{c.first_name} {c.last_name}</Link></td>
+                <td className="px-4 py-3 font-medium text-slate-900">
+                  <Link href={`/admin/children/${c.id}`} className="flex items-center gap-2.5 hover:text-teal-600">
+                    <Avatar name={`${c.first_name} ${c.last_name}`} src={c.photo_url} size="sm" />
+                    {c.first_name} {c.last_name}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 text-slate-500">{ageLabel(c.dob)}</td>
                 <td className="px-4 py-3 text-slate-500">{branchName(c.branch_slug)}</td>
                 <td className="px-4 py-3 text-slate-500">{roomName(c.room_id)}</td>

@@ -1100,6 +1100,7 @@ export interface Child {
   ref?: string; // CHD-YYYY-NNNNNN
   first_name: string;
   last_name: string;
+  photo_url?: string;
   dob?: string; // YYYY-MM-DD
   gender?: string;
   branch_slug: string;
@@ -1404,6 +1405,7 @@ export interface Staff {
   ref?: string; // STF-YYYY-NNNNNN
   first_name: string;
   last_name: string;
+  photo_url?: string;
   email?: string;
   phone?: string;
   branch_slug: string;
@@ -1604,6 +1606,7 @@ export interface KioskStaffResult {
   id: string;
   name: string;
   job_title?: string;
+  photo_url?: string;
   room_name?: string;
   has_pin: boolean;
   clocked_in: boolean;

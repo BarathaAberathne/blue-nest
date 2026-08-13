@@ -16,6 +16,8 @@ type StaffService interface {
 	GetByID(ctx context.Context, id string) (*models.Staff, error)
 	Create(ctx context.Context, req models.StaffRequest) (*models.Staff, error)
 	Update(ctx context.Context, id string, req models.StaffRequest) (*models.Staff, error)
+	// SetPhoto sets (or clears, with an empty URL) the staff profile photo.
+	SetPhoto(ctx context.Context, id, url string) (*models.Staff, error)
 	Delete(ctx context.Context, id string) error
 }
 
@@ -297,4 +299,17 @@ func (s *staffService) Delete(ctx context.Context, id string) error {
 		s.roomAssignments.EndAllForStaff(ctx, id, "staff-deleted")
 	}
 	return s.repo.Delete(ctx, id)
+}
+
+func (s *staffService) SetPhoto(ctx context.Context, id, url string) (*models.Staff, error) {
+	url = strings.TrimSpace(url)
+	if url != "" && !validPhotoURL(url) {
+		return nil, errors.New("photo_url must reference an uploaded image")
+	}
+	updated, err := s.repo.SetPhoto(ctx, id, url)
+	if err != nil {
+		return nil, errors.New("staff member not found")
+	}
+	s.resolveRoom(ctx, updated)
+	return updated, nil
 }

@@ -15,6 +15,8 @@ import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import StaffRoomAllocations from "@/components/admin/rooms/StaffRoomAllocations";
 import { usePermissions } from "@/lib/usePermissions";
+import Avatar from "@/components/admin/ui/Avatar";
+import ProfilePhotoUploader from "@/components/admin/ui/ProfilePhotoUploader";
 import { fmtDate } from "@/lib/child";
 import { dbsExpiry, staffStatusAccent, staffStatusLabel, staffTypeAccent, staffTypeLabel } from "@/lib/staff";
 import type { Branch, Child, EmergencyContact, Shift, Staff, StaffAbsenceSummary, StaffInput } from "@/types";
@@ -245,9 +247,18 @@ export default function StaffDetailClient({ id }: { id: string }) {
 
       {/* ── Identity block ─────────────────────────────────────────── */}
       <div className="mb-6 flex flex-wrap items-center gap-4">
-        <div className="grid h-20 w-20 flex-none place-items-center rounded-full bg-teal-100 text-2xl font-bold text-teal-700 ring-4 ring-white">
-          {initials || <User className="h-8 w-8" />}
-        </div>
+        {has("staff.manage") ? (
+          <ProfilePhotoUploader
+            name={fullName}
+            photoUrl={member.photo_url}
+            onSave={async (token, url) => {
+              const updated = await api.adminSetStaffPhoto(token, member.id, url);
+              setMember((m) => (m ? { ...m, photo_url: updated.photo_url } : m));
+            }}
+          />
+        ) : (
+          <Avatar name={fullName} src={member.photo_url} size="xl" />
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="font-heading text-2xl font-bold text-slate-900">{fullName}</h1>
