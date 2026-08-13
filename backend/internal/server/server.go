@@ -219,7 +219,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		Me:                service.NewMeService(staffRepo, staffAttSvc, staffAttendanceRepo, shiftRepo),
 		Kiosk:             service.NewKioskService(kioskDeviceRepo, staffRepo, staffAttendanceRepo, branchRepo, roomRepo, staffRoomAssignRepo, staffAttSvc),
 		Shifts:            service.NewShiftService(shiftRepo, staffRepo, roomRepo, leaveRequestRepo),
-		DailyRecords:      service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo, childRoomAssignRepo, userRepo, notifSvc),
+		DailyRecords:      service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo, childRoomAssignRepo, userRepo, notifSvc, childParentRepo, parentRepo),
 		Notifications:     notifSvc,
 		NotifPrefs:        service.NewNotificationPreferenceService(notifPrefRepo),
 		BranchOverview:    service.NewBranchOverviewService(childRepo, roomRepo, attendanceRepo, staffRepo, staffAttendanceRepo, dailyRecordRepo, enquiryRepo),

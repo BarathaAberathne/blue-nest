@@ -752,6 +752,29 @@ Amazon Business API (Product Search → Cart → Ordering), then full inventory/
   + `SUI-SENDROOM-001` (2.33, 4 cases: provision, mainstream + specialist placement via the NORMAL
   assignment/transfer, profile survival, KPI reconciliation).
 
+- **Parent Portal consolidation (delivered; investigation record `docs/portal/parent-portal-investigation.md`):**
+  `/portal` is THE canonical parent-facing area. **Root cause fixed:** the parent login used to send every
+  customer to `/account` (the store area) — it now resolves parent identity via `GET /portal/me` (parent →
+  `/portal`, plain store customer → `/account`; explicit `?next=` wins). One `PortalShell`
+  (`components/portal/`, header + compact left nav + per-child items, mobile drawer) wraps every parent
+  page: **Dashboard** (children + today's attendance + latest shared update + payments summary),
+  **per-child page** (Overview / Attendance / Daily updates tabs), **Payments & Orders** (canonical family
+  finance + the same `GET /orders/me` store orders — one finance area, no duplicate flow), **My Profile**
+  (parent record only; child data lives under the child pages). New parent reads delegate to canonical
+  services with parent-safe projections: `GET /portal/children/{id}/attendance` (date/status/in/out only)
+  and `GET /portal/children/{id}/daily-records`. **Daily-log parent visibility (record-level):** creating/
+  approving a `DailyRecord` NEVER shares it — `parent_shared` (+ shared_at/by) is set only by the explicit
+  `POST /admin/daily-records/{id}/share` ("Send to parent", `daily_logs.approve`, approved records only,
+  `safeguarding` never shareable, idempotent, audited `share_with_parent`) with `/unshare` as the audited
+  withdrawal that keeps the record + share history. `ParentVisible()` (= shared && approved) is the single
+  backend gate and `SanitizeForParent()` strips staff-only fields (witnesses/other staff/reported-to/
+  approval internals) from every parent response. Sharing notifies the child's portal parents via the
+  existing notification service (`daily_update_shared`, in the email-prefs catalogue). Staff UI: a Parent
+  visibility panel on `/admin/daily-log/{id}` (Internal / Shared chip + who/when, Send to parent, Withdraw).
+  Tests: `daily_record_sharing_test.go` + bnrest `SUI-PORTAL-001` (2.34, 4 cases: resolution + admin-login
+  boundary, parent-safe attendance + cross-family 404, full share lifecycle incl. no-duplicate + audit,
+  sharing guards).
+
 ## Procurement Management module — roadmap (Phases 1–4 DELIVERED)
 Goal: turn the procurement pieces into one connected **Procurement Management** module so the journey
 feels like a single process: **Supply Request → Approve → Purchase Order → Place → Track → Receive →

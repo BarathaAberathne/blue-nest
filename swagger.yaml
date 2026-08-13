@@ -4237,6 +4237,45 @@ paths:
       parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/OnboardingView' } } } }
+  /portal/children/{id}/attendance:
+    get:
+      tags: [Portal]
+      summary: Parent-safe attendance history for the caller's own child (date/status/arrival/departure only)
+      operationId: portalChildAttendance
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+        '404': { description: Not your child }
+  /portal/children/{id}/daily-records:
+    get:
+      tags: [Portal]
+      summary: Daily updates EXPLICITLY shared with parents (approved + parent_shared only, staff fields stripped)
+      operationId: portalChildDailyRecords
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+        '404': { description: Not your child }
+  /admin/daily-records/{id}/share:
+    post:
+      tags: [Daily Records]
+      summary: Send to parent — the canonical sharing action (permission daily_logs.approve; approved records only; safeguarding never; idempotent; audited)
+      operationId: shareDailyRecord
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Shared (parent_shared/at/by set; parents notified) }
+        '400': { description: Unapproved or safeguarding record }
+  /admin/daily-records/{id}/unshare:
+    post:
+      tags: [Daily Records]
+      summary: Withdraw parent visibility (record + share history preserved; audited)
+      operationId: unshareDailyRecord
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Withdrawn }
   /portal/finance:
     get:
       tags: [Portal]

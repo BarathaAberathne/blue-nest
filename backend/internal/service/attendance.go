@@ -22,6 +22,9 @@ type AttendanceService interface {
 	CheckOut(ctx context.Context, req models.CheckOutRequest, actor string, allowed []string) (*models.AttendanceRecord, error)
 	Mark(ctx context.Context, req models.AttendanceMarkRequest, actor string, allowed []string) (*models.AttendanceRecord, error)
 	TodayStats(ctx context.Context, date, branch string) (*models.AttendanceStats, error)
+	// HistoryForChild returns the child's recent attendance records (newest
+	// first) — the canonical read the parent portal projects from.
+	HistoryForChild(ctx context.Context, childID string, limit int64) ([]models.AttendanceRecord, error)
 }
 
 type attendanceService struct {
@@ -266,4 +269,11 @@ func (s *attendanceService) TodayStats(ctx context.Context, date, branch string)
 		stats.Branches = append(stats.Branches, models.BranchAttendanceStat{Branch: b, Present: pres, Expected: exp, AttendanceRate: clamp100(percent(pres, exp))})
 	}
 	return stats, nil
+}
+
+func (s *attendanceService) HistoryForChild(ctx context.Context, childID string, limit int64) ([]models.AttendanceRecord, error) {
+	if limit <= 0 || limit > 120 {
+		limit = 60
+	}
+	return s.repo.FindByChild(ctx, childID, limit)
 }

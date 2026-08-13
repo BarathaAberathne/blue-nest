@@ -100,6 +100,52 @@ func (h *AdminDailyRecordHandler) Create(w http.ResponseWriter, r *http.Request)
 
 // Approve signs off a submitted log (four-eyes — the service rejects
 // self-approval). Gated by daily_logs.approve.
+// Share is the canonical "Send to parent" — flips the record parent-visible
+// (approved records only; safeguarding never; idempotent; no duplicate record).
+func (h *AdminDailyRecordHandler) Share(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	existing, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "record not found")
+		return
+	}
+	if !inScope(r, existing.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	a := actor(r)
+	updated, err := h.svc.Share(r.Context(), id, a.ID, a.Name)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "share_with_parent", "daily_record", id, "Shared "+string(updated.Type)+" with parents: "+updated.Title, nil)
+	response.OK(w, updated)
+}
+
+// Unshare withdraws parent visibility (correction path) — the record and its
+// share history survive; only the visibility flag is cleared.
+func (h *AdminDailyRecordHandler) Unshare(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	existing, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "record not found")
+		return
+	}
+	if !inScope(r, existing.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	a := actor(r)
+	updated, err := h.svc.Unshare(r.Context(), id, a.ID, a.Name)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "unshare_from_parent", "daily_record", id, "Withdrew parent visibility of "+string(updated.Type)+": "+updated.Title, nil)
+	response.OK(w, updated)
+}
+
 func (h *AdminDailyRecordHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	existing, err := h.svc.GetByID(r.Context(), id)

@@ -51,6 +51,22 @@ export default function DailyLogDetailClient({ id }: { id: string }) {
     catch (e) { setError(e instanceof Error ? e.message : "Failed to approve"); }
     finally { setBusy(false); }
   };
+  const share = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    setBusy(true); setError(null);
+    try { await api.adminShareDailyRecord(token, id); await load(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Failed to share"); }
+    finally { setBusy(false); }
+  };
+  const unshare = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    setBusy(true); setError(null);
+    try { await api.adminUnshareDailyRecord(token, id); await load(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Failed to withdraw"); }
+    finally { setBusy(false); }
+  };
   const reject = async () => {
     const token = getAccessToken();
     if (!token || !reason.trim()) { setError("A reason is required to reject."); return; }
@@ -155,6 +171,36 @@ export default function DailyLogDetailClient({ id }: { id: string }) {
                 </div>
               )
             ) : <p className="text-sm text-amber-600">Awaiting approval by a manager / EYFS lead.</p>
+          )}
+        </div>
+
+        {/* Parent visibility — creating/approving a log NEVER shares it; sharing
+            is an explicit, audited action (safeguarding is never shareable). */}
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">Parent visibility</h3>
+          {rec.type === "safeguarding" ? (
+            <p className="text-sm text-slate-500">Safeguarding records are internal and can never be shared with parents.</p>
+          ) : rec.parent_shared ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-100 px-2.5 py-1 text-xs font-semibold text-teal-700">
+                Shared with parent{rec.parent_shared_by ? ` by ${rec.parent_shared_by}` : ""}{rec.parent_shared_at ? ` · ${new Date(rec.parent_shared_at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}
+              </span>
+              {has("daily_logs.approve") && (
+                <button onClick={unshare} disabled={busy} className="rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50">
+                  Withdraw from parent
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">Internal — not visible to parents</span>
+              {has("daily_logs.approve") && st === "approved" && (
+                <button onClick={share} disabled={busy} className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 disabled:opacity-50">
+                  Send to parent
+                </button>
+              )}
+              {st !== "approved" && <span className="text-xs text-slate-400">Approve the record first to enable sharing.</span>}
+            </div>
           )}
         </div>
       </div>

@@ -240,7 +240,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtSecret))
 			r.Use(middleware.RequireRole("customer"))
-			portalH := handler.NewPortalHandler(svc.Parents, svc.Children, svc.Induction, svc.Onboarding, svc.Finance, cfg.FrontendURL)
+			portalH := handler.NewPortalHandler(svc.Parents, svc.Children, svc.Induction, svc.Onboarding, svc.Finance, svc.DailyRecords, svc.Attendance, cfg.FrontendURL)
 			r.Get("/portal/me", portalH.Me)
 			r.Get("/portal/children", portalH.Children)
 			r.Get("/portal/children/{id}", portalH.Child)
@@ -250,6 +250,8 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/portal/children/{id}/consents", portalH.Consents)
 			r.Post("/portal/children/{id}/consents", portalH.RecordConsent)
 			r.Get("/portal/children/{id}/onboarding", portalH.Onboarding)
+			r.Get("/portal/children/{id}/attendance", portalH.ChildAttendance)
+			r.Get("/portal/children/{id}/daily-records", portalH.ChildDailyRecords)
 			r.Get("/portal/finance", portalH.Finance)
 			r.Post("/portal/finance/direct-debit", portalH.DirectDebitSetup)
 		})
@@ -660,6 +662,8 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Group(func(r chi.Router) {
 					r.Use(middleware.RequirePermission(models.PermDailyLogsApprove))
 					r.Post("/admin/daily-records/{id}/approve", adminDailyH.Approve)
+					r.Post("/admin/daily-records/{id}/share", adminDailyH.Share)
+					r.Post("/admin/daily-records/{id}/unshare", adminDailyH.Unshare)
 					r.Post("/admin/daily-records/{id}/reject", adminDailyH.Reject)
 				})
 			})

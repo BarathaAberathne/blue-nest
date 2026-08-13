@@ -2,9 +2,11 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/blue-nest-montessori/api/pkg/validator"
@@ -21,11 +23,13 @@ type PortalHandler struct {
 	induction  service.InductionService
 	onboarding service.OnboardingService
 	finance    service.FinanceService
+	daily      service.DailyRecordService
+	attendance service.AttendanceService
 	frontend   string
 }
 
-func NewPortalHandler(parents service.ParentService, children service.ChildService, induction service.InductionService, onboarding service.OnboardingService, finance service.FinanceService, frontendURL string) *PortalHandler {
-	return &PortalHandler{parents: parents, children: children, induction: induction, onboarding: onboarding, finance: finance, frontend: frontendURL}
+func NewPortalHandler(parents service.ParentService, children service.ChildService, induction service.InductionService, onboarding service.OnboardingService, finance service.FinanceService, dailyRecords service.DailyRecordService, attendance service.AttendanceService, frontendURL string) *PortalHandler {
+	return &PortalHandler{parents: parents, children: children, induction: induction, onboarding: onboarding, finance: finance, daily: dailyRecords, attendance: attendance, frontend: frontendURL}
 }
 
 func (h *PortalHandler) scope(w http.ResponseWriter, r *http.Request) (*models.Parent, map[string]bool, bool) {
@@ -40,6 +44,27 @@ func (h *PortalHandler) scope(w http.ResponseWriter, r *http.Request) (*models.P
 		set[id] = true
 	}
 	return parent, set, true
+}
+
+// scopeChild resolves the {id} child, enforcing that the caller is an
+// authorised portal parent of that child (unauthorised → 404, never leaking
+// whether the child exists).
+func (h *PortalHandler) scopeChild(w http.ResponseWriter, r *http.Request) (*models.Parent, *models.Child, bool) {
+	parent, authorised, ok := h.scope(w, r)
+	if !ok {
+		return nil, nil, false
+	}
+	id := chi.URLParam(r, "id")
+	if !authorised[id] {
+		response.NotFound(w, "child not found")
+		return nil, nil, false
+	}
+	child, err := h.children.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "child not found")
+		return nil, nil, false
+	}
+	return parent, child, true
 }
 
 // Me returns the parent's own record + child relationships.
@@ -252,4 +277,55 @@ func (h *PortalHandler) DirectDebitSetup(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	response.OK(w, map[string]string{"setup_url": url})
+}
+
+// ── Attendance (parent view: own child, parent-safe fields only) ─────────────
+
+// portalAttendanceRow is the parent-facing attendance projection — no staff
+// names, no operational notes, no correction history.
+type portalAttendanceRow struct {
+	Date     string     `json:"date"`
+	Status   string     `json:"status"`
+	CheckIn  *time.Time `json:"check_in,omitempty"`
+	CheckOut *time.Time `json:"check_out,omitempty"`
+}
+
+func (h *PortalHandler) ChildAttendance(w http.ResponseWriter, r *http.Request) {
+	_, child, ok := h.scopeChild(w, r)
+	if !ok {
+		return
+	}
+	records, err := h.attendance.HistoryForChild(r.Context(), child.ID.Hex(), 60)
+	if err != nil {
+		response.InternalError(w, "failed to load attendance")
+		return
+	}
+	out := make([]portalAttendanceRow, 0, len(records))
+	for _, rec := range records {
+		out = append(out, portalAttendanceRow{Date: rec.Date, Status: string(rec.Status), CheckIn: rec.CheckIn, CheckOut: rec.CheckOut})
+	}
+	response.OK(w, out)
+}
+
+// ── Daily updates (parent view: EXPLICITLY shared + approved records only) ───
+
+func (h *PortalHandler) ChildDailyRecords(w http.ResponseWriter, r *http.Request) {
+	_, child, ok := h.scopeChild(w, r)
+	if !ok {
+		return
+	}
+	records, err := h.daily.List(r.Context(), repository.DailyRecordFilter{ChildID: child.ID.Hex(), Limit: 200})
+	if err != nil {
+		response.InternalError(w, "failed to load daily updates")
+		return
+	}
+	out := make([]models.DailyRecord, 0)
+	for _, rec := range records {
+		// The single visibility gate: explicitly shared AND approved. Internal
+		// records never leave the backend, whatever the URL or ID used.
+		if rec.ParentVisible() {
+			out = append(out, rec.SanitizeForParent())
+		}
+	}
+	response.OK(w, out)
 }
