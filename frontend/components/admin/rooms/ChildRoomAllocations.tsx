@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowRightLeft, DoorOpen, Plus } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
+import PickerModal from "@/components/admin/ui/PickerModal";
 import type { ChildRoomAssignment, Room, RoomCapacitySummary } from "@/types";
 
 export default function ChildRoomAllocations({
@@ -18,11 +19,15 @@ export default function ChildRoomAllocations({
   branchSlug,
   canManage,
   onChange,
+  openRequest,
 }: {
   childId: string;
   branchSlug: string;
   canManage: boolean;
   onChange?: () => void;
+  /** Increment to open the assign/transfer popup from elsewhere on the page
+      (e.g. the profile's ROOM row Change button). */
+  openRequest?: number;
 }) {
   const [assignments, setAssignments] = useState<ChildRoomAssignment[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -59,6 +64,12 @@ export default function ChildRoomAllocations({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!openRequest || !canManage) return;
+    setMode(assignments.some((a) => a.status === "active") ? "transfer" : "assign");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openRequest]);
 
   const current = assignments.find((a) => a.status === "active");
   const scheduled = assignments.find((a) => a.status === "scheduled");
@@ -157,47 +168,57 @@ export default function ChildRoomAllocations({
       )}
 
       {mode !== null && (
-        <div className="mt-3 space-y-2 rounded-lg border border-teal-200 bg-teal-50/50 p-3">
-          <select value={roomId} onChange={(e) => setRoomId(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
-            <option value="">Select a room…</option>
-            {targetRooms.map((r) => {
-              const cap = capacity[r.id];
-              return (
-                <option key={r.id} value={r.id}>
-                  {r.name}{r.code ? ` (${r.code})` : ""}{cap ? ` — ${cap.available_spaces} free` : ""}
-                </option>
-              );
-            })}
-          </select>
-          {mode === "transfer" && (
-            <>
-              <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason for transfer (required)" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-              <label className="block text-xs text-slate-500">
-                Effective date (leave blank for today; a future date schedules the move)
-                <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-              </label>
-            </>
-          )}
-          {capacityWarning && (
-            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-              {capacityWarning} An override reason is required to proceed.
-            </p>
-          )}
-          <input
-            value={overrideReason}
-            onChange={(e) => setOverrideReason(e.target.value)}
-            placeholder="Override reason (only if over capacity or outside the age range)"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-          />
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={submit} disabled={!roomId || busy} className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">
-              {busy ? "Saving…" : mode === "assign" ? "Allocate" : "Transfer"}
-            </button>
-            <button type="button" onClick={reset} className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
-              Cancel
-            </button>
+        <PickerModal
+          title={mode === "assign" ? "Allocate room" : "Transfer room"}
+          subtitle={mode === "assign" ? "Pick a room at this branch — live availability shown." : "Pick the destination room — a reason is required, and a future date schedules the move."}
+          options={targetRooms.map((r) => {
+            const cap = capacity[r.id];
+            const free = cap?.available_spaces;
+            return {
+              id: r.id,
+              label: r.name + (r.code ? ` (${r.code})` : ""),
+              detail: r.age_range || undefined,
+              badge: cap ? (free && free > 0 ? `${free} free` : "full") : undefined,
+              badgeTone: cap ? (free && free > 0 ? ("teal" as const) : ("amber" as const)) : undefined,
+            };
+          })}
+          selectedId={roomId}
+          onSelect={setRoomId}
+          onClose={reset}
+          emptyText="No other rooms at this branch."
+        >
+          <div className="mt-3 space-y-2">
+            {mode === "transfer" && (
+              <>
+                <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason for transfer (required)" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                <label className="block text-xs text-slate-500">
+                  Effective date (leave blank for today; a future date schedules the move)
+                  <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+                </label>
+              </>
+            )}
+            {capacityWarning && (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                {capacityWarning} An override reason is required to proceed.
+              </p>
+            )}
+            <input
+              value={overrideReason}
+              onChange={(e) => setOverrideReason(e.target.value)}
+              placeholder="Override reason (only if over capacity or outside the age range)"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            />
+            {error && <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>}
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={reset} className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
+                Cancel
+              </button>
+              <button type="button" onClick={submit} disabled={!roomId || busy} className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">
+                {busy ? "Saving…" : mode === "assign" ? "Allocate" : "Transfer"}
+              </button>
+            </div>
           </div>
-        </div>
+        </PickerModal>
       )}
 
       {history.length > 0 && (

@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import { DoorOpen, Plus, Star, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
+import PickerModal from "@/components/admin/ui/PickerModal";
 import type { Room, StaffRoomAssignment } from "@/types";
 
 export default function StaffRoomAllocations({
@@ -167,31 +168,40 @@ export default function StaffRoomAllocations({
       </ul>
 
       {adding && (
-        <div className="mt-3 space-y-2 rounded-lg border border-teal-200 bg-teal-50/50 p-3">
-          <select value={roomId} onChange={(e) => setRoomId(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
-            <option value="">Select a room…</option>
-            {availableRooms.map((r) => (
-              <option key={r.id} value={r.id}>{r.name}{r.code ? ` (${r.code})` : ""}</option>
-            ))}
-          </select>
-          <input
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            placeholder="Role in room (optional, e.g. Room Leader)"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-          />
-          <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" checked={primary} onChange={(e) => setPrimary(e.target.checked)} /> Set as primary room
-          </label>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={add} disabled={!roomId || busy} className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">
-              {busy ? "Allocating…" : "Allocate"}
-            </button>
-            <button type="button" onClick={() => { setAdding(false); setError(null); }} className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
-              Cancel
-            </button>
+        <PickerModal
+          title="Allocate room"
+          subtitle="Pick the room this staff member works in."
+          options={availableRooms.map((r) => ({
+            id: r.id,
+            label: r.name + (r.code ? ` (${r.code})` : ""),
+            detail: r.age_range || undefined,
+          }))}
+          selectedId={roomId}
+          onSelect={setRoomId}
+          onClose={() => { setAdding(false); setError(null); }}
+          emptyText="No further rooms available at this branch."
+        >
+          <div className="mt-3 space-y-2">
+            <input
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              placeholder="Role in room (optional, e.g. Room Leader)"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            />
+            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <input type="checkbox" checked={primary} onChange={(e) => setPrimary(e.target.checked)} /> Set as primary room
+            </label>
+            {error && <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>}
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => { setAdding(false); setError(null); }} className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50">
+                Cancel
+              </button>
+              <button type="button" onClick={add} disabled={!roomId || busy} className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">
+                {busy ? "Allocating…" : "Allocate"}
+              </button>
+            </div>
           </div>
-        </div>
+        </PickerModal>
       )}
 
       {history.length > 0 && (

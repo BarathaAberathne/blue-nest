@@ -189,6 +189,35 @@ func (h *AdminChildHandler) SetKeyPerson(w http.ResponseWriter, r *http.Request)
 	response.OK(w, updated)
 }
 
+// Archive marks a leaving child as left (status=left + leave_date) and ends
+// any live room placements. Reactivation stays possible via the edit form's
+// status field — nothing is deleted.
+func (h *AdminChildHandler) Archive(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	child, err := h.svc.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "child not found")
+		return
+	}
+	if !inScope(r, child.BranchSlug) {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
+	var req models.ChildArchiveRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	updated, err := h.svc.Archive(r.Context(), id, req.LeaveDate)
+	if err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.audit.Record(r, "archive", "child", id,
+		"Marked "+updated.FirstName+" "+updated.LastName+" as left ("+updated.LeaveDate+")", nil)
+	response.OK(w, updated)
+}
+
 // KeyChildren lists the children a staff member (URL id) is key person for,
 // filtered to the caller's branch scope.
 func (h *AdminChildHandler) KeyChildren(w http.ResponseWriter, r *http.Request) {
