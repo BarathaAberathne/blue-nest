@@ -21,7 +21,6 @@ export default function TermsPage() {
       kicker="Policies"
       title="Terms and Conditions"
       intro="Terms and conditions form part of the agreement with Blue Nest Montessori School upon registration. These terms and conditions relate to the contract between the nursery and the parent/guardian."
-      lastReviewed="15 August 2026"
     >
       <p>
         The headings in this Agreement are inserted only for convenience and shall not affect its
