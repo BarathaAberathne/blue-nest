@@ -21,7 +21,6 @@ export default function TradingTermsPage() {
       kicker="Policies"
       title="Trading Terms"
       intro="These trading terms apply when you buy a product from the Blue Nest Nursery Store. They set out how orders are placed, how prices and payment work, our delivery commitments and your rights to cancel, return or refund a purchase."
-      lastReviewed="19 May 2026"
     >
       <p>
         The Blue Nest Nursery Store is operated by Blue Nest Montessori School. These trading terms apply to every
