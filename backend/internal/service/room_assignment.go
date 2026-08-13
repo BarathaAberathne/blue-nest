@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/repository"
 )
 
@@ -192,7 +193,7 @@ func (s *staffRoomAssignmentService) Assign(ctx context.Context, req models.Staf
 	if st.BranchSlug != room.BranchSlug {
 		return nil, ErrCrossBranch
 	}
-	if !shiftBranchAllowed(allowed, room.BranchSlug) {
+	if !policy.InAllowed(allowed, room.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	// Duplicate prevention (the partial unique index is the racing backstop).
@@ -260,7 +261,7 @@ func (s *staffRoomAssignmentService) Update(ctx context.Context, id string, req 
 	if err != nil {
 		return nil, errors.New("assignment not found")
 	}
-	if !shiftBranchAllowed(allowed, a.BranchSlug) {
+	if !policy.InAllowed(allowed, a.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	if req.End {
@@ -314,7 +315,7 @@ func (s *staffRoomAssignmentService) ListForStaff(ctx context.Context, staffID s
 	if err != nil {
 		return nil, errors.New("staff member not found")
 	}
-	if !shiftBranchAllowed(allowed, st.BranchSlug) {
+	if !policy.InAllowed(allowed, st.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	f := repository.StaffRoomAssignmentFilter{StaffID: staffID}
@@ -334,7 +335,7 @@ func (s *staffRoomAssignmentService) ListForRoom(ctx context.Context, roomID str
 	if err != nil {
 		return nil, errors.New("room not found")
 	}
-	if !shiftBranchAllowed(allowed, room.BranchSlug) {
+	if !policy.InAllowed(allowed, room.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	f := repository.StaffRoomAssignmentFilter{RoomID: roomID}
@@ -533,7 +534,7 @@ func (s *childRoomAssignmentService) Assign(ctx context.Context, req models.Chil
 	if child.BranchSlug != room.BranchSlug {
 		return nil, ErrCrossBranch
 	}
-	if !shiftBranchAllowed(allowed, room.BranchSlug) {
+	if !policy.InAllowed(allowed, room.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	cur, err := s.currentActive(ctx, childID)
@@ -610,7 +611,7 @@ func (s *childRoomAssignmentService) Transfer(ctx context.Context, childID strin
 	if child.BranchSlug != room.BranchSlug {
 		return nil, ErrCrossBranch
 	}
-	if !shiftBranchAllowed(allowed, room.BranchSlug) {
+	if !policy.InAllowed(allowed, room.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	cur, err := s.currentActive(ctx, childID)
@@ -708,7 +709,7 @@ func (s *childRoomAssignmentService) End(ctx context.Context, id string, req mod
 	if err != nil {
 		return nil, errors.New("assignment not found")
 	}
-	if !shiftBranchAllowed(allowed, a.BranchSlug) {
+	if !policy.InAllowed(allowed, a.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	if a.Status == models.AssignmentEnded {
@@ -769,7 +770,7 @@ func (s *childRoomAssignmentService) ListForChild(ctx context.Context, childID s
 	if err != nil {
 		return nil, errors.New("child not found")
 	}
-	if !shiftBranchAllowed(allowed, child.BranchSlug) {
+	if !policy.InAllowed(allowed, child.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	list, err := s.repo.FindAll(ctx, repository.ChildRoomAssignmentFilter{ChildID: childID})
@@ -785,7 +786,7 @@ func (s *childRoomAssignmentService) ListForRoom(ctx context.Context, roomID str
 	if err != nil {
 		return nil, errors.New("room not found")
 	}
-	if !shiftBranchAllowed(allowed, room.BranchSlug) {
+	if !policy.InAllowed(allowed, room.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	f := repository.ChildRoomAssignmentFilter{RoomID: roomID}
@@ -861,7 +862,7 @@ func (s *childRoomAssignmentService) CapacitySummary(ctx context.Context, roomID
 	if err != nil {
 		return nil, errors.New("room not found")
 	}
-	if !shiftBranchAllowed(allowed, room.BranchSlug) {
+	if !policy.InAllowed(allowed, room.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	attendance, err := s.attendance.FindByDate(ctx, todayYMD(), room.BranchSlug)

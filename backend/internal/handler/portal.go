@@ -25,11 +25,12 @@ type PortalHandler struct {
 	finance    service.FinanceService
 	daily      service.DailyRecordService
 	attendance service.AttendanceService
+	audit      service.AuditService
 	frontend   string
 }
 
-func NewPortalHandler(parents service.ParentService, children service.ChildService, induction service.InductionService, onboarding service.OnboardingService, finance service.FinanceService, dailyRecords service.DailyRecordService, attendance service.AttendanceService, frontendURL string) *PortalHandler {
-	return &PortalHandler{parents: parents, children: children, induction: induction, onboarding: onboarding, finance: finance, daily: dailyRecords, attendance: attendance, frontend: frontendURL}
+func NewPortalHandler(parents service.ParentService, children service.ChildService, induction service.InductionService, onboarding service.OnboardingService, finance service.FinanceService, dailyRecords service.DailyRecordService, attendance service.AttendanceService, audit service.AuditService, frontendURL string) *PortalHandler {
+	return &PortalHandler{parents: parents, children: children, induction: induction, onboarding: onboarding, finance: finance, daily: dailyRecords, attendance: attendance, audit: audit, frontend: frontendURL}
 }
 
 func (h *PortalHandler) scope(w http.ResponseWriter, r *http.Request) (*models.Parent, map[string]bool, bool) {
@@ -158,6 +159,10 @@ func (h *PortalHandler) SaveInductionSection(w http.ResponseWriter, r *http.Requ
 		response.BadRequest(w, err.Error())
 		return
 	}
+	// Parent-side mutations leave the same audit trail as their admin
+	// equivalents (handler/admin/induction.go) — a safeguarding-relevant record
+	// must not depend on WHO filled it in.
+	h.audit.Record(r, "induction_save", "child", id, "Parent saved induction section '"+chi.URLParam(r, "key")+"'", nil)
 	response.OK(w, ind)
 }
 
@@ -176,6 +181,7 @@ func (h *PortalHandler) SubmitInduction(w http.ResponseWriter, r *http.Request) 
 		response.BadRequest(w, err.Error())
 		return
 	}
+	h.audit.Record(r, "induction_submit", "child", id, "Parent submitted the induction form for review", nil)
 	response.OK(w, ind)
 }
 
@@ -217,6 +223,11 @@ func (h *PortalHandler) RecordConsent(w http.ResponseWriter, r *http.Request) {
 		response.BadRequest(w, err.Error())
 		return
 	}
+	verb := "withdrew"
+	if req.Granted {
+		verb = "granted"
+	}
+	h.audit.Record(r, "consent", "child", id, "Parent "+verb+" consent '"+req.Key+"'", nil)
 	response.Created(w, c)
 }
 
@@ -276,6 +287,7 @@ func (h *PortalHandler) DirectDebitSetup(w http.ResponseWriter, r *http.Request)
 		response.BadRequest(w, err.Error())
 		return
 	}
+	h.audit.Record(r, "direct_debit_setup", "family", fam.ID.Hex(), "Parent started Direct Debit setup", nil)
 	response.OK(w, map[string]string{"setup_url": url})
 }
 

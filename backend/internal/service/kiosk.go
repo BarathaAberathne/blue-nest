@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/repository"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -96,7 +97,7 @@ func (s *kioskService) SetDeviceActive(ctx context.Context, id string, active bo
 	if err != nil {
 		return err
 	}
-	if !kioskBranchAllowed(allowed, d.BranchSlug) {
+	if !policy.InAllowed(allowed, d.BranchSlug) {
 		return errors.New("outside your branch scope")
 	}
 	return s.devices.SetActive(ctx, id, active)
@@ -107,22 +108,10 @@ func (s *kioskService) DeleteDevice(ctx context.Context, id string, allowed []st
 	if err != nil {
 		return err
 	}
-	if !kioskBranchAllowed(allowed, d.BranchSlug) {
+	if !policy.InAllowed(allowed, d.BranchSlug) {
 		return errors.New("outside your branch scope")
 	}
 	return s.devices.Delete(ctx, id)
-}
-
-func kioskBranchAllowed(allowed []string, branch string) bool {
-	if allowed == nil {
-		return true
-	}
-	for _, s := range allowed {
-		if s == branch {
-			return true
-		}
-	}
-	return false
 }
 
 func (s *kioskService) SetStaffPIN(ctx context.Context, staffID, pin string, allowed []string) error {
@@ -130,7 +119,7 @@ func (s *kioskService) SetStaffPIN(ctx context.Context, staffID, pin string, all
 	if err != nil {
 		return errors.New("staff not found")
 	}
-	if !kioskBranchAllowed(allowed, st.BranchSlug) {
+	if !policy.InAllowed(allowed, st.BranchSlug) {
 		return errors.New("outside your branch scope")
 	}
 	pin = strings.TrimSpace(pin)

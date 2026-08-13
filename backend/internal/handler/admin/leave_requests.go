@@ -2,6 +2,7 @@ package admin
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/blue-nest-montessori/api/internal/models"
 	"github.com/blue-nest-montessori/api/internal/policy"
@@ -36,14 +37,36 @@ func (h *AdminLeaveHandler) Mine(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, list)
 }
 
-// Apply submits a new leave request for the caller (or, if staff_id is set and
-// the caller is a manager, for that staff member).
+// Apply submits a new leave request for the CALLER only (self-service route).
+// Filing for another staff member goes through ApplyFor, which sits behind
+// leave.approve — honouring staff_id here would let any staff member file (and
+// consume) leave in a colleague's name.
 func (h *AdminLeaveHandler) Apply(w http.ResponseWriter, r *http.Request) {
 	var req models.LeaveRequestCreate
 	if err := validator.DecodeJSON(r, &req); err != nil {
 		response.BadRequest(w, err.Error())
 		return
 	}
+	if strings.TrimSpace(req.StaffID) != "" {
+		response.Forbidden(w, "filing leave for another staff member requires leave approval permission")
+		return
+	}
+	h.apply(w, r, req)
+}
+
+// ApplyFor lets a manager (leave.approve) file a request for a staff member
+// (staff_id in the body). Four-eyes still applies: it stays pending until a
+// DIFFERENT manager approves it.
+func (h *AdminLeaveHandler) ApplyFor(w http.ResponseWriter, r *http.Request) {
+	var req models.LeaveRequestCreate
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	h.apply(w, r, req)
+}
+
+func (h *AdminLeaveHandler) apply(w http.ResponseWriter, r *http.Request, req models.LeaveRequestCreate) {
 	a := actor(r)
 	lr, err := h.svc.Apply(r.Context(), req, a.ID, a.Name)
 	if err != nil {
@@ -83,7 +106,11 @@ func (h *AdminLeaveHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 // List returns leave requests for management, branch-scoped to the caller.
 func (h *AdminLeaveHandler) List(w http.ResponseWriter, r *http.Request) {
 	role, scope := caller(r)
-	branch, _ := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	branch, ok := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
 	list, err := h.svc.List(r.Context(), models.LeaveRequestFilter{
 		Branch:  branch,
 		Status:  r.URL.Query().Get("status"),
@@ -99,7 +126,11 @@ func (h *AdminLeaveHandler) List(w http.ResponseWriter, r *http.Request) {
 // Export streams the filtered leave requests as CSV (same branch scoping as List).
 func (h *AdminLeaveHandler) Export(w http.ResponseWriter, r *http.Request) {
 	role, scope := caller(r)
-	branch, _ := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	branch, ok := policy.EffectiveBranch(role, scope, r.URL.Query().Get("branch"))
+	if !ok {
+		response.Forbidden(w, "outside your branch scope")
+		return
+	}
 	list, err := h.svc.List(r.Context(), models.LeaveRequestFilter{
 		Branch: branch, Status: r.URL.Query().Get("status"), StaffID: r.URL.Query().Get("staff_id"),
 	})

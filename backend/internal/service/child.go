@@ -403,8 +403,12 @@ func (s *childService) Update(ctx context.Context, id string, req models.ChildRe
 	}
 	// KeyPersonName + RoomName are transient (bson:"-"), resolved from their
 	// canonical sources — re-resolve so an edit doesn't appear to blank them.
+	// Guardians likewise: without this, the update response would show the
+	// legacy embedded array while an immediate GET shows the canonical
+	// parent-relationship projection.
 	s.resolveKeyPerson(ctx, updated)
 	s.resolveRoom(ctx, updated)
+	s.resolveGuardians(ctx, updated)
 	return updated, nil
 }
 

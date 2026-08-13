@@ -55,27 +55,9 @@ func NewDailyRecordService(repo repository.DailyRecordRepository, children repos
 }
 
 // approversFor returns the user ids that can approve a log for `branch` — every
-// user whose role holds daily_logs.approve and whose branch scope covers it
-// (org-wide roles have no branch_slugs). Best-effort; empty on any error.
+// user whose role holds daily_logs.approve and whose branch scope covers it.
 func (s *dailyRecordService) approversFor(ctx context.Context, branch string) []string {
-	if s.users == nil {
-		return nil
-	}
-	orgID, _ := repository.OrgFromContext(ctx)
-	users, err := s.users.FindAll(ctx)
-	if err != nil {
-		return nil
-	}
-	var ids []string
-	for _, u := range users {
-		if !models.HasPermission(orgID, u.Role, models.PermDailyLogsApprove) {
-			continue
-		}
-		if len(u.BranchSlugs) == 0 || contains(u.BranchSlugs, branch) {
-			ids = append(ids, u.ID.Hex())
-		}
-	}
-	return ids
+	return usersWithPermission(ctx, s.users, models.PermDailyLogsApprove, branch)
 }
 
 func contains(ss []string, v string) bool {

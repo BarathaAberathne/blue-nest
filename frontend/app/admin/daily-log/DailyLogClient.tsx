@@ -13,15 +13,13 @@ import { fmtDate } from "@/lib/child";
 import { dailyStatusAccent, dailyStatusLabel, dailyTypeAccent, dailyTypeLabel, severityAccent } from "@/lib/daily";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
-import SearchSelect from "@/components/ui/SearchSelect";
-import type { Branch, Child, DailyRecord, DailyRecordType, DailyStats } from "@/types";
+import type { Branch, DailyRecord, DailyRecordType, DailyStats } from "@/types";
 
 const TYPES: DailyRecordType[] = ["observation", "incident", "safeguarding", "medication", "meal"];
 
 export default function DailyLogClient() {
   const [records, setRecords] = useState<DailyRecord[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [children, setChildren] = useState<Child[]>([]);
   const [stats, setStats] = useState<DailyStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

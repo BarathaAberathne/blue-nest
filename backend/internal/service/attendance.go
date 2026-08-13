@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/repository"
 )
 
@@ -120,7 +121,7 @@ func (s *attendanceService) CheckIn(ctx context.Context, req models.CheckInReque
 	if err != nil {
 		return nil, err
 	}
-	if !branchAllowed(allowed, rec.BranchSlug) {
+	if !policy.InAllowed(allowed, rec.BranchSlug) {
 		return nil, errOutsideScope
 	}
 	if rec.CheckIn != nil && rec.CheckOut == nil {
@@ -142,7 +143,7 @@ func (s *attendanceService) CheckOut(ctx context.Context, req models.CheckOutReq
 	if err != nil {
 		return nil, err
 	}
-	if !branchAllowed(allowed, rec.BranchSlug) {
+	if !policy.InAllowed(allowed, rec.BranchSlug) {
 		return nil, errOutsideScope
 	}
 	if rec.CheckIn == nil {
@@ -169,7 +170,7 @@ func (s *attendanceService) Mark(ctx context.Context, req models.AttendanceMarkR
 	if err != nil {
 		return nil, err
 	}
-	if !branchAllowed(allowed, rec.BranchSlug) {
+	if !policy.InAllowed(allowed, rec.BranchSlug) {
 		return nil, errOutsideScope
 	}
 	rec.Status = req.Status

@@ -47,24 +47,7 @@ func NewInductionService(repo repository.InductionRepository, consents repositor
 // reviewersFor returns users holding children.manage scoped to the child's
 // branch — the audience for the four-eyes induction review.
 func (s *inductionService) reviewersFor(ctx context.Context, branch string) []string {
-	if s.users == nil {
-		return nil
-	}
-	orgID, _ := repository.OrgFromContext(ctx)
-	users, err := s.users.FindAll(ctx)
-	if err != nil {
-		return nil
-	}
-	var ids []string
-	for _, u := range users {
-		if !models.HasPermission(orgID, u.Role, models.PermChildrenManage) {
-			continue
-		}
-		if len(u.BranchSlugs) == 0 || contains(u.BranchSlugs, branch) {
-			ids = append(ids, u.ID.Hex())
-		}
-	}
-	return ids
+	return usersWithPermission(ctx, s.users, models.PermChildrenManage, branch)
 }
 
 func (s *inductionService) Get(ctx context.Context, childID string) (*models.ChildInduction, error) {

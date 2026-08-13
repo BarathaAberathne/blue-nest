@@ -68,11 +68,17 @@ func (r *dailyRecordRepository) query(f DailyRecordFilter) bson.M {
 	case models.ApprovalRejected:
 		filter["approval_status"] = models.ApprovalRejected
 	}
-	if f.Date != "" {
-		filter["date"] = f.Date
-	}
-	if f.Since != "" {
-		filter["date"] = bson.M{"$gte": f.Since}
+	// Date (exact day) and Since (lower bound) merge into ONE date clause — two
+	// separate assignments would silently clobber whichever came first.
+	if f.Date != "" || f.Since != "" {
+		cond := bson.M{}
+		if f.Date != "" {
+			cond["$eq"] = f.Date
+		}
+		if f.Since != "" {
+			cond["$gte"] = f.Since
+		}
+		filter["date"] = cond
 	}
 	if f.Q != "" {
 		// Escaped so free-text search input is matched literally — see staff.go.

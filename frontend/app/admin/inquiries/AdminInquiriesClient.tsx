@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Columns3, Download, LayoutDashboard, ListChecks, Plus, Search, SlidersHorizontal, Table2 } from "lucide-react";
+import { Columns3, LayoutDashboard, ListChecks, Plus, Search, SlidersHorizontal, Table2 } from "lucide-react";
+import ExportButton from "@/components/admin/ExportButton";
 import { api, type EnquiryListParams } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
@@ -165,6 +166,20 @@ export default function AdminInquiriesClient() {
 
   const sortParam = (k: SortKey): string =>
     k === "enquiry_type" ? "type" : k === "assigned_to" ? "assigned_to" : k;
+
+  // Server-side export (CSV/Excel) with the same filters the list request uses.
+  // The bulk-selection export below stays client-side — the server endpoint
+  // exports a filter, not a hand-picked set of ids.
+  const exportPath = useMemo(() => {
+    const p = new URLSearchParams();
+    if (branch) p.set("branch", branch);
+    if (status) p.set("status", status);
+    if (assigned) p.set("assigned_to", assigned);
+    if (from) p.set("from", from);
+    if (to) p.set("to", to);
+    const qs = p.toString();
+    return `/api/v1/admin/enquiries/export${qs ? `?${qs}` : ""}`;
+  }, [branch, status, assigned, from, to]);
 
   const load = useCallback(async (silent?: boolean) => {
     const token = getAccessToken();
@@ -372,10 +387,7 @@ export default function AdminInquiriesClient() {
           <Link href="/admin/inquiries/dashboard" className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
             <LayoutDashboard className="h-4 w-4" /> Dashboard
           </Link>
-          <button type="button" onClick={() => exportCsv(refined)} disabled={refined.length === 0}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
-            <Download className="h-4 w-4" /> Export CSV
-          </button>
+          <ExportButton path={exportPath} />
           <button type="button" onClick={() => { setCreateForm({ ...EMPTY_CREATE }); setCreateOpen(true); }}
             className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700">
             <Plus className="h-4 w-4" /> New inquiry

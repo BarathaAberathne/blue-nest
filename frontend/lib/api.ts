@@ -702,7 +702,9 @@ export const api = {
     apiFetch<ChildRoomAssignment>(`/api/v1/admin/children/${childId}/transfer-room`, { method: "POST", body: JSON.stringify(body), token }),
 
   // Nursery - children
-  adminGetChildren: (token: string, params?: { branch?: string; room?: string; status?: string; q?: string }) => {
+  // No `room` param: room placement lives in child_room_assignments (the API's
+  // room_id is a computed projection) — filter on c.room_id client-side.
+  adminGetChildren: (token: string, params?: { branch?: string; status?: string; q?: string }) => {
     const qs = new URLSearchParams();
     if (params) for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
     const s = qs.toString();

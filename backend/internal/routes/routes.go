@@ -240,7 +240,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtSecret))
 			r.Use(middleware.RequireRole("customer"))
-			portalH := handler.NewPortalHandler(svc.Parents, svc.Children, svc.Induction, svc.Onboarding, svc.Finance, svc.DailyRecords, svc.Attendance, cfg.FrontendURL)
+			portalH := handler.NewPortalHandler(svc.Parents, svc.Children, svc.Induction, svc.Onboarding, svc.Finance, svc.DailyRecords, svc.Attendance, svc.Audit, cfg.FrontendURL)
 			r.Get("/portal/me", portalH.Me)
 			r.Get("/portal/children", portalH.Children)
 			r.Get("/portal/children/{id}", portalH.Child)
@@ -375,7 +375,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				leaveAdminH := adminHandler.NewAdminLeaveHandler(svc.LeaveRequests, svc.Audit)
 				r.Get("/admin/leave-requests", leaveAdminH.List)
 				r.Get("/admin/leave-requests/export", leaveAdminH.Export)
-				r.Post("/admin/leave-requests", leaveAdminH.Apply) // manager files for a staff member (staff_id in body)
+				r.Post("/admin/leave-requests", leaveAdminH.ApplyFor) // manager files for a staff member (staff_id in body)
 				r.Post("/admin/leave-requests/{id}/approve", leaveAdminH.Approve)
 				r.Post("/admin/leave-requests/{id}/decline", leaveAdminH.Decline)
 			})

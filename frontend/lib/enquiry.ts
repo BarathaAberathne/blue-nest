@@ -230,12 +230,6 @@ export function fmtDayMonth(iso?: string | null): string {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
-// Initials for an assigned-staff avatar.
-export function initialsOf(name?: string | null): string {
-  if (!name) return "";
-  return name.trim().split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
-}
-
 // ── Quick note templates ─────────────────────────────────────────────────────
 export const NOTE_TEMPLATES: string[] = [
   "Called parent, no answer",

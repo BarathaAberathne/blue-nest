@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/repository"
 )
 
@@ -24,18 +25,6 @@ type ShiftService interface {
 
 // ErrOutsideScope is returned when a caller acts on another branch's rota.
 var ErrOutsideScope = errors.New("outside your branch scope")
-
-func shiftBranchAllowed(allowed []string, branch string) bool {
-	if allowed == nil {
-		return true
-	}
-	for _, s := range allowed {
-		if s == branch {
-			return true
-		}
-	}
-	return false
-}
 
 type shiftService struct {
 	repo  repository.ShiftRepository
@@ -139,7 +128,7 @@ func (s *shiftService) Assign(ctx context.Context, req models.ShiftRequest, acto
 	if err != nil {
 		return nil, err
 	}
-	if !shiftBranchAllowed(allowed, sh.BranchSlug) {
+	if !policy.InAllowed(allowed, sh.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	sh.CreatedBy = actorID
@@ -154,14 +143,14 @@ func (s *shiftService) Update(ctx context.Context, id string, req models.ShiftRe
 	if err != nil {
 		return nil, err
 	}
-	if !shiftBranchAllowed(allowed, existing.BranchSlug) {
+	if !policy.InAllowed(allowed, existing.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	sh, err := s.resolve(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	if !shiftBranchAllowed(allowed, sh.BranchSlug) {
+	if !policy.InAllowed(allowed, sh.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	return s.repo.Update(ctx, id, *sh)
@@ -172,7 +161,7 @@ func (s *shiftService) Delete(ctx context.Context, id string, allowed []string) 
 	if err != nil {
 		return err
 	}
-	if !shiftBranchAllowed(allowed, existing.BranchSlug) {
+	if !policy.InAllowed(allowed, existing.BranchSlug) {
 		return ErrOutsideScope
 	}
 	return s.repo.Delete(ctx, id)

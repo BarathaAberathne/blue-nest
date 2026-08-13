@@ -12,9 +12,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// ChildFilter has no Room field on purpose: room placement lives in the
+// child_room_assignments collection (children.room_id is a computed bson:"-"
+// projection), so a stored-field room filter can never match — filter on the
+// projected room after List, like the UI does.
 type ChildFilter struct {
 	Branch    string
-	Room      string
 	Status    string
 	Q         string
 	KeyPerson string // staff id — children this staff member is key person for
@@ -54,9 +57,6 @@ func (r *childRepository) FindAll(ctx context.Context, f ChildFilter) ([]models.
 	filter := bson.M{}
 	if f.Branch != "" {
 		filter["branch_slug"] = f.Branch
-	}
-	if f.Room != "" {
-		filter["room_id"] = f.Room
 	}
 	if f.Status != "" {
 		filter["status"] = f.Status

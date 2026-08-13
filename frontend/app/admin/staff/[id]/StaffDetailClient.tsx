@@ -232,7 +232,6 @@ export default function StaffDetailClient({ id }: { id: string }) {
   if (!member) return <p className="text-red-500">{error ?? "Staff member not found."}</p>;
 
   const fullName = `${member.first_name} ${member.last_name}`.trim();
-  const initials = `${member.first_name[0] ?? ""}${member.last_name[0] ?? ""}`.toUpperCase();
   const roomName = member.room_id ? (shifts.find((s) => s.room_id === member.room_id)?.room_name ?? "Assigned room") : null;
   const dbs = dbsExpiry(member.dbs_expiry);
   const quals = member.qualifications ?? [];
