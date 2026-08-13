@@ -4380,6 +4380,34 @@ paths:
       responses:
         '200': { description: OK }
         '400': { description: Not an uploaded image URL }
+  /admin/children/{id}/send-support:
+    get:
+      tags: [Children]
+      summary: The child's SEND/additional-support profile (null when none recorded) — permission send.manage, branch-scoped
+      operationId: getSendSupport
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK (data null when no profile) }
+        '403': { description: Missing send.manage or outside branch scope }
+    put:
+      tags: [Children]
+      summary: Upsert the SEND profile; syncs the operational Child.send_status marker; audited (send_support_update)
+      operationId: upsertSendSupport
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [status], properties: { status: { type: string, enum: [monitoring, sen_support, ehcp, ended] }, summary: { type: string }, categories: { type: array, items: { type: string }, description: Codes from the org-configurable send_category taxonomy }, send_lead_staff_id: { type: string }, plan_status: { type: string, enum: ['', draft, active, ended] }, review_date: { type: string, format: date }, start_date: { type: string, format: date }, end_date: { type: string, format: date } } } } } }
+      responses:
+        '200': { description: OK }
+  /admin/send/overview:
+    get:
+      tags: [Children]
+      summary: Branch SEND view — KPIs + per-child rows (derived live; specialist+mainstream+unallocated reconciles to total). Branch-scoped callers pinned via policy.
+      operationId: sendOverview
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: branch, in: query, required: false, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
   /admin/children/{id}/family:
     post:
       tags: [Finance]

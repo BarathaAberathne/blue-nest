@@ -34,6 +34,12 @@ type Room struct {
 	MaxAgeMonths int        `bson:"max_age_months,omitempty" json:"max_age_months,omitempty"`
 	Capacity     int        `bson:"capacity"      json:"capacity"`
 	StaffRatio   int        `bson:"staff_ratio"   json:"staff_ratio"` // 1 staff : N children
+	// Provision classifies the ROOM only ("" = mainstream, the default for
+	// every existing room; "send_dedicated" = dedicated SEND provision). It
+	// never constrains which children may be allocated — SEND status describes
+	// the child, ChildRoomAssignment connects the two, and the three are
+	// independent (docs/send/send-management-design.md).
+	Provision    RoomProvision `bson:"provision,omitempty" json:"provision,omitempty"`
 	Status       RoomStatus `bson:"status,omitempty" json:"status,omitempty"`
 	OpeningDate  string     `bson:"opening_date,omitempty" json:"opening_date,omitempty"` // YYYY-MM-DD
 	ClosingDate  string     `bson:"closing_date,omitempty" json:"closing_date,omitempty"` // YYYY-MM-DD
@@ -47,6 +53,18 @@ func (r *Room) IsActive() bool {
 	return r.Status == "" || r.Status == RoomActive
 }
 
+// RoomProvision — see Room.Provision.
+type RoomProvision string
+
+const (
+	ProvisionMainstream    RoomProvision = ""
+	ProvisionSendDedicated RoomProvision = "send_dedicated"
+)
+
+func ValidRoomProvision(p RoomProvision) bool {
+	return p == ProvisionMainstream || p == ProvisionSendDedicated
+}
+
 type RoomRequest struct {
 	BranchSlug   string `json:"branch_slug" validate:"required"`
 	Name         string `json:"name"        validate:"required"`
@@ -57,6 +75,7 @@ type RoomRequest struct {
 	MaxAgeMonths int    `json:"max_age_months"`
 	Capacity     int    `json:"capacity"`
 	StaffRatio   int    `json:"staff_ratio"`
+	Provision    string `json:"provision"`
 	OpeningDate  string `json:"opening_date"`
 	ClosingDate  string `json:"closing_date"`
 }

@@ -52,7 +52,7 @@ func NewStaffService(repo repository.StaffRepository, counters repository.Counte
 func (s *staffService) provisionLogin(ctx context.Context, st *models.Staff, req models.StaffRequest) error {
 	email := strings.TrimSpace(st.Email)
 	if email == "" {
-		return errors.New("an email is required to enable a system login")
+		return errors.New("a login email is required to enable a system login — enter one in the Login email field")
 	}
 	role := req.LoginRole
 	if role == "" {
@@ -65,8 +65,12 @@ func (s *staffService) provisionLogin(ctx context.Context, st *models.Staff, req
 		_, err := s.accounts.UpdateUser(ctx, st.UserID, models.AdminUpdateUserRequest{Role: role, BranchSlugs: scope})
 		return err
 	}
-	// An account with this email already exists → link + rescope it.
+	// An account with this email already exists → link + rescope it, but never
+	// steal a login that is already another staff member's identity.
 	if existing, err := s.accounts.FindUserByEmail(ctx, email); err == nil && existing != nil {
+		if other, oerr := s.repo.FindByUserID(ctx, existing.ID.Hex()); oerr == nil && other != nil && other.ID != st.ID {
+			return errors.New("that email's login already belongs to " + other.FirstName + " " + other.LastName + " — use a different email")
+		}
 		if _, uerr := s.accounts.UpdateUser(ctx, existing.ID.Hex(), models.AdminUpdateUserRequest{Role: role, BranchSlugs: scope}); uerr != nil {
 			return uerr
 		}

@@ -13,6 +13,7 @@ import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
+import { sendActive } from "@/lib/send";
 import { usePermissions } from "@/lib/usePermissions";
 import type {
   Branch, ChildRoomAssignment, Room, RoomCapacitySummary, Staff, StaffRoomAssignment,
@@ -86,6 +87,7 @@ export default function RoomDetailClient({ id }: { id: string }) {
             <h1 className="font-heading text-2xl font-bold text-slate-900">{room.name}</h1>
             {room.code && <span className="font-mono text-xs text-slate-400">{room.code}</span>}
             <StageBadge label={room.status === "inactive" ? "Inactive" : "Active"} accent={room.status === "inactive" ? "slate" : "teal"} withDot={false} />
+            <StageBadge label={room.provision === "send_dedicated" ? "SEND-dedicated provision" : "Mainstream"} accent={room.provision === "send_dedicated" ? "violet" : "slate"} withDot={false} />
           </div>
           <p className="mt-1 text-sm text-slate-500">{branchLabel}{room.age_range ? ` · ${room.age_range}` : ""}</p>
         </div>
@@ -93,11 +95,12 @@ export default function RoomDetailClient({ id }: { id: string }) {
 
       {/* KPI strip */}
       {capacity && (
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
           <StatCard label="Capacity" value={capacity.capacity} icon={DoorOpen} accent="blue" />
           <StatCard label="Children placed" value={capacity.allocated_children} sub={`${capacity.future_children} scheduled`} icon={Users} accent="teal" />
           <StatCard label="Available spaces" value={capacity.available_spaces} sub={capacity.over_capacity ? "over capacity" : undefined} icon={Users} accent={capacity.over_capacity ? "amber" : "teal"} />
           <StatCard label="Staff allocated" value={capacity.staff_allocated} sub={`${capacity.present_children} present today`} icon={Users} accent="slate" />
+          <StatCard label="SEND children" value={capacity.send_children} sub="count toward normal capacity" icon={Users} accent="violet" />
         </div>
       )}
 
@@ -131,7 +134,7 @@ export default function RoomDetailClient({ id }: { id: string }) {
       )}
 
       {tab === "children" && (
-        <ChildrenTab roomId={id} branchSlug={room.branch_slug} roomActive={room.status !== "inactive"} canManage={canManageChildren} assignments={childAssignments} onChange={load} />
+        <ChildrenTab roomId={id} branchSlug={room.branch_slug} roomActive={room.status !== "inactive"} canManage={canManageChildren} sendDedicated={room.provision === "send_dedicated"} assignments={childAssignments} onChange={load} />
       )}
 
       {tab === "capacity" && capacity && (
@@ -268,11 +271,11 @@ function StaffTab({ roomId, branchSlug, roomActive, canManage, assignments, onCh
 
 // ── Children tab ──────────────────────────────────────────────────────────────
 
-function ChildrenTab({ roomId, branchSlug, roomActive, canManage, assignments, onChange }: {
-  roomId: string; branchSlug: string; roomActive: boolean; canManage: boolean;
+function ChildrenTab({ roomId, branchSlug, roomActive, canManage, sendDedicated, assignments, onChange }: {
+  roomId: string; branchSlug: string; roomActive: boolean; canManage: boolean; sendDedicated: boolean;
   assignments: ChildRoomAssignment[]; onChange: () => void;
 }) {
-  const [candidates, setCandidates] = useState<{ id: string; name: string }[]>([]);
+  const [candidates, setCandidates] = useState<{ id: string; name: string; send: boolean }[]>([]);
   const [adding, setAdding] = useState(false);
   const [childId, setChildId] = useState("");
   const [overrideReason, setOverrideReason] = useState("");
@@ -288,7 +291,7 @@ function ChildrenTab({ roomId, branchSlug, roomActive, canManage, assignments, o
     // Unallocated children in this branch (room_id empty) are the safe
     // candidates to ADD; children already in another room use Transfer.
     void api.adminGetChildren(token, { branch: branchSlug }).then((cs) =>
-      setCandidates(cs.filter((c) => !c.room_id).map((c) => ({ id: c.id, name: `${c.first_name} ${c.last_name}` }))),
+      setCandidates(cs.filter((c) => !c.room_id).map((c) => ({ id: c.id, name: `${c.first_name} ${c.last_name}`, send: sendActive(c.send_status) }))),
     ).catch(() => {});
   }, [adding, branchSlug]);
 
@@ -327,9 +330,17 @@ function ChildrenTab({ roomId, branchSlug, roomActive, canManage, assignments, o
         <div className="mt-3 space-y-2 rounded-lg border border-teal-200 bg-teal-50/50 p-3">
           <select value={childId} onChange={(e) => setChildId(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
             <option value="">Select an unallocated child…</option>
-            {candidates.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {candidates.map((c) => <option key={c.id} value={c.id}>{c.name}{c.send ? " · SEND support" : ""}</option>)}
           </select>
           <p className="text-xs text-slate-400">Children already in another room are moved via Transfer on their profile.</p>
+          {(sendDedicated || candidates.find((c) => c.id === childId)?.send) && (
+            <p className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs text-violet-700">
+              {[
+                sendDedicated ? "This room is configured as SEND-dedicated provision." : "",
+                candidates.find((c) => c.id === childId)?.send ? "This child is recorded as requiring additional SEND support." : "",
+              ].filter(Boolean).join(" ")} Allocation is at management&apos;s discretion.
+            </p>
+          )}
           <input value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} placeholder="Override reason (only if over capacity or outside age range)" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
           <div className="flex items-center gap-2">
             <button type="button" onClick={add} disabled={!childId || busy} className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">{busy ? "Adding…" : "Add"}</button>
