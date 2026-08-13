@@ -727,6 +727,10 @@ export const api = {
     apiFetch(`/api/v1/admin/children/${id}`, { method: "DELETE", token }),
   // Key person: assign (empty staffId clears) a child's key person, and list the
   // children a staff member is key person for.
+  adminSetChildPhoto: (token: string, childId: string, photoUrl: string) =>
+    apiFetch<Child>(`/api/v1/admin/children/${childId}/photo`, { method: "PATCH", body: JSON.stringify({ photo_url: photoUrl }), token }),
+  adminSetStaffPhoto: (token: string, staffId: string, photoUrl: string) =>
+    apiFetch<Staff>(`/api/v1/admin/staff/${staffId}/photo`, { method: "PATCH", body: JSON.stringify({ photo_url: photoUrl }), token }),
   adminSetChildKeyPerson: (token: string, childId: string, staffId: string) =>
     apiFetch<Child>(`/api/v1/admin/children/${childId}/key-person`, { method: "PATCH", body: JSON.stringify({ staff_id: staffId }), token }),
   // Marks a leaving child as left (status=left + leave_date) and ends live

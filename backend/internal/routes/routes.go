@@ -296,6 +296,13 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/admin/organisation", orgSelfH.GetCurrent)
 			r.With(middleware.SuperAdminOnly).Put("/admin/organisation", orgSelfH.UpdateCurrent)
 
+			// Shared image upload (blog covers, daily-log attachments, child/
+			// staff profile photos). Any back-office role — the per-module
+			// permission gate is on the write that references the URL, not on
+			// the byte upload itself.
+			uploadH := adminHandler.NewAdminBlogHandler(svc.Blog, svc.Audit)
+			r.Post("/admin/uploads/image", uploadH.UploadImage)
+
 			// Store - products, categories, orders.
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermStoreManage))
@@ -328,7 +335,6 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Put("/admin/blog/posts/{id}", adminBlogH.Update)
 				r.Delete("/admin/blog/posts/{id}", adminBlogH.Delete)
 				r.Post("/admin/blog/publish-scheduled", adminBlogH.TriggerPublishScheduled)
-				r.Post("/admin/uploads/image", adminBlogH.UploadImage)
 			})
 
 			// Enquiries / admissions CRM.
@@ -450,6 +456,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Post("/admin/children", adminChildH.Create)
 				r.Put("/admin/children/{id}", adminChildH.Update)
 				r.Patch("/admin/children/{id}/key-person", adminChildH.SetKeyPerson)
+				r.Patch("/admin/children/{id}/photo", adminChildH.SetPhoto)
 				r.Post("/admin/children/{id}/archive", adminChildH.Archive)
 				r.Delete("/admin/children/{id}", adminChildH.Delete)
 
@@ -529,6 +536,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				})
 				r.Post("/admin/staff", adminStaffH.Create)
 				r.Put("/admin/staff/{id}", adminStaffH.Update)
+				r.Patch("/admin/staff/{id}/photo", adminStaffH.SetPhoto)
 				r.Delete("/admin/staff/{id}", adminStaffH.Delete)
 
 				// Key children a staff member is the key person for (child data,

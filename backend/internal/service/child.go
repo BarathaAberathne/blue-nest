@@ -32,6 +32,8 @@ type ChildService interface {
 	// SetKeyPerson assigns (or clears, with empty staffID) the child's key
 	// person. The key person must be an active staff member at the child's branch.
 	SetKeyPerson(ctx context.Context, childID, staffID string) (*models.Child, error)
+	// SetPhoto sets (or clears, with an empty URL) the child's profile photo.
+	SetPhoto(ctx context.Context, childID, url string) (*models.Child, error)
 	// KeyChildren lists the children a staff member is key person for.
 	KeyChildren(ctx context.Context, staffID string) ([]models.Child, error)
 	// Archive marks a leaving child as left (status=left + leave_date) and
@@ -184,6 +186,29 @@ func (s *childService) resolveKeyPerson(ctx context.Context, c *models.Child) {
 	if st, err := s.staff.FindByID(ctx, c.KeyPersonID); err == nil && st != nil {
 		c.KeyPersonName = strings.TrimSpace(st.FirstName + " " + st.LastName)
 	}
+}
+
+// validPhotoURL accepts our own uploads (absolute or /uploads-relative) only —
+// the photo must come through POST /admin/uploads/image, never an arbitrary
+// external hotlink.
+func validPhotoURL(u string) bool {
+	return strings.Contains(u, "/uploads/") &&
+		(strings.HasPrefix(u, "/uploads/") || strings.HasPrefix(u, "http://") || strings.HasPrefix(u, "https://"))
+}
+
+func (s *childService) SetPhoto(ctx context.Context, childID, url string) (*models.Child, error) {
+	url = strings.TrimSpace(url)
+	if url != "" && !validPhotoURL(url) {
+		return nil, errors.New("photo_url must reference an uploaded image")
+	}
+	updated, err := s.repo.SetPhoto(ctx, childID, url)
+	if err != nil {
+		return nil, errors.New("child not found")
+	}
+	s.resolveKeyPerson(ctx, updated)
+	s.resolveRoom(ctx, updated)
+	s.resolveGuardians(ctx, updated)
+	return updated, nil
 }
 
 func (s *childService) SetKeyPerson(ctx context.Context, childID, staffID string) (*models.Child, error) {

@@ -715,6 +715,19 @@ Amazon Business API (Product Search → Cart → Ordering), then full inventory/
     `SUI-FINANCE-001` (2.31) — all in `COL-FUNC-001`. Portal activation + finance webhooks run under
     `DefaultTenant` (default-org-only for now — the kiosk cross-org token pattern is the future fix).
 
+- **Profile photos (children + staff, delivered):** `Child.PhotoURL`/`Staff.PhotoURL` set ONLY via the
+  dedicated `PATCH /admin/children/{id}/photo` / `PATCH /admin/staff/{id}/photo` (empty URL clears; a normal
+  profile `PUT` never touches the photo). `validPhotoURL` accepts only our own uploads (`/uploads/…`, relative
+  or absolute) — external hotlinks are rejected. Uploads go through the SHARED `POST /admin/uploads/image`,
+  which moved from the blog permission group to the ManagementOnly root (it serves blog covers, daily-log
+  attachments AND profile photos — the per-module permission gate belongs on the write that references the
+  URL, not the byte upload). Frontend: `components/admin/ui/Avatar` (photo or deterministic initials
+  fallback — the one component for every thumbnail) + `ProfilePhotoUploader` (detail-page avatar with
+  camera/remove, 5 MB cap). Thumbnails render on: children list + detail, staff list + detail, portal child
+  cards, and the kiosk staff search/PIN screens (`KioskStaffResult.PhotoURL`). Tests: `photo_url_test.go`
+  (URL validation) + `STAFF-TC-007`/`REG-TC-007` (set/clear round-trip, hotlink 400, photo survives profile
+  update).
+
 ## Procurement Management module — roadmap (Phases 1–4 DELIVERED)
 Goal: turn the procurement pieces into one connected **Procurement Management** module so the journey
 feels like a single process: **Supply Request → Approve → Purchase Order → Place → Track → Receive →

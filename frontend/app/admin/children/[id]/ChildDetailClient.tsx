@@ -8,6 +8,8 @@ import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StageBadge from "@/components/admin/ui/StageBadge";
+import Avatar from "@/components/admin/ui/Avatar";
+import ProfilePhotoUploader from "@/components/admin/ui/ProfilePhotoUploader";
 import ChildRoomAllocations from "@/components/admin/rooms/ChildRoomAllocations";
 import ChildParentsPanel from "@/components/admin/parents/ChildParentsPanel";
 import PickerModal from "@/components/admin/ui/PickerModal";
@@ -158,12 +160,27 @@ export default function ChildDetailClient({ id }: { id: string }) {
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="font-heading text-2xl font-bold text-slate-900">{child.first_name} {child.last_name}</h1>
-            <StageBadge label={child.status} accent={childStatusAccent[child.status]} withDot />
+        <div className="flex items-start gap-4">
+          {has("children.manage") ? (
+            <ProfilePhotoUploader
+              name={`${child.first_name} ${child.last_name}`}
+              photoUrl={child.photo_url}
+              size="lg"
+              onSave={async (token, url) => {
+                const updated = await api.adminSetChildPhoto(token, child.id, url);
+                setChild((c) => (c ? { ...c, photo_url: updated.photo_url } : c));
+              }}
+            />
+          ) : (
+            <Avatar name={`${child.first_name} ${child.last_name}`} src={child.photo_url} size="lg" />
+          )}
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="font-heading text-2xl font-bold text-slate-900">{child.first_name} {child.last_name}</h1>
+              <StageBadge label={child.status} accent={childStatusAccent[child.status]} withDot />
+            </div>
+            <p className="mt-1 font-mono text-xs text-slate-400">{child.ref ?? child.id}</p>
           </div>
-          <p className="mt-1 font-mono text-xs text-slate-400">{child.ref ?? child.id}</p>
         </div>
         {!editing ? (
           <div className="flex items-center gap-2">

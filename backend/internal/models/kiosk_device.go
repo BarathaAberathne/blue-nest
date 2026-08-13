@@ -74,6 +74,7 @@ type KioskStaffResult struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
 	JobTitle string `json:"job_title,omitempty"`
+	PhotoURL string `json:"photo_url,omitempty"`
 	RoomName string `json:"room_name,omitempty"`
 	HasPIN   bool   `json:"has_pin"`
 	// State today so the tablet shows the right button.
