@@ -2014,6 +2014,7 @@ paths:
       security: [{ BearerAuth: [] }]
       parameters:
         - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: room, in: query, required: false, schema: { type: string }, description: Current primary-room filter, resolved via the canonical staff_room_assignments }
         - { name: status, in: query, required: false, schema: { type: string, enum: [active, on_leave, inactive] } }
         - { name: type, in: query, required: false, schema: { type: string, enum: [permanent, agency, bank] } }
         - { name: q, in: query, required: false, schema: { type: string } }

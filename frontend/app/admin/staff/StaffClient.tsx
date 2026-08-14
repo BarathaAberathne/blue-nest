@@ -35,6 +35,7 @@ export default function StaffClient() {
   // Default to the active roster — on-leave/inactive staff are a filter away,
   // not mixed into the everyday view.
   const [statusFilter, setStatusFilter] = useState("active");
+  const [roomFilter, setRoomFilter] = useState(""); // room id | "none" (no room) | ""
   const [q, setQ] = useState("");
 
   const [form, setForm] = useState<StaffInput>(emptyForm);
@@ -67,6 +68,8 @@ export default function StaffClient() {
     const needle = q.trim().toLowerCase();
     const filtered = staff.filter((s) => {
       if (branchFilter && s.branch_slug !== branchFilter) return false;
+      if (roomFilter === "none" && s.room_id) return false;
+      if (roomFilter && roomFilter !== "none" && s.room_id !== roomFilter) return false;
       if (statusFilter && s.status !== statusFilter) return false;
       if (needle) {
         // Room is searchable too (resolved room_name projection).
@@ -81,18 +84,19 @@ export default function StaffClient() {
       if (byBranch !== 0) return byBranch;
       return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`, undefined, { sensitivity: "base" });
     });
-  }, [staff, branchFilter, statusFilter, q, branchName]);
+  }, [staff, branchFilter, roomFilter, statusFilter, q, branchName]);
 
   // Server-side export (CSV/Excel) via the shared ExportButton — full dataset
   // with the current branch/status/search filters applied server-side.
   const exportPath = useMemo(() => {
     const p = new URLSearchParams();
     if (branchFilter) p.set("branch", branchFilter);
+    if (roomFilter && roomFilter !== "none") p.set("room", roomFilter);
     if (statusFilter) p.set("status", statusFilter);
     if (q.trim()) p.set("q", q.trim());
     const qs = p.toString();
     return `/api/v1/admin/staff/export${qs ? `?${qs}` : ""}`;
-  }, [branchFilter, statusFilter, q]);
+  }, [branchFilter, roomFilter, statusFilter, q]);
 
   const openCreate = () => {
     setForm({ ...emptyForm, branch_slug: branchFilter || branches[0]?.slug || "" });
@@ -172,9 +176,16 @@ export default function StaffClient() {
           <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, ref or role…" className="rounded-lg border border-slate-200 py-2 pl-8 pr-3 text-sm" />
         </div>
-        <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+        <select value={branchFilter} onChange={(e) => { setBranchFilter(e.target.value); setRoomFilter(""); }} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
           <option value="">All branches</option>
           {branches.map((b) => <option key={b.slug} value={b.slug}>{branchShortName(b)}</option>)}
+        </select>
+        <select value={roomFilter} onChange={(e) => setRoomFilter(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <option value="">All rooms</option>
+          <option value="none">No room</option>
+          {rooms.filter((r) => !branchFilter || r.branch_slug === branchFilter).map((r) => (
+            <option key={r.id} value={r.id}>{r.name}{!branchFilter ? ` · ${branchName(r.branch_slug)}` : ""}</option>
+          ))}
         </select>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
           <option value="">All statuses</option>
