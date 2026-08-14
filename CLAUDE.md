@@ -902,15 +902,18 @@ themselves need a custom `X-Kiosk-Token` header this engine can't send yet
 (supply requests/catalogue/purchase-orders/suppliers/analytics/templates),
 Shifts (rota), Audit log, and User Account Management (users/roles/org
 self-service/platform organisations/dashboards). **`SUI-AUTH-001` runs
-LAST in the collection** (not first) — it now ends with a login
-rate-limit regression lock that deliberately burns the shared per-IP
-`/auth/login` budget every other suite's own login depends on, mirroring
-why the legacy `SecuritySuite` had to run last too. A known, accepted
-characteristic: a full `COL-FUNC-001` run's cumulative login volume can
-still trip that same rate limit on whichever suite happens to need a
-fresh login last, independent of `AUTH-TC-003` — every suite passes 100%
-individually; only a full-collection run occasionally shows one
-rate-limit-flavored failure, not a real regression.
+LAST in the collection** (not first) — it ends with the login rate-limit
+regression lock (`AUTH-TC-003`, 12 rapid wrong-password attempts),
+mirroring why the legacy `SecuritySuite` had to run last too.
+**The old full-run 429 tail is FIXED:** the login limiter is now
+`middleware.RateLimitFailures(10, time.Minute)` — only FAILED attempts
+(401s) consume the per-IP budget, so a full run's dozens of successful
+suite logins never throttle each other (nor do real users behind one NAT),
+while a credential-guessing script still hits the wall after 10 wrong
+passwords/min. `make test-new` runs the whole platform fully green
+(229/229 at the time of the change); locked by
+`ratelimit_failures_test.go` + `AUTH-TC-003` (unchanged — failures still
+trip it).
 
 **A real production bug was found and fixed while writing this test
 coverage** (per this repo's established practice — see the test-writing
@@ -950,8 +953,9 @@ field) whenever convenient.
   `TestMethodOrder`-based `*Suite` classes, one per plan phase, package-numbered `phase01_auth` ..
   `phase13_concurrency`, then `phase90_security` so alphabetical execution order matches the plan's own
   phase order — `phase90_security`'s permanently-high number (not its plan phase §19) exists because its
-  rate-limit regression test burns the shared per-IP login budget for the rest of that window (see
-  `SecuritySuite`'s class Javadoc); every test's `@DisplayName` carries its `TC-XXX-NNN` id (or a
+  rate-limit regression test burns the shared per-IP login FAILURE budget for the rest of that window (see
+  `SecuritySuite`'s class Javadoc; since the limiter became failure-only — `RateLimitFailures` — successful
+  logins no longer consume it, but the ordering convention stands); every test's `@DisplayName` carries its `TC-XXX-NNN` id (or a
   `-REG`/`SEC-NNN` id for suite-authored regression locks). Requires a JDK 17+ + Maven (`brew install openjdk
   maven`; openjdk is keg-only on macOS — `export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"` and `JAVA_HOME`
   accordingly). Run via **`make test-e2e`** (full suite) / **`make test-e2e-regression`** (fix-lock subset —

@@ -106,10 +106,12 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		// ── Auth ──────────────────────────────────────────────────────────
 		authH := handler.NewAuthHandler(svc.Auth, svc.Organisations, cfg)
 		// Login is credential-guessable - rate-limit per IP so a script can't
-		// brute-force/credential-stuff it (every other public-but-abusable group
-		// in this file, e.g. the kiosk, already does this; login was the gap).
+		// brute-force/credential-stuff it. FAILED attempts only (401s): wrong
+		// passwords hit the wall after 10/min, while successful sign-ins never
+		// consume budget — so many users behind one NAT (or a full e2e run's
+		// dozens of suite logins) can't lock each other out.
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.RateLimit(10, time.Minute))
+			r.Use(middleware.RateLimitFailures(10, time.Minute))
 			r.Post("/auth/login", authH.Login)
 			r.Post("/admin/auth/login", authH.AdminLogin)
 		})
