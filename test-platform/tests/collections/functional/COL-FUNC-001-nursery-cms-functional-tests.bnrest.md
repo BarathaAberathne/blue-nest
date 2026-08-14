@@ -76,5 +76,6 @@ Call CatchError ../../suites/finance/SUI-FINANCE-001-family-billing.bnrest.md
 Call CatchError ../../suites/portal/SUI-PORTAL-001-parent-portal.bnrest.md
 Call CatchError ../../suites/send/SUI-SEND-001-send-child-management.bnrest.md
 Call CatchError ../../suites/sendroom/SUI-SENDROOM-001-send-room-provision.bnrest.md
+Call CatchError ../../suites/payroll/SUI-PAYROLL-001-payroll.bnrest.md
 Call CatchError ../../suites/auth/SUI-AUTH-001-authentication.bnrest.md
 ```

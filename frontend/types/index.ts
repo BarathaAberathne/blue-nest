@@ -1963,6 +1963,42 @@ export interface OnboardingView {
   induction_status: InductionStatus;
 }
 
+// ── Payroll roll-up (Phase D) ────────────────────────────────────────────────
+
+export interface PayrollRow {
+  staff_id: string;
+  ref?: string;
+  staff_name: string;
+  branch_slug: string;
+  job_title?: string;
+  staff_type: StaffType;
+  contract_hours: number;
+  worked_days: number;
+  worked_minutes: number;
+  break_minutes: number;
+  overtime_minutes: number;
+  early_departure_minutes: number;
+  late_count: number;
+  late_minutes: number;
+  annual_leave_days: number;
+  sick_days: number;
+  dependant_sick_days: number;
+  unpaid_leave_days: number;
+  maternity_days: number;
+  training_days: number;
+  absent_days: number;
+  missing_clock_outs: number;
+  corrected_days: number;
+}
+
+export interface PayrollSummary {
+  from: string;
+  to: string;
+  branch?: string;
+  rows: PayrollRow[];
+  totals: PayrollRow;
+}
+
 // ── Finance: families, charges, payments, schedules ──────────────────────────
 
 export type MandateStatus = "" | "pending" | "active" | "failed" | "cancelled";
