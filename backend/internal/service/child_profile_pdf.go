@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -41,11 +43,11 @@ type pdfWriter struct {
 }
 
 const (
-	pdfInk     = 30  // near-black
-	pdfMuted   = 120 // slate label
-	pdfLineY   = 5.2
-	pdfLabelW  = 52.0
-	pdfPageW   = 180.0 // A4 width minus 15mm margins
+	pdfInk    = 30  // near-black
+	pdfMuted  = 120 // slate label
+	pdfLineY  = 5.2
+	pdfLabelW = 52.0
+	pdfPageW  = 180.0 // A4 width minus 15mm margins
 )
 
 func (w *pdfWriter) section(title string) {
@@ -193,14 +195,25 @@ func (s *childProfilePDFService) Build(ctx context.Context, childID string, incl
 	})
 	pdf.AddPage()
 
-	// ── Header ───────────────────────────────────────────────────────────────
+	// ── Header (profile photo top-right when the child has one) ──────────────
+	titleW := pdfPageW
+	if photo := localUploadPath(child.PhotoURL); photo != "" {
+		pdf.ImageOptions(photo, 15+pdfPageW-26, 15, 26, 0, false, fpdf.ImageOptions{ReadDpi: true}, 0, "")
+		if !pdf.Ok() {
+			// A corrupt/unsupported image must never kill the document —
+			// fpdf errors are sticky, so clear it and render without the photo.
+			pdf.ClearError()
+		} else {
+			titleW = pdfPageW - 30
+		}
+	}
 	pdf.SetFont("Helvetica", "B", 18)
 	pdf.SetTextColor(pdfInk, pdfInk, pdfInk)
-	pdf.CellFormat(pdfPageW, 9, w.tr(strings.TrimSpace(child.FirstName+" "+child.LastName)), "", 1, "L", false, 0, "")
+	pdf.CellFormat(titleW, 9, w.tr(strings.TrimSpace(child.FirstName+" "+child.LastName)), "", 1, "L", false, 0, "")
 	pdf.SetFont("Helvetica", "", 9.5)
 	pdf.SetTextColor(pdfMuted, pdfMuted, pdfMuted)
 	meta := []string{child.Ref, "Full child profile"}
-	pdf.CellFormat(pdfPageW, 5.5, w.tr(strings.Join(meta, " · ")), "", 1, "L", false, 0, "")
+	pdf.CellFormat(titleW, 5.5, w.tr(strings.Join(meta, " · ")), "", 1, "L", false, 0, "")
 	pdf.Ln(1)
 
 	// ── Profile ──────────────────────────────────────────────────────────────
@@ -334,4 +347,29 @@ func ifStr(cond bool, a, b string) string {
 		return a
 	}
 	return b
+}
+
+// localUploadPath maps a stored photo URL onto the API's own uploads
+// directory. Only our uploads resolve (the photo validator already rejects
+// hotlinks); basename-only so a crafted URL can never traverse the
+// filesystem, and only image types fpdf can embed are accepted.
+func localUploadPath(photoURL string) string {
+	if photoURL == "" {
+		return ""
+	}
+	idx := strings.LastIndex(photoURL, "/uploads/")
+	if idx < 0 {
+		return ""
+	}
+	name := filepath.Base(photoURL[idx+len("/uploads/"):])
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".jpg", ".jpeg", ".png", ".gif":
+	default:
+		return ""
+	}
+	p := filepath.Join("uploads", name)
+	if _, err := os.Stat(p); err != nil {
+		return ""
+	}
+	return p
 }
