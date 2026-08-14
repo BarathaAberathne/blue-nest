@@ -1,6 +1,7 @@
 package service
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -59,5 +60,28 @@ func TestRelFlags(t *testing.T) {
 	}
 	if got := relFlags(models.ChildParentRelationship{}); got != "" {
 		t.Errorf("relFlags empty = %q", got)
+	}
+}
+
+func TestLocalUploadPath(t *testing.T) {
+	// Non-upload URLs and traversal attempts never resolve.
+	for _, u := range []string{"", "https://evil.example/x.jpg", "/uploads/../secrets.txt", "/uploads/x.svg"} {
+		if got := localUploadPath(u); got != "" {
+			t.Errorf("localUploadPath(%q) = %q, want empty", u, got)
+		}
+	}
+	// A real file under uploads/ resolves by basename only.
+	if err := os.MkdirAll("uploads", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll("uploads")
+	if err := os.WriteFile("uploads/test-photo.jpg", []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := localUploadPath("/uploads/test-photo.jpg"); got != "uploads/test-photo.jpg" {
+		t.Errorf("resolve = %q", got)
+	}
+	if got := localUploadPath("https://api.bluenest.uk/uploads/sub/../test-photo.jpg"); got != "uploads/test-photo.jpg" {
+		t.Errorf("basename resolve = %q", got)
 	}
 }

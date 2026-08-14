@@ -83,16 +83,21 @@ async function tryRefreshToken(): Promise<string | null> {
   return refreshPromise;
 }
 
-// downloadCsv fetches a CSV export endpoint with the auth header and triggers a
-// browser download, honouring the server's Content-Disposition filename. Used by
-// the "Export CSV" buttons on the admin list pages.
-export async function downloadCsv(path: string, token: string, fallbackName = "export.csv"): Promise<void> {
+// downloadCsv fetches an export/attachment endpoint (CSV, Excel or PDF) with
+// the auth header and triggers a browser download, honouring the server's
+// Content-Disposition filename. The API exposes Content-Disposition via CORS;
+// should the header still be unreadable, the fallback name derives its
+// EXTENSION from the response Content-Type — a PDF must never be saved as
+// "export.csv" just because the filename header was hidden.
+export async function downloadCsv(path: string, token: string): Promise<void> {
   const res = await fetch(`${apiBase()}${path}`, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) throw new Error(`Export failed (${res.status})`);
   const blob = await res.blob();
   const cd = res.headers.get("Content-Disposition") ?? "";
   const match = /filename="?([^"]+)"?/.exec(cd);
-  const name = match?.[1] ?? fallbackName;
+  const type = res.headers.get("Content-Type") ?? "";
+  const ext = type.includes("pdf") ? "pdf" : type.includes("spreadsheetml") ? "xlsx" : "csv";
+  const name = match?.[1] ?? `export.${ext}`;
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
