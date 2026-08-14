@@ -98,7 +98,11 @@ test-e2e-regression:
 # Every target below is a thin wrapper around one CLI (test-platform/engine's
 # cli.Main) — see docs/testing/running-tests.md for the full command reference.
 BNREST_JAR := test-platform/engine/target/testplatform-engine-1.0.0-cli.jar
-BNREST_JAVA_ENV := PATH="/opt/homebrew/opt/openjdk/bin:$$PATH" JAVA_HOME="$${JAVA_HOME:-/opt/homebrew/opt/openjdk}"
+# QA_ADMIN_PASSWORD defaults to the local dev admin password (same default the
+# legacy test-e2e targets already use) so a bare `make test-new`/`test-suite`
+# works out of the box against the local stack — export QA_ADMIN_PASSWORD to
+# point at any other environment. Never commit a real secret here.
+BNREST_JAVA_ENV := PATH="/opt/homebrew/opt/openjdk/bin:$$PATH" JAVA_HOME="$${JAVA_HOME:-/opt/homebrew/opt/openjdk}" QA_ADMIN_PASSWORD="$${QA_ADMIN_PASSWORD:-changeme-min-8-chars}"
 BNREST_TESTS_ROOT := $(CURDIR)/test-platform/tests
 BNREST_RESULTS_ROOT := $(CURDIR)/test-results
 

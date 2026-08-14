@@ -29,4 +29,5 @@ Call CatchError ../../cases/key/KEY-TC-002-reassign-key-person.bnrest.md
 Call CatchError ../../cases/key/KEY-TC-003-clear-key-person.bnrest.md
 Call CatchError ../../cases/key/KEY-TC-004-duplicate-allocation-allowed-gap-lock.bnrest.md
 Call CatchError ../../cases/key/KEY-TC-005-cross-branch-rejected.bnrest.md
+Call CatchError ../../cases/key/KEY-TC-006-key-person-response-keeps-room.bnrest.md
 ```

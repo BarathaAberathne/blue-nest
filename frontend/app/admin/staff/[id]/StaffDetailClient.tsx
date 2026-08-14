@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, Award, Baby, BadgeCheck, CalendarClock, CalendarDays, CalendarX, Check, CheckCircle2,
+  Award, Baby, BadgeCheck, CalendarClock, CalendarDays, CalendarX, Check, CheckCircle2,
   ChevronDown, ChevronLeft, ChevronRight, Clock, DoorOpen, GraduationCap, KeyRound, Mail, Palmtree,
   Pencil, Phone, Plus, Save, Search, ShieldCheck, Smile, Tags as TagsIcon, Thermometer, Trash2,
   User, Users, X,
@@ -232,16 +232,12 @@ export default function StaffDetailClient({ id }: { id: string }) {
   if (!member) return <p className="text-red-500">{error ?? "Staff member not found."}</p>;
 
   const fullName = `${member.first_name} ${member.last_name}`.trim();
-  const initials = `${member.first_name[0] ?? ""}${member.last_name[0] ?? ""}`.toUpperCase();
   const roomName = member.room_id ? (shifts.find((s) => s.room_id === member.room_id)?.room_name ?? "Assigned room") : null;
   const dbs = dbsExpiry(member.dbs_expiry);
   const quals = member.qualifications ?? [];
 
   return (
     <>
-      <Link href="/admin/staff" className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-teal-600">
-        <ArrowLeft className="h-4 w-4" /> All staff
-      </Link>
 
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 

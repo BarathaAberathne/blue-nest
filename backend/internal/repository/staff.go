@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"log/slog"
 	"regexp"
 	"time"
 
@@ -38,7 +39,18 @@ type staffRepository struct {
 }
 
 func NewStaffRepository(db *mongo.Database) StaffRepository {
-	return &staffRepository{col: NewTenantCollection(db, "staff")}
+	col := db.Collection("staff")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	// FindByUserID backs every "which staff record is this login?" resolution
+	// (My Profile, self-service leave) — indexed per org so it never scans.
+	if _, err := col.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "user_id", Value: 1}},
+		Options: options.Index().SetName("idx_staff_user_per_org"),
+	}); err != nil {
+		slog.Warn("staff: could not create {org_id, user_id} index", "err", err)
+	}
+	return &staffRepository{col: NewTenantCollectionFrom(col)}
 }
 
 func (r *staffRepository) Create(ctx context.Context, s *models.Staff) error {
@@ -180,9 +192,15 @@ func (r *staffRepository) SetPhoto(ctx context.Context, id, url string) (*models
 }
 
 func (r *staffRepository) FindByUserID(ctx context.Context, userID string) (*models.Staff, error) {
+	if userID == "" {
+		// Staff without a system login store user_id "" — an empty lookup must
+		// never resolve to one of them.
+		return nil, mongo.ErrNoDocuments
+	}
 	var out models.Staff
 	if err := r.col.FindOne(ctx, bson.M{"user_id": userID}).Decode(&out); err != nil {
 		return nil, err
 	}
+	out.HasPIN = out.PINHash != ""
 	return &out, nil
 }

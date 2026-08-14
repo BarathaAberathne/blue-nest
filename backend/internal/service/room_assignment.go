@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/repository"
 )
 
@@ -192,7 +193,7 @@ func (s *staffRoomAssignmentService) Assign(ctx context.Context, req models.Staf
 	if st.BranchSlug != room.BranchSlug {
 		return nil, ErrCrossBranch
 	}
-	if !shiftBranchAllowed(allowed, room.BranchSlug) {
+	if !policy.InAllowed(allowed, room.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	// Duplicate prevention (the partial unique index is the racing backstop).
@@ -260,7 +261,7 @@ func (s *staffRoomAssignmentService) Update(ctx context.Context, id string, req 
 	if err != nil {
 		return nil, errors.New("assignment not found")
 	}
-	if !shiftBranchAllowed(allowed, a.BranchSlug) {
+	if !policy.InAllowed(allowed, a.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	if req.End {
@@ -314,7 +315,7 @@ func (s *staffRoomAssignmentService) ListForStaff(ctx context.Context, staffID s
 	if err != nil {
 		return nil, errors.New("staff member not found")
 	}
-	if !shiftBranchAllowed(allowed, st.BranchSlug) {
+	if !policy.InAllowed(allowed, st.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	f := repository.StaffRoomAssignmentFilter{StaffID: staffID}
@@ -334,7 +335,7 @@ func (s *staffRoomAssignmentService) ListForRoom(ctx context.Context, roomID str
 	if err != nil {
 		return nil, errors.New("room not found")
 	}
-	if !shiftBranchAllowed(allowed, room.BranchSlug) {
+	if !policy.InAllowed(allowed, room.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	f := repository.StaffRoomAssignmentFilter{RoomID: roomID}
@@ -354,6 +355,13 @@ func (s *staffRoomAssignmentService) ListForRoom(ctx context.Context, roomID str
 type ChildRoomAssignmentService interface {
 	Assign(ctx context.Context, req models.ChildRoomAssignmentRequest, actor string, allowed []string) (*models.ChildRoomAssignment, error)
 	Transfer(ctx context.Context, childID string, req models.ChildTransferRequest, actor string, allowed []string) (*models.ChildRoomAssignment, error)
+	// BulkTransfer moves several children into one room (age-group promotion).
+	// Each child runs through the FULL canonical Transfer sequentially, so all
+	// guards apply per child and capacity is consumed incrementally; the batch
+	// never aborts — every child gets an ok/error row. roomLabel is the
+	// human-readable target ("Name (CODE)") for audit summaries/UI — logs must
+	// never carry a bare database id.
+	BulkTransfer(ctx context.Context, req models.BulkChildTransferRequest, actor string, allowed []string) (results []models.BulkChildTransferResult, roomLabel string)
 	End(ctx context.Context, id string, req models.ChildRoomAssignmentUpdate, actor string, allowed []string) (*models.ChildRoomAssignment, error)
 	ListForChild(ctx context.Context, childID string, allowed []string) ([]models.ChildRoomAssignment, error)
 	ListForRoom(ctx context.Context, roomID string, includeHistory bool, allowed []string) ([]models.ChildRoomAssignment, error)
@@ -533,7 +541,7 @@ func (s *childRoomAssignmentService) Assign(ctx context.Context, req models.Chil
 	if child.BranchSlug != room.BranchSlug {
 		return nil, ErrCrossBranch
 	}
-	if !shiftBranchAllowed(allowed, room.BranchSlug) {
+	if !policy.InAllowed(allowed, room.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	cur, err := s.currentActive(ctx, childID)
@@ -584,6 +592,44 @@ func (s *childRoomAssignmentService) Assign(ctx context.Context, req models.Chil
 	return a, nil
 }
 
+// BulkTransfer promotes a cohort into one room. Deliberately a thin loop over
+// the canonical Transfer — no second allocation implementation — so every
+// per-child rule (same branch, active room, capacity, age band, override
+// reason) applies exactly as a one-by-one move would, and the child that
+// overflows the target's capacity fails alone instead of aborting the batch.
+func (s *childRoomAssignmentService) BulkTransfer(ctx context.Context, req models.BulkChildTransferRequest, actor string, allowed []string) ([]models.BulkChildTransferResult, string) {
+	// Resolve the target once for a readable audit/display label — "Name (CODE)"
+	// with the id only as a last-resort fallback for an unresolvable room.
+	roomLabel := req.RoomID
+	if room, err := s.rooms.FindByID(ctx, req.RoomID); err == nil && room != nil {
+		roomLabel = room.Name
+		if room.Code != "" {
+			roomLabel += " (" + room.Code + ")"
+		}
+	}
+	single := models.ChildTransferRequest{
+		RoomID:         req.RoomID,
+		EffectiveDate:  req.EffectiveDate,
+		Reason:         req.Reason,
+		Notes:          req.Notes,
+		OverrideReason: req.OverrideReason,
+	}
+	out := make([]models.BulkChildTransferResult, 0, len(req.ChildIDs))
+	for _, id := range req.ChildIDs {
+		res := models.BulkChildTransferResult{ChildID: id}
+		if c, err := s.children.FindByID(ctx, id); err == nil && c != nil {
+			res.ChildName = strings.TrimSpace(c.FirstName + " " + c.LastName)
+		}
+		if _, err := s.Transfer(ctx, id, single, actor, allowed); err != nil {
+			res.Error = err.Error()
+		} else {
+			res.OK = true
+		}
+		out = append(out, res)
+	}
+	return out, roomLabel
+}
+
 func (s *childRoomAssignmentService) Transfer(ctx context.Context, childID string, req models.ChildTransferRequest, actor string, allowed []string) (*models.ChildRoomAssignment, error) {
 	roomID := strings.TrimSpace(req.RoomID)
 	if roomID == "" {
@@ -610,7 +656,7 @@ func (s *childRoomAssignmentService) Transfer(ctx context.Context, childID strin
 	if child.BranchSlug != room.BranchSlug {
 		return nil, ErrCrossBranch
 	}
-	if !shiftBranchAllowed(allowed, room.BranchSlug) {
+	if !policy.InAllowed(allowed, room.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	cur, err := s.currentActive(ctx, childID)
@@ -708,7 +754,7 @@ func (s *childRoomAssignmentService) End(ctx context.Context, id string, req mod
 	if err != nil {
 		return nil, errors.New("assignment not found")
 	}
-	if !shiftBranchAllowed(allowed, a.BranchSlug) {
+	if !policy.InAllowed(allowed, a.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	if a.Status == models.AssignmentEnded {
@@ -769,7 +815,7 @@ func (s *childRoomAssignmentService) ListForChild(ctx context.Context, childID s
 	if err != nil {
 		return nil, errors.New("child not found")
 	}
-	if !shiftBranchAllowed(allowed, child.BranchSlug) {
+	if !policy.InAllowed(allowed, child.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	list, err := s.repo.FindAll(ctx, repository.ChildRoomAssignmentFilter{ChildID: childID})
@@ -785,7 +831,7 @@ func (s *childRoomAssignmentService) ListForRoom(ctx context.Context, roomID str
 	if err != nil {
 		return nil, errors.New("room not found")
 	}
-	if !shiftBranchAllowed(allowed, room.BranchSlug) {
+	if !policy.InAllowed(allowed, room.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	f := repository.ChildRoomAssignmentFilter{RoomID: roomID}
@@ -861,7 +907,7 @@ func (s *childRoomAssignmentService) CapacitySummary(ctx context.Context, roomID
 	if err != nil {
 		return nil, errors.New("room not found")
 	}
-	if !shiftBranchAllowed(allowed, room.BranchSlug) {
+	if !policy.InAllowed(allowed, room.BranchSlug) {
 		return nil, ErrOutsideScope
 	}
 	attendance, err := s.attendance.FindByDate(ctx, todayYMD(), room.BranchSlug)

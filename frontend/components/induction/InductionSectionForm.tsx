@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { INDUCTION_FIELDS } from "@/lib/induction";
+import { CONFIRM_NONE_KEY, INDUCTION_FIELDS } from "@/lib/induction";
 import type { InductionField } from "@/lib/induction";
 import type { TaxonomyTerm } from "@/types";
 
@@ -64,11 +64,15 @@ export default function InductionSectionForm({ sectionKey, data, onChange, readO
   const str = (k: string) => (typeof local[k] === "string" ? (local[k] as string) : "");
   const strs = (k: string) => (Array.isArray(local[k]) ? (local[k] as string[]) : []);
 
+  const hasRequired = fields.some((f) => f.required);
+
   return (
     <div className="space-y-4">
       {fields.map((f) => (
         <div key={f.key}>
-          <label className="mb-1 block text-sm font-medium text-slate-700">{f.label}</label>
+          <label className="mb-1 block text-sm font-medium text-slate-700">
+            {f.label}{f.required && <span className="ml-0.5 text-red-400">*</span>}
+          </label>
           {f.hint && <p className="mb-1.5 text-xs text-slate-400">{f.hint}</p>}
           {f.kind === "text" && (
             readOnly ? <p className="text-sm text-slate-800">{str(f.key) || "—"}</p> :
@@ -94,6 +98,20 @@ export default function InductionSectionForm({ sectionKey, data, onChange, readO
           )}
         </div>
       ))}
+
+      {/* All-optional sections need an explicit declaration — an untouched
+          section must never count as complete just by moving on. */}
+      {!hasRequired && !readOnly && (
+        <label className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2.5 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={local[CONFIRM_NONE_KEY] === true}
+            onChange={(e) => set(CONFIRM_NONE_KEY, e.target.checked)}
+          />
+          <span>I confirm there is nothing to record in this section{sectionKey === "allergies_dietary" ? " — my child has no known allergies or dietary requirements" : ""}.</span>
+        </label>
+      )}
     </div>
   );
 }

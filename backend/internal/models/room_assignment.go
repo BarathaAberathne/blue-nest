@@ -115,6 +115,30 @@ type ChildTransferRequest struct {
 	OverrideReason string `json:"override_reason"`
 }
 
+// BulkChildTransferRequest moves several children into ONE room in a single
+// action — the age-group promotion flow ("this cohort moves up to the next
+// room"). Each child still goes through the full canonical Transfer (same
+// branch, active room, capacity, age band, override), so a bulk move can
+// partially succeed — the outcome is reported per child, and capacity is
+// consumed incrementally (the child that overflows the room fails, not the
+// whole batch).
+type BulkChildTransferRequest struct {
+	ChildIDs       []string `json:"child_ids"      validate:"required"`
+	RoomID         string   `json:"room_id"        validate:"required"`
+	EffectiveDate  string   `json:"effective_date"` // defaults to today
+	Reason         string   `json:"reason"         validate:"required"`
+	Notes          string   `json:"notes"`
+	OverrideReason string   `json:"override_reason"`
+}
+
+// BulkChildTransferResult is one child's outcome within a bulk transfer.
+type BulkChildTransferResult struct {
+	ChildID   string `json:"child_id"`
+	ChildName string `json:"child_name,omitempty"`
+	OK        bool   `json:"ok"`
+	Error     string `json:"error,omitempty"`
+}
+
 // ChildRoomAssignmentUpdate ends a placement (leaving the child roomless —
 // e.g. when they leave the nursery). Transfers use ChildTransferRequest.
 type ChildRoomAssignmentUpdate struct {

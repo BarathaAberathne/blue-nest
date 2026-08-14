@@ -12,8 +12,16 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// ChildFilter has no Room field on purpose: room placement lives in the
+// child_room_assignments collection (children.room_id is a computed bson:"-"
+// projection), so a stored-field room filter can never match — filter on the
+// projected room after List, like the UI does.
 type ChildFilter struct {
-	Branch    string
+	Branch string
+	// Room filters by CURRENT room. Room placement lives in the canonical
+	// child_room_assignments (children.room_id is a computed bson:"-"
+	// projection), so this is resolved by the SERVICE via the assignment
+	// model — never as a Mongo filter here.
 	Room      string
 	Status    string
 	Q         string

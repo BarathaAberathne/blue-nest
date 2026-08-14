@@ -25,29 +25,28 @@ type MeService interface {
 
 type meService struct {
 	staff      repository.StaffRepository
+	staffSvc   StaffService
 	attendance StaffAttendanceService
 	attRepo    repository.StaffAttendanceRepository
 	shifts     repository.ShiftRepository
 }
 
-func NewMeService(staff repository.StaffRepository, attendance StaffAttendanceService, attRepo repository.StaffAttendanceRepository, shifts repository.ShiftRepository) MeService {
-	return &meService{staff: staff, attendance: attendance, attRepo: attRepo, shifts: shifts}
+func NewMeService(staff repository.StaffRepository, staffSvc StaffService, attendance StaffAttendanceService, attRepo repository.StaffAttendanceRepository, shifts repository.ShiftRepository) MeService {
+	return &meService{staff: staff, staffSvc: staffSvc, attendance: attendance, attRepo: attRepo, shifts: shifts}
 }
 
 var errNoStaffProfile = errors.New("no staff profile is linked to your account - ask an admin to link your login")
 
 // staffForUser resolves the Staff record linked to a login user (Staff.UserID).
 func (s *meService) staffForUser(ctx context.Context, userID string) (*models.Staff, error) {
-	all, err := s.staff.FindAll(ctx, repository.StaffFilter{})
+	if userID == "" {
+		return nil, errNoStaffProfile
+	}
+	st, err := s.staff.FindByUserID(ctx, userID)
 	if err != nil {
-		return nil, err
+		return nil, errNoStaffProfile
 	}
-	for i := range all {
-		if all[i].UserID == userID {
-			return &all[i], nil
-		}
-	}
-	return nil, errNoStaffProfile
+	return st, nil
 }
 
 func (s *meService) Profile(ctx context.Context, userID string) (*models.Staff, error) {
@@ -55,9 +54,9 @@ func (s *meService) Profile(ctx context.Context, userID string) (*models.Staff, 
 	if err != nil {
 		return nil, err
 	}
-	// Return the canonical record via FindByID so computed projections
+	// Return the record via the canonical StaffService so computed projections
 	// (room_id/room_name, has_pin) are populated consistently with the admin view.
-	return s.staff.FindByID(ctx, st.ID.Hex())
+	return s.staffSvc.GetByID(ctx, st.ID.Hex())
 }
 
 func (s *meService) UpdateProfile(ctx context.Context, userID string, in models.MeProfileUpdate) (*models.Staff, error) {
@@ -65,15 +64,22 @@ func (s *meService) UpdateProfile(ctx context.Context, userID string, in models.
 	if err != nil {
 		return nil, err
 	}
-	// Apply only the self-editable subset; everything else is preserved.
-	st.Phone = strings.TrimSpace(in.Phone)
-	st.Email = strings.TrimSpace(in.Email)
-	st.Qualifications = in.Qualifications
-	st.EmergencyContacts = in.EmergencyContacts
-	st.DBSNumber = strings.TrimSpace(in.DBSNumber)
-	st.DBSExpiry = strings.TrimSpace(in.DBSExpiry)
-	st.FirstAidExpiry = strings.TrimSpace(in.FirstAidExpiry)
-	return s.staff.Update(ctx, st.ID.Hex(), *st)
+	// Route the edit through the canonical StaffService.Update so the same
+	// rules apply as on the admin path: duplicate-email rejection and
+	// "empty means don't overwrite" semantics. Only the self-editable subset is
+	// forwarded; allowances are copied from the existing record because
+	// applyStaff sets them unconditionally.
+	return s.staffSvc.Update(ctx, st.ID.Hex(), models.StaffRequest{
+		Phone:             strings.TrimSpace(in.Phone),
+		Email:             strings.TrimSpace(in.Email),
+		Qualifications:    in.Qualifications,
+		EmergencyContacts: in.EmergencyContacts,
+		DBSNumber:         strings.TrimSpace(in.DBSNumber),
+		DBSExpiry:         strings.TrimSpace(in.DBSExpiry),
+		FirstAidExpiry:    strings.TrimSpace(in.FirstAidExpiry),
+		AnnualLeaveDays:   st.AnnualLeaveDays,
+		SickLeaveDays:     st.SickLeaveDays,
+	})
 }
 
 func (s *meService) Attendance(ctx context.Context, userID, from, to string) ([]models.StaffAttendanceRecord, *models.StaffAbsenceSummary, error) {

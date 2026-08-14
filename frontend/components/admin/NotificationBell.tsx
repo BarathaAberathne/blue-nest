@@ -24,12 +24,16 @@ function loadSeen(): string[] {
 }
 
 /**
- * Admin notification bell — surfaces admissions work needing attention (overdue
- * follow-ups, new enquiries uncontacted >24h, visits today, applications missing
- * registration). In-app only; no email/SMS. The badge counts only items you
- * haven't seen yet; opening the bell marks the current ones as seen.
+ * Notification bell — ONE component for both shells. The admin variant also
+ * surfaces admissions work needing attention (overdue follow-ups, uncontacted
+ * enquiries, visits today, unregistered applications); the parent variant
+ * shows only the caller's own in-app notifications (daily updates shared,
+ * payment reminders, DD status — same backend rows, same endpoints, which are
+ * plain-authenticated and strictly caller-scoped). In-app only; the badge
+ * counts unseen items and opening the bell marks them read.
  */
-export default function NotificationBell() {
+export default function NotificationBell({ variant = "admin" }: { variant?: "admin" | "parent" } = {}) {
+  const isParent = variant === "parent";
   const [tasks, setTasks] = useState<EnquiryTasks | null>(null);
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState<string[]>(() => loadSeen());
@@ -39,9 +43,10 @@ export default function NotificationBell() {
   const [notifUnread, setNotifUnread] = useState(0);
 
   useEffect(() => {
+    if (isParent) return; // enquiry tasks are management-only
     const token = getAccessToken();
     if (token) api.adminGetEnquiryTasks(token).then(setTasks).catch(() => { /* non-blocking */ });
-  }, []);
+  }, [isParent]);
 
   // Backend in-app notifications (daily-log approvals etc.).
   useEffect(() => {
@@ -121,7 +126,9 @@ export default function NotificationBell() {
         <div className="absolute right-0 top-11 z-50 w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
           <div className="border-b border-slate-100 px-4 py-3">
             <p className="font-semibold text-slate-900">Notifications</p>
-            <p className="text-xs text-slate-400">{currentIds.length === 0 ? "You're all caught up" : `${currentIds.length} item${currentIds.length === 1 ? "" : "s"} need attention`}</p>
+            <p className="text-xs text-slate-400">{isParent
+              ? (notifUnread === 0 && notifs.length === 0 ? "You're all caught up" : "Updates from the nursery")
+              : (currentIds.length === 0 ? "You're all caught up" : `${currentIds.length} item${currentIds.length === 1 ? "" : "s"} need attention`)}</p>
           </div>
           <div className="max-h-96 overflow-auto">
             {notifs.length > 0 && (
@@ -137,7 +144,7 @@ export default function NotificationBell() {
               </div>
             )}
             {groups.length === 0 && notifs.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-slate-400">Nothing needs attention right now 🎉</p>
+              <p className="px-4 py-8 text-center text-sm text-slate-400">{isParent ? "No notifications yet" : "Nothing needs attention right now 🎉"}</p>
             ) : (
               groups.map((g) => (
                 <div key={g.label} className="border-b border-slate-50 px-2 py-2 last:border-0">
@@ -155,10 +162,12 @@ export default function NotificationBell() {
               ))
             )}
           </div>
-          <Link href="/admin/inquiries/dashboard" onClick={() => setOpen(false)}
-            className="block border-t border-slate-100 px-4 py-2.5 text-center text-sm font-medium text-teal-600 hover:bg-slate-50">
-            View admissions dashboard
-          </Link>
+          {!isParent && (
+            <Link href="/admin/inquiries/dashboard" onClick={() => setOpen(false)}
+              className="block border-t border-slate-100 px-4 py-2.5 text-center text-sm font-medium text-teal-600 hover:bg-slate-50">
+              View admissions dashboard
+            </Link>
+          )}
         </div>
       )}
     </div>

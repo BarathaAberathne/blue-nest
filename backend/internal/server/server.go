@@ -176,6 +176,10 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	// Hoisted so the branch-template service can reuse the same room + branch
 	// services (apply-template creates rooms; capture-from-branch reads them).
 	roomSvc := service.NewRoomServiceWithGuards(roomRepo, staffRoomAssignRepo, childRoomAssignRepo)
+	staffSvc := service.NewStaffService(staffRepo, counterRepo, authSvc, staffRoomAssignSvc, roomRepo)
+	childSvc := service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo, childRoomAssignSvc, taxonomyRepo, childParentRepo, parentRepo)
+	inductionSvc := service.NewInductionService(inductionRepo, consentRepo, childRepo, userRepo, notifSvc)
+	sendSvc := service.NewSendSupportService(sendSupportRepo, childRepo, staffRepo, roomRepo, childRoomAssignRepo)
 	revalNotifier := revalidate.NewNotifier(cfg.FrontendInternalURL, cfg.RevalidateSecret)
 	branchSvc := service.NewBranchService(branchRepo, counterRepo, revalNotifier)
 	svc := routes.Services{
@@ -196,7 +200,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		OrderTemplates:    service.NewOrderTemplateService(orderTemplateRepo),
 		Suppliers:         service.NewSupplierService(supplierRepo),
 		Taxonomy:          service.NewTaxonomyService(taxonomyRepo),
-		SendSupport:       service.NewSendSupportService(sendSupportRepo, childRepo, staffRepo, roomRepo, childRoomAssignRepo),
+		SendSupport:       sendSvc,
 		FeeConfig:         service.NewFeeConfigService(feeConfigRepo, branchRepo),
 		BranchTemplates:   service.NewBranchTemplateService(repository.NewBranchTemplateRepository(db), roomSvc, branchSvc),
 		EmailTemplates:    emailTemplateSvc,
@@ -205,21 +209,22 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		DashboardLayouts:  service.NewDashboardLayoutService(dashboardLayoutRepo),
 		DashboardProfiles: service.NewDashboardProfileService(dashboardProfileRepo),
 		Rooms:             roomSvc,
-		Children:          service.NewChildService(childRepo, roomRepo, counterRepo, staffRepo, childRoomAssignSvc, taxonomyRepo, childParentRepo, parentRepo),
+		Children:          childSvc,
+		ChildProfilePDF:   service.NewChildProfilePDFService(childSvc, parentSvc, inductionSvc, sendSvc),
 		Parents:           parentSvc,
-		Induction:         service.NewInductionService(inductionRepo, consentRepo, childRepo, userRepo, notifSvc),
+		Induction:         inductionSvc,
 		Onboarding:        service.NewOnboardingService(childRepo, inductionRepo, childParentRepo, consentRepo, financeSvc),
 		Finance:           financeSvc,
 		Attendance:        service.NewAttendanceService(attendanceRepo, childRepo, childRoomAssignRepo),
-		Staff:             service.NewStaffService(staffRepo, counterRepo, authSvc, staffRoomAssignSvc, roomRepo),
+		Staff:             staffSvc,
 		StaffRoomAssign:   staffRoomAssignSvc,
 		ChildRoomAssign:   childRoomAssignSvc,
 		StaffAttendance:   staffAttSvc,
 		LeaveRequests:     service.NewLeaveRequestService(leaveRequestRepo, staffRepo, userRepo, staffAttSvc, notifSvc),
-		Me:                service.NewMeService(staffRepo, staffAttSvc, staffAttendanceRepo, shiftRepo),
+		Me:                service.NewMeService(staffRepo, staffSvc, staffAttSvc, staffAttendanceRepo, shiftRepo),
 		Kiosk:             service.NewKioskService(kioskDeviceRepo, staffRepo, staffAttendanceRepo, branchRepo, roomRepo, staffRoomAssignRepo, staffAttSvc),
 		Shifts:            service.NewShiftService(shiftRepo, staffRepo, roomRepo, leaveRequestRepo),
-		DailyRecords:      service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo, childRoomAssignRepo, userRepo, notifSvc),
+		DailyRecords:      service.NewDailyRecordService(dailyRecordRepo, childRepo, counterRepo, childRoomAssignRepo, userRepo, notifSvc, childParentRepo, parentRepo),
 		Notifications:     notifSvc,
 		NotifPrefs:        service.NewNotificationPreferenceService(notifPrefRepo),
 		BranchOverview:    service.NewBranchOverviewService(childRepo, roomRepo, attendanceRepo, staffRepo, staffAttendanceRepo, dailyRecordRepo, enquiryRepo),

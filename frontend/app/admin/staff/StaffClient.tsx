@@ -2,11 +2,12 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Download, KeyRound, Plus, Search, ShieldCheck, UserCheck, Users, X } from "lucide-react";
+import { KeyRound, Plus, Search, ShieldCheck, UserCheck, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
+import ExportButton from "@/components/admin/ExportButton";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import Avatar from "@/components/admin/ui/Avatar";
@@ -82,18 +83,16 @@ export default function StaffClient() {
     });
   }, [staff, branchFilter, statusFilter, q, branchName]);
 
-  const exportCsv = () => {
-    const header = ["Ref", "First name", "Last name", "Job title", "Type", "Branch", "Status", "DBS expiry", "Email"];
-    const lines = rows.map((s) => [
-      s.ref ?? "", s.first_name, s.last_name, s.job_title ?? "", s.staff_type,
-      branchName(s.branch_slug), s.status, s.dbs_expiry ?? "", s.email ?? "",
-    ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","));
-    const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `staff-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
-    URL.revokeObjectURL(url);
-  };
+  // Server-side export (CSV/Excel) via the shared ExportButton — full dataset
+  // with the current branch/status/search filters applied server-side.
+  const exportPath = useMemo(() => {
+    const p = new URLSearchParams();
+    if (branchFilter) p.set("branch", branchFilter);
+    if (statusFilter) p.set("status", statusFilter);
+    if (q.trim()) p.set("q", q.trim());
+    const qs = p.toString();
+    return `/api/v1/admin/staff/export${qs ? `?${qs}` : ""}`;
+  }, [branchFilter, statusFilter, q]);
 
   const openCreate = () => {
     setForm({ ...emptyForm, branch_slug: branchFilter || branches[0]?.slug || "" });
@@ -152,9 +151,7 @@ export default function StaffClient() {
           <p className="text-sm text-slate-500">Your workforce across every branch — roles, qualifications, DBS &amp; contract hours.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={exportCsv} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-            <Download className="h-4 w-4" /> CSV
-          </button>
+          <ExportButton path={exportPath} />
           <button type="button" onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700">
             <Plus className="h-4 w-4" /> Add staff
           </button>

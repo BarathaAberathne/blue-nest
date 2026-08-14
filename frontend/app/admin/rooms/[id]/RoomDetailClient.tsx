@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, DoorOpen, Plus, Star, Users, X } from "lucide-react";
+import { ArrowRightLeft, DoorOpen, Plus, Star, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
@@ -74,9 +74,6 @@ export default function RoomDetailClient({ id }: { id: string }) {
 
   return (
     <>
-      <Link href="/admin/rooms" className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-teal-600">
-        <ArrowLeft className="h-4 w-4" /> All rooms
-      </Link>
 
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 
@@ -282,8 +279,49 @@ function ChildrenTab({ roomId, branchSlug, roomActive, canManage, sendDedicated,
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // Bulk transfer (age-group promotion): tick children → move them all to one
+  // target room. Each child runs the full canonical transfer server-side, so
+  // capacity/age failures come back per child, not as an all-or-nothing error.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [moving, setMoving] = useState(false);
+  const [targetRooms, setTargetRooms] = useState<Room[]>([]);
+  const [targetRoom, setTargetRoom] = useState("");
+  const [effDate, setEffDate] = useState(new Date().toISOString().slice(0, 10));
+  const [moveReason, setMoveReason] = useState("Moved up to the next age group");
+  const [moveOverride, setMoveOverride] = useState("");
+  const [moveResults, setMoveResults] = useState<{ child_id: string; child_name?: string; ok: boolean; error?: string }[] | null>(null);
+
   const active = assignments.filter((a) => a.status === "active");
   const history = assignments.filter((a) => a.status === "ended");
+
+  const toggleSelect = (id: string) =>
+    setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token || !moving) return;
+    void api.adminGetRooms(token, branchSlug).then((rs) =>
+      setTargetRooms((rs as Room[]).filter((r) => r.id !== roomId && r.status !== "inactive")),
+    ).catch(() => setTargetRooms([]));
+  }, [moving, branchSlug, roomId]);
+
+  async function bulkMove() {
+    const token = getAccessToken();
+    if (!token || !targetRoom || selected.size === 0 || busy) return;
+    setBusy(true); setErr(null); setMoveResults(null);
+    try {
+      const out = await api.adminBulkTransferChildren(token, {
+        child_ids: [...selected], room_id: targetRoom, effective_date: effDate,
+        reason: moveReason.trim(), override_reason: moveOverride.trim() || undefined,
+      });
+      setMoveResults(out.results);
+      // Successfully-moved children leave this room's list; failures stay
+      // ticked so the manager can retry (e.g. with an override reason).
+      setSelected(new Set(out.results.filter((r) => !r.ok).map((r) => r.child_id)));
+      onChange();
+    } catch (e) { setErr(e instanceof Error ? e.message : "Bulk transfer failed"); }
+    finally { setBusy(false); }
+  }
 
   useEffect(() => {
     const token = getAccessToken();
@@ -309,22 +347,65 @@ function ChildrenTab({ roomId, branchSlug, roomActive, canManage, sendDedicated,
 
   return (
     <div className="card p-5">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">Allocated children</h3>
-        {canManage && roomActive && !adding && (
-          <button type="button" onClick={() => setAdding(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"><Plus className="h-3.5 w-3.5" /> Add child</button>
-        )}
+        <div className="flex items-center gap-2">
+          {canManage && active.length > 0 && (
+            <button type="button" onClick={() => { setMoving((m) => !m); setMoveResults(null); }} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
+              <ArrowRightLeft className="h-3.5 w-3.5" /> {moving ? "Cancel move" : "Move children"}
+            </button>
+          )}
+          {canManage && roomActive && !adding && (
+            <button type="button" onClick={() => setAdding(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"><Plus className="h-3.5 w-3.5" /> Add child</button>
+          )}
+        </div>
       </div>
       {err && <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{err}</p>}
       {active.length === 0 ? <p className="text-sm text-slate-400">No children allocated to this room.</p> : (
         <ul className="space-y-2">
           {active.map((a) => (
             <li key={a.id} className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2 text-sm">
+              {moving && (
+                <input type="checkbox" checked={selected.has(a.child_id)} onChange={() => toggleSelect(a.child_id)} aria-label={`Select ${a.child_name ?? "child"}`} />
+              )}
               <Link href={`/admin/children/${a.child_id}`} className="font-medium text-slate-800 hover:text-teal-600 hover:underline">{a.child_name ?? "Child"}</Link>
               <span className="ml-auto text-xs text-slate-400">since {a.start_date}</span>
             </li>
           ))}
         </ul>
+      )}
+
+      {moving && (
+        <div className="mt-3 space-y-2 rounded-lg border border-sky-200 bg-sky-50/50 p-3">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+            <button type="button" onClick={() => setSelected(new Set(active.map((a) => a.child_id)))} className="rounded-lg border border-slate-200 bg-white px-2 py-1 font-medium hover:bg-slate-50">Select all</button>
+            <button type="button" onClick={() => setSelected(new Set())} className="rounded-lg border border-slate-200 bg-white px-2 py-1 font-medium hover:bg-slate-50">Clear</button>
+            <span>{selected.size} selected</span>
+          </div>
+          <select value={targetRoom} onChange={(e) => setTargetRoom(e.target.value)} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            <option value="">Move to room…</option>
+            {targetRooms.map((r) => <option key={r.id} value={r.id}>{r.name}{r.age_range ? ` · ${r.age_range}` : ""} · cap {r.capacity}</option>)}
+          </select>
+          <div className="flex flex-wrap gap-2">
+            <input type="date" value={effDate} onChange={(e) => setEffDate(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <input value={moveReason} onChange={(e) => setMoveReason(e.target.value)} placeholder="Transfer reason" className="min-w-[220px] flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          </div>
+          <input value={moveOverride} onChange={(e) => setMoveOverride(e.target.value)} placeholder="Override reason (only if over capacity or outside age range)" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          <p className="text-xs text-slate-400">A future date schedules the move from that week (e.g. the September room move-up). Each child is checked individually — anyone over capacity or outside the age band fails alone and stays here.</p>
+          <button type="button" onClick={bulkMove} disabled={!targetRoom || selected.size === 0 || !moveReason.trim() || busy}
+            className="rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50">
+            {busy ? "Moving…" : `Move ${selected.size} child${selected.size === 1 ? "" : "ren"}`}
+          </button>
+          {moveResults && (
+            <ul className="space-y-1 text-xs">
+              {moveResults.map((r) => (
+                <li key={r.child_id} className={r.ok ? "text-teal-700" : "text-red-600"}>
+                  {r.ok ? "✓" : "✕"} {r.child_name || r.child_id}{r.error ? ` — ${r.error}` : ""}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
       {adding && (
         <div className="mt-3 space-y-2 rounded-lg border border-teal-200 bg-teal-50/50 p-3">

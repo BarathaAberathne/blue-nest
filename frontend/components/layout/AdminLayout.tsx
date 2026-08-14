@@ -177,6 +177,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [railTip, setRailTip] = useState<{ label: string; top: number } | null>(null);
   const { ready, isAuthenticated, user, ensureAuthenticated } = useAuthGuard("/admin/login");
   const { has, ready: permsReady, org, hasFeature } = usePermissions();
   const isStaff = user?.role === "staff";
@@ -263,6 +264,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push("/admin/login");
   };
 
+  // Collapsed-rail flyout label. The native `title` tooltip has a 1-2s OS delay
+  // and tiny text; this shows the item name INSTANTLY on hover/focus, in the
+  // admin type scale. Rendered position:fixed so the nav's overflow scroll
+  // can't clip it. One shared element serves every rail item.
+  const railTipProps = (label: string) => ({
+    onMouseEnter: (e: React.MouseEvent<HTMLElement>) => {
+      if (sidebarOpen) return;
+      const r = e.currentTarget.getBoundingClientRect();
+      setRailTip({ label, top: r.top + r.height / 2 });
+    },
+    onMouseLeave: () => setRailTip(null),
+    onFocus: (e: React.FocusEvent<HTMLElement>) => {
+      if (sidebarOpen) return;
+      const r = e.currentTarget.getBoundingClientRect();
+      setRailTip({ label, top: r.top + r.height / 2 });
+    },
+    onBlur: () => setRailTip(null),
+    onClick: () => setRailTip(null),
+  });
+
   return (
     <div className="admin-shell min-h-screen bg-[var(--adm-bg)] font-body" style={brandStyle}>
       {/* ── Sidebar ─────────────────────────────────────────── */}
@@ -308,7 +329,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link
                       key={item.href}
                       href={item.href}
-                      title={sidebarOpen ? undefined : item.label}
+                      {...railTipProps(item.label)}
                       className={`flex h-[42px] items-center gap-3 rounded-xl px-3 text-sm font-semibold whitespace-nowrap transition-colors ${
                         active
                           ? "bg-[var(--adm-accent-tint)] text-[var(--adm-accent)]"
@@ -330,7 +351,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link
             href="/"
             target="_blank"
-            title={sidebarOpen ? undefined : "View Site"}
+            {...railTipProps("View Site")}
             className="flex h-[38px] items-center gap-3 rounded-xl px-3 text-xs font-semibold whitespace-nowrap text-[var(--adm-muted)] transition-colors hover:bg-[var(--adm-line-2)] hover:text-[var(--adm-ink-2)]"
           >
             <ExternalLink className="h-4 w-4 shrink-0" />
@@ -338,8 +359,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
           <button
             type="button"
+            {...railTipProps("Sign Out")}
             onClick={handleLogout}
-            title={sidebarOpen ? undefined : "Sign Out"}
             className="flex h-[38px] w-full items-center gap-3 rounded-xl px-3 text-xs font-semibold whitespace-nowrap text-[var(--adm-muted)] transition-colors hover:bg-[var(--adm-line-2)] hover:text-red-500"
           >
             <LogOut className="h-4 w-4 shrink-0" />
@@ -347,7 +368,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
           <button
             type="button"
-            onClick={() => setSidebarOpen((v) => !v)}
+            {...railTipProps("Expand sidebar")}
+            onClick={() => { setRailTip(null); setSidebarOpen((v) => !v); }}
             aria-expanded={sidebarOpen}
             aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
             className="mt-1 flex h-[38px] w-full items-center gap-3 rounded-xl px-3 text-xs font-semibold whitespace-nowrap text-[var(--adm-muted)] transition-colors hover:bg-[var(--adm-line-2)] hover:text-[var(--adm-ink-2)]"
@@ -358,6 +380,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
+      {/* Instant flyout label for the collapsed icon rail (replaces the
+          slow, tiny native title tooltip). */}
+      {railTip && !sidebarOpen && (
+        <div
+          role="tooltip"
+          className="pointer-events-none fixed left-[86px] z-[70] -translate-y-1/2 rounded-lg border border-[var(--adm-line)] bg-[var(--adm-card)] px-3 py-2 text-sm font-semibold whitespace-nowrap text-[var(--adm-ink)] shadow-[0_8px_24px_rgba(15,23,42,.16)]"
+          style={{ top: railTip.top }}
+        >
+          {railTip.label}
+        </div>
+      )}
+
       {/* ── Main area ───────────────────────────────────────── */}
       <div className={`flex min-h-screen flex-col transition-[margin-left] duration-200 ease-in-out ${sidebarOpen ? "ml-56" : "ml-[78px]"}`}>
         {/* Topbar */}
@@ -365,9 +399,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--adm-line)] px-7 py-3.5 backdrop-blur-md"
           style={{ backgroundColor: "color-mix(in srgb, var(--adm-bg) 85%, transparent)" }}
         >
+          {/* THE one back control for the whole admin shell — real history
+              back, with the user's landing page as the deep-link/fresh-tab
+              fallback. Detail pages must NOT add their own back arrows. */}
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => {
+              if (typeof window !== "undefined" && window.history.length > 1) router.back();
+              else router.push(firstAllowedHref);
+            }}
             aria-label="Go back"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--adm-line)] bg-[var(--adm-card)] text-[var(--adm-ink-2)] transition-colors hover:border-[var(--adm-accent-tint-2)] hover:text-[var(--adm-ink)]"
           >

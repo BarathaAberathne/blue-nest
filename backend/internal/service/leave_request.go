@@ -46,36 +46,20 @@ func NewLeaveRequestService(
 
 // staffForUser resolves the Staff record linked to a login user (Staff.UserID).
 func (s *leaveRequestService) staffForUser(ctx context.Context, userID string) *models.Staff {
-	all, err := s.staff.FindAll(ctx, repository.StaffFilter{})
+	if userID == "" {
+		return nil
+	}
+	st, err := s.staff.FindByUserID(ctx, userID)
 	if err != nil {
 		return nil
 	}
-	for i := range all {
-		if all[i].UserID == userID {
-			return &all[i]
-		}
-	}
-	return nil
+	return st
 }
 
 // approversFor returns the user ids that can approve leave for `branch` (holders
 // of leave.approve, scoped to the branch or org-wide).
 func (s *leaveRequestService) approversFor(ctx context.Context, branch string) []string {
-	orgID, _ := repository.OrgFromContext(ctx)
-	users, err := s.users.FindAll(ctx)
-	if err != nil {
-		return nil
-	}
-	var ids []string
-	for _, u := range users {
-		if !models.HasPermission(orgID, u.Role, models.PermLeaveApprove) {
-			continue
-		}
-		if len(u.BranchSlugs) == 0 || contains(u.BranchSlugs, branch) {
-			ids = append(ids, u.ID.Hex())
-		}
-	}
-	return ids
+	return usersWithPermission(ctx, s.users, models.PermLeaveApprove, branch)
 }
 
 // allowanceForType returns the annual allowance for a leave type and whether it

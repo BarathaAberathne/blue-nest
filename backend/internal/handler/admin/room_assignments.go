@@ -2,6 +2,7 @@ package admin
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -201,6 +202,43 @@ func (h *AdminChildRoomAssignmentHandler) Transfer(w http.ResponseWriter, r *htt
 		}))
 	h.auditOverrides(r, created)
 	response.OK(w, created)
+}
+
+// BulkTransfer serves POST /admin/child-room-assignments/bulk-transfer — the
+// age-group promotion action: several children into one room, each through
+// the full canonical Transfer, reported per child (200 with ok/error rows;
+// a partial batch is a normal outcome, not an HTTP error).
+func (h *AdminChildRoomAssignmentHandler) BulkTransfer(w http.ResponseWriter, r *http.Request) {
+	var req models.BulkChildTransferRequest
+	if err := validator.DecodeJSON(r, &req); err != nil {
+		response.BadRequest(w, err.Error())
+		return
+	}
+	if len(req.ChildIDs) == 0 {
+		response.BadRequest(w, "select at least one child to transfer")
+		return
+	}
+	if len(req.ChildIDs) > 100 {
+		response.BadRequest(w, "transfer at most 100 children at a time")
+		return
+	}
+	role, scope := caller(r)
+	results, roomLabel := h.svc.BulkTransfer(r.Context(), req, actorID(r), policy.AllowedOrNil(role, scope))
+	moved := 0
+	for _, res := range results {
+		if res.OK {
+			moved++
+		}
+	}
+	// The summary is the human-readable activity line — always the resolved
+	// room name (+ code), never a bare db id (that lives in details.room_id).
+	h.audit.Record(r, "bulk_transfer_children", "child_room_assignment", req.RoomID,
+		fmt.Sprintf("Bulk-transferred %d of %d children to %s — %s", moved, len(results), roomLabel, req.Reason),
+		auditDetails(r, map[string]interface{}{
+			"room_id": req.RoomID, "room": roomLabel, "effective_date": req.EffectiveDate,
+			"requested": len(results), "moved": moved, "reason": req.Reason,
+		}))
+	response.OK(w, map[string]interface{}{"results": results, "moved": moved, "requested": len(results), "room": roomLabel})
 }
 
 // End serves PATCH /admin/child-room-assignments/{id}.

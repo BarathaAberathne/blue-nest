@@ -51,8 +51,18 @@ export default function LoginClient() {
       storeAuthResponse(auth.access_token, auth.refresh_token ?? "", auth.user);
       // Carry any guest-cart items into the server cart before we redirect.
       await mergeGuestCartToServer(auth.access_token);
-      // Route by role: management → admin, staff → supply requests, parents → next.
-      router.push(landingFor(auth.user.role, next));
+      // Route by role: management → admin, staff → supply requests. A customer
+      // WITH a linked parent record belongs in the Parent Portal; a plain
+      // store customer keeps the account area. An explicit ?next= always wins.
+      const roleDest = landingFor(auth.user.role, "");
+      if (roleDest) {
+        router.push(roleDest);
+      } else if (next !== "/account") {
+        router.push(next);
+      } else {
+        const isParent = await api.portalGetMe(auth.access_token).then(() => true).catch(() => false);
+        router.push(isParent ? "/portal" : "/account");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in");
     } finally {

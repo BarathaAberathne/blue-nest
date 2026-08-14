@@ -47,24 +47,7 @@ func NewInductionService(repo repository.InductionRepository, consents repositor
 // reviewersFor returns users holding children.manage scoped to the child's
 // branch — the audience for the four-eyes induction review.
 func (s *inductionService) reviewersFor(ctx context.Context, branch string) []string {
-	if s.users == nil {
-		return nil
-	}
-	orgID, _ := repository.OrgFromContext(ctx)
-	users, err := s.users.FindAll(ctx)
-	if err != nil {
-		return nil
-	}
-	var ids []string
-	for _, u := range users {
-		if !models.HasPermission(orgID, u.Role, models.PermChildrenManage) {
-			continue
-		}
-		if len(u.BranchSlugs) == 0 || contains(u.BranchSlugs, branch) {
-			ids = append(ids, u.ID.Hex())
-		}
-	}
-	return ids
+	return usersWithPermission(ctx, s.users, models.PermChildrenManage, branch)
 }
 
 func (s *inductionService) Get(ctx context.Context, childID string) (*models.ChildInduction, error) {
@@ -90,6 +73,14 @@ func (s *inductionService) SaveSection(ctx context.Context, childID, sectionKey 
 	if ind.Status == models.InductionReviewed {
 		return nil, errors.New("this induction has been signed off — ask the nursery to reopen it")
 	}
+	// Backstop for the wizard's field-level validation: a section can only be
+	// COMPLETE when it actually contains at least one answered value — clicking
+	// Next on an untouched section (or any client sending complete=true with
+	// empty data) must never mark it done. The field catalogue lives client-side
+	// (lib/induction.ts), so this is deliberately schema-agnostic.
+	if req.Complete && !hasAnsweredValue(req.Data) {
+		return nil, errors.New("fill in the section before it can be marked complete")
+	}
 	if ind.Sections == nil {
 		ind.Sections = map[string]models.InductionSection{}
 	}
@@ -107,6 +98,33 @@ func (s *inductionService) SaveSection(ctx context.Context, childID, sectionKey 
 	}
 	s.writeThrough(ctx, childID, sectionKey, req.Data)
 	return s.repo.Upsert(ctx, ind)
+}
+
+// hasAnsweredValue reports whether at least one value in an induction
+// section's data is a real answer (non-blank string, true bool, non-empty
+// list, or any number).
+func hasAnsweredValue(data map[string]any) bool {
+	for _, v := range data {
+		switch t := v.(type) {
+		case nil:
+			continue
+		case string:
+			if strings.TrimSpace(t) != "" {
+				return true
+			}
+		case bool:
+			if t {
+				return true
+			}
+		case []any:
+			if len(t) > 0 {
+				return true
+			}
+		default:
+			return true
+		}
+	}
+	return false
 }
 
 // writeThrough pushes canonical-home fields onto the Child record.

@@ -88,8 +88,40 @@ type DailyRecord struct {
 	ApprovedByName  string     `bson:"approved_by_name,omitempty"  json:"approved_by_name,omitempty"`
 	ApprovedAt      *time.Time `bson:"approved_at,omitempty"       json:"approved_at,omitempty"`
 	RejectionReason string     `bson:"rejection_reason,omitempty"  json:"rejection_reason,omitempty"`
+	// Parent visibility (record-level; docs/portal/parent-portal-investigation.md).
+	// Creating a record NEVER makes it parent-visible: internal by default,
+	// shared only by the explicit staff Share action (approved records only;
+	// safeguarding records never shareable). Withdrawal clears ParentShared but
+	// keeps the share history fields + audit trail.
+	ParentShared     bool       `bson:"parent_shared,omitempty"      json:"parent_shared,omitempty"`
+	ParentSharedAt   *time.Time `bson:"parent_shared_at,omitempty"   json:"parent_shared_at,omitempty"`
+	ParentSharedBy   string     `bson:"parent_shared_by,omitempty"   json:"parent_shared_by,omitempty"` // staff name
+	ParentSharedByID string     `bson:"parent_shared_by_id,omitempty" json:"parent_shared_by_id,omitempty"`
 	CreatedAt       time.Time  `bson:"created_at"        json:"created_at"`
 	UpdatedAt       time.Time  `bson:"updated_at"        json:"updated_at"`
+}
+
+// Shareable reports whether this record TYPE may ever be parent-visible.
+// Safeguarding records are categorically internal.
+func (r DailyRecord) Shareable() bool { return r.Type != RecSafeguarding }
+
+// ParentVisible is the single parent-portal visibility gate: explicitly
+// shared AND (still) approved.
+func (r DailyRecord) ParentVisible() bool { return r.ParentShared && r.IsApproved() }
+
+// SanitizeForParent strips staff-only fields from a record before it is
+// returned to a parent (witness/staff lists, statutory reporting, approval
+// workflow internals). The parent-relevant content (title, detail, meal/sleep/
+// medication facts, action taken, first aid, attachments) remains.
+func (r DailyRecord) SanitizeForParent() DailyRecord {
+	r.Witnesses = nil
+	r.OtherStaff = nil
+	r.ReportedTo = nil
+	r.RejectionReason = ""
+	r.SubmittedBy, r.SubmittedByName = "", ""
+	r.ApprovedBy, r.ApprovedByName = "", ""
+	r.ParentSharedByID = ""
+	return r
 }
 
 // IsApproved reports whether a record is visible on the child's profile / to

@@ -55,6 +55,7 @@ Call CatchError ../../cases/childroom_alloc/CHILDROOM-TC-A07-inactive-room-rejec
 Call CatchError ../../cases/childroom_alloc/CHILDROOM-TC-A08-future-transfer-scheduled.bnrest.md
 Call CatchError ../../cases/childroom_alloc/CHILDROOM-TC-A09-age-mismatch-rejected.bnrest.md
 Call CatchError ../../cases/childroom_alloc/CHILDROOM-TC-A10-archive-child.bnrest.md
+Call CatchError ../../cases/childroom_alloc/CHILDROOM-TC-A11-bulk-transfer.bnrest.md
 Call CatchError ../../cases/childroom/CHILDROOM-TC-004-REG-preserves-safety-fields.bnrest.md
 Call CatchError ../../cases/childroom/CHILDROOM-TC-001-room-age-ranges-present.bnrest.md
 
