@@ -40,6 +40,7 @@ import {
   UserCheck,
   UserCircle,
   Users,
+  Wallet,
 } from "lucide-react";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import { clearAuthSession, isManagementRole } from "@/lib/auth";
@@ -99,6 +100,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: "Rota",               href: "/admin/rota",               icon: CalendarClock, permission: "staff.manage" },
       { label: "Attendance",         href: "/admin/staff-attendance",   icon: UserCheck, permission: "staff.manage" },
       { label: "Attendance Devices", href: "/admin/attendance-devices", icon: MonitorSmartphone, permission: "staff.manage" },
+      { label: "Payroll",            href: "/admin/payroll",            icon: Wallet, permission: "staff.manage" },
       { label: "Leave Requests",     href: "/admin/leave",              icon: CalendarDays, permission: "leave.approve" },
       { label: "Room Planner",       href: "/admin/room-planner",       icon: CalendarRange, permission: "children.manage" },
     ],

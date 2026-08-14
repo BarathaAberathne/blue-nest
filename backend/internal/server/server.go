@@ -220,6 +220,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 		StaffRoomAssign:   staffRoomAssignSvc,
 		ChildRoomAssign:   childRoomAssignSvc,
 		StaffAttendance:   staffAttSvc,
+		Payroll:           service.NewPayrollService(staffAttendanceRepo, staffRepo),
 		LeaveRequests:     service.NewLeaveRequestService(leaveRequestRepo, staffRepo, userRepo, staffAttSvc, notifSvc),
 		Me:                service.NewMeService(staffRepo, staffSvc, staffAttSvc, staffAttendanceRepo, shiftRepo),
 		Kiosk:             service.NewKioskService(kioskDeviceRepo, staffRepo, staffAttendanceRepo, branchRepo, roomRepo, staffRoomAssignRepo, staffAttSvc),

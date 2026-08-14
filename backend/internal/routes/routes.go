@@ -51,6 +51,7 @@ type Services struct {
 	Attendance        service.AttendanceService
 	Staff             service.StaffService
 	StaffAttendance   service.StaffAttendanceService
+	Payroll           service.PayrollService
 	LeaveRequests     service.LeaveRequestService
 	Me                service.MeService
 	StaffRoomAssign   service.StaffRoomAssignmentService
@@ -586,6 +587,12 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Post("/admin/shifts", adminShiftH.Create)
 				r.Put("/admin/shifts/{id}", adminShiftH.Update)
 				r.Delete("/admin/shifts/{id}", adminShiftH.Delete)
+
+				// Payroll roll-up (Phase D) — worked hours + leave taxonomy per
+				// staff member for a period, from the attendance register.
+				adminPayrollH := adminHandler.NewAdminPayrollHandler(svc.Payroll)
+				r.Get("/admin/payroll", adminPayrollH.Summary)
+				r.Get("/admin/payroll/export", adminPayrollH.Export)
 
 				// Kiosk device management + staff PIN provisioning.
 				adminKioskH := adminHandler.NewAdminKioskHandler(svc.Kiosk, svc.Audit)

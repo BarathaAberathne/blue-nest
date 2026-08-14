@@ -19,6 +19,9 @@ type StaffAttendanceRepository interface {
 	FindByStaffDate(ctx context.Context, staffID, date string) (*models.StaffAttendanceRecord, error)
 	// FindByStaffRange returns a staff member's records within [from, to] inclusive.
 	FindByStaffRange(ctx context.Context, staffID, from, to string) ([]models.StaffAttendanceRecord, error)
+	// FindByRange returns ALL staff records within [from, to] inclusive,
+	// optionally branch-scoped — the payroll roll-up's one batched query.
+	FindByRange(ctx context.Context, from, to, branch string) ([]models.StaffAttendanceRecord, error)
 	FindByID(ctx context.Context, id string) (*models.StaffAttendanceRecord, error)
 	// LatestDate returns the most recent date (YYYY-MM-DD) with any record, or
 	// "" when empty. Optionally scoped to a branch.
@@ -108,6 +111,19 @@ func (r *staffAttendanceRepository) LatestDate(ctx context.Context, branch strin
 func (r *staffAttendanceRepository) FindByStaffRange(ctx context.Context, staffID, from, to string) ([]models.StaffAttendanceRecord, error) {
 	filter := bson.M{"staff_id": staffID, "date": bson.M{"$gte": from, "$lte": to}}
 	cursor, err := r.col.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "date", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.StaffAttendanceRecord, 0)
+	return out, cursor.All(ctx, &out)
+}
+
+func (r *staffAttendanceRepository) FindByRange(ctx context.Context, from, to, branch string) ([]models.StaffAttendanceRecord, error) {
+	filter := bson.M{"date": bson.M{"$gte": from, "$lte": to}}
+	if branch != "" {
+		filter["branch_slug"] = branch
+	}
+	cursor, err := r.col.Find(ctx, filter, options.Find().SetSort(bson.D{{Key: "staff_id", Value: 1}, {Key: "date", Value: 1}}))
 	if err != nil {
 		return nil, err
 	}

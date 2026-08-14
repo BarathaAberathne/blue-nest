@@ -442,6 +442,20 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   `absent` is now the residual `expected − present`** (`attendanceService.TodayStats`), so a child who never
   checks in is counted absent — matching the staff summary — instead of only children with an explicit
   absent/sick/holiday record. Keep any new KPI consistent with `models.IsWorking`/`IsAway`/`AwayCategory`.
+  **Phase D DELIVERED — Payroll roll-up**: `GET /admin/payroll?from&to[&branch]` (+ `/export`, CSV/Excel via
+  the shared `export.Write` dispatcher) under `staff.manage`, branch-scoped via `policy.EffectiveBranch` like
+  every other staff read. `service.PayrollService.Summary` makes ONE batched pass over the register
+  (`staffAttendanceRepo.FindByRange`) and produces a per-staff `models.PayrollRow` — worked days/minutes,
+  breaks, overtime, early departure, lates, the FULL leave taxonomy per kind (annual/sick/dependant/unpaid/
+  maternity/training + unauthorised absent) and the data-quality flags payroll must chase before paying
+  (missing clock-outs, corrected days) — plus a totals row. Day classification reuses the register's own
+  primitives (`models.IsWorking`/`IsAway` + per-status switch), so payroll can never disagree with the
+  attendance hub about what a day was. Every currently-employed staff member of the scope appears even with
+  zero records (a silent omission would read as "left"); leavers appear only if they have records in the
+  period. UI at **`/admin/payroll`** (HR nav): month picker + branch scope, 4 KPI tiles, per-staff table with
+  a compact leave-breakdown cell + red/amber chase chips, Export button. Tests: `payroll_test.go` (tally +
+  totals maths) + bnrest `SUI-PAYROLL-001` (2.35, 4 cases: validation, roll-up figures vs the register,
+  zero-record staff inclusion, CSV/Excel export).
 
 - **Room allocation (canonical model, delivered on `feature/room-allocation`):** there is exactly **one**
   source of truth for who is in which room — the effective-dated assignment collections
@@ -592,9 +606,10 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   pending until a *different* manager approves (four-eyes). **Planned next:** a full month-grid calendar
   view, a hard clash-block option on approval (currently a warning), and carry-over/pro-rata allowances.
 
-Planned next: **Phase D** = Payroll summary from attendance; **Phase E** = reports (**CSV + Excel exports
-and notification email delivery incl. per-user preferences delivered**, see below; PDF remains). Then
-Amazon Business API (Product Search → Cart → Ordering), then full inventory/stock.
+Planned next: **Phase E** = reports (**CSV + Excel exports and notification email delivery incl. per-user
+preferences delivered**, see below; PDF remains — **Phase D payroll is DELIVERED**, see the Staff
+Attendance module above). Then Amazon Business API (Product Search → Cart → Ordering), then full
+inventory/stock.
 
 - **Reporting / CSV + Excel exports (delivered):** a server-side export layer (`pkg/export` — `WriteCSV`
   streams a `text/csv` attachment with a dated filename + UTF-8 BOM for Excel; `WriteXLSX` streams a real
