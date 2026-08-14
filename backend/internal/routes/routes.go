@@ -90,13 +90,19 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 	health := handler.NewHealthHandler()
 	r.Get("/api/v1/health", health.Check)
 
-	// ── Stripe webhook (raw body required before JSON middleware) ───────────
+	// ── Stripe webhook (raw body required, so it stays outside the /api/v1
+	// group) ── it MUST still carry the tenant middleware: without DefaultTenant
+	// the request context is cross-org, so webhook-created rows (finance
+	// payments, communication logs) insert with NO org_id and become invisible
+	// to every org-scoped admin read. Multi-org webhooks later resolve the org
+	// from the charge/order row itself (the kiosk cross-org pattern).
 	stripeWH := webhooks.NewStripeWebhookHandler(stripeWebhookSecret, repos.Orders, repos.Products, repos.Branches, repos.Mailer, repos.OrderAdminTo, repos.OrderBATo, svc.Finance)
-	r.Post("/api/v1/webhooks/stripe", stripeWH.Handle)
+	r.With(middleware.DefaultTenant(svc.DefaultOrgID)).Post("/api/v1/webhooks/stripe", stripeWH.Handle)
 
-	// ── GBP digest ingest (shared-secret webhook, no user JWT) ──────────────
+	// ── GBP digest ingest (shared-secret webhook, no user JWT; same tenant
+	// pinning requirement as the Stripe webhook above) ──────────────────────
 	gbpWH := integrations.NewGBPHandler(svc.GBP, cfg.GBPIngestSecret)
-	r.Post("/api/v1/integrations/gbp/digest", gbpWH.IngestDigest)
+	r.With(middleware.DefaultTenant(svc.DefaultOrgID)).Post("/api/v1/integrations/gbp/digest", gbpWH.IngestDigest)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// Multi-tenancy: pin every request to a tenant. Public/unauthenticated
