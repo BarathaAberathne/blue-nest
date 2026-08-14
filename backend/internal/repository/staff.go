@@ -15,6 +15,11 @@ import (
 
 type StaffFilter struct {
 	Branch string
+	// Room filters by CURRENT primary room. Room placement lives in the
+	// canonical staff_room_assignments (staff.room_id is a computed bson:"-"
+	// projection), so this is resolved by the SERVICE via the assignment
+	// model — never as a Mongo filter here.
+	Room   string
 	Status string
 	Type   string
 	Q      string

@@ -32,6 +32,7 @@ func (h *AdminStaffHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	filter := repository.StaffFilter{
 		Branch: branch,
+		Room:   q.Get("room"), // resolved via the canonical assignments in the service
 		Status: q.Get("status"),
 		Type:   q.Get("type"),
 		Q:      q.Get("q"),
@@ -53,7 +54,7 @@ func (h *AdminStaffHandler) Export(w http.ResponseWriter, r *http.Request) {
 		response.Forbidden(w, "outside your branch scope")
 		return
 	}
-	items, err := h.svc.List(r.Context(), repository.StaffFilter{Branch: branch, Status: q.Get("status"), Type: q.Get("type"), Q: q.Get("q")})
+	items, err := h.svc.List(r.Context(), repository.StaffFilter{Branch: branch, Room: q.Get("room"), Status: q.Get("status"), Type: q.Get("type"), Q: q.Get("q")})
 	if err != nil {
 		response.InternalError(w, "failed to fetch staff")
 		return
