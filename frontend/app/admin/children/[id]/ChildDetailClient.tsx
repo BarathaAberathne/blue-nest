@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Archive, ArrowLeft, ArrowRightLeft, Pencil, Plus, Save, Trash2, UserCheck, X } from "lucide-react";
-import { api } from "@/lib/api";
+import { useSearchParams } from "next/navigation";
+import { Archive, ArrowLeft, ArrowRightLeft, FileDown, Pencil, Plus, Save, Trash2, UserCheck, X } from "lucide-react";
+import { api, downloadCsv } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
@@ -13,6 +14,8 @@ import ProfilePhotoUploader from "@/components/admin/ui/ProfilePhotoUploader";
 import ChildRoomAllocations from "@/components/admin/rooms/ChildRoomAllocations";
 import ChildParentsPanel from "@/components/admin/parents/ChildParentsPanel";
 import ChildOnboardingPanel from "@/components/admin/children/ChildOnboardingPanel";
+import InductionAnswers from "@/components/admin/children/InductionAnswers";
+import ConsentsCard from "@/components/admin/children/ConsentsCard";
 import SendSupportPanel from "@/components/admin/send/SendSupportPanel";
 import { sendActive } from "@/lib/send";
 import PickerModal from "@/components/admin/ui/PickerModal";
@@ -21,9 +24,20 @@ import { usePermissions } from "@/lib/usePermissions";
 import { ageLabel, childStatusAccent, fmtDate, fundingLabel } from "@/lib/child";
 import { dailyTypeAccent, dailyTypeLabel } from "@/lib/daily";
 import { useTaxonomy, sessionOptions } from "@/lib/useTaxonomy";
-import type { Branch, Child, ChildInput, ChildSession, DailyRecord, Guardian, Room, Staff } from "@/types";
+import type { Branch, Child, ChildInput, ChildSession, DailyRecord, Guardian, InductionBundle, Room, Staff } from "@/types";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+
+// The FULL child profile is tabbed: everything the family filled in on the
+// induction form surfaces here for staff, grouped by concern.
+type ProfileTab = "overview" | "family" | "health" | "induction" | "records";
+const PROFILE_TABS: [ProfileTab, string][] = [
+  ["overview", "Overview"],
+  ["family", "Family & contacts"],
+  ["health", "Health & development"],
+  ["induction", "Induction & consents"],
+  ["records", "Daily records"],
+];
 
 export default function ChildDetailClient({ id }: { id: string }) {
   const [child, setChild] = useState<Child | null>(null);
@@ -36,6 +50,11 @@ export default function ChildDetailClient({ id }: { id: string }) {
   const [form, setForm] = useState<ChildInput | null>(null);
   const [saving, setSaving] = useState(false);
   const { has } = usePermissions();
+  const search = useSearchParams();
+  const [tab, setTab] = useState<ProfileTab>((search?.get("tab") as ProfileTab) || "overview");
+  const [inductionBundle, setInductionBundle] = useState<InductionBundle | null>(null);
+  const [bundleLoading, setBundleLoading] = useState(true);
+  const [pdfBusy, setPdfBusy] = useState(false);
   const [showLog, setShowLog] = useState(false);
   // Key-person picker + archive flow (both children.manage-gated).
   const [pickingKeyPerson, setPickingKeyPerson] = useState(false);
@@ -58,12 +77,14 @@ export default function ChildDetailClient({ id }: { id: string }) {
   const load = async () => {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
-    const [c, b, r, d] = await Promise.allSettled([api.adminGetChild(token, id), api.adminGetBranches(token), api.adminGetRooms(token), api.adminGetDailyRecords(token, { child: id, approval: "approved", limit: 12 })]);
+    const [c, b, r, d, ind] = await Promise.allSettled([api.adminGetChild(token, id), api.adminGetBranches(token), api.adminGetRooms(token), api.adminGetDailyRecords(token, { child: id, approval: "approved", limit: 12 }), api.adminGetInduction(token, id)]);
     if (c.status === "fulfilled") setChild(c.value as Child);
     else setError("Child not found.");
     if (b.status === "fulfilled") setBranches((b.value as Branch[]) ?? []);
     if (r.status === "fulfilled") setRooms((r.value as Room[]) ?? []);
     if (d.status === "fulfilled") setRecords((d.value as DailyRecord[]) ?? []);
+    if (ind.status === "fulfilled") setInductionBundle(ind.value as InductionBundle);
+    setBundleLoading(false);
     setLoading(false);
   };
   useEffect(() => { void load(); }, [id]);
@@ -133,6 +154,20 @@ export default function ChildDetailClient({ id }: { id: string }) {
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to archive"); }
   };
 
+  // Full-profile PDF — the server composes identity + contacts + every
+  // induction answer + consents (+ SEND for send.manage callers) into one
+  // downloadable document.
+  const downloadPdf = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    setPdfBusy(true); setError(null);
+    try {
+      await downloadCsv(`/api/v1/admin/children/${id}/profile.pdf`, token);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "PDF export failed");
+    } finally { setPdfBusy(false); }
+  };
+
   const setGuardian = (i: number, patch: Partial<Guardian>) =>
     setForm((f) => (f ? { ...f, guardians: (f.guardians ?? []).map((g, gi) => (gi === i ? { ...g, ...patch } : g)) } : f));
   const addGuardian = () =>
@@ -188,6 +223,9 @@ export default function ChildDetailClient({ id }: { id: string }) {
         </div>
         {!editing ? (
           <div className="flex items-center gap-2">
+            <button type="button" onClick={() => void downloadPdf()} disabled={pdfBusy} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+              <FileDown className="h-4 w-4" /> {pdfBusy ? "Preparing…" : "Download PDF"}
+            </button>
             {has("children.manage") && child.status !== "left" && (
               <button type="button" onClick={() => { setLeaveDateDraft(new Date().toISOString().slice(0, 10)); setArchiving(true); }} className="inline-flex items-center gap-2 rounded-lg border border-amber-200 px-3 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50">
                 <Archive className="h-4 w-4" /> Mark as left
@@ -206,6 +244,17 @@ export default function ChildDetailClient({ id }: { id: string }) {
       </div>
 
       {!editing ? (
+        <>
+          <div className="mb-5 flex gap-1 overflow-x-auto border-b border-slate-200" role="tablist">
+            {PROFILE_TABS.map(([k, label]) => (
+              <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+                className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-semibold transition ${tab === k ? "border-teal-600 text-teal-700" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {tab === "overview" && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="card p-5 lg:col-span-2">
             <h2 className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-400">Profile</h2>
@@ -239,50 +288,11 @@ export default function ChildDetailClient({ id }: { id: string }) {
                   )}
                 </dd>
               </div>
+              <Item label="Home address" value={child.address || "—"} />
             </dl>
 
             <h2 className="mb-3 mt-6 text-sm font-bold uppercase tracking-widest text-slate-400">Allergies & dietary</h2>
-            <div className="space-y-3 text-sm">
-              <div>
-                <dt className="mb-1.5 text-xs uppercase tracking-wider text-slate-400">Allergies</dt>
-                {(child.allergy_tags ?? []).length === 0 && !child.allergies ? (
-                  <p className="text-slate-400">None recorded</p>
-                ) : (
-                  <>
-                    {(child.allergy_tags ?? []).length > 0 && (
-                      <div className="mb-1.5 flex flex-wrap gap-1.5">
-                        {(child.allergy_tags ?? []).map((code) => (
-                          <span key={code} className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700">
-                            {allergyTerms.find((t) => t.code === code)?.label ?? code}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {child.allergies && <p className="text-slate-800">{child.allergies}</p>}
-                  </>
-                )}
-              </div>
-              <div>
-                <dt className="mb-1.5 text-xs uppercase tracking-wider text-slate-400">Dietary</dt>
-                {(child.dietary_tags ?? []).length === 0 && !child.dietary_reqs ? (
-                  <p className="text-slate-400">None recorded</p>
-                ) : (
-                  <>
-                    {(child.dietary_tags ?? []).length > 0 && (
-                      <div className="mb-1.5 flex flex-wrap gap-1.5">
-                        {(child.dietary_tags ?? []).map((code) => (
-                          <span key={code} className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
-                            {dietaryTerms.find((t) => t.code === code)?.label ?? code}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {child.dietary_reqs && <p className="text-slate-800">{child.dietary_reqs}</p>}
-                  </>
-                )}
-              </div>
-              <Item label="Medical" value={child.medical_notes || "None recorded"} />
-            </div>
+            <AllergiesDietary child={child} allergyTerms={allergyTerms} dietaryTerms={dietaryTerms} />
 
             <h2 className="mb-3 mt-6 text-sm font-bold uppercase tracking-widest text-slate-400">Weekly sessions</h2>
             {(!child.sessions || child.sessions.length === 0) ? (
@@ -303,7 +313,6 @@ export default function ChildDetailClient({ id }: { id: string }) {
           </div>
 
           <div className="space-y-4">
-            <ChildParentsPanel childId={child.id} canManage={has("parents.manage")} />
             {has("send.manage") && (
               <SendSupportPanel
                 childId={child.id}
@@ -311,13 +320,6 @@ export default function ChildDetailClient({ id }: { id: string }) {
                 onStatusChange={(status) => setChild((c) => (c ? { ...c, send_status: status } : c))}
               />
             )}
-          </div>
-
-          {/* Onboarding progress + the four-eyes induction review (the ONLY
-              place a submitted induction is signed off — the submit
-              notification links here). */}
-          <div className="lg:col-span-3">
-            <ChildOnboardingPanel childId={child.id} canManage={has("children.manage")} />
           </div>
 
           {/* Room placement — current room, transfer with capacity/age
@@ -332,8 +334,44 @@ export default function ChildDetailClient({ id }: { id: string }) {
               openRequest={roomOpenRequest}
             />
           </div>
+        </div>
+          )}
 
-          <div className="card p-5 lg:col-span-3">
+          {/* Family & contacts — canonical parents/relationships + what the
+              family declared on the induction form (lives-with, legal contact,
+              authorised collectors incl. the collection password). */}
+          {tab === "family" && (
+            <div className="space-y-4">
+              <ChildParentsPanel childId={child.id} canManage={has("parents.manage")} />
+              <InductionAnswers bundle={inductionBundle} keys={["child_details", "family", "legal_contact", "collectors"]} loading={bundleLoading} />
+            </div>
+          )}
+
+          {/* Health & development — canonical allergy/dietary/medical record +
+              the induction health, professionals, routine, cultural and
+              development answers. */}
+          {tab === "health" && (
+            <div className="space-y-4">
+              <div className="card p-5">
+                <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-slate-400">Allergies & dietary (child record)</h2>
+                <AllergiesDietary child={child} allergyTerms={allergyTerms} dietaryTerms={dietaryTerms} />
+              </div>
+              <InductionAnswers bundle={inductionBundle} keys={["professionals", "health", "allergies_dietary", "cultural", "routine", "development", "equality"]} loading={bundleLoading} />
+            </div>
+          )}
+
+          {/* Induction & consents — onboarding progress, the four-eyes review
+              (the ONLY sign-off surface; the submit notification links here)
+              and the latest decision per consent item. */}
+          {tab === "induction" && (
+            <div className="space-y-4">
+              <ChildOnboardingPanel childId={child.id} canManage={has("children.manage")} />
+              <ConsentsCard childId={child.id} />
+            </div>
+          )}
+
+          {tab === "records" && (
+          <div className="card p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-bold uppercase tracking-widest text-slate-400">Recent daily records</h2>
               <div className="flex items-center gap-3">
@@ -357,7 +395,8 @@ export default function ChildDetailClient({ id }: { id: string }) {
               </ul>
             )}
           </div>
-        </div>
+          )}
+        </>
       ) : form && (
         <div className="card grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
           <Field label="First name"><input value={form.first_name} onChange={(e) => setField({ first_name: e.target.value })} className="inp" /></Field>
@@ -503,6 +542,58 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label className="mb-1 block text-xs uppercase tracking-wider text-slate-400">{label}</label>
       {children}
+    </div>
+  );
+}
+
+// The ONE allergies/dietary/medical rendering — shown on the Overview card
+// (safety at a glance) and the Health tab, from a single implementation.
+function AllergiesDietary({ child, allergyTerms, dietaryTerms }: {
+  child: Child;
+  allergyTerms: { code: string; label: string }[];
+  dietaryTerms: { code: string; label: string }[];
+}) {
+  return (
+    <div className="space-y-3 text-sm">
+      <div>
+        <dt className="mb-1.5 text-xs uppercase tracking-wider text-slate-400">Allergies</dt>
+        {(child.allergy_tags ?? []).length === 0 && !child.allergies ? (
+          <p className="text-slate-400">None recorded</p>
+        ) : (
+          <>
+            {(child.allergy_tags ?? []).length > 0 && (
+              <div className="mb-1.5 flex flex-wrap gap-1.5">
+                {(child.allergy_tags ?? []).map((code) => (
+                  <span key={code} className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700">
+                    {allergyTerms.find((t) => t.code === code)?.label ?? code}
+                  </span>
+                ))}
+              </div>
+            )}
+            {child.allergies && <p className="text-slate-800">{child.allergies}</p>}
+          </>
+        )}
+      </div>
+      <div>
+        <dt className="mb-1.5 text-xs uppercase tracking-wider text-slate-400">Dietary</dt>
+        {(child.dietary_tags ?? []).length === 0 && !child.dietary_reqs ? (
+          <p className="text-slate-400">None recorded</p>
+        ) : (
+          <>
+            {(child.dietary_tags ?? []).length > 0 && (
+              <div className="mb-1.5 flex flex-wrap gap-1.5">
+                {(child.dietary_tags ?? []).map((code) => (
+                  <span key={code} className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                    {dietaryTerms.find((t) => t.code === code)?.label ?? code}
+                  </span>
+                ))}
+              </div>
+            )}
+            {child.dietary_reqs && <p className="text-slate-800">{child.dietary_reqs}</p>}
+          </>
+        )}
+      </div>
+      <Item label="Medical" value={child.medical_notes || "None recorded"} />
     </div>
   );
 }

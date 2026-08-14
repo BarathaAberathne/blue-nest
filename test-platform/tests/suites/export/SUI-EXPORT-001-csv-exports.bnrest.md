@@ -24,4 +24,5 @@ Call ../../utils/auth/AUTH-UTIL-001-login.bnrest.md With Json Into adminSession
 Body
 Call CatchError ../../cases/export/EXPORT-TC-001-csv-endpoints.bnrest.md
 Call CatchError ../../cases/export/EXPORT-TC-002-xlsx-format.bnrest.md
+Call CatchError ../../cases/export/EXPORT-TC-003-child-profile-pdf.bnrest.md
 ```

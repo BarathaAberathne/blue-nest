@@ -677,12 +677,21 @@ Amazon Business API (Product Search → Cart → Ordering), then full inventory/
     canonical fields** (allergies/dietary/medical → Child tags, address → `Child.Address` — never duplicated);
     submit gated on required sections; **four-eyes review** (reviewer ≠ submitter). Append-only `consents`
     (17-item catalogue, typed signature, latest-row-wins via `LatestConsents`). Frontend: portal wizard
-    (`lib/induction.ts` field catalogue + generic `InductionSectionForm`); admin side =
-    **`ChildOnboardingPanel`** on the child profile (completeness bar + read-only per-section answers from
-    the shared field catalogue + the **Sign off review** action — the ONLY caller of
+    (`lib/induction.ts` field catalogue + generic `InductionSectionForm`); admin side = the **tabbed FULL
+    child profile** (`ChildDetailClient`, tabs Overview · Family & contacts · Health & development ·
+    Induction & consents · Daily records, `?tab=` deep-linkable): every induction answer surfaces for staff
+    via `InductionAnswers` (read-only cards from the same field catalogue — family/legal-contact/collectors
+    on the Family tab, professionals/health/routine/cultural/development on the Health tab), consents via
+    `ConsentsCard` (latest decision per catalogue item), and **`ChildOnboardingPanel`** (completeness bar +
+    collapsible answers + the **Sign off review** action — the ONLY caller of
     `POST /admin/children/{id}/induction/review`; the submit notification links here, and the
     `/admin/onboarding` board shows a **Review induction** link on awaiting_review rows). Before this panel
     the review endpoint had no UI caller, so a submitted induction could never reach `reviewed`.
+    **Full-profile PDF (first Phase-E PDF export):** `GET /admin/children/{id}/profile.pdf`
+    (`service.ChildProfilePDFService`, `go-pdf/fpdf`) composes identity + contacts/roles + every induction
+    answer (data-driven — schemaless keys humanised, no second field catalogue to drift) + latest consents
+    + SEND (included ONLY for send.manage callers) into an A4 attachment; "Download PDF" on the profile
+    header (reuses `downloadCsv`). Locked by `EXPORT-TC-003` + `child_profile_pdf_test.go`.
   - **Derived onboarding:** `computeOnboarding` (`service/onboarding.go`, pure + unit-tested) — 7 weighted
     categories (child_info 20 / parents 15 / emergency 10 / medical 15 / consents 10 / induction 15 /
     finance 15) + status machine (registration_started → induction_* → awaiting_review →

@@ -15,28 +15,9 @@ import { CheckCircle2, ChevronDown, ChevronRight, ClipboardList } from "lucide-r
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import StageBadge from "@/components/admin/ui/StageBadge";
-import { INDUCTION_FIELDS, inductionStatusAccent, onboardingStatusAccent, onboardingStatusLabel } from "@/lib/induction";
+import { INDUCTION_FIELDS, answerText, inductionStatusAccent, inductionStatusLabel, onboardingStatusAccent, onboardingStatusLabel } from "@/lib/induction";
 import { fmtDate } from "@/lib/child";
 import type { InductionBundle, OnboardingView } from "@/types";
-
-const inductionStatusLabel: Record<string, string> = {
-  not_started: "Not started",
-  in_progress: "In progress",
-  submitted: "Submitted — awaiting review",
-  reviewed: "Reviewed",
-};
-
-/** Render one stored answer for read-only review. */
-function answerText(value: unknown): string {
-  if (value === true) return "Yes";
-  if (value === false) return "No";
-  if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
-  const s = String(value ?? "").trim();
-  // The portal wizard stores yes/no answers as the strings "yes"/"no".
-  if (s.toLowerCase() === "yes") return "Yes";
-  if (s.toLowerCase() === "no") return "No";
-  return s || "—";
-}
 
 export default function ChildOnboardingPanel({ childId, canManage }: { childId: string; canManage: boolean }) {
   const [onboarding, setOnboarding] = useState<OnboardingView | null>(null);

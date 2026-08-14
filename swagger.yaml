@@ -1829,6 +1829,17 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChildStats' } } } }
 
+  /admin/children/{id}/profile.pdf:
+    get:
+      tags: [Children]
+      summary: Download the FULL child profile as a PDF (identity, contacts, induction answers, consents; SEND section only for send.manage callers)
+      operationId: downloadChildProfilePDF
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: PDF attachment, content: { application/pdf: { schema: { type: string, format: binary } } } }
+        '403': { description: Outside the caller's branch scope }
+        '404': { description: Child not found }
   /admin/children/{id}:
     get:
       tags: [Children]

@@ -99,6 +99,26 @@ export const inductionStatusAccent: Record<string, "slate" | "amber" | "indigo" 
   not_started: "slate", in_progress: "amber", submitted: "indigo", reviewed: "teal",
 };
 
+export const inductionStatusLabel: Record<string, string> = {
+  not_started: "Not started",
+  in_progress: "In progress",
+  submitted: "Submitted — awaiting review",
+  reviewed: "Reviewed",
+};
+
+/** Render one stored induction answer read-only (the wizard stores yes/no
+ * answers as the strings "yes"/"no"). Shared by the profile tabs, the review
+ * panel and mirrored server-side by the profile PDF. */
+export function answerText(value: unknown): string {
+  if (value === true) return "Yes";
+  if (value === false) return "No";
+  if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
+  const s = String(value ?? "").trim();
+  if (s.toLowerCase() === "yes") return "Yes";
+  if (s.toLowerCase() === "no") return "No";
+  return s || "—";
+}
+
 export const onboardingStatusLabel: Record<string, string> = {
   registration_started: "Registration started",
   induction_required: "Induction required",

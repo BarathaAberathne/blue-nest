@@ -43,6 +43,7 @@ type Services struct {
 	DashboardProfiles service.DashboardProfileService
 	Rooms             service.RoomService
 	Children          service.ChildService
+	ChildProfilePDF   service.ChildProfilePDFService
 	Parents           service.ParentService
 	Induction         service.InductionService
 	Onboarding        service.OnboardingService
@@ -451,6 +452,8 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Post("/admin/children/{id}/transfer-room", adminChildRoomH.Transfer)
 
 				adminChildH := adminHandler.NewAdminChildHandler(svc.Children, svc.Audit)
+				childPDFH := adminHandler.NewChildProfilePDFHandler(svc.ChildProfilePDF, svc.Children)
+				r.Get("/admin/children/{id}/profile.pdf", childPDFH.Download)
 				r.Get("/admin/children", adminChildH.List)
 				r.Get("/admin/children/export", adminChildH.Export)
 				r.Get("/admin/children/stats", adminChildH.Stats)

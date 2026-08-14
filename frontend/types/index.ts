@@ -1109,6 +1109,8 @@ export interface Child {
   send_status?: SendStatus;
   dob?: string; // YYYY-MM-DD
   gender?: string;
+  // Home address (induction write-through from the child_details section).
+  address?: string;
   branch_slug: string;
   room_id?: string;
   room_name?: string; // computed projection of the active room assignment
