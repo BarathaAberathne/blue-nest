@@ -9,9 +9,9 @@ import ProspectusDownloadLink from "./ProspectusDownloadLink";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/admission/prospectus" },
-  title: "Nursery Prospectus — Blue Nest Montessori (Free PDF)",
+  title: "Nursery Prospectus — Blue Nest Montessori",
   description:
-    "Download the Blue Nest Montessori prospectus — a free PDF guide to our Harrow, Pinner, Borehamwood and Aldershot Montessori day nurseries. Covers daily routines, EYFS curriculum, forest school, fees and funded childcare.",
+    "Request the Blue Nest Montessori prospectus — a free guide to our Harrow, Pinner, Borehamwood and Aldershot Montessori day nurseries. Covers daily routines, EYFS curriculum, forest school, fees and funded childcare.",
   openGraph: {
     title: "Nursery Prospectus — Blue Nest Montessori",
     description:
