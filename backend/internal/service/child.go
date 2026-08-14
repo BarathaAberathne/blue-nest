@@ -70,9 +70,29 @@ func NewChildService(repo repository.ChildRepository, rooms repository.RoomRepos
 }
 
 func (s *childService) List(ctx context.Context, f repository.ChildFilter) ([]models.Child, error) {
+	// The stored room_id scalar was removed in the room-allocation migration —
+	// a ?room= filter must resolve through the canonical assignments, not the
+	// (now nonexistent) field on the child document.
+	roomFilter := f.Room
+	f.Room = ""
 	children, err := s.repo.FindAll(ctx, f)
 	if err != nil {
 		return nil, err
+	}
+	if roomFilter != "" && s.roomAssignments != nil {
+		inRoom := map[string]bool{}
+		for childID, rid := range s.roomAssignments.CurrentRoomsByBranch(ctx, f.Branch) {
+			if rid == roomFilter {
+				inRoom[childID] = true
+			}
+		}
+		filtered := children[:0]
+		for _, c := range children {
+			if inRoom[c.ID.Hex()] {
+				filtered = append(filtered, c)
+			}
+		}
+		children = filtered
 	}
 	// Project the computed current room from the canonical assignment model
 	// (one batched query — no stored scalar, no N+1).

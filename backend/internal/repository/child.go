@@ -55,9 +55,8 @@ func (r *childRepository) FindAll(ctx context.Context, f ChildFilter) ([]models.
 	if f.Branch != "" {
 		filter["branch_slug"] = f.Branch
 	}
-	if f.Room != "" {
-		filter["room_id"] = f.Room
-	}
+	// NOTE: no room filter here — room placement lives in the canonical
+	// child_room_assignments; the service layer resolves ChildFilter.Room.
 	if f.Status != "" {
 		filter["status"] = f.Status
 	}

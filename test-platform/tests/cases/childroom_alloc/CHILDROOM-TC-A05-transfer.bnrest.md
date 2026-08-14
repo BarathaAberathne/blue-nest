@@ -39,6 +39,16 @@ And AssertJson hist "$.body.data[?(@.id=='${start.body.data.id}' && @.status=='e
 When Get /api/v1/admin/children/${child.id} Into childRec Using adminSession.accessToken
 Then Assert childRec.body.data.room_id == room2.id
 
+# The API-side ?room= filter resolves through the canonical assignments (the
+# stored room_id scalar no longer exists — regression lock for the fix).
+When Get /api/v1/admin/children?room=${room2.id} Into roster Using adminSession.accessToken
+Then AssertStatus roster 200
+And AssertJson roster "$.body.data[?(@.id=='${child.id}')]" == 1
+
+When Get /api/v1/admin/children?room=${room.id} Into oldRoster Using adminSession.accessToken
+Then AssertStatus oldRoster 200
+And AssertJson oldRoster "$.body.data[?(@.id=='${child.id}')]" == 0
+
 Teardown
 Patch /api/v1/admin/child-room-assignments/${moved.body.data.id} Using adminSession.accessToken
 { "end": true }
