@@ -73,6 +73,14 @@ func (s *inductionService) SaveSection(ctx context.Context, childID, sectionKey 
 	if ind.Status == models.InductionReviewed {
 		return nil, errors.New("this induction has been signed off — ask the nursery to reopen it")
 	}
+	// Backstop for the wizard's field-level validation: a section can only be
+	// COMPLETE when it actually contains at least one answered value — clicking
+	// Next on an untouched section (or any client sending complete=true with
+	// empty data) must never mark it done. The field catalogue lives client-side
+	// (lib/induction.ts), so this is deliberately schema-agnostic.
+	if req.Complete && !hasAnsweredValue(req.Data) {
+		return nil, errors.New("fill in the section before it can be marked complete")
+	}
 	if ind.Sections == nil {
 		ind.Sections = map[string]models.InductionSection{}
 	}
@@ -90,6 +98,33 @@ func (s *inductionService) SaveSection(ctx context.Context, childID, sectionKey 
 	}
 	s.writeThrough(ctx, childID, sectionKey, req.Data)
 	return s.repo.Upsert(ctx, ind)
+}
+
+// hasAnsweredValue reports whether at least one value in an induction
+// section's data is a real answer (non-blank string, true bool, non-empty
+// list, or any number).
+func hasAnsweredValue(data map[string]any) bool {
+	for _, v := range data {
+		switch t := v.(type) {
+		case nil:
+			continue
+		case string:
+			if strings.TrimSpace(t) != "" {
+				return true
+			}
+		case bool:
+			if t {
+				return true
+			}
+		case []any:
+			if len(t) > 0 {
+				return true
+			}
+		default:
+			return true
+		}
+	}
+	return false
 }
 
 // writeThrough pushes canonical-home fields onto the Child record.

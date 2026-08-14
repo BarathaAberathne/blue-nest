@@ -675,7 +675,17 @@ Amazon Business API (Product Search → Cart → Ordering), then full inventory/
   - **Induction & consents:** `ChildInduction` (`models/induction.go`, 11 catalogue-driven sections,
     save/resume from portal or admin, post-submit edits revert to in_progress) with **write-through to
     canonical fields** (allergies/dietary/medical → Child tags, address → `Child.Address` — never duplicated);
-    submit gated on required sections; **four-eyes review** (reviewer ≠ submitter). Append-only `consents`
+    submit gated on required sections; **four-eyes review** (reviewer ≠ submitter). **Section completeness
+    is EARNED, not click-through** (fixed — the wizard's Next used to mark every section complete
+    regardless of content): the field catalogue (`lib/induction.ts`) carries per-field `required` flags and
+    `sectionMissing()` computes `complete` from actually-answered required fields; all-optional sections
+    (allergies/development/equality) need at least one answer OR the explicit
+    `confirmed_nothing_to_record` declaration checkbox; the wizard saves untouched sections as in-progress
+    with a "still needed: …" notice, and the server backstop (`hasAnsweredValue` in
+    `inductionService.SaveSection`) rejects `complete:true` with no answered value regardless of client.
+    The wizard's Review & submit step also surfaces **Direct Debit setup as a required completion step**
+    (amber CTA → /portal/payments while the mandate isn't active — the onboarding gate already holds
+    ready_to_start on it). Locked by `INDUCT-TC-004` + `induction_completeness_test.go`. Append-only `consents`
     (17-item catalogue, typed signature, latest-row-wins via `LatestConsents`). Frontend: portal wizard
     (`lib/induction.ts` field catalogue + generic `InductionSectionForm`); admin side = the **tabbed FULL
     child profile** (`ChildDetailClient`, tabs Overview · Family & contacts · Health & development ·

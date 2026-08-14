@@ -39,6 +39,8 @@ Call ../../utils/auth/AUTH-UTIL-001-login.bnrest.md With Json Into reviewerSessi
 { "email": "qa-autotest-reviewer-${reviewerSuffix}@bluenest.test", "password": "Reviewer-2026!" }
 
 Body
+# TC-004 first — it needs a not-yet-reviewed induction (TC-001 signs it off).
+Call CatchError ../../cases/induction/INDUCT-TC-004-empty-complete-rejected.bnrest.md
 Call CatchError ../../cases/induction/INDUCT-TC-001-sections-writethrough-review.bnrest.md
 Call CatchError ../../cases/induction/INDUCT-TC-002-consents-and-completeness.bnrest.md
 Call CatchError ../../cases/induction/INDUCT-TC-003-portal-parent-path.bnrest.md
