@@ -878,7 +878,9 @@ export const api = {
     apiFetch<AttendanceRecord>("/api/v1/admin/attendance/mark", { method: "PATCH", body: JSON.stringify(body), token }),
 
   // People / HR - staff
-  adminGetStaff: (token: string, params?: { branch?: string; status?: string; type?: string; q?: string }) => {
+  // `room` filters by CURRENT primary room — resolved server-side via the
+  // canonical staff_room_assignments (staff.room_id is a computed projection).
+  adminGetStaff: (token: string, params?: { branch?: string; room?: string; status?: string; type?: string; q?: string }) => {
     const qs = new URLSearchParams();
     if (params) for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
     const s = qs.toString();

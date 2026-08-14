@@ -93,6 +93,11 @@ func (s *staffService) provisionLogin(ctx context.Context, st *models.Staff, req
 }
 
 func (s *staffService) List(ctx context.Context, f repository.StaffFilter) ([]models.Staff, error) {
+	// Room placement lives in the canonical staff_room_assignments — a ?room=
+	// filter resolves through them, never a stored field (same pattern as
+	// childService.List).
+	roomFilter := f.Room
+	f.Room = ""
 	staff, err := s.repo.FindAll(ctx, f)
 	if err != nil {
 		return nil, err
@@ -107,6 +112,15 @@ func (s *staffService) List(ctx context.Context, f repository.StaffFilter) ([]mo
 				staff[i].RoomID = rid
 				staff[i].RoomName = names[rid]
 			}
+		}
+		if roomFilter != "" {
+			filtered := staff[:0]
+			for _, st := range staff {
+				if st.RoomID == roomFilter {
+					filtered = append(filtered, st)
+				}
+			}
+			staff = filtered
 		}
 	}
 	return staff, nil

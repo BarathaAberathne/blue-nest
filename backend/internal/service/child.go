@@ -106,6 +106,29 @@ func (s *childService) List(ctx context.Context, f repository.ChildFilter) ([]mo
 			}
 		}
 	}
+	// Project key-person names the same batched way — the CSV/Excel export's
+	// "Key person" column reads it from this list (it used to come back blank
+	// because only GetByID resolved it).
+	kpNeeded := false
+	for i := range children {
+		if children[i].KeyPersonID != "" {
+			kpNeeded = true
+			break
+		}
+	}
+	if kpNeeded && s.staff != nil {
+		if staff, err := s.staff.FindAll(ctx, repository.StaffFilter{Branch: f.Branch}); err == nil {
+			names := make(map[string]string, len(staff))
+			for _, st := range staff {
+				names[st.ID.Hex()] = strings.TrimSpace(st.FirstName + " " + st.LastName)
+			}
+			for i := range children {
+				if children[i].KeyPersonID != "" {
+					children[i].KeyPersonName = names[children[i].KeyPersonID]
+				}
+			}
+		}
+	}
 	return children, nil
 }
 func (s *childService) GetByID(ctx context.Context, id string) (*models.Child, error) {

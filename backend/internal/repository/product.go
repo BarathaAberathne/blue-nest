@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -34,8 +35,21 @@ type productRepository struct {
 }
 
 func NewProductRepository(db *mongo.Database) ProductRepository {
+	col := db.Collection("products")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	// Product slugs are unique per org. Historically this index only existed
+	// where an old seed/manual step had created it — a fresh database silently
+	// accepted duplicate slugs (found when the from-scratch baseline made
+	// STORE-TC-004's gap lock fail). Ensured at boot like uniq_branch_slug_per_org.
+	if _, err := col.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "slug", Value: 1}},
+		Options: options.Index().SetName("uniq_product_slug_per_org").SetUnique(true),
+	}); err != nil {
+		slog.Warn("products: could not create {org_id, slug} unique index", "err", err)
+	}
 	return &productRepository{
-		products:   NewTenantCollection(db, "products"),
+		products:   NewTenantCollectionFrom(col),
 		categories: NewTenantCollection(db, "categories"),
 	}
 }
