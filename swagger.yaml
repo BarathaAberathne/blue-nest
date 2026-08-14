@@ -1829,6 +1829,46 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChildStats' } } } }
 
+  /admin/child-room-assignments/bulk-transfer:
+    post:
+      tags: [Children]
+      summary: Bulk-transfer children into one room (age-group promotion). Each child runs the full canonical transfer — a partial batch is a 200 with per-child ok/error rows, never an all-or-nothing abort.
+      operationId: bulkTransferChildren
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [child_ids, room_id, reason]
+              properties:
+                child_ids: { type: array, items: { type: string }, maxItems: 100 }
+                room_id: { type: string }
+                effective_date: { type: string, format: date, description: Defaults to today; a future date schedules the moves }
+                reason: { type: string }
+                notes: { type: string }
+                override_reason: { type: string, description: Required to pass a failed capacity/age check (applies to every child in the batch) }
+      responses:
+        '200':
+          description: Per-child results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        child_id: { type: string }
+                        child_name: { type: string }
+                        ok: { type: boolean }
+                        error: { type: string }
+                  moved: { type: integer }
+                  requested: { type: integer }
+        '400': { description: No children selected / more than 100 }
   /admin/children/{id}/profile.pdf:
     get:
       tags: [Children]

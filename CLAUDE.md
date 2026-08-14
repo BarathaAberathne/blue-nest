@@ -456,7 +456,13 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   allocation is rejected on age/capacity, the just-created child/staff is deleted so the create stays atomic).
   Rooms gained `min_age_months`/`max_age_months`/`status`; allocation enforces same-branch + active + capacity
   + age, each overridable only with a stored `override_reason` (audit-logged). Transfers close the old row and
-  open a new one (future-dated → `scheduled`, lazily activated). The one-shot room-allocation migration
+  open a new one (future-dated → `scheduled`, lazily activated). **Bulk transfer (age-group promotion,
+  delivered):** `POST /admin/child-room-assignments/bulk-transfer` moves a selected cohort into ONE room —
+  a thin loop over the canonical Transfer (no second allocation implementation), so every per-child guard
+  applies, capacity is consumed incrementally, and a partial batch is a 200 with per-child ok/error rows
+  (audited `bulk_transfer_children`). UI: the room profile's Children tab gains **Move children**
+  (checkbox selection → target room + effective date + reason + optional override; failures stay selected
+  for retry). A future effective date schedules the September-style move-up. Locked by `CHILDROOM-TC-A11`. The one-shot room-allocation migration
   (formerly `cmd/migrateroomassignments`) mapped legacy `room_id` scalars into the assignment collections;
   it is complete (local-only, never needed on prod) and the command is now **retired**. Full design in `docs/rooms/*` and the
   consolidation rationale in `docs/architecture/duplicate-implementation-audit.md`.

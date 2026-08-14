@@ -698,6 +698,11 @@ export const api = {
     apiFetch<ChildRoomAssignment>("/api/v1/admin/child-room-assignments", { method: "POST", body: JSON.stringify(body), token }),
   adminEndChildRoomAssignment: (token: string, id: string, body?: { end_date?: string; reason?: string }) =>
     apiFetch<ChildRoomAssignment>(`/api/v1/admin/child-room-assignments/${id}`, { method: "PATCH", body: JSON.stringify({ end: true, ...body }), token }),
+  // Bulk age-group promotion: several children into one room, each through the
+  // full canonical transfer — the response reports ok/error per child.
+  adminBulkTransferChildren: (token: string, body: { child_ids: string[]; room_id: string; effective_date?: string; reason: string; notes?: string; override_reason?: string }) =>
+    apiFetch<{ results: { child_id: string; child_name?: string; ok: boolean; error?: string }[]; moved: number; requested: number }>(
+      "/api/v1/admin/child-room-assignments/bulk-transfer", { method: "POST", body: JSON.stringify(body), token }),
   adminTransferChildRoom: (token: string, childId: string, body: ChildTransferInput) =>
     apiFetch<ChildRoomAssignment>(`/api/v1/admin/children/${childId}/transfer-room`, { method: "POST", body: JSON.stringify(body), token }),
 

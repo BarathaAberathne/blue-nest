@@ -355,6 +355,11 @@ func (s *staffRoomAssignmentService) ListForRoom(ctx context.Context, roomID str
 type ChildRoomAssignmentService interface {
 	Assign(ctx context.Context, req models.ChildRoomAssignmentRequest, actor string, allowed []string) (*models.ChildRoomAssignment, error)
 	Transfer(ctx context.Context, childID string, req models.ChildTransferRequest, actor string, allowed []string) (*models.ChildRoomAssignment, error)
+	// BulkTransfer moves several children into one room (age-group promotion).
+	// Each child runs through the FULL canonical Transfer sequentially, so all
+	// guards apply per child and capacity is consumed incrementally; the batch
+	// never aborts — every child gets an ok/error row.
+	BulkTransfer(ctx context.Context, req models.BulkChildTransferRequest, actor string, allowed []string) []models.BulkChildTransferResult
 	End(ctx context.Context, id string, req models.ChildRoomAssignmentUpdate, actor string, allowed []string) (*models.ChildRoomAssignment, error)
 	ListForChild(ctx context.Context, childID string, allowed []string) ([]models.ChildRoomAssignment, error)
 	ListForRoom(ctx context.Context, roomID string, includeHistory bool, allowed []string) ([]models.ChildRoomAssignment, error)
@@ -583,6 +588,35 @@ func (s *childRoomAssignmentService) Assign(ctx context.Context, req models.Chil
 	a.ChildName = strings.TrimSpace(child.FirstName + " " + child.LastName)
 	a.AppliedOverrides = overrides
 	return a, nil
+}
+
+// BulkTransfer promotes a cohort into one room. Deliberately a thin loop over
+// the canonical Transfer — no second allocation implementation — so every
+// per-child rule (same branch, active room, capacity, age band, override
+// reason) applies exactly as a one-by-one move would, and the child that
+// overflows the target's capacity fails alone instead of aborting the batch.
+func (s *childRoomAssignmentService) BulkTransfer(ctx context.Context, req models.BulkChildTransferRequest, actor string, allowed []string) []models.BulkChildTransferResult {
+	single := models.ChildTransferRequest{
+		RoomID:         req.RoomID,
+		EffectiveDate:  req.EffectiveDate,
+		Reason:         req.Reason,
+		Notes:          req.Notes,
+		OverrideReason: req.OverrideReason,
+	}
+	out := make([]models.BulkChildTransferResult, 0, len(req.ChildIDs))
+	for _, id := range req.ChildIDs {
+		res := models.BulkChildTransferResult{ChildID: id}
+		if c, err := s.children.FindByID(ctx, id); err == nil && c != nil {
+			res.ChildName = strings.TrimSpace(c.FirstName + " " + c.LastName)
+		}
+		if _, err := s.Transfer(ctx, id, single, actor, allowed); err != nil {
+			res.Error = err.Error()
+		} else {
+			res.OK = true
+		}
+		out = append(out, res)
+	}
+	return out
 }
 
 func (s *childRoomAssignmentService) Transfer(ctx context.Context, childID string, req models.ChildTransferRequest, actor string, allowed []string) (*models.ChildRoomAssignment, error) {

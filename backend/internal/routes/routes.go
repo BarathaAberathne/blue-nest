@@ -452,6 +452,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Patch("/admin/child-room-assignments/{id}", adminChildRoomH.End)
 				r.Get("/admin/children/{id}/room-assignments", adminChildRoomH.ListForChild)
 				r.Post("/admin/children/{id}/transfer-room", adminChildRoomH.Transfer)
+				r.Post("/admin/child-room-assignments/bulk-transfer", adminChildRoomH.BulkTransfer)
 
 				adminChildH := adminHandler.NewAdminChildHandler(svc.Children, svc.Audit)
 				childPDFH := adminHandler.NewChildProfilePDFHandler(svc.ChildProfilePDF, svc.Children)
