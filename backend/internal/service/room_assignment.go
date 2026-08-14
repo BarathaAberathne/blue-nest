@@ -358,8 +358,10 @@ type ChildRoomAssignmentService interface {
 	// BulkTransfer moves several children into one room (age-group promotion).
 	// Each child runs through the FULL canonical Transfer sequentially, so all
 	// guards apply per child and capacity is consumed incrementally; the batch
-	// never aborts — every child gets an ok/error row.
-	BulkTransfer(ctx context.Context, req models.BulkChildTransferRequest, actor string, allowed []string) []models.BulkChildTransferResult
+	// never aborts — every child gets an ok/error row. roomLabel is the
+	// human-readable target ("Name (CODE)") for audit summaries/UI — logs must
+	// never carry a bare database id.
+	BulkTransfer(ctx context.Context, req models.BulkChildTransferRequest, actor string, allowed []string) (results []models.BulkChildTransferResult, roomLabel string)
 	End(ctx context.Context, id string, req models.ChildRoomAssignmentUpdate, actor string, allowed []string) (*models.ChildRoomAssignment, error)
 	ListForChild(ctx context.Context, childID string, allowed []string) ([]models.ChildRoomAssignment, error)
 	ListForRoom(ctx context.Context, roomID string, includeHistory bool, allowed []string) ([]models.ChildRoomAssignment, error)
@@ -595,7 +597,16 @@ func (s *childRoomAssignmentService) Assign(ctx context.Context, req models.Chil
 // per-child rule (same branch, active room, capacity, age band, override
 // reason) applies exactly as a one-by-one move would, and the child that
 // overflows the target's capacity fails alone instead of aborting the batch.
-func (s *childRoomAssignmentService) BulkTransfer(ctx context.Context, req models.BulkChildTransferRequest, actor string, allowed []string) []models.BulkChildTransferResult {
+func (s *childRoomAssignmentService) BulkTransfer(ctx context.Context, req models.BulkChildTransferRequest, actor string, allowed []string) ([]models.BulkChildTransferResult, string) {
+	// Resolve the target once for a readable audit/display label — "Name (CODE)"
+	// with the id only as a last-resort fallback for an unresolvable room.
+	roomLabel := req.RoomID
+	if room, err := s.rooms.FindByID(ctx, req.RoomID); err == nil && room != nil {
+		roomLabel = room.Name
+		if room.Code != "" {
+			roomLabel += " (" + room.Code + ")"
+		}
+	}
 	single := models.ChildTransferRequest{
 		RoomID:         req.RoomID,
 		EffectiveDate:  req.EffectiveDate,
@@ -616,7 +627,7 @@ func (s *childRoomAssignmentService) BulkTransfer(ctx context.Context, req model
 		}
 		out = append(out, res)
 	}
-	return out
+	return out, roomLabel
 }
 
 func (s *childRoomAssignmentService) Transfer(ctx context.Context, childID string, req models.ChildTransferRequest, actor string, allowed []string) (*models.ChildRoomAssignment, error) {

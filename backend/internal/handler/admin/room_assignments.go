@@ -223,20 +223,22 @@ func (h *AdminChildRoomAssignmentHandler) BulkTransfer(w http.ResponseWriter, r 
 		return
 	}
 	role, scope := caller(r)
-	results := h.svc.BulkTransfer(r.Context(), req, actorID(r), policy.AllowedOrNil(role, scope))
+	results, roomLabel := h.svc.BulkTransfer(r.Context(), req, actorID(r), policy.AllowedOrNil(role, scope))
 	moved := 0
 	for _, res := range results {
 		if res.OK {
 			moved++
 		}
 	}
+	// The summary is the human-readable activity line — always the resolved
+	// room name (+ code), never a bare db id (that lives in details.room_id).
 	h.audit.Record(r, "bulk_transfer_children", "child_room_assignment", req.RoomID,
-		fmt.Sprintf("Bulk-transferred %d of %d children to room %s — %s", moved, len(results), req.RoomID, req.Reason),
+		fmt.Sprintf("Bulk-transferred %d of %d children to %s — %s", moved, len(results), roomLabel, req.Reason),
 		auditDetails(r, map[string]interface{}{
-			"room_id": req.RoomID, "effective_date": req.EffectiveDate,
+			"room_id": req.RoomID, "room": roomLabel, "effective_date": req.EffectiveDate,
 			"requested": len(results), "moved": moved, "reason": req.Reason,
 		}))
-	response.OK(w, map[string]interface{}{"results": results, "moved": moved, "requested": len(results)})
+	response.OK(w, map[string]interface{}{"results": results, "moved": moved, "requested": len(results), "room": roomLabel})
 }
 
 // End serves PATCH /admin/child-room-assignments/{id}.
