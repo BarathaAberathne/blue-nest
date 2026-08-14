@@ -6,7 +6,6 @@
 // where online DD isn't configured.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import BackLink from "@/components/admin/ui/BackLink";
 import Link from "next/link";
 import { PoundSterling } from "lucide-react";
 import { api } from "@/lib/api";
@@ -95,7 +94,6 @@ export default function FamilyClient({ familyId }: { familyId: string }) {
     <>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <BackLink fallback="/admin/finance" className="mb-1 inline-flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-teal-600" />
           <h1 className="flex items-center gap-2 font-heading text-2xl font-bold text-slate-900"><PoundSterling className="h-6 w-6 text-teal-600" /> {f.name}</h1>
           <p className="mt-0.5 text-sm text-slate-500">
             {f.ref && <span className="mr-2 font-mono text-xs">{f.ref}</span>}

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, X, ShieldCheck } from "lucide-react";
-import BackLink from "@/components/admin/ui/BackLink";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { usePermissions } from "@/lib/usePermissions";
@@ -86,7 +85,6 @@ export default function DailyLogDetailClient({ id }: { id: string }) {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <BackLink fallback="/admin/daily-log" />
 
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 

@@ -399,9 +399,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           className="sticky top-0 z-30 flex items-center gap-3 border-b border-[var(--adm-line)] px-7 py-3.5 backdrop-blur-md"
           style={{ backgroundColor: "color-mix(in srgb, var(--adm-bg) 85%, transparent)" }}
         >
+          {/* THE one back control for the whole admin shell — real history
+              back, with the user's landing page as the deep-link/fresh-tab
+              fallback. Detail pages must NOT add their own back arrows. */}
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => {
+              if (typeof window !== "undefined" && window.history.length > 1) router.back();
+              else router.push(firstAllowedHref);
+            }}
             aria-label="Go back"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--adm-line)] bg-[var(--adm-card)] text-[var(--adm-ink-2)] transition-colors hover:border-[var(--adm-accent-tint-2)] hover:text-[var(--adm-ink)]"
           >

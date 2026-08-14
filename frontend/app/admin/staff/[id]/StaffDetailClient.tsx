@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import BackLink from "@/components/admin/ui/BackLink";
 import Link from "next/link";
 import {
   Award, Baby, BadgeCheck, CalendarClock, CalendarDays, CalendarX, Check, CheckCircle2,
@@ -239,7 +238,6 @@ export default function StaffDetailClient({ id }: { id: string }) {
 
   return (
     <>
-      <BackLink fallback="/admin/staff" />
 
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 

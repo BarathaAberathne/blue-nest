@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Archive, ArrowRightLeft, FileDown, Pencil, Plus, Save, Trash2, UserCheck, X } from "lucide-react";
-import BackLink from "@/components/admin/ui/BackLink";
 import { api, downloadCsv } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
@@ -198,7 +197,6 @@ export default function ChildDetailClient({ id }: { id: string }) {
 
   return (
     <>
-      <BackLink fallback="/admin/children" />
 
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 

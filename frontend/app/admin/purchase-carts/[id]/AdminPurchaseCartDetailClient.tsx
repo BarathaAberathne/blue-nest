@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import BackLink from "@/components/admin/ui/BackLink";
 import { Check, PackageCheck, Paperclip, ShoppingCart, Truck, Upload } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
@@ -314,7 +313,6 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
 
   return (
     <>
-      <BackLink fallback="/admin/purchase-carts" />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>

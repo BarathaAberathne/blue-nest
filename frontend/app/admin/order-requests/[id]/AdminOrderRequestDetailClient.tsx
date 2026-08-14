@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import BackLink from "@/components/admin/ui/BackLink";
 import { ArrowLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
@@ -66,7 +65,6 @@ export default function AdminOrderRequestDetailClient({ id }: { id: string }) {
 
   return (
     <>
-      <BackLink fallback="/admin/order-requests" />
 
       <div className="flex items-center justify-between mb-6">
         <div>

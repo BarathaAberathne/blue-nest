@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import BackLink from "@/components/admin/ui/BackLink";
 import Link from "next/link";
 import { Pencil, Save, Send, ShieldOff, ShieldCheck, X } from "lucide-react";
 import { api } from "@/lib/api";
@@ -85,7 +84,6 @@ export default function ParentDetailClient({ id }: { id: string }) {
 
   return (
     <>
-      <BackLink fallback="/admin/parents" />
 
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 

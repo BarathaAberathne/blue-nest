@@ -6,7 +6,6 @@
 // sides stay consistent (docs/rooms/room-allocation-design.md).
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import BackLink from "@/components/admin/ui/BackLink";
 import Link from "next/link";
 import { DoorOpen, Plus, Star, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
@@ -75,7 +74,6 @@ export default function RoomDetailClient({ id }: { id: string }) {
 
   return (
     <>
-      <BackLink fallback="/admin/rooms" />
 
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 

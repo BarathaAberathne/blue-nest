@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import BackLink from "@/components/admin/ui/BackLink";
 import Link from "next/link";
 import {
   Baby, CalendarCheck, ClipboardList, DoorOpen, HeartPulse, Save,
@@ -118,7 +117,6 @@ export default function BranchProfileClient({ slug }: { slug: string }) {
 
   return (
     <>
-      <BackLink fallback="/admin/branches" />
 
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
