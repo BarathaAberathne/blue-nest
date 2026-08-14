@@ -2,11 +2,12 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Baby, Download, Plus, Search, Users, X } from "lucide-react";
+import { Baby, Plus, Search, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
+import ExportButton from "@/components/admin/ExportButton";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import Avatar from "@/components/admin/ui/Avatar";
@@ -100,18 +101,16 @@ export default function ChildrenClient() {
     [rooms, form.branch_slug],
   );
 
-  const exportCsv = () => {
-    const header = ["Ref", "First name", "Last name", "DOB", "Age", "Branch", "Room", "Status", "Funding", "Start date"];
-    const lines = rows.map((c) => [
-      c.ref ?? "", c.first_name, c.last_name, c.dob ?? "", ageLabel(c.dob),
-      branchName(c.branch_slug), roomName(c.room_id), c.status, fundingLabel(c.funding_type), c.start_date ?? "",
-    ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","));
-    const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `children-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
-    URL.revokeObjectURL(url);
-  };
+  // Server-side export (CSV/Excel) via the shared ExportButton — full dataset
+  // with the current branch/status/search filters applied server-side.
+  const exportPath = useMemo(() => {
+    const p = new URLSearchParams();
+    if (branchFilter) p.set("branch", branchFilter);
+    if (statusFilter) p.set("status", statusFilter);
+    if (q.trim()) p.set("q", q.trim());
+    const qs = p.toString();
+    return `/api/v1/admin/children/export${qs ? `?${qs}` : ""}`;
+  }, [branchFilter, statusFilter, q]);
 
   const openCreate = () => {
     setNewRoomId("");
@@ -186,9 +185,7 @@ export default function ChildrenClient() {
           <p className="text-sm text-slate-500">Enrolled &amp; waitlisted children across every branch — the foundation record for occupancy &amp; attendance.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={exportCsv} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-            <Download className="h-4 w-4" /> CSV
-          </button>
+          <ExportButton path={exportPath} />
           <button type="button" onClick={openCreate} className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-3 py-2 text-sm font-medium text-white hover:bg-teal-700">
             <Plus className="h-4 w-4" /> Add child
           </button>

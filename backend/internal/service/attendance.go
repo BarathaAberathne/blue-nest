@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/repository"
 )
 
@@ -22,6 +23,9 @@ type AttendanceService interface {
 	CheckOut(ctx context.Context, req models.CheckOutRequest, actor string, allowed []string) (*models.AttendanceRecord, error)
 	Mark(ctx context.Context, req models.AttendanceMarkRequest, actor string, allowed []string) (*models.AttendanceRecord, error)
 	TodayStats(ctx context.Context, date, branch string) (*models.AttendanceStats, error)
+	// HistoryForChild returns the child's recent attendance records (newest
+	// first) — the canonical read the parent portal projects from.
+	HistoryForChild(ctx context.Context, childID string, limit int64) ([]models.AttendanceRecord, error)
 }
 
 type attendanceService struct {
@@ -117,7 +121,7 @@ func (s *attendanceService) CheckIn(ctx context.Context, req models.CheckInReque
 	if err != nil {
 		return nil, err
 	}
-	if !branchAllowed(allowed, rec.BranchSlug) {
+	if !policy.InAllowed(allowed, rec.BranchSlug) {
 		return nil, errOutsideScope
 	}
 	if rec.CheckIn != nil && rec.CheckOut == nil {
@@ -139,7 +143,7 @@ func (s *attendanceService) CheckOut(ctx context.Context, req models.CheckOutReq
 	if err != nil {
 		return nil, err
 	}
-	if !branchAllowed(allowed, rec.BranchSlug) {
+	if !policy.InAllowed(allowed, rec.BranchSlug) {
 		return nil, errOutsideScope
 	}
 	if rec.CheckIn == nil {
@@ -166,7 +170,7 @@ func (s *attendanceService) Mark(ctx context.Context, req models.AttendanceMarkR
 	if err != nil {
 		return nil, err
 	}
-	if !branchAllowed(allowed, rec.BranchSlug) {
+	if !policy.InAllowed(allowed, rec.BranchSlug) {
 		return nil, errOutsideScope
 	}
 	rec.Status = req.Status
@@ -266,4 +270,11 @@ func (s *attendanceService) TodayStats(ctx context.Context, date, branch string)
 		stats.Branches = append(stats.Branches, models.BranchAttendanceStat{Branch: b, Present: pres, Expected: exp, AttendanceRate: clamp100(percent(pres, exp))})
 	}
 	return stats, nil
+}
+
+func (s *attendanceService) HistoryForChild(ctx context.Context, childID string, limit int64) ([]models.AttendanceRecord, error) {
+	if limit <= 0 || limit > 120 {
+		limit = 60
+	}
+	return s.repo.FindByChild(ctx, childID, limit)
 }

@@ -1,5 +1,5 @@
 import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
-import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, Parent, ParentInput, ChildParentRelationship, RelationshipFlagsInput, InductionBundle, ChildInduction, Consent, ConsentsBundle, OnboardingView, KioskSession, KioskStaffResult, LeaveRequest, LeaveRequestInput, LeaveBalances, MeAttendance, MeProfileInput, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, FeeConfigBundle, FeeBranchConfig, FeeConfigInput, FeeMeta, BranchTemplate, BranchTemplateInput, BranchTemplateApplyResult, EmailTemplate, EmailTemplateInput, NotificationPreferences, NotificationsResponse, User, Family, FamilyView, Charge, FamilyPayment, PaymentScheduleItem, FinanceDashboard, CommunicationLog, ChildSendSupport, SendSupportInput, SendOverview } from "@/types";
+import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, Parent, ParentInput, ChildParentRelationship, RelationshipFlagsInput, InductionBundle, ChildInduction, Consent, ConsentsBundle, OnboardingView, KioskSession, KioskStaffResult, LeaveRequest, LeaveRequestInput, LeaveBalances, MeAttendance, MeProfileInput, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, FeeConfigBundle, FeeBranchConfig, FeeConfigInput, FeeMeta, BranchTemplate, BranchTemplateInput, BranchTemplateApplyResult, EmailTemplate, EmailTemplateInput, NotificationPreferences, NotificationsResponse, User, Family, FamilyView, Charge, FamilyPayment, PaymentScheduleItem, FinanceDashboard, CommunicationLog, ChildSendSupport, SendSupportInput, SendOverview, PortalAttendanceRow } from "@/types";
 
 // Filter/sort/pagination params shared by the enquiry list endpoints. Empty
 // values are dropped before building the query string.
@@ -698,10 +698,17 @@ export const api = {
     apiFetch<ChildRoomAssignment>("/api/v1/admin/child-room-assignments", { method: "POST", body: JSON.stringify(body), token }),
   adminEndChildRoomAssignment: (token: string, id: string, body?: { end_date?: string; reason?: string }) =>
     apiFetch<ChildRoomAssignment>(`/api/v1/admin/child-room-assignments/${id}`, { method: "PATCH", body: JSON.stringify({ end: true, ...body }), token }),
+  // Bulk age-group promotion: several children into one room, each through the
+  // full canonical transfer — the response reports ok/error per child.
+  adminBulkTransferChildren: (token: string, body: { child_ids: string[]; room_id: string; effective_date?: string; reason: string; notes?: string; override_reason?: string }) =>
+    apiFetch<{ results: { child_id: string; child_name?: string; ok: boolean; error?: string }[]; moved: number; requested: number }>(
+      "/api/v1/admin/child-room-assignments/bulk-transfer", { method: "POST", body: JSON.stringify(body), token }),
   adminTransferChildRoom: (token: string, childId: string, body: ChildTransferInput) =>
     apiFetch<ChildRoomAssignment>(`/api/v1/admin/children/${childId}/transfer-room`, { method: "POST", body: JSON.stringify(body), token }),
 
   // Nursery - children
+  // `room` filters by CURRENT room — resolved server-side via the canonical
+  // child_room_assignments (children.room_id itself is a computed projection).
   adminGetChildren: (token: string, params?: { branch?: string; room?: string; status?: string; q?: string }) => {
     const qs = new URLSearchParams();
     if (params) for (const [k, v] of Object.entries(params)) if (v) qs.set(k, v);
@@ -828,6 +835,14 @@ export const api = {
     apiFetch<CommunicationLog[]>(`/api/v1/admin/families/${familyId}/communications`, { token }),
   adminRunReminderSweep: (token: string) =>
     apiFetch<{ sent: number }>("/api/v1/admin/finance/reminders/run", { method: "POST", body: "{}", token }),
+  portalGetChildAttendance: (token: string, childId: string) =>
+    apiFetch<PortalAttendanceRow[]>(`/api/v1/portal/children/${childId}/attendance`, { token }),
+  portalGetChildDailyRecords: (token: string, childId: string) =>
+    apiFetch<DailyRecord[]>(`/api/v1/portal/children/${childId}/daily-records`, { token }),
+  adminShareDailyRecord: (token: string, id: string) =>
+    apiFetch<DailyRecord>(`/api/v1/admin/daily-records/${id}/share`, { method: "POST", body: "{}", token }),
+  adminUnshareDailyRecord: (token: string, id: string) =>
+    apiFetch<DailyRecord>(`/api/v1/admin/daily-records/${id}/unshare`, { method: "POST", body: "{}", token }),
   portalGetFinance: (token: string) =>
     apiFetch<FamilyView | { family: null }>("/api/v1/portal/finance", { token }),
   portalSetupDirectDebit: (token: string) =>

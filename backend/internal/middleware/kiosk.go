@@ -74,6 +74,72 @@ func RateLimit(limit int, window time.Duration) func(http.Handler) http.Handler 
 	}
 }
 
+// RateLimitFailures allows up to `limit` FAILED attempts (HTTP 401) per window
+// per client IP; successful requests never consume budget. Built for the login
+// routes: a credential-guessing script still hits the wall after `limit` wrong
+// passwords, but legitimate sign-ins — including many users behind one NAT, or
+// a full e2e test run's dozens of successful suite logins — are never locked
+// out by each other. (The old plain RateLimit counted successes too, which
+// throttled real users and made every full test run end in a 429 tail.)
+func RateLimitFailures(limit int, window time.Duration) func(http.Handler) http.Handler {
+	rl := &rateLimiter{hits: map[string][]time.Time{}, limit: limit, window: window}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			key := clientIP(r)
+			if rl.overLimit(key) {
+				response.TooManyRequests(w, "too many failed attempts — slow down")
+				return
+			}
+			rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+			next.ServeHTTP(rec, r)
+			if rec.status == http.StatusUnauthorized {
+				rl.record(key)
+			}
+		})
+	}
+}
+
+// statusRecorder captures the response status so the failure limiter knows
+// whether the attempt should consume budget.
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (s *statusRecorder) WriteHeader(code int) {
+	s.status = code
+	s.ResponseWriter.WriteHeader(code)
+}
+
+// overLimit reports whether the key has exhausted its failure budget (read-only).
+func (rl *rateLimiter) overLimit(key string) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	cutoff := time.Now().Add(-rl.window)
+	n := 0
+	for _, t := range rl.hits[key] {
+		if t.After(cutoff) {
+			n++
+		}
+	}
+	return n >= rl.limit
+}
+
+// record counts one failed attempt against the key.
+func (rl *rateLimiter) record(key string) {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	now := time.Now()
+	cutoff := now.Add(-rl.window)
+	kept := rl.hits[key][:0]
+	for _, t := range rl.hits[key] {
+		if t.After(cutoff) {
+			kept = append(kept, t)
+		}
+	}
+	rl.hits[key] = append(kept, now)
+}
+
 func (rl *rateLimiter) allow(key string) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()

@@ -8,11 +8,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, CheckCircle2, Send } from "lucide-react";
+import { ArrowLeft, ArrowRight, Banknote, CheckCircle2, Send } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken, getAuthUser } from "@/lib/auth";
+import { sectionMissing } from "@/lib/induction";
 import InductionSectionForm from "@/components/induction/InductionSectionForm";
-import type { ConsentsBundle, InductionBundle } from "@/types";
+import type { ConsentsBundle, FamilyView, InductionBundle } from "@/types";
 
 export default function InductionWizardClient({ childId }: { childId: string }) {
   const router = useRouter();
@@ -22,7 +23,9 @@ export default function InductionWizardClient({ childId }: { childId: string }) 
   const [draft, setDraft] = useState<Record<string, unknown>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [signature, setSignature] = useState("");
+  const [finance, setFinance] = useState<FamilyView | null>(null);
 
   const load = useCallback(async () => {
     const token = getAccessToken();
@@ -33,6 +36,9 @@ export default function InductionWizardClient({ childId }: { childId: string }) 
       setConsents(c);
       setError(null);
     } catch (e) { setError(e instanceof Error ? e.message : "Could not load the induction."); }
+    // Direct Debit state (best-effort) — setting it up is part of completing
+    // the child's profile, so the wizard surfaces it as a real step.
+    api.portalGetFinance(token).then((v) => { if (v && "family" in (v as object)) setFinance(v as FamilyView); }).catch(() => null);
   }, [childId, router]);
   useEffect(() => { void load(); }, [load]);
 
@@ -52,10 +58,18 @@ export default function InductionWizardClient({ childId }: { childId: string }) 
   const saveSection = async (goNext: boolean) => {
     const token = getAccessToken();
     if (!token || !current || busy) return;
-    setBusy(true); setError(null);
+    setBusy(true); setError(null); setNotice(null);
     try {
-      await api.portalSaveInductionSection(token, childId, current.key, { data: draft, complete: true });
+      // A section is complete ONLY when its required answers are actually
+      // filled in (sectionMissing) — clicking Next on an untouched section
+      // saves progress but never marks it complete, and Submit stays blocked
+      // until every required section genuinely is.
+      const missing = sectionMissing(current.key, draft);
+      await api.portalSaveInductionSection(token, childId, current.key, { data: draft, complete: missing.length === 0 });
       await load();
+      if (missing.length > 0) {
+        setNotice(`Saved as in progress — still needed before this section is complete: ${missing.join(" · ")}`);
+      }
       if (goNext) setStep((s) => s + 1);
     } catch (e) { setError(e instanceof Error ? e.message : "Could not save — please try again."); }
     finally { setBusy(false); }
@@ -127,6 +141,7 @@ export default function InductionWizardClient({ childId }: { childId: string }) 
         </div>
 
         {error && <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
+        {notice && <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{notice}</p>}
 
         <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           {current && !isConsentStep && !isSubmitStep && (
@@ -200,6 +215,25 @@ export default function InductionWizardClient({ childId }: { childId: string }) 
                   </div>
                 </>
               )}
+
+              {/* Direct Debit is part of completing the child's profile — the
+                  nursery's onboarding gate holds the place at
+                  finance_setup_required until the mandate is active and the
+                  first payment is settled. */}
+              {finance?.family && finance.family.mandate_status !== "active" ? (
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                  <p className="flex items-center gap-2 text-sm text-amber-800">
+                    <Banknote className="h-4 w-4 shrink-0" /> One more step: set up your Direct Debit — the profile isn&apos;t complete until fees are in place.
+                  </p>
+                  <Link href="/portal/payments" className="rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">
+                    Set up Direct Debit →
+                  </Link>
+                </div>
+              ) : finance?.family ? (
+                <p className="mt-4 flex items-center gap-2 rounded-lg bg-teal-50 px-4 py-3 text-sm text-teal-800">
+                  <Banknote className="h-4 w-4" /> Direct Debit is set up — thank you.
+                </p>
+              ) : null}
             </>
           )}
         </div>

@@ -31,6 +31,7 @@ var NotificationTypeCatalogue = []NotificationTypeInfo{
 	{NotifDailyLogSubmitted, "Daily log needs your review"},
 	{NotifDailyLogApproved, "Your daily log was approved"},
 	{NotifDailyLogRejected, "Your daily log was rejected"},
+	{NotifDailyUpdateShared, "A daily update was shared for your child"},
 	{NotifInductionSubmitted, "Induction form needs your review"},
 	{NotifInductionReviewed, "An induction you submitted was reviewed"},
 	{NotifDDActive, "Direct Debit mandate activated"},

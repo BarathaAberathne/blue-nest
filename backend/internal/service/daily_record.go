@@ -21,6 +21,11 @@ type DailyRecordService interface {
 	// Approve/Reject are the four-eyes review gate — the actor must NOT be the
 	// record's author (submitter). Reject requires a reason.
 	Approve(ctx context.Context, id, actorID, actorName string) (*models.DailyRecord, error)
+	// Share makes an APPROVED, shareable record parent-visible (the canonical
+	// "Send to parent" — no duplicate record is ever created); Unshare
+	// withdraws visibility while preserving the record + share history.
+	Share(ctx context.Context, id, actorID, actorName string) (*models.DailyRecord, error)
+	Unshare(ctx context.Context, id, actorID, actorName string) (*models.DailyRecord, error)
 	Reject(ctx context.Context, id, actorID, actorName, reason string) (*models.DailyRecord, error)
 	Delete(ctx context.Context, id string) error
 	// Stats aggregates today's KPI tiles. Empty branch = org-wide (org-wide
@@ -39,34 +44,20 @@ type dailyRecordService struct {
 	// users + notifs power approval notifications (optional; nil = no-op).
 	users repository.UserRepository
 	notifs NotificationService
+	// rels + parents resolve a child's portal-access parents for share
+	// notifications (optional; nil = no parent notification).
+	rels    repository.ChildParentRepository
+	parents repository.ParentRepository
 }
 
-func NewDailyRecordService(repo repository.DailyRecordRepository, children repository.ChildRepository, counters repository.CounterRepository, childRooms repository.ChildRoomAssignmentRepository, users repository.UserRepository, notifs NotificationService) DailyRecordService {
-	return &dailyRecordService{repo: repo, children: children, counters: counters, childRooms: childRooms, users: users, notifs: notifs}
+func NewDailyRecordService(repo repository.DailyRecordRepository, children repository.ChildRepository, counters repository.CounterRepository, childRooms repository.ChildRoomAssignmentRepository, users repository.UserRepository, notifs NotificationService, rels repository.ChildParentRepository, parents repository.ParentRepository) DailyRecordService {
+	return &dailyRecordService{repo: repo, children: children, counters: counters, childRooms: childRooms, users: users, notifs: notifs, rels: rels, parents: parents}
 }
 
 // approversFor returns the user ids that can approve a log for `branch` — every
-// user whose role holds daily_logs.approve and whose branch scope covers it
-// (org-wide roles have no branch_slugs). Best-effort; empty on any error.
+// user whose role holds daily_logs.approve and whose branch scope covers it.
 func (s *dailyRecordService) approversFor(ctx context.Context, branch string) []string {
-	if s.users == nil {
-		return nil
-	}
-	orgID, _ := repository.OrgFromContext(ctx)
-	users, err := s.users.FindAll(ctx)
-	if err != nil {
-		return nil
-	}
-	var ids []string
-	for _, u := range users {
-		if !models.HasPermission(orgID, u.Role, models.PermDailyLogsApprove) {
-			continue
-		}
-		if len(u.BranchSlugs) == 0 || contains(u.BranchSlugs, branch) {
-			ids = append(ids, u.ID.Hex())
-		}
-	}
-	return ids
+	return usersWithPermission(ctx, s.users, models.PermDailyLogsApprove, branch)
 }
 
 func contains(ss []string, v string) bool {
@@ -352,4 +343,80 @@ func (s *dailyRecordService) Stats(ctx context.Context, date, branch string) (*m
 		stats.ByType = append(stats.ByType, models.LabelCount{Label: string(t), Count: count(repository.DailyRecordFilter{Type: string(t), Date: date})})
 	}
 	return stats, nil
+}
+
+// portalParentUserIDs resolves the user accounts of a child's portal-access
+// parents (the share-notification audience).
+func (s *dailyRecordService) portalParentUserIDs(ctx context.Context, childID string) []string {
+	if s.rels == nil || s.parents == nil {
+		return nil
+	}
+	rels, err := s.rels.FindByChild(ctx, childID)
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, r := range rels {
+		if !r.PortalAccess {
+			continue
+		}
+		if p, err := s.parents.FindByID(ctx, r.ParentID); err == nil && p != nil && p.UserID != "" {
+			out = append(out, p.UserID)
+		}
+	}
+	return out
+}
+
+func (s *dailyRecordService) Share(ctx context.Context, id, actorID, actorName string) (*models.DailyRecord, error) {
+	rec, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, errors.New("daily record not found")
+	}
+	if !rec.Shareable() {
+		return nil, errors.New("safeguarding records are internal and can never be shared with parents")
+	}
+	if !rec.IsApproved() {
+		return nil, errors.New("only an approved record can be shared with parents")
+	}
+	if rec.ChildID == "" {
+		return nil, errors.New("only child records can be shared with parents")
+	}
+	if rec.ParentShared {
+		return rec, nil // idempotent
+	}
+	parents := s.portalParentUserIDs(ctx, rec.ChildID)
+	now := time.Now()
+	updated, err := s.repo.SetSharing(ctx, id, bson.M{
+		"parent_shared":       true,
+		"parent_shared_at":    now,
+		"parent_shared_by":    actorName,
+		"parent_shared_by_id": actorID,
+	}, nil)
+	if err != nil {
+		return nil, err
+	}
+	if s.notifs != nil && len(parents) > 0 {
+		_ = s.notifs.NotifyMany(ctx, parents, models.Notification{
+			Type:       models.NotifDailyUpdateShared,
+			Title:      "New daily update",
+			Body:       "A new daily update is available for " + rec.ChildName + ".",
+			Link:       "/portal/children/" + rec.ChildID,
+			EntityType: "daily_record",
+			EntityID:   updated.ID.Hex(),
+		})
+	}
+	return updated, nil
+}
+
+func (s *dailyRecordService) Unshare(ctx context.Context, id, actorID, actorName string) (*models.DailyRecord, error) {
+	rec, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, errors.New("daily record not found")
+	}
+	if !rec.ParentShared {
+		return rec, nil // idempotent
+	}
+	// Share history fields are retained for the audit trail — only the
+	// visibility flag is withdrawn.
+	return s.repo.SetSharing(ctx, id, nil, bson.M{"parent_shared": ""})
 }

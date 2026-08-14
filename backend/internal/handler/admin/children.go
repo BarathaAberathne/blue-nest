@@ -33,7 +33,7 @@ func (h *AdminChildHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	filter := repository.ChildFilter{
 		Branch: branch,
-		Room:   q.Get("room"),
+		Room:   q.Get("room"), // resolved via the canonical assignments in the service
 		Status: q.Get("status"),
 		Q:      q.Get("q"),
 	}

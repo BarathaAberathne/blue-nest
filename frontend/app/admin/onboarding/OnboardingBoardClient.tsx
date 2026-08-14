@@ -95,6 +95,7 @@ export default function OnboardingBoardClient() {
                 <th className="px-4 py-3">Completeness</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Top gaps</th>
+                <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
@@ -117,6 +118,13 @@ export default function OnboardingBoardClient() {
                   </td>
                   <td className="px-4 py-2.5 text-xs text-slate-500">
                     {r.categories.flatMap((c) => c.missing ?? []).slice(0, 2).join(" · ") || "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    {r.induction_status === "submitted" && (
+                      <Link href={`/admin/children/${r.child_id}`} className="whitespace-nowrap rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-teal-700">
+                        Review induction →
+                      </Link>
+                    )}
                   </td>
                 </tr>
               ))}

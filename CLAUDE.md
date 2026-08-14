@@ -456,7 +456,13 @@ CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Ar
   allocation is rejected on age/capacity, the just-created child/staff is deleted so the create stays atomic).
   Rooms gained `min_age_months`/`max_age_months`/`status`; allocation enforces same-branch + active + capacity
   + age, each overridable only with a stored `override_reason` (audit-logged). Transfers close the old row and
-  open a new one (future-dated → `scheduled`, lazily activated). The one-shot room-allocation migration
+  open a new one (future-dated → `scheduled`, lazily activated). **Bulk transfer (age-group promotion,
+  delivered):** `POST /admin/child-room-assignments/bulk-transfer` moves a selected cohort into ONE room —
+  a thin loop over the canonical Transfer (no second allocation implementation), so every per-child guard
+  applies, capacity is consumed incrementally, and a partial batch is a 200 with per-child ok/error rows
+  (audited `bulk_transfer_children`). UI: the room profile's Children tab gains **Move children**
+  (checkbox selection → target room + effective date + reason + optional override; failures stay selected
+  for retry). A future effective date schedules the September-style move-up. Locked by `CHILDROOM-TC-A11`. The one-shot room-allocation migration
   (formerly `cmd/migrateroomassignments`) mapped legacy `room_id` scalars into the assignment collections;
   it is complete (local-only, never needed on prod) and the command is now **retired**. Full design in `docs/rooms/*` and the
   consolidation rationale in `docs/architecture/duplicate-implementation-audit.md`.
@@ -675,9 +681,33 @@ Amazon Business API (Product Search → Cart → Ordering), then full inventory/
   - **Induction & consents:** `ChildInduction` (`models/induction.go`, 11 catalogue-driven sections,
     save/resume from portal or admin, post-submit edits revert to in_progress) with **write-through to
     canonical fields** (allergies/dietary/medical → Child tags, address → `Child.Address` — never duplicated);
-    submit gated on required sections; **four-eyes review** (reviewer ≠ submitter). Append-only `consents`
+    submit gated on required sections; **four-eyes review** (reviewer ≠ submitter). **Section completeness
+    is EARNED, not click-through** (fixed — the wizard's Next used to mark every section complete
+    regardless of content): the field catalogue (`lib/induction.ts`) carries per-field `required` flags and
+    `sectionMissing()` computes `complete` from actually-answered required fields; all-optional sections
+    (allergies/development/equality) need at least one answer OR the explicit
+    `confirmed_nothing_to_record` declaration checkbox; the wizard saves untouched sections as in-progress
+    with a "still needed: …" notice, and the server backstop (`hasAnsweredValue` in
+    `inductionService.SaveSection`) rejects `complete:true` with no answered value regardless of client.
+    The wizard's Review & submit step also surfaces **Direct Debit setup as a required completion step**
+    (amber CTA → /portal/payments while the mandate isn't active — the onboarding gate already holds
+    ready_to_start on it). Locked by `INDUCT-TC-004` + `induction_completeness_test.go`. Append-only `consents`
     (17-item catalogue, typed signature, latest-row-wins via `LatestConsents`). Frontend: portal wizard
-    (`lib/induction.ts` field catalogue + generic `InductionSectionForm`), admin panels on the child profile.
+    (`lib/induction.ts` field catalogue + generic `InductionSectionForm`); admin side = the **tabbed FULL
+    child profile** (`ChildDetailClient`, tabs Overview · Family & contacts · Health & development ·
+    Induction & consents · Daily records, `?tab=` deep-linkable): every induction answer surfaces for staff
+    via `InductionAnswers` (read-only cards from the same field catalogue — family/legal-contact/collectors
+    on the Family tab, professionals/health/routine/cultural/development on the Health tab), consents via
+    `ConsentsCard` (latest decision per catalogue item), and **`ChildOnboardingPanel`** (completeness bar +
+    collapsible answers + the **Sign off review** action — the ONLY caller of
+    `POST /admin/children/{id}/induction/review`; the submit notification links here, and the
+    `/admin/onboarding` board shows a **Review induction** link on awaiting_review rows). Before this panel
+    the review endpoint had no UI caller, so a submitted induction could never reach `reviewed`.
+    **Full-profile PDF (first Phase-E PDF export):** `GET /admin/children/{id}/profile.pdf`
+    (`service.ChildProfilePDFService`, `go-pdf/fpdf`) composes identity + contacts/roles + every induction
+    answer (data-driven — schemaless keys humanised, no second field catalogue to drift) + latest consents
+    + SEND (included ONLY for send.manage callers) into an A4 attachment; "Download PDF" on the profile
+    header (reuses `downloadCsv`). Locked by `EXPORT-TC-003` + `child_profile_pdf_test.go`.
   - **Derived onboarding:** `computeOnboarding` (`service/onboarding.go`, pure + unit-tested) — 7 weighted
     categories (child_info 20 / parents 15 / emergency 10 / medical 15 / consents 10 / induction 15 /
     finance 15) + status machine (registration_started → induction_* → awaiting_review →
@@ -751,6 +781,29 @@ Amazon Business API (Product Search → Cart → Ordering), then full inventory/
   Tests: `send_support_test.go` + `SUI-SEND-001` (2.32, 6 cases: lifecycle/permissions/cross-branch/audit)
   + `SUI-SENDROOM-001` (2.33, 4 cases: provision, mainstream + specialist placement via the NORMAL
   assignment/transfer, profile survival, KPI reconciliation).
+
+- **Parent Portal consolidation (delivered; investigation record `docs/portal/parent-portal-investigation.md`):**
+  `/portal` is THE canonical parent-facing area. **Root cause fixed:** the parent login used to send every
+  customer to `/account` (the store area) — it now resolves parent identity via `GET /portal/me` (parent →
+  `/portal`, plain store customer → `/account`; explicit `?next=` wins). One `PortalShell`
+  (`components/portal/`, header + compact left nav + per-child items, mobile drawer) wraps every parent
+  page: **Dashboard** (children + today's attendance + latest shared update + payments summary),
+  **per-child page** (Overview / Attendance / Daily updates tabs), **Payments & Orders** (canonical family
+  finance + the same `GET /orders/me` store orders — one finance area, no duplicate flow), **My Profile**
+  (parent record only; child data lives under the child pages). New parent reads delegate to canonical
+  services with parent-safe projections: `GET /portal/children/{id}/attendance` (date/status/in/out only)
+  and `GET /portal/children/{id}/daily-records`. **Daily-log parent visibility (record-level):** creating/
+  approving a `DailyRecord` NEVER shares it — `parent_shared` (+ shared_at/by) is set only by the explicit
+  `POST /admin/daily-records/{id}/share` ("Send to parent", `daily_logs.approve`, approved records only,
+  `safeguarding` never shareable, idempotent, audited `share_with_parent`) with `/unshare` as the audited
+  withdrawal that keeps the record + share history. `ParentVisible()` (= shared && approved) is the single
+  backend gate and `SanitizeForParent()` strips staff-only fields (witnesses/other staff/reported-to/
+  approval internals) from every parent response. Sharing notifies the child's portal parents via the
+  existing notification service (`daily_update_shared`, in the email-prefs catalogue). Staff UI: a Parent
+  visibility panel on `/admin/daily-log/{id}` (Internal / Shared chip + who/when, Send to parent, Withdraw).
+  Tests: `daily_record_sharing_test.go` + bnrest `SUI-PORTAL-001` (2.34, 4 cases: resolution + admin-login
+  boundary, parent-safe attendance + cross-family 404, full share lifecycle incl. no-duplicate + audit,
+  sharing guards).
 
 ## Procurement Management module — roadmap (Phases 1–4 DELIVERED)
 Goal: turn the procurement pieces into one connected **Procurement Management** module so the journey
@@ -865,15 +918,18 @@ themselves need a custom `X-Kiosk-Token` header this engine can't send yet
 (supply requests/catalogue/purchase-orders/suppliers/analytics/templates),
 Shifts (rota), Audit log, and User Account Management (users/roles/org
 self-service/platform organisations/dashboards). **`SUI-AUTH-001` runs
-LAST in the collection** (not first) — it now ends with a login
-rate-limit regression lock that deliberately burns the shared per-IP
-`/auth/login` budget every other suite's own login depends on, mirroring
-why the legacy `SecuritySuite` had to run last too. A known, accepted
-characteristic: a full `COL-FUNC-001` run's cumulative login volume can
-still trip that same rate limit on whichever suite happens to need a
-fresh login last, independent of `AUTH-TC-003` — every suite passes 100%
-individually; only a full-collection run occasionally shows one
-rate-limit-flavored failure, not a real regression.
+LAST in the collection** (not first) — it ends with the login rate-limit
+regression lock (`AUTH-TC-003`, 12 rapid wrong-password attempts),
+mirroring why the legacy `SecuritySuite` had to run last too.
+**The old full-run 429 tail is FIXED:** the login limiter is now
+`middleware.RateLimitFailures(10, time.Minute)` — only FAILED attempts
+(401s) consume the per-IP budget, so a full run's dozens of successful
+suite logins never throttle each other (nor do real users behind one NAT),
+while a credential-guessing script still hits the wall after 10 wrong
+passwords/min. `make test-new` runs the whole platform fully green
+(229/229 at the time of the change); locked by
+`ratelimit_failures_test.go` + `AUTH-TC-003` (unchanged — failures still
+trip it).
 
 **A real production bug was found and fixed while writing this test
 coverage** (per this repo's established practice — see the test-writing
@@ -913,8 +969,9 @@ field) whenever convenient.
   `TestMethodOrder`-based `*Suite` classes, one per plan phase, package-numbered `phase01_auth` ..
   `phase13_concurrency`, then `phase90_security` so alphabetical execution order matches the plan's own
   phase order — `phase90_security`'s permanently-high number (not its plan phase §19) exists because its
-  rate-limit regression test burns the shared per-IP login budget for the rest of that window (see
-  `SecuritySuite`'s class Javadoc); every test's `@DisplayName` carries its `TC-XXX-NNN` id (or a
+  rate-limit regression test burns the shared per-IP login FAILURE budget for the rest of that window (see
+  `SecuritySuite`'s class Javadoc; since the limiter became failure-only — `RateLimitFailures` — successful
+  logins no longer consume it, but the ordering convention stands); every test's `@DisplayName` carries its `TC-XXX-NNN` id (or a
   `-REG`/`SEC-NNN` id for suite-authored regression locks). Requires a JDK 17+ + Maven (`brew install openjdk
   maven`; openjdk is keg-only on macOS — `export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"` and `JAVA_HOME`
   accordingly). Run via **`make test-e2e`** (full suite) / **`make test-e2e-regression`** (fix-lock subset —

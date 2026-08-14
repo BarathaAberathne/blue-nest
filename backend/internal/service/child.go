@@ -70,9 +70,29 @@ func NewChildService(repo repository.ChildRepository, rooms repository.RoomRepos
 }
 
 func (s *childService) List(ctx context.Context, f repository.ChildFilter) ([]models.Child, error) {
+	// The stored room_id scalar was removed in the room-allocation migration —
+	// a ?room= filter must resolve through the canonical assignments, not the
+	// (now nonexistent) field on the child document.
+	roomFilter := f.Room
+	f.Room = ""
 	children, err := s.repo.FindAll(ctx, f)
 	if err != nil {
 		return nil, err
+	}
+	if roomFilter != "" && s.roomAssignments != nil {
+		inRoom := map[string]bool{}
+		for childID, rid := range s.roomAssignments.CurrentRoomsByBranch(ctx, f.Branch) {
+			if rid == roomFilter {
+				inRoom[childID] = true
+			}
+		}
+		filtered := children[:0]
+		for _, c := range children {
+			if inRoom[c.ID.Hex()] {
+				filtered = append(filtered, c)
+			}
+		}
+		children = filtered
 	}
 	// Project the computed current room from the canonical assignment model
 	// (one batched query — no stored scalar, no N+1).
@@ -93,10 +113,19 @@ func (s *childService) GetByID(ctx context.Context, id string) (*models.Child, e
 	if err != nil {
 		return nil, err
 	}
+	s.project(ctx, c)
+	return c, nil
+}
+
+// project resolves EVERY computed read projection (key person, room,
+// guardians) onto a child record. Every path that returns a child — reads AND
+// write responses — must call it: the UI replaces its local state with the
+// response, so a write that skips a projection blanks that field on screen
+// until the next refresh (the key-person save used to blank the room this way).
+func (s *childService) project(ctx context.Context, c *models.Child) {
 	s.resolveKeyPerson(ctx, c)
 	s.resolveRoom(ctx, c)
 	s.resolveGuardians(ctx, c)
-	return c, nil
 }
 
 // resolveGuardians projects the canonical child_parent_relationships onto the
@@ -205,9 +234,7 @@ func (s *childService) SetPhoto(ctx context.Context, childID, url string) (*mode
 	if err != nil {
 		return nil, errors.New("child not found")
 	}
-	s.resolveKeyPerson(ctx, updated)
-	s.resolveRoom(ctx, updated)
-	s.resolveGuardians(ctx, updated)
+	s.project(ctx, updated)
 	return updated, nil
 }
 
@@ -230,7 +257,7 @@ func (s *childService) SetKeyPerson(ctx context.Context, childID, staffID string
 	if err != nil {
 		return nil, err
 	}
-	s.resolveKeyPerson(ctx, updated)
+	s.project(ctx, updated)
 	return updated, nil
 }
 
@@ -401,10 +428,7 @@ func (s *childService) Update(ctx context.Context, id string, req models.ChildRe
 	if err != nil {
 		return nil, err
 	}
-	// KeyPersonName + RoomName are transient (bson:"-"), resolved from their
-	// canonical sources — re-resolve so an edit doesn't appear to blank them.
-	s.resolveKeyPerson(ctx, updated)
-	s.resolveRoom(ctx, updated)
+	s.project(ctx, updated)
 	return updated, nil
 }
 
@@ -443,8 +467,7 @@ func (s *childService) Archive(ctx context.Context, id, leaveDate string) (*mode
 	if s.roomAssignments != nil {
 		s.roomAssignments.EndAllForChild(ctx, id, "child-left")
 	}
-	s.resolveKeyPerson(ctx, updated)
-	s.resolveRoom(ctx, updated)
+	s.project(ctx, updated)
 	return updated, nil
 }
 

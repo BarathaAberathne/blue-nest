@@ -139,11 +139,14 @@ func (s *roleService) List(ctx context.Context) ([]models.RoleDefinition, error)
 	return defs, nil
 }
 
-// sanitizePerms drops anything not in the known catalogue.
+// sanitizePerms drops anything not in the known permission set. It validates
+// against AllPermissions (the source of truth), NOT PermissionCatalogue — the
+// catalogue is display metadata, and validating against it once silently
+// stripped every permission that had no catalogue entry on each role save.
 func sanitizePerms(perms []models.Permission) []models.Permission {
 	valid := map[models.Permission]bool{}
-	for _, p := range models.PermissionCatalogue {
-		valid[p.Key] = true
+	for _, p := range models.AllPermissions {
+		valid[p] = true
 	}
 	out := make([]models.Permission, 0, len(perms))
 	seen := map[models.Permission]bool{}

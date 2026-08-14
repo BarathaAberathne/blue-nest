@@ -14,16 +14,18 @@ export interface InductionField {
   hint?: string;
   /** For kind "tags": which taxonomy category feeds the chips. */
   taxonomy?: "allergy_type" | "dietary_label";
+  /** Must be answered before the section counts as complete. */
+  required?: boolean;
 }
 
 export const INDUCTION_FIELDS: Record<string, InductionField[]> = {
   child_details: [
-    { key: "address", label: "Child's full home address", kind: "textarea" },
-    { key: "birth_cert_seen", label: "Copy of birth certificate provided", kind: "yesno" },
+    { key: "address", label: "Child's full home address", kind: "textarea", required: true },
+    { key: "birth_cert_seen", label: "Copy of birth certificate provided", kind: "yesno", required: true },
     { key: "previous_childcare", label: "Previous childcare experience (setting, how long)", kind: "textarea" },
   ],
   family: [
-    { key: "lives_with", label: "Name of parent(s)/carer(s) the child lives with", kind: "textarea" },
+    { key: "lives_with", label: "Name of parent(s)/carer(s) the child lives with", kind: "textarea", required: true },
     { key: "family_notes", label: "Anything else about the family we should know", kind: "textarea" },
   ],
   legal_contact: [
@@ -35,8 +37,8 @@ export const INDUCTION_FIELDS: Record<string, InductionField[]> = {
   ],
   professionals: [
     { key: "nhs_number", label: "Child's NHS number", kind: "text" },
-    { key: "gp_name", label: "GP name", kind: "text" },
-    { key: "gp_phone", label: "GP telephone", kind: "text" },
+    { key: "gp_name", label: "GP name", kind: "text", required: true },
+    { key: "gp_phone", label: "GP telephone", kind: "text", required: true },
     { key: "gp_address", label: "GP address", kind: "textarea" },
     { key: "health_visitor", label: "Health visitor (name, phone, address)", kind: "textarea" },
     { key: "social_care_worker", label: "Social care worker (name, phone, address)", kind: "textarea" },
@@ -45,17 +47,17 @@ export const INDUCTION_FIELDS: Record<string, InductionField[]> = {
     { key: "other_professional", label: "Any other professional (name, agency, role)", kind: "textarea" },
   ],
   collectors: [
-    { key: "person1", label: "Authorised person 1 (name, relationship, address, phones, email)", kind: "textarea", hint: "Must be over 16. Staff check before releasing the child." },
+    { key: "person1", label: "Authorised person 1 (name, relationship, address, phones, email)", kind: "textarea", hint: "Must be over 16. Staff check before releasing the child.", required: true },
     { key: "person2", label: "Authorised person 2 (name, relationship, address, phones, email)", kind: "textarea" },
-    { key: "collection_password", label: "Password for collection by authorised persons", kind: "text" },
+    { key: "collection_password", label: "Password for collection by authorised persons", kind: "text", required: true },
   ],
   health: [
-    { key: "immunisations_confirmed", label: "Immunisations up to date for age (per the schedule)", kind: "yesno" },
+    { key: "immunisations_confirmed", label: "Immunisations up to date for age (per the schedule)", kind: "yesno", required: true },
     { key: "immunisation_notes", label: "Immunisation notes / exceptions", kind: "textarea" },
-    { key: "health_record_seen", label: "Child's health record book seen to confirm dates", kind: "yesno" },
+    { key: "health_record_seen", label: "Child's health record book seen to confirm dates", kind: "yesno", required: true },
     { key: "medical_conditions", label: "Ongoing medical conditions", kind: "textarea" },
     { key: "external_agencies", label: "External agencies involved (paediatrician, SALT…)", kind: "textarea" },
-    { key: "health_care_plan", label: "Does your child require a Health Care Plan?", kind: "yesno" },
+    { key: "health_care_plan", label: "Does your child require a Health Care Plan?", kind: "yesno", required: true },
   ],
   allergies_dietary: [
     { key: "allergy_tags", label: "Known allergies & food intolerances", kind: "tags", taxonomy: "allergy_type" },
@@ -68,13 +70,13 @@ export const INDUCTION_FIELDS: Record<string, InductionField[]> = {
     { key: "ethnicity", label: "Ethnicity or cultural background", kind: "text" },
     { key: "religion", label: "Main religion in the family (if applicable)", kind: "text" },
     { key: "festivals", label: "Festivals/special occasions to acknowledge", kind: "textarea" },
-    { key: "languages", label: "Language(s) spoken at home", kind: "text" },
+    { key: "languages", label: "Language(s) spoken at home", kind: "text", required: true },
     { key: "first_english_setting", label: "First experience of an English-speaking environment?", kind: "yesno" },
     { key: "bilingual_plan", label: "Bilingual support plan needed?", kind: "yesno" },
     { key: "settling_plan", label: "Agreed settling-in support", kind: "textarea" },
   ],
   routine: [
-    { key: "sleep_pattern", label: "Sleep pattern", kind: "textarea" },
+    { key: "sleep_pattern", label: "Sleep pattern", kind: "textarea", required: true },
     { key: "feeding_routine", label: "Feeding routine?", kind: "yesno" },
     { key: "food_preferences", label: "Food preferences?", kind: "yesno" },
     { key: "pacifier", label: "Dummy or thumb?", kind: "yesno" },
@@ -95,9 +97,59 @@ export const INDUCTION_FIELDS: Record<string, InductionField[]> = {
   ],
 };
 
+// Sections whose fields are ALL optional (allergies, development, equality)
+// still need an explicit declaration — this data key stores the parent's
+// "nothing to record here" confirmation so an untouched section can never be
+// marked complete just by clicking Next.
+export const CONFIRM_NONE_KEY = "confirmed_nothing_to_record";
+
+/** Whether a stored answer counts as answered. */
+export function isAnswered(v: unknown): boolean {
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === "boolean") return v;
+  return String(v ?? "").trim() !== "";
+}
+
+/** Labels of the answers still missing before a section counts as COMPLETE.
+ * Sections with required fields need every one answered; all-optional sections
+ * need at least one answered field OR the explicit nothing-to-record
+ * confirmation. The wizard computes `complete` from this — never from the
+ * mere act of clicking Next — and the backend backstop rejects a complete
+ * section with no answers at all. */
+export function sectionMissing(sectionKey: string, data: Record<string, unknown>): string[] {
+  const fields = INDUCTION_FIELDS[sectionKey] ?? [];
+  const required = fields.filter((f) => f.required);
+  if (required.length > 0) {
+    return required.filter((f) => !isAnswered(data[f.key])).map((f) => f.label);
+  }
+  const anyAnswered = fields.some((f) => isAnswered(data[f.key]));
+  if (anyAnswered || isAnswered(data[CONFIRM_NONE_KEY])) return [];
+  return ["Confirm there is nothing to record in this section (or fill in a detail)"];
+}
+
 export const inductionStatusAccent: Record<string, "slate" | "amber" | "indigo" | "teal"> = {
   not_started: "slate", in_progress: "amber", submitted: "indigo", reviewed: "teal",
 };
+
+export const inductionStatusLabel: Record<string, string> = {
+  not_started: "Not started",
+  in_progress: "In progress",
+  submitted: "Submitted — awaiting review",
+  reviewed: "Reviewed",
+};
+
+/** Render one stored induction answer read-only (the wizard stores yes/no
+ * answers as the strings "yes"/"no"). Shared by the profile tabs, the review
+ * panel and mirrored server-side by the profile PDF. */
+export function answerText(value: unknown): string {
+  if (value === true) return "Yes";
+  if (value === false) return "No";
+  if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
+  const s = String(value ?? "").trim();
+  if (s.toLowerCase() === "yes") return "Yes";
+  if (s.toLowerCase() === "no") return "No";
+  return s || "—";
+}
 
 export const onboardingStatusLabel: Record<string, string> = {
   registration_started: "Registration started",

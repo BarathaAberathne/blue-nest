@@ -11,6 +11,7 @@ const (
 	NotifDailyLogSubmitted = "daily_log_submitted" // → approvers: a log needs review
 	NotifDailyLogApproved  = "daily_log_approved"  // → author: their log was approved
 	NotifDailyLogRejected  = "daily_log_rejected"  // → author: their log was rejected
+	NotifDailyUpdateShared = "daily_update_shared" // → child's portal parents: a daily update was shared
 
 	NotifLeaveRequested = "leave_requested" // → approvers: a leave request needs review
 	NotifLeaveApproved  = "leave_approved"  // → applicant: their leave was approved

@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, PoundSterling } from "lucide-react";
+import { PoundSterling } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
@@ -94,7 +94,6 @@ export default function FamilyClient({ familyId }: { familyId: string }) {
     <>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <Link href="/admin/finance" className="mb-1 inline-flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-teal-600"><ArrowLeft className="h-3.5 w-3.5" /> Finance</Link>
           <h1 className="flex items-center gap-2 font-heading text-2xl font-bold text-slate-900"><PoundSterling className="h-6 w-6 text-teal-600" /> {f.name}</h1>
           <p className="mt-0.5 text-sm text-slate-500">
             {f.ref && <span className="mr-2 font-mono text-xs">{f.ref}</span>}

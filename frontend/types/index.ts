@@ -1109,6 +1109,8 @@ export interface Child {
   send_status?: SendStatus;
   dob?: string; // YYYY-MM-DD
   gender?: string;
+  // Home address (induction write-through from the child_details section).
+  address?: string;
   branch_slug: string;
   room_id?: string;
   room_name?: string; // computed projection of the active room assignment
@@ -1680,6 +1682,13 @@ export interface ShiftInput {
 export type DailyRecordType = "observation" | "incident" | "safeguarding" | "medication" | "meal";
 export type DailyRecordStatus = "open" | "resolved" | "administered" | "logged";
 
+export interface PortalAttendanceRow {
+  date: string;
+  status: string;
+  check_in?: string;
+  check_out?: string;
+}
+
 export interface DailyRecord {
   id: string;
   ref?: string; // LOG-YYYY-NNNNNN
@@ -1720,6 +1729,9 @@ export interface DailyRecord {
   approved_by_name?: string;
   approved_at?: string;
   rejection_reason?: string;
+  parent_shared?: boolean;
+  parent_shared_at?: string;
+  parent_shared_by?: string;
   created_at?: string;
   updated_at?: string;
 }

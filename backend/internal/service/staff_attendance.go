@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/policy"
 	"github.com/blue-nest-montessori/api/internal/repository"
 )
 
@@ -26,19 +27,6 @@ type ClockContext struct {
 	// restriction). Set from the caller's branch scope so a branch manager can't
 	// clock/correct another branch's staff.
 	Allowed []string
-}
-
-// branchAllowed reports whether a branch is within an allowed set (nil = any).
-func branchAllowed(allowed []string, branch string) bool {
-	if allowed == nil {
-		return true
-	}
-	for _, s := range allowed {
-		if s == branch {
-			return true
-		}
-	}
-	return false
 }
 
 var errOutsideScope = errors.New("outside your branch scope")
@@ -333,7 +321,7 @@ func (s *staffAttendanceService) ClockIn(ctx context.Context, req models.StaffCl
 	if err != nil {
 		return nil, err
 	}
-	if !branchAllowed(cc.Allowed, rec.BranchSlug) {
+	if !policy.InAllowed(cc.Allowed, rec.BranchSlug) {
 		return nil, errOutsideScope
 	}
 	if rec.ClockIn != nil && rec.ClockOut == nil {
@@ -369,7 +357,7 @@ func (s *staffAttendanceService) ClockOut(ctx context.Context, req models.StaffC
 	if err != nil {
 		return nil, err
 	}
-	if !branchAllowed(cc.Allowed, rec.BranchSlug) {
+	if !policy.InAllowed(cc.Allowed, rec.BranchSlug) {
 		return nil, errOutsideScope
 	}
 	if rec.ClockIn == nil {
@@ -415,7 +403,7 @@ func (s *staffAttendanceService) Mark(ctx context.Context, req models.StaffAtten
 	if err != nil {
 		return nil, err
 	}
-	if !branchAllowed(allowed, rec.BranchSlug) {
+	if !policy.InAllowed(allowed, rec.BranchSlug) {
 		return nil, errOutsideScope
 	}
 	rec.Status = req.Status
@@ -748,7 +736,7 @@ func (s *staffAttendanceService) Correct(ctx context.Context, id string, req mod
 		}
 		rec = &base
 	}
-	if !branchAllowed(allowed, rec.BranchSlug) {
+	if !policy.InAllowed(allowed, rec.BranchSlug) {
 		return nil, errOutsideScope
 	}
 	corr := func(field, from, to string) {

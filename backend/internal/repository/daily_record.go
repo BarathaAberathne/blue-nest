@@ -31,6 +31,8 @@ type DailyRecordRepository interface {
 	Update(ctx context.Context, id string, r models.DailyRecord) (*models.DailyRecord, error)
 	UpdateStatus(ctx context.Context, id string, status models.DailyRecordStatus) (*models.DailyRecord, error)
 	SetApproval(ctx context.Context, id string, set bson.M) (*models.DailyRecord, error)
+	// SetSharing applies the parent-visibility fields ($set/$unset maps).
+	SetSharing(ctx context.Context, id string, set, unset bson.M) (*models.DailyRecord, error)
 	Delete(ctx context.Context, id string) error
 	Count(ctx context.Context, f DailyRecordFilter) (int, error)
 }
@@ -66,11 +68,17 @@ func (r *dailyRecordRepository) query(f DailyRecordFilter) bson.M {
 	case models.ApprovalRejected:
 		filter["approval_status"] = models.ApprovalRejected
 	}
-	if f.Date != "" {
-		filter["date"] = f.Date
-	}
-	if f.Since != "" {
-		filter["date"] = bson.M{"$gte": f.Since}
+	// Date (exact day) and Since (lower bound) merge into ONE date clause — two
+	// separate assignments would silently clobber whichever came first.
+	if f.Date != "" || f.Since != "" {
+		cond := bson.M{}
+		if f.Date != "" {
+			cond["$eq"] = f.Date
+		}
+		if f.Since != "" {
+			cond["$gte"] = f.Since
+		}
+		filter["date"] = cond
 	}
 	if f.Q != "" {
 		// Escaped so free-text search input is matched literally — see staff.go.
@@ -190,4 +198,25 @@ func (r *dailyRecordRepository) Delete(ctx context.Context, id string) error {
 func (r *dailyRecordRepository) Count(ctx context.Context, f DailyRecordFilter) (int, error) {
 	n, err := r.col.CountDocuments(ctx, r.query(f))
 	return int(n), err
+}
+
+func (r *dailyRecordRepository) SetSharing(ctx context.Context, id string, set, unset bson.M) (*models.DailyRecord, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	if set == nil {
+		set = bson.M{}
+	}
+	set["updated_at"] = time.Now()
+	update := bson.M{"$set": set}
+	if len(unset) > 0 {
+		update["$unset"] = unset
+	}
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	var out models.DailyRecord
+	if err := r.col.FindOneAndUpdate(ctx, bson.M{"_id": oid}, update, opts).Decode(&out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }

@@ -1072,6 +1072,24 @@ paths:
                 $ref: '#/components/schemas/BlogPost'
         '404':
           description: Blog post not found
+    delete:
+      tags:
+        - Admin
+      summary: Delete blog post
+      operationId: deleteBlogPost
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Blog post deleted
+        '404':
+          description: Blog post not found
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Admin - Users (super-admin account management)
@@ -1341,6 +1359,13 @@ paths:
       responses: { '201': { description: Created }, '400': { description: Invalid } }
 
   /admin/catalogue/{id}:
+    get:
+      tags: [Admin]
+      summary: Get a catalogue item
+      operationId: adminGetCatalogueItem
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: OK }, '404': { description: Not found } }
     put:
       tags: [Admin]
       summary: Update a catalogue item
@@ -1778,7 +1803,7 @@ paths:
       security: [{ BearerAuth: [] }]
       parameters:
         - { name: branch, in: query, required: false, schema: { type: string } }
-        - { name: room_id, in: query, required: false, schema: { type: string } }
+        - { name: room, in: query, required: false, schema: { type: string }, description: Current-room filter, resolved via the canonical child_room_assignments }
         - { name: status, in: query, required: false, schema: { type: string, enum: [active, waitlist, left] } }
         - { name: q, in: query, required: false, schema: { type: string } }
       responses:
@@ -1805,6 +1830,57 @@ paths:
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/ChildStats' } } } }
 
+  /admin/child-room-assignments/bulk-transfer:
+    post:
+      tags: [Children]
+      summary: Bulk-transfer children into one room (age-group promotion). Each child runs the full canonical transfer — a partial batch is a 200 with per-child ok/error rows, never an all-or-nothing abort.
+      operationId: bulkTransferChildren
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [child_ids, room_id, reason]
+              properties:
+                child_ids: { type: array, items: { type: string }, maxItems: 100 }
+                room_id: { type: string }
+                effective_date: { type: string, format: date, description: Defaults to today; a future date schedules the moves }
+                reason: { type: string }
+                notes: { type: string }
+                override_reason: { type: string, description: Required to pass a failed capacity/age check (applies to every child in the batch) }
+      responses:
+        '200':
+          description: Per-child results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        child_id: { type: string }
+                        child_name: { type: string }
+                        ok: { type: boolean }
+                        error: { type: string }
+                  moved: { type: integer }
+                  requested: { type: integer }
+        '400': { description: No children selected / more than 100 }
+  /admin/children/{id}/profile.pdf:
+    get:
+      tags: [Children]
+      summary: Download the FULL child profile as a PDF (identity, contacts, induction answers, consents; SEND section only for send.manage callers)
+      operationId: downloadChildProfilePDF
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: PDF attachment, content: { application/pdf: { schema: { type: string, format: binary } } } }
+        '403': { description: Outside the caller's branch scope }
+        '404': { description: Child not found }
   /admin/children/{id}:
     get:
       tags: [Children]
@@ -1938,8 +2014,8 @@ paths:
       security: [{ BearerAuth: [] }]
       parameters:
         - { name: branch, in: query, required: false, schema: { type: string } }
-        - { name: room_id, in: query, required: false, schema: { type: string } }
         - { name: status, in: query, required: false, schema: { type: string, enum: [active, on_leave, inactive] } }
+        - { name: type, in: query, required: false, schema: { type: string, enum: [permanent, agency, bank] } }
         - { name: q, in: query, required: false, schema: { type: string } }
       responses:
         '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Staff' } } } } }
@@ -2365,10 +2441,14 @@ paths:
       security: [{ BearerAuth: [] }]
       parameters:
         - { name: branch, in: query, required: false, schema: { type: string } }
-        - { name: date, in: query, required: false, schema: { type: string, format: date } }
+        - { name: date, in: query, required: false, schema: { type: string, format: date }, description: Exact day (combines with `since` into one range clause) }
+        - { name: since, in: query, required: false, schema: { type: string, format: date }, description: Lower bound (date >= since) }
         - { name: type, in: query, required: false, schema: { type: string, enum: [observation, incident, safeguarding, medication, meal] } }
-        - { name: child_id, in: query, required: false, schema: { type: string } }
+        - { name: child, in: query, required: false, schema: { type: string }, description: Child id }
         - { name: status, in: query, required: false, schema: { type: string, enum: [open, resolved, administered, logged] } }
+        - { name: approval, in: query, required: false, schema: { type: string, enum: [approved, pending, rejected] }, description: Empty = any (approved includes legacy records with no approval_status) }
+        - { name: q, in: query, required: false, schema: { type: string }, description: Free-text search (title/child/ref) }
+        - { name: limit, in: query, required: false, schema: { type: integer } }
       responses:
         '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/DailyRecord' } } } } }
     post:
@@ -2725,6 +2805,8 @@ paths:
       summary: List branches (management; branch-scoped for scoped roles)
       operationId: adminListBranches
       security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: archived, in: query, required: false, schema: { type: boolean }, description: true includes archived branches }
       responses:
         '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Branch' } } } } }
     post:
@@ -3047,6 +3129,13 @@ paths:
   # Admin - Categories (store.manage)
   # ─────────────────────────────────────────────────────────────────────────────
   /admin/categories:
+    get:
+      tags: [Products]
+      summary: List categories (management view)
+      operationId: adminListCategories
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Category' } } } } }
     post:
       tags: [Products]
       summary: Create a category
@@ -3326,8 +3415,8 @@ paths:
   /leave-requests:
     post:
       tags: [Leave]
-      summary: Apply for leave (self-service; managers may pass an explicit staff_id)
-      description: Blocks over-allowance requests for capped types (annual + configured sick) and overlaps with the applicant's own pending/approved leave.
+      summary: Apply for leave (self-service; CALLER only — a staff_id in the body is rejected with 403)
+      description: Blocks over-allowance requests for capped types (annual + configured sick) and overlaps with the applicant's own pending/approved leave. Filing for another staff member goes through POST /admin/leave-requests (permission leave.approve).
       operationId: applyLeaveRequest
       security: [{ BearerAuth: [] }]
       requestBody:
@@ -3338,6 +3427,7 @@ paths:
       responses:
         '201': { description: Created (status pending), content: { application/json: { schema: { $ref: '#/components/schemas/LeaveRequest' } } } }
         '400': { description: Bad range / over allowance / overlapping own leave }
+        '403': { description: staff_id supplied on the self-service route }
 
   /leave-requests/me:
     get:
@@ -4179,6 +4269,16 @@ paths:
       security: [{ BearerAuth: [] }]
       responses:
         '200': { description: OK }
+  /portal/children/{id}:
+    get:
+      tags: [Portal]
+      summary: One authorised child (404 for any child not linked to the caller — never confirms a guessed id)
+      operationId: portalGetChild
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Child' } } } }
+        '404': { description: Child not found / not authorised }
   /portal/children/{id}/induction:
     get:
       tags: [Portal]
@@ -4237,6 +4337,45 @@ paths:
       parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
       responses:
         '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/OnboardingView' } } } }
+  /portal/children/{id}/attendance:
+    get:
+      tags: [Portal]
+      summary: Parent-safe attendance history for the caller's own child (date/status/arrival/departure only)
+      operationId: portalChildAttendance
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+        '404': { description: Not your child }
+  /portal/children/{id}/daily-records:
+    get:
+      tags: [Portal]
+      summary: Daily updates EXPLICITLY shared with parents (approved + parent_shared only, staff fields stripped)
+      operationId: portalChildDailyRecords
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK }
+        '404': { description: Not your child }
+  /admin/daily-records/{id}/share:
+    post:
+      tags: [Daily Records]
+      summary: Send to parent — the canonical sharing action (permission daily_logs.approve; approved records only; safeguarding never; idempotent; audited)
+      operationId: shareDailyRecord
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Shared (parent_shared/at/by set; parents notified) }
+        '400': { description: Unapproved or safeguarding record }
+  /admin/daily-records/{id}/unshare:
+    post:
+      tags: [Daily Records]
+      summary: Withdraw parent visibility (record + share history preserved; audited)
+      operationId: unshareDailyRecord
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: Withdrawn }
   /portal/finance:
     get:
       tags: [Portal]

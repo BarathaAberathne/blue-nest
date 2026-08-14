@@ -2,9 +2,11 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/blue-nest-montessori/api/internal/middleware"
 	"github.com/blue-nest-montessori/api/internal/models"
+	"github.com/blue-nest-montessori/api/internal/repository"
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
 	"github.com/blue-nest-montessori/api/pkg/validator"
@@ -21,11 +23,14 @@ type PortalHandler struct {
 	induction  service.InductionService
 	onboarding service.OnboardingService
 	finance    service.FinanceService
+	daily      service.DailyRecordService
+	attendance service.AttendanceService
+	audit      service.AuditService
 	frontend   string
 }
 
-func NewPortalHandler(parents service.ParentService, children service.ChildService, induction service.InductionService, onboarding service.OnboardingService, finance service.FinanceService, frontendURL string) *PortalHandler {
-	return &PortalHandler{parents: parents, children: children, induction: induction, onboarding: onboarding, finance: finance, frontend: frontendURL}
+func NewPortalHandler(parents service.ParentService, children service.ChildService, induction service.InductionService, onboarding service.OnboardingService, finance service.FinanceService, dailyRecords service.DailyRecordService, attendance service.AttendanceService, audit service.AuditService, frontendURL string) *PortalHandler {
+	return &PortalHandler{parents: parents, children: children, induction: induction, onboarding: onboarding, finance: finance, daily: dailyRecords, attendance: attendance, audit: audit, frontend: frontendURL}
 }
 
 func (h *PortalHandler) scope(w http.ResponseWriter, r *http.Request) (*models.Parent, map[string]bool, bool) {
@@ -40,6 +45,27 @@ func (h *PortalHandler) scope(w http.ResponseWriter, r *http.Request) (*models.P
 		set[id] = true
 	}
 	return parent, set, true
+}
+
+// scopeChild resolves the {id} child, enforcing that the caller is an
+// authorised portal parent of that child (unauthorised → 404, never leaking
+// whether the child exists).
+func (h *PortalHandler) scopeChild(w http.ResponseWriter, r *http.Request) (*models.Parent, *models.Child, bool) {
+	parent, authorised, ok := h.scope(w, r)
+	if !ok {
+		return nil, nil, false
+	}
+	id := chi.URLParam(r, "id")
+	if !authorised[id] {
+		response.NotFound(w, "child not found")
+		return nil, nil, false
+	}
+	child, err := h.children.GetByID(r.Context(), id)
+	if err != nil {
+		response.NotFound(w, "child not found")
+		return nil, nil, false
+	}
+	return parent, child, true
 }
 
 // Me returns the parent's own record + child relationships.
@@ -133,6 +159,10 @@ func (h *PortalHandler) SaveInductionSection(w http.ResponseWriter, r *http.Requ
 		response.BadRequest(w, err.Error())
 		return
 	}
+	// Parent-side mutations leave the same audit trail as their admin
+	// equivalents (handler/admin/induction.go) — a safeguarding-relevant record
+	// must not depend on WHO filled it in.
+	h.audit.Record(r, "induction_save", "child", id, "Parent saved induction section '"+chi.URLParam(r, "key")+"'", nil)
 	response.OK(w, ind)
 }
 
@@ -151,6 +181,7 @@ func (h *PortalHandler) SubmitInduction(w http.ResponseWriter, r *http.Request) 
 		response.BadRequest(w, err.Error())
 		return
 	}
+	h.audit.Record(r, "induction_submit", "child", id, "Parent submitted the induction form for review", nil)
 	response.OK(w, ind)
 }
 
@@ -192,6 +223,11 @@ func (h *PortalHandler) RecordConsent(w http.ResponseWriter, r *http.Request) {
 		response.BadRequest(w, err.Error())
 		return
 	}
+	verb := "withdrew"
+	if req.Granted {
+		verb = "granted"
+	}
+	h.audit.Record(r, "consent", "child", id, "Parent "+verb+" consent '"+req.Key+"'", nil)
 	response.Created(w, c)
 }
 
@@ -251,5 +287,57 @@ func (h *PortalHandler) DirectDebitSetup(w http.ResponseWriter, r *http.Request)
 		response.BadRequest(w, err.Error())
 		return
 	}
+	h.audit.Record(r, "direct_debit_setup", "family", fam.ID.Hex(), "Parent started Direct Debit setup", nil)
 	response.OK(w, map[string]string{"setup_url": url})
+}
+
+// ── Attendance (parent view: own child, parent-safe fields only) ─────────────
+
+// portalAttendanceRow is the parent-facing attendance projection — no staff
+// names, no operational notes, no correction history.
+type portalAttendanceRow struct {
+	Date     string     `json:"date"`
+	Status   string     `json:"status"`
+	CheckIn  *time.Time `json:"check_in,omitempty"`
+	CheckOut *time.Time `json:"check_out,omitempty"`
+}
+
+func (h *PortalHandler) ChildAttendance(w http.ResponseWriter, r *http.Request) {
+	_, child, ok := h.scopeChild(w, r)
+	if !ok {
+		return
+	}
+	records, err := h.attendance.HistoryForChild(r.Context(), child.ID.Hex(), 60)
+	if err != nil {
+		response.InternalError(w, "failed to load attendance")
+		return
+	}
+	out := make([]portalAttendanceRow, 0, len(records))
+	for _, rec := range records {
+		out = append(out, portalAttendanceRow{Date: rec.Date, Status: string(rec.Status), CheckIn: rec.CheckIn, CheckOut: rec.CheckOut})
+	}
+	response.OK(w, out)
+}
+
+// ── Daily updates (parent view: EXPLICITLY shared + approved records only) ───
+
+func (h *PortalHandler) ChildDailyRecords(w http.ResponseWriter, r *http.Request) {
+	_, child, ok := h.scopeChild(w, r)
+	if !ok {
+		return
+	}
+	records, err := h.daily.List(r.Context(), repository.DailyRecordFilter{ChildID: child.ID.Hex(), Limit: 200})
+	if err != nil {
+		response.InternalError(w, "failed to load daily updates")
+		return
+	}
+	out := make([]models.DailyRecord, 0)
+	for _, rec := range records {
+		// The single visibility gate: explicitly shared AND approved. Internal
+		// records never leave the backend, whatever the URL or ID used.
+		if rec.ParentVisible() {
+			out = append(out, rec.SanitizeForParent())
+		}
+	}
+	response.OK(w, out)
 }

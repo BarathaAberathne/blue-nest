@@ -43,6 +43,7 @@ type Services struct {
 	DashboardProfiles service.DashboardProfileService
 	Rooms             service.RoomService
 	Children          service.ChildService
+	ChildProfilePDF   service.ChildProfilePDFService
 	Parents           service.ParentService
 	Induction         service.InductionService
 	Onboarding        service.OnboardingService
@@ -105,10 +106,12 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		// ── Auth ──────────────────────────────────────────────────────────
 		authH := handler.NewAuthHandler(svc.Auth, svc.Organisations, cfg)
 		// Login is credential-guessable - rate-limit per IP so a script can't
-		// brute-force/credential-stuff it (every other public-but-abusable group
-		// in this file, e.g. the kiosk, already does this; login was the gap).
+		// brute-force/credential-stuff it. FAILED attempts only (401s): wrong
+		// passwords hit the wall after 10/min, while successful sign-ins never
+		// consume budget — so many users behind one NAT (or a full e2e run's
+		// dozens of suite logins) can't lock each other out.
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.RateLimit(10, time.Minute))
+			r.Use(middleware.RateLimitFailures(10, time.Minute))
 			r.Post("/auth/login", authH.Login)
 			r.Post("/admin/auth/login", authH.AdminLogin)
 		})
@@ -240,7 +243,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(jwtSecret))
 			r.Use(middleware.RequireRole("customer"))
-			portalH := handler.NewPortalHandler(svc.Parents, svc.Children, svc.Induction, svc.Onboarding, svc.Finance, cfg.FrontendURL)
+			portalH := handler.NewPortalHandler(svc.Parents, svc.Children, svc.Induction, svc.Onboarding, svc.Finance, svc.DailyRecords, svc.Attendance, svc.Audit, cfg.FrontendURL)
 			r.Get("/portal/me", portalH.Me)
 			r.Get("/portal/children", portalH.Children)
 			r.Get("/portal/children/{id}", portalH.Child)
@@ -250,6 +253,8 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Get("/portal/children/{id}/consents", portalH.Consents)
 			r.Post("/portal/children/{id}/consents", portalH.RecordConsent)
 			r.Get("/portal/children/{id}/onboarding", portalH.Onboarding)
+			r.Get("/portal/children/{id}/attendance", portalH.ChildAttendance)
+			r.Get("/portal/children/{id}/daily-records", portalH.ChildDailyRecords)
 			r.Get("/portal/finance", portalH.Finance)
 			r.Post("/portal/finance/direct-debit", portalH.DirectDebitSetup)
 		})
@@ -373,7 +378,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				leaveAdminH := adminHandler.NewAdminLeaveHandler(svc.LeaveRequests, svc.Audit)
 				r.Get("/admin/leave-requests", leaveAdminH.List)
 				r.Get("/admin/leave-requests/export", leaveAdminH.Export)
-				r.Post("/admin/leave-requests", leaveAdminH.Apply) // manager files for a staff member (staff_id in body)
+				r.Post("/admin/leave-requests", leaveAdminH.ApplyFor) // manager files for a staff member (staff_id in body)
 				r.Post("/admin/leave-requests/{id}/approve", leaveAdminH.Approve)
 				r.Post("/admin/leave-requests/{id}/decline", leaveAdminH.Decline)
 			})
@@ -447,8 +452,11 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Patch("/admin/child-room-assignments/{id}", adminChildRoomH.End)
 				r.Get("/admin/children/{id}/room-assignments", adminChildRoomH.ListForChild)
 				r.Post("/admin/children/{id}/transfer-room", adminChildRoomH.Transfer)
+				r.Post("/admin/child-room-assignments/bulk-transfer", adminChildRoomH.BulkTransfer)
 
 				adminChildH := adminHandler.NewAdminChildHandler(svc.Children, svc.Audit)
+				childPDFH := adminHandler.NewChildProfilePDFHandler(svc.ChildProfilePDF, svc.Children)
+				r.Get("/admin/children/{id}/profile.pdf", childPDFH.Download)
 				r.Get("/admin/children", adminChildH.List)
 				r.Get("/admin/children/export", adminChildH.Export)
 				r.Get("/admin/children/stats", adminChildH.Stats)
@@ -660,6 +668,8 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				r.Group(func(r chi.Router) {
 					r.Use(middleware.RequirePermission(models.PermDailyLogsApprove))
 					r.Post("/admin/daily-records/{id}/approve", adminDailyH.Approve)
+					r.Post("/admin/daily-records/{id}/share", adminDailyH.Share)
+					r.Post("/admin/daily-records/{id}/unshare", adminDailyH.Unshare)
 					r.Post("/admin/daily-records/{id}/reject", adminDailyH.Reject)
 				})
 			})

@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import { DAILY_TYPES, EYFS_AREAS, MEAL_TYPES, EATEN_OPTIONS, SEVERITIES, REPORTED_TO_OPTIONS, typeFields } from "@/lib/dailyLog";
-import type { Branch, DailyRecordInput, DailyRecordType, Staff } from "@/types";
+import type { Branch, Child, DailyRecordInput, DailyRecordType, Staff } from "@/types";
 
 // A modal for submitting a daily log. When `child` is given the child/branch are
 // fixed (child-profile "Add daily log"); otherwise a branch + free-text child
@@ -26,6 +26,10 @@ export default function DailyLogForm({
   onSaved: () => void;
 }) {
   const [type, setType] = useState<DailyRecordType>("observation");
+  // Standalone mode (no fixed child): branch-filtered child picker so the
+  // daily-log page creates records against the SAME child linkage as the
+  // child-profile entry point. Optional — empty = branch-wide record.
+  const [childOptions, setChildOptions] = useState<Child[]>([]);
   const [form, setForm] = useState<DailyRecordInput>({
     type: "observation",
     child_id: child?.id,
@@ -36,6 +40,16 @@ export default function DailyLogForm({
     administered_by: "", parent_consent: false, meal_type: "lunch", eaten: "all", menu: "",
     attachments: [],
   });
+
+  useEffect(() => {
+    if (child || !form.branch_slug) { setChildOptions([]); return; }
+    const token = getAccessToken();
+    if (!token) return;
+    api.adminGetChildren(token, { branch: form.branch_slug, status: "active" })
+      .then((cs) => setChildOptions(cs ?? []))
+      .catch(() => setChildOptions([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.branch_slug]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,9 +134,16 @@ export default function DailyLogForm({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {!child && (
               <label className="block"><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">Branch *</span>
-                <select value={form.branch_slug} onChange={(e) => set({ branch_slug: e.target.value })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+                <select value={form.branch_slug} onChange={(e) => set({ branch_slug: e.target.value, child_id: "" })} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
                   <option value="">Select branch…</option>
                   {branches.map((b) => <option key={b.slug} value={b.slug}>{branchShortName(b)}</option>)}
+                </select></label>
+            )}
+            {!child && (
+              <label className="block"><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">Child</span>
+                <select value={form.child_id ?? ""} onChange={(e) => set({ child_id: e.target.value })} disabled={!form.branch_slug} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm disabled:opacity-60">
+                  <option value="">Branch-wide (no specific child)</option>
+                  {childOptions.map((c) => <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>)}
                 </select></label>
             )}
             <label className="block"><span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-500">Title *</span>
