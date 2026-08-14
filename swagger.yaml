@@ -1072,6 +1072,24 @@ paths:
                 $ref: '#/components/schemas/BlogPost'
         '404':
           description: Blog post not found
+    delete:
+      tags:
+        - Admin
+      summary: Delete blog post
+      operationId: deleteBlogPost
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Blog post deleted
+        '404':
+          description: Blog post not found
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Admin - Users (super-admin account management)
@@ -1341,6 +1359,13 @@ paths:
       responses: { '201': { description: Created }, '400': { description: Invalid } }
 
   /admin/catalogue/{id}:
+    get:
+      tags: [Admin]
+      summary: Get a catalogue item
+      operationId: adminGetCatalogueItem
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses: { '200': { description: OK }, '404': { description: Not found } }
     put:
       tags: [Admin]
       summary: Update a catalogue item
@@ -2364,10 +2389,14 @@ paths:
       security: [{ BearerAuth: [] }]
       parameters:
         - { name: branch, in: query, required: false, schema: { type: string } }
-        - { name: date, in: query, required: false, schema: { type: string, format: date } }
+        - { name: date, in: query, required: false, schema: { type: string, format: date }, description: Exact day (combines with `since` into one range clause) }
+        - { name: since, in: query, required: false, schema: { type: string, format: date }, description: Lower bound (date >= since) }
         - { name: type, in: query, required: false, schema: { type: string, enum: [observation, incident, safeguarding, medication, meal] } }
-        - { name: child_id, in: query, required: false, schema: { type: string } }
+        - { name: child, in: query, required: false, schema: { type: string }, description: Child id }
         - { name: status, in: query, required: false, schema: { type: string, enum: [open, resolved, administered, logged] } }
+        - { name: approval, in: query, required: false, schema: { type: string, enum: [approved, pending, rejected] }, description: Empty = any (approved includes legacy records with no approval_status) }
+        - { name: q, in: query, required: false, schema: { type: string }, description: Free-text search (title/child/ref) }
+        - { name: limit, in: query, required: false, schema: { type: integer } }
       responses:
         '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/DailyRecord' } } } } }
     post:
@@ -2724,6 +2753,8 @@ paths:
       summary: List branches (management; branch-scoped for scoped roles)
       operationId: adminListBranches
       security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: archived, in: query, required: false, schema: { type: boolean }, description: true includes archived branches }
       responses:
         '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Branch' } } } } }
     post:
@@ -3046,6 +3077,13 @@ paths:
   # Admin - Categories (store.manage)
   # ─────────────────────────────────────────────────────────────────────────────
   /admin/categories:
+    get:
+      tags: [Products]
+      summary: List categories (management view)
+      operationId: adminListCategories
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Category' } } } } }
     post:
       tags: [Products]
       summary: Create a category
@@ -3325,8 +3363,8 @@ paths:
   /leave-requests:
     post:
       tags: [Leave]
-      summary: Apply for leave (self-service; managers may pass an explicit staff_id)
-      description: Blocks over-allowance requests for capped types (annual + configured sick) and overlaps with the applicant's own pending/approved leave.
+      summary: Apply for leave (self-service; CALLER only — a staff_id in the body is rejected with 403)
+      description: Blocks over-allowance requests for capped types (annual + configured sick) and overlaps with the applicant's own pending/approved leave. Filing for another staff member goes through POST /admin/leave-requests (permission leave.approve).
       operationId: applyLeaveRequest
       security: [{ BearerAuth: [] }]
       requestBody:
@@ -3337,6 +3375,7 @@ paths:
       responses:
         '201': { description: Created (status pending), content: { application/json: { schema: { $ref: '#/components/schemas/LeaveRequest' } } } }
         '400': { description: Bad range / over allowance / overlapping own leave }
+        '403': { description: staff_id supplied on the self-service route }
 
   /leave-requests/me:
     get:
@@ -4178,6 +4217,16 @@ paths:
       security: [{ BearerAuth: [] }]
       responses:
         '200': { description: OK }
+  /portal/children/{id}:
+    get:
+      tags: [Portal]
+      summary: One authorised child (404 for any child not linked to the caller — never confirms a guessed id)
+      operationId: portalGetChild
+      security: [{ BearerAuth: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Child' } } } }
+        '404': { description: Child not found / not authorised }
   /portal/children/{id}/induction:
     get:
       tags: [Portal]
