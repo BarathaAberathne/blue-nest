@@ -1803,6 +1803,7 @@ paths:
       security: [{ BearerAuth: [] }]
       parameters:
         - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: room, in: query, required: false, schema: { type: string }, description: Current-room filter, resolved via the canonical child_room_assignments }
         - { name: status, in: query, required: false, schema: { type: string, enum: [active, waitlist, left] } }
         - { name: q, in: query, required: false, schema: { type: string } }
       responses:

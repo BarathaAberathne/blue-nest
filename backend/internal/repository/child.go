@@ -17,7 +17,12 @@ import (
 // projection), so a stored-field room filter can never match — filter on the
 // projected room after List, like the UI does.
 type ChildFilter struct {
-	Branch    string
+	Branch string
+	// Room filters by CURRENT room. Room placement lives in the canonical
+	// child_room_assignments (children.room_id is a computed bson:"-"
+	// projection), so this is resolved by the SERVICE via the assignment
+	// model — never as a Mongo filter here.
+	Room      string
 	Status    string
 	Q         string
 	KeyPerson string // staff id — children this staff member is key person for
@@ -58,6 +63,8 @@ func (r *childRepository) FindAll(ctx context.Context, f ChildFilter) ([]models.
 	if f.Branch != "" {
 		filter["branch_slug"] = f.Branch
 	}
+	// NOTE: no room filter here — room placement lives in the canonical
+	// child_room_assignments; the service layer resolves ChildFilter.Room.
 	if f.Status != "" {
 		filter["status"] = f.Status
 	}
