@@ -677,7 +677,12 @@ Amazon Business API (Product Search → Cart → Ordering), then full inventory/
     canonical fields** (allergies/dietary/medical → Child tags, address → `Child.Address` — never duplicated);
     submit gated on required sections; **four-eyes review** (reviewer ≠ submitter). Append-only `consents`
     (17-item catalogue, typed signature, latest-row-wins via `LatestConsents`). Frontend: portal wizard
-    (`lib/induction.ts` field catalogue + generic `InductionSectionForm`), admin panels on the child profile.
+    (`lib/induction.ts` field catalogue + generic `InductionSectionForm`); admin side =
+    **`ChildOnboardingPanel`** on the child profile (completeness bar + read-only per-section answers from
+    the shared field catalogue + the **Sign off review** action — the ONLY caller of
+    `POST /admin/children/{id}/induction/review`; the submit notification links here, and the
+    `/admin/onboarding` board shows a **Review induction** link on awaiting_review rows). Before this panel
+    the review endpoint had no UI caller, so a submitted induction could never reach `reviewed`.
   - **Derived onboarding:** `computeOnboarding` (`service/onboarding.go`, pure + unit-tested) — 7 weighted
     categories (child_info 20 / parents 15 / emergency 10 / medical 15 / consents 10 / induction 15 /
     finance 15) + status machine (registration_started → induction_* → awaiting_review →

@@ -12,6 +12,7 @@ import Avatar from "@/components/admin/ui/Avatar";
 import ProfilePhotoUploader from "@/components/admin/ui/ProfilePhotoUploader";
 import ChildRoomAllocations from "@/components/admin/rooms/ChildRoomAllocations";
 import ChildParentsPanel from "@/components/admin/parents/ChildParentsPanel";
+import ChildOnboardingPanel from "@/components/admin/children/ChildOnboardingPanel";
 import SendSupportPanel from "@/components/admin/send/SendSupportPanel";
 import { sendActive } from "@/lib/send";
 import PickerModal from "@/components/admin/ui/PickerModal";
@@ -310,6 +311,13 @@ export default function ChildDetailClient({ id }: { id: string }) {
                 onStatusChange={(status) => setChild((c) => (c ? { ...c, send_status: status } : c))}
               />
             )}
+          </div>
+
+          {/* Onboarding progress + the four-eyes induction review (the ONLY
+              place a submitted induction is signed off — the submit
+              notification links here). */}
+          <div className="lg:col-span-3">
+            <ChildOnboardingPanel childId={child.id} canManage={has("children.manage")} />
           </div>
 
           {/* Room placement — current room, transfer with capacity/age
