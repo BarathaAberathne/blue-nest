@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, Check, PackageCheck, Paperclip, ShoppingCart, Truck, Upload } from "lucide-react";
+import BackLink from "@/components/admin/ui/BackLink";
+import { Check, PackageCheck, Paperclip, ShoppingCart, Truck, Upload } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import StageBadge from "@/components/admin/ui/StageBadge";
@@ -314,9 +314,7 @@ export default function AdminPurchaseCartDetailClient({ id }: { id: string }) {
 
   return (
     <>
-      <Link href="/admin/purchase-carts" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-4">
-        <ArrowLeft className="h-4 w-4" /> Back to purchase orders
-      </Link>
+      <BackLink fallback="/admin/purchase-carts" />
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>

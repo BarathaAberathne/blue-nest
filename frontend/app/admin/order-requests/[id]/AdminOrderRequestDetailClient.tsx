@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import BackLink from "@/components/admin/ui/BackLink";
 import { ArrowLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
@@ -66,9 +66,7 @@ export default function AdminOrderRequestDetailClient({ id }: { id: string }) {
 
   return (
     <>
-      <Link href="/admin/order-requests" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-4">
-        <ArrowLeft className="h-4 w-4" /> Back to supply requests
-      </Link>
+      <BackLink fallback="/admin/order-requests" />
 
       <div className="flex items-center justify-between mb-6">
         <div>

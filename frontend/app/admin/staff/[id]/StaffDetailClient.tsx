@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import BackLink from "@/components/admin/ui/BackLink";
 import Link from "next/link";
 import {
-  ArrowLeft, Award, Baby, BadgeCheck, CalendarClock, CalendarDays, CalendarX, Check, CheckCircle2,
+  Award, Baby, BadgeCheck, CalendarClock, CalendarDays, CalendarX, Check, CheckCircle2,
   ChevronDown, ChevronLeft, ChevronRight, Clock, DoorOpen, GraduationCap, KeyRound, Mail, Palmtree,
   Pencil, Phone, Plus, Save, Search, ShieldCheck, Smile, Tags as TagsIcon, Thermometer, Trash2,
   User, Users, X,
@@ -238,9 +239,7 @@ export default function StaffDetailClient({ id }: { id: string }) {
 
   return (
     <>
-      <Link href="/admin/staff" className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-teal-600">
-        <ArrowLeft className="h-4 w-4" /> All staff
-      </Link>
+      <BackLink fallback="/admin/staff" />
 
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 

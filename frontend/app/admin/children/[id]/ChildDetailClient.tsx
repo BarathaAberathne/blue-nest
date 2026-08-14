@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Archive, ArrowLeft, ArrowRightLeft, FileDown, Pencil, Plus, Save, Trash2, UserCheck, X } from "lucide-react";
+import { Archive, ArrowRightLeft, FileDown, Pencil, Plus, Save, Trash2, UserCheck, X } from "lucide-react";
+import BackLink from "@/components/admin/ui/BackLink";
 import { api, downloadCsv } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
@@ -51,7 +52,13 @@ export default function ChildDetailClient({ id }: { id: string }) {
   const [saving, setSaving] = useState(false);
   const { has } = usePermissions();
   const search = useSearchParams();
-  const [tab, setTab] = useState<ProfileTab>((search?.get("tab") as ProfileTab) || "overview");
+  const [tab, setTabState] = useState<ProfileTab>((search?.get("tab") as ProfileTab) || "overview");
+  // Mirror the active tab into the URL (replaceState — no history spam) so
+  // browser back from a detail page returns to the SAME tab.
+  const setTab = (k: ProfileTab) => {
+    setTabState(k);
+    if (typeof window !== "undefined") window.history.replaceState(null, "", k === "overview" ? window.location.pathname : `?tab=${k}`);
+  };
   const [inductionBundle, setInductionBundle] = useState<InductionBundle | null>(null);
   const [bundleLoading, setBundleLoading] = useState(true);
   const [pdfBusy, setPdfBusy] = useState(false);
@@ -191,9 +198,7 @@ export default function ChildDetailClient({ id }: { id: string }) {
 
   return (
     <>
-      <Link href="/admin/children" className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-teal-600">
-        <ArrowLeft className="h-4 w-4" /> All children
-      </Link>
+      <BackLink fallback="/admin/children" />
 
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 

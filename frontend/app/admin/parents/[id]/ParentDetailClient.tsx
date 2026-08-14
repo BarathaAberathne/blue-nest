@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import BackLink from "@/components/admin/ui/BackLink";
 import Link from "next/link";
-import { ArrowLeft, Pencil, Save, Send, ShieldOff, ShieldCheck, X } from "lucide-react";
+import { Pencil, Save, Send, ShieldOff, ShieldCheck, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { usePermissions } from "@/lib/usePermissions";
@@ -84,9 +85,7 @@ export default function ParentDetailClient({ id }: { id: string }) {
 
   return (
     <>
-      <Link href="/admin/parents" className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-teal-600">
-        <ArrowLeft className="h-4 w-4" /> All parents
-      </Link>
+      <BackLink fallback="/admin/parents" />
 
       {error && <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">{error}</p>}
 

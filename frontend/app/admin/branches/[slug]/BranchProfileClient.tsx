@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import BackLink from "@/components/admin/ui/BackLink";
 import Link from "next/link";
 import {
-  ArrowLeft, Baby, CalendarCheck, ClipboardList, DoorOpen, HeartPulse, Save,
+  Baby, CalendarCheck, ClipboardList, DoorOpen, HeartPulse, Save,
   ShieldAlert, Star, TriangleAlert, Users, UtensilsCrossed,
 } from "lucide-react";
 import { api } from "@/lib/api";
@@ -117,9 +118,7 @@ export default function BranchProfileClient({ slug }: { slug: string }) {
 
   return (
     <>
-      <Link href="/admin/branches" className="mb-4 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-teal-600">
-        <ArrowLeft className="h-4 w-4" /> All branches
-      </Link>
+      <BackLink fallback="/admin/branches" />
 
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
