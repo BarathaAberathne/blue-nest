@@ -48,10 +48,12 @@ type ctxCapturingGBP struct {
 	gotCtx context.Context
 }
 
-// stubKiosk exists only because Register takes the method value
-// svc.Kiosk.Authenticate at registration time — a nil interface would panic
-// before any route is exercised. The method is never called in these tests.
+// stubKiosk / stubAuth exist only because Register takes the method values
+// svc.Kiosk.Authenticate and svc.Auth.TokenVersion at registration time — a
+// nil interface would panic before any route is exercised. The methods are
+// never called in these tests.
 type stubKiosk struct{ service.KioskService }
+type stubAuth struct{ service.AuthService }
 
 func (g *ctxCapturingGBP) IngestDigest(ctx context.Context, _ models.GBPDigestRequest) error {
 	g.gotCtx = ctx
@@ -66,6 +68,7 @@ func newWebhookTestRouter(t *testing.T, fin *ctxCapturingFinance, gbp *ctxCaptur
 		Finance:      fin,
 		GBP:          gbp,
 		Kiosk:        &stubKiosk{},
+		Auth:         &stubAuth{},
 	}
 	Register(r, svc, Repos{}, "test-jwt-secret", stripeSecret, &config.Config{GBPIngestSecret: gbpSecret})
 	return r

@@ -142,6 +142,19 @@ gate a route with `middleware.RequirePermission(models.PermX)` and a UI section 
 route via `middleware.RequireRole("...")`. Login: `POST /auth/login` (parents/staff), `POST
 /admin/auth/login` (management, incl. the specialists). After login, customers → `/account`, **staff →
 `/admin/my-requests`** (Staff Portal), management → `/admin/dashboard`. There is **no social/OAuth login** (removed).
+**Token revocation (delivered, audit item 5):** every JWT carries a `tv` (token-version) claim checked
+against `User.TokenVersion` in BOTH `middleware.Auth` (via the ~60s-cached `authService.TokenVersion`
+lookup — one Mongo read per user per minute) and `Refresh` — so logout (`POST /auth/logout`, now in the
+authenticated group and wired to every UI sign-out via `api.signOut()`), a password change/reset, or an
+admin role/branch change **ends the user's existing sessions immediately** instead of at token expiry
+(a missing claim reads as version 0, keeping pre-existing sessions valid until their first bump; the
+in-process cache means multi-replica deployments would propagate within the TTL). Bump via
+`userRepo.BumpTokenVersion`/`authService.revokeTokens`. **Rate limits:** besides the failure-only login
+limiter, `/auth/register` (15/min), `/auth/refresh` (30/min), `/auth/portal/activate` (10/min),
+`/contact` (30/min) and blog-comment POST (10/min) are per-IP throttled. `middleware.ClientIP` is
+**trusted-proxy aware**: proxy headers count only when the peer is loopback/private, preferring
+`X-Real-IP` (which nginx overwrites) then the RIGHTMOST `X-Forwarded-For` entry — a client-forged XFF
+can no longer mint fresh rate-limit identities. Locked by `auth_revocation_test.go` + `clientip_test.go`.
 
 ## How to add a backend entity (the standard pattern)
 Mirror an existing module (e.g. `enquiries`, `orders`): model → repository (`Create`, `FindAll`

@@ -43,7 +43,8 @@ import {
   Wallet,
 } from "lucide-react";
 import { useAuthGuard } from "@/lib/useAuthGuard";
-import { clearAuthSession, isManagementRole } from "@/lib/auth";
+import { api } from "@/lib/api";
+import { isManagementRole } from "@/lib/auth";
 import { usePermissions, clearPermissionsCache } from "@/lib/usePermissions";
 import NotificationBell from "@/components/admin/NotificationBell";
 import type { Permission, UserRole } from "@/types";
@@ -261,7 +262,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     : "A";
 
   const handleLogout = () => {
-    clearAuthSession();
+    api.signOut();
     clearPermissionsCache();
     router.push("/admin/login");
   };

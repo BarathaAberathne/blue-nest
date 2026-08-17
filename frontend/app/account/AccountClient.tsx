@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
-import { clearAuthSession } from "@/lib/auth";
+import { api } from "@/lib/api";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import type { User } from "@/types";
 
@@ -71,7 +71,7 @@ export default function AccountClient() {
       <button
         type="button"
         onClick={() => {
-          clearAuthSession();
+          api.signOut();
           router.push("/login");
         }}
         className="flex items-center gap-2 rounded-full border border-[rgba(90,74,66,0.15)] px-5 py-2.5 text-sm font-semibold text-[var(--muted)] transition hover:border-[rgba(90,74,66,0.30)] hover:text-[var(--ink)]"
