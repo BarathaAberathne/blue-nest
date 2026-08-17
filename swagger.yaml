@@ -3634,6 +3634,58 @@ paths:
         '200': { description: Attachment (text/csv or application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) }
 
   # ─────────────────────────────────────────────────────────────────────────────
+  # Payroll roll-up (Phase D) — worked hours + leave taxonomy from the register
+  # ─────────────────────────────────────────────────────────────────────────────
+  /admin/payroll:
+    get:
+      tags: [Staff Attendance, Payroll]
+      summary: Per-staff payroll roll-up for a period (worked days/minutes, breaks, overtime, lates, full leave taxonomy, chase flags) + totals row
+      description: Branch-scoped like every other staff read (policy.EffectiveBranch); day classification matches the attendance hub (models.IsWorking/AwayCategory). Every currently-employed staff member of the scope appears even with zero records; leavers only when they have records in the period.
+      operationId: payrollSummary
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date }, description: Inclusive period start }
+        - { name: to, in: query, required: true, schema: { type: string, format: date }, description: Inclusive period end }
+        - { name: branch, in: query, required: false, schema: { type: string } }
+      responses:
+        '200': { description: 'Envelope with { from, to, branch, rows: PayrollRow[], totals: PayrollRow }' }
+        '400': { description: Missing/inverted date range }
+        '403': { description: Outside the caller's branch scope }
+
+  /admin/payroll/export:
+    get:
+      tags: [Staff Attendance, Payroll, Exports]
+      summary: Export the payroll roll-up (same scope + validation as the summary)
+      operationId: exportPayroll
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date } }
+        - { name: branch, in: query, required: false, schema: { type: string } }
+        - { name: format, in: query, required: false, schema: { type: string, enum: [csv, xlsx, excel], default: csv } }
+      responses:
+        '200': { description: Attachment (text/csv or application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) }
+
+  /admin/uploads/image:
+    post:
+      tags: [Uploads]
+      summary: Upload an image (multipart form field "image") — shared by blog covers, daily-log attachments and profile photos
+      description: Lives at the ManagementOnly root — the per-module permission gate belongs on the write that references the returned URL, not on the byte upload itself. Only URLs under /uploads/ are accepted by the photo/attachment endpoints.
+      operationId: uploadImage
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image: { type: string, format: binary }
+      responses:
+        '201': { description: 'Envelope with { url } — a relative /uploads/… path' }
+        '400': { description: Missing/oversized/unsupported file }
+
+  # ─────────────────────────────────────────────────────────────────────────────
   # Room allocation (effective-dated assignments — the canonical room model)
   # ─────────────────────────────────────────────────────────────────────────────
   /admin/child-room-assignments:
