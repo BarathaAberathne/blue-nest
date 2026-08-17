@@ -1,0 +1,15 @@
+# Runs bluenest-backup.service nightly. Enable with:
+#   sudo systemctl enable --now bluenest-backup.timer
+[Unit]
+Description=Nightly Blue Nest MongoDB backup
+
+[Timer]
+# 02:30 UTC — outside nursery hours, clear of the ~2-min deploy timer's load.
+OnCalendar=*-*-* 02:30:00 UTC
+# Catch up a missed run (droplet was down/rebooting at 02:30).
+Persistent=true
+RandomizedDelaySec=300
+Unit=bluenest-backup.service
+
+[Install]
+WantedBy=timers.target
