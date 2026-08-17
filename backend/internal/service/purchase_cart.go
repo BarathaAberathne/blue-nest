@@ -221,7 +221,8 @@ func (s *purchaseCartService) SetStatus(ctx context.Context, id, status string) 
 	// paths. Idempotent, so the extension's later /exported callback is harmless.
 	if !wasPlaced && updated.IsPlaced() {
 		for _, rid := range cart.SourceRequestIDs {
-			_ = s.requests.UpdateStatus(ctx, rid, string(models.OrderRequestOrdered))
+			logWarnIf(s.requests.UpdateStatus(ctx, rid, string(models.OrderRequestOrdered)),
+				"procurement: covered request not flipped to ordered", "request_id", rid, "cart_id", id)
 		}
 	}
 	return updated, nil
@@ -352,7 +353,8 @@ func (s *purchaseCartService) MarkExported(ctx context.Context, id string, resul
 	}
 	// Flip the covered requests to "ordered" (same as Send, without the email).
 	for _, rid := range cart.SourceRequestIDs {
-		_ = s.requests.UpdateStatus(ctx, rid, string(models.OrderRequestOrdered))
+		logWarnIf(s.requests.UpdateStatus(ctx, rid, string(models.OrderRequestOrdered)),
+			"procurement: covered request not flipped to ordered after export", "request_id", rid, "cart_id", id)
 	}
 	cart.Status = models.PurchaseCartOrdered
 	cart.ExportResults = results
@@ -384,7 +386,8 @@ func (s *purchaseCartService) UpdateFulfillment(ctx context.Context, id string, 
 		return nil, err
 	}
 	for _, rid := range cart.SourceRequestIDs {
-		_ = s.requests.SetExpectedDelivery(ctx, rid, req.ExpectedDeliveryDate)
+		logWarnIf(s.requests.SetExpectedDelivery(ctx, rid, req.ExpectedDeliveryDate),
+			"procurement: expected-delivery date not propagated to request", "request_id", rid, "cart_id", id)
 	}
 	cart.SupplierOrderRef = ref
 	if tracking != "" {
@@ -477,8 +480,10 @@ func (s *purchaseCartService) Receive(ctx context.Context, id string, items []mo
 	}
 	if allReceived {
 		for _, rid := range cart.SourceRequestIDs {
-			_ = s.requests.UpdateStatus(ctx, rid, string(models.OrderRequestReceived))
-			_ = s.requests.SetDelivered(ctx, rid, *deliveredAt)
+			logWarnIf(s.requests.UpdateStatus(ctx, rid, string(models.OrderRequestReceived)),
+				"procurement: covered request not flipped to received", "request_id", rid, "cart_id", id)
+			logWarnIf(s.requests.SetDelivered(ctx, rid, *deliveredAt),
+				"procurement: delivered date not propagated to request", "request_id", rid, "cart_id", id)
 		}
 	}
 	cart.Status = status

@@ -104,7 +104,8 @@ func (s *financeService) notifyFamily(ctx context.Context, f *models.Family, inc
 	if p, err := s.parents.FindByID(ctx, f.BillingParentID); err == nil && p != nil && p.UserID != "" {
 		parentNotif := n
 		parentNotif.Link = "/portal/payments"
-		_ = s.notifs.NotifyMany(ctx, []string{p.UserID}, parentNotif)
+		logWarnIf(s.notifs.NotifyMany(ctx, []string{p.UserID}, parentNotif),
+			"finance: parent notification dropped", "type", string(n.Type), "family_id", f.ID.Hex())
 	}
 	if includeFinance && s.users != nil {
 		orgID, _ := repository.OrgFromContext(ctx)
@@ -116,7 +117,8 @@ func (s *financeService) notifyFamily(ctx context.Context, f *models.Family, inc
 				}
 			}
 		}
-		_ = s.notifs.NotifyMany(ctx, staff, n)
+		logWarnIf(s.notifs.NotifyMany(ctx, staff, n),
+			"finance: staff notification dropped", "type", string(n.Type), "family_id", f.ID.Hex())
 	}
 }
 
@@ -219,7 +221,10 @@ func (s *financeService) FamilyView(ctx context.Context, familyID string) (map[s
 	if p, err := s.parents.FindByID(ctx, f.BillingParentID); err == nil && p != nil {
 		f.BillingParentName = strings.TrimSpace(p.FirstName + " " + p.LastName)
 	}
-	charges, _ := s.repo.ChargesByFamily(ctx, familyID)
+	// A silently-failed read here renders the family view with a £0 balance
+	// and no charges — an admin would read that as "nothing owed".
+	charges, err := s.repo.ChargesByFamily(ctx, familyID)
+	logErrorIf(err, "finance: charges read failed — family view will show an EMPTY ledger", "family_id", familyID)
 	s.refreshOverdue(ctx, charges)
 	for i := range charges {
 		if charges[i].ChildID != "" {
@@ -228,8 +233,10 @@ func (s *financeService) FamilyView(ctx context.Context, familyID string) (map[s
 			}
 		}
 	}
-	payments, _ := s.repo.PaymentsByFamily(ctx, familyID)
-	schedules, _ := s.repo.SchedulesByFamily(ctx, familyID)
+	payments, perr := s.repo.PaymentsByFamily(ctx, familyID)
+	logWarnIf(perr, "finance: payments read failed — family view incomplete", "family_id", familyID)
+	schedules, serr := s.repo.SchedulesByFamily(ctx, familyID)
+	logWarnIf(serr, "finance: schedules read failed — family view incomplete", "family_id", familyID)
 
 	// Next payment = the earliest unpaid, non-terminal charge.
 	var next *models.Charge
@@ -382,7 +389,11 @@ func (s *financeService) GenerateDueCharges(ctx context.Context) (int, error) {
 			continue
 		}
 		sc.LastGenerated = month
-		_, _ = s.repo.ScheduleUpdate(ctx, sc.ID.Hex(), sc)
+		// A failed cursor write means the SAME month's charge is generated
+		// again next sweep — the idempotency depends on this landing.
+		_, err := s.repo.ScheduleUpdate(ctx, sc.ID.Hex(), sc)
+		logErrorIf(err, "finance: schedule cursor NOT advanced after generating charge — next sweep will duplicate this month",
+			"schedule_id", sc.ID.Hex(), "family_id", sc.FamilyID, "month", month)
 		created++
 	}
 	return created, nil
@@ -508,11 +519,15 @@ func (s *financeService) CollectCharge(ctx context.Context, chargeID string) (*m
 	if err != nil {
 		return nil, err
 	}
-	_ = s.repo.PaymentCreate(ctx, &models.Payment{
+	// The PaymentIntent already exists at Stripe — if this local record fails
+	// to write, money is in flight with NOTHING to reconcile it against. The
+	// PI id in the log line is the reconciliation breadcrumb.
+	logErrorIf(s.repo.PaymentCreate(ctx, &models.Payment{
 		FamilyID: c.FamilyID, AmountPence: remaining, Method: "bacs_debit",
 		Status: models.PaymentProcessing, StripePaymentIntentID: pi.ID,
 		Allocations: []models.PaymentAllocation{{ChargeID: chargeID, AmountPence: remaining}},
-	})
+	}), "finance: payment record NOT persisted for live Stripe PaymentIntent — reconcile manually",
+		"payment_intent", pi.ID, "charge_id", chargeID, "family_id", c.FamilyID, "amount_pence", remaining)
 	return updated, nil
 }
 
@@ -588,7 +603,11 @@ func (s *financeService) applyAllocations(ctx context.Context, allocs []models.P
 		} else {
 			c.Status = models.ChargePartiallyPaid
 		}
-		_, _ = s.repo.ChargeUpdate(ctx, a.ChargeID, *c)
+		// The payment IS recorded; a dropped charge update leaves the charge
+		// looking unpaid (wrong balance, wrong reminders) — must be visible.
+		_, uerr := s.repo.ChargeUpdate(ctx, a.ChargeID, *c)
+		logErrorIf(uerr, "finance: charge NOT marked paid after allocation — balance now wrong until reconciled",
+			"charge_id", a.ChargeID, "amount_pence", a.AmountPence)
 	}
 }
 
@@ -648,7 +667,9 @@ func (s *financeService) OnPaymentIntent(ctx context.Context, intentID string, s
 		for _, a := range p.Allocations {
 			if c, err := s.repo.ChargeByID(ctx, a.ChargeID); err == nil && c.Status == models.ChargeProcessing {
 				c.Status = models.ChargeFailed
-				_, _ = s.repo.ChargeUpdate(ctx, a.ChargeID, *c)
+				_, uerr := s.repo.ChargeUpdate(ctx, a.ChargeID, *c)
+				logErrorIf(uerr, "finance: charge NOT flipped to failed after failed payment — stuck in processing",
+					"charge_id", a.ChargeID, "payment_intent", intentID)
 			}
 		}
 		if f, err := s.repo.FamilyByID(ctx, p.FamilyID); err == nil {
@@ -703,7 +724,8 @@ func (s *financeService) Dashboard(ctx context.Context) (map[string]any, error) 
 		return nil, err
 	}
 	s.refreshOverdue(ctx, charges)
-	fams, _ := s.repo.FamiliesAll(ctx)
+	fams, famErr := s.repo.FamiliesAll(ctx)
+	logWarnIf(famErr, "finance: families read failed — dashboard family KPIs will be zero")
 	today := time.Now()
 	weekEnd := today.AddDate(0, 0, 7).Format("2006-01-02")
 	month := today.Format("2006-01")
@@ -817,7 +839,8 @@ func (s *financeService) sendReminder(ctx context.Context, f *models.Family, c *
 }
 
 func (s *financeService) RunReminderSweep(ctx context.Context) (int, error) {
-	_, _ = s.GenerateDueCharges(ctx)
+	_, genErr := s.GenerateDueCharges(ctx)
+	logErrorIf(genErr, "finance: due-charge generation failed inside reminder sweep — this month's charges may be missing")
 	charges, err := s.repo.ChargesAll(ctx)
 	if err != nil {
 		return 0, err
@@ -883,7 +906,8 @@ func (s *financeService) RunReminderSweep(ctx context.Context) (int, error) {
 	// Weekly DD-incomplete nudge for families with outstanding charges but no
 	// active mandate.
 	year, week := time.Now().ISOWeek()
-	fams, _ := s.repo.FamiliesAll(ctx)
+	fams, famErr := s.repo.FamiliesAll(ctx)
+	logWarnIf(famErr, "finance: families read failed — DD-incomplete nudges skipped this sweep")
 	for i := range fams {
 		f := &fams[i]
 		if f.MandateStatus == models.MandateActive {

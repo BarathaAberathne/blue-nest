@@ -319,7 +319,14 @@ func (s *parentService) Invite(ctx context.Context, parentID string, temporaryDa
 		body := "<p>Hello " + html.EscapeString(p.FirstName) + ",</p>" +
 			"<p>You have been invited to the Blue Nest parent portal. Use the secure link below to set your password and activate your account. The link expires in 14 days and can be used once.</p>" +
 			`<p><a href="` + link + `">Activate my account</a></p>`
-		go func() { _ = s.mailer.Send([]string{p.Email}, subject, body) }()
+		// The ONLY delivery channel for the activation link — a silently-failed
+		// send means the parent simply never hears from us, with no trace
+		// (audit finding: this was `_ =` inside the goroutine).
+		email, parentRef := p.Email, p.ID.Hex()
+		go func() {
+			logErrorIf(s.mailer.Send([]string{email}, subject, body),
+				"parents: portal invitation email NOT delivered — re-invite required", "parent_id", parentRef)
+		}()
 	}
 	return link, nil
 }
