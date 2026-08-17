@@ -32,6 +32,10 @@ export default function PortalClient() {
   const [onboarding, setOnboarding] = useState<Map<string, OnboardingView>>(new Map());
   const [finance, setFinance] = useState<FamilyView | null>(null);
   const [ddNotice, setDdNotice] = useState<string | null>(null);
+  // Session expiry is handled by PortalShell's auth guard (redirect to
+  // sign-in); anything still failing here is a real server problem — say so
+  // instead of quietly rendering "no updates / no charges".
+  const [partialError, setPartialError] = useState(false);
 
   useEffect(() => {
     const token = getAccessToken();
@@ -41,20 +45,20 @@ export default function PortalClient() {
       api.portalGetChildAttendance(token, c.id).then((rows) => {
         const t = (rows ?? []).find((r) => r.date === day);
         if (t) setToday((m) => new Map(m).set(c.id, t));
-      }).catch(() => null);
+      }).catch(() => setPartialError(true));
       api.portalGetChildDailyRecords(token, c.id).then((recs) => {
         if (recs?.length) setLatest((m) => new Map(m).set(c.id, recs[0]));
-      }).catch(() => null);
+      }).catch(() => setPartialError(true));
       api.portalGetOnboarding(token, c.id).then((v) => {
         if (v) setOnboarding((m) => new Map(m).set(c.id, v));
-      }).catch(() => null);
+      }).catch(() => setPartialError(true));
     });
   }, [children]);
 
   useEffect(() => {
     const token = getAccessToken();
     if (!token) return;
-    api.portalGetFinance(token).then((v) => { if (v && "charges" in v) setFinance(v as FamilyView); }).catch(() => null);
+    api.portalGetFinance(token).then((v) => { if (v && "charges" in v) setFinance(v as FamilyView); }).catch(() => setPartialError(true));
     const dd = new URLSearchParams(window.location.search).get("dd");
     if (dd === "success") setDdNotice("Thank you — your Direct Debit is being set up. It becomes active once the bank confirms the mandate.");
     if (dd === "cancelled") setDdNotice("Direct Debit setup was cancelled. You can restart it from Payments & Orders whenever you are ready.");
@@ -65,6 +69,11 @@ export default function PortalClient() {
 
   return (
     <>
+      {partialError && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800" role="alert">
+          Some of your information could not be loaded just now — what you see may be incomplete. Please refresh, or contact the nursery if this keeps happening.
+        </div>
+      )}
       <h1 className="font-heading text-2xl font-bold text-slate-900">Welcome back</h1>
       <p className="mt-1 text-sm text-slate-500">
         {children.length === 0 ? "" : `${children.length} ${children.length === 1 ? "child" : "children"} linked to your account.`}

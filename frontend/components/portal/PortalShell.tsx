@@ -13,7 +13,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, Baby, CreditCard, LayoutDashboard, LogOut, Menu, UserCircle, X } from "lucide-react";
 import { api } from "@/lib/api";
 import NotificationBell from "@/components/admin/NotificationBell";
-import { getAccessToken, getAuthUser } from "@/lib/auth";
+import { useAuthGuard } from "@/lib/useAuthGuard";
 import type { Child } from "@/types";
 
 type PortalContextValue = {
@@ -32,18 +32,24 @@ export default function PortalShell({ children: content }: { children: React.Rea
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [navOpen, setNavOpen] = useState(false);
-  const user = getAuthUser();
+  // useAuthGuard (not a mount-once token read) so the portal REACTS to the
+  // session ending mid-use: when a 401's silent refresh fails, apiFetch
+  // clears the stored session and fires the auth-updated event — the guard's
+  // token flips empty and the effect below redirects to sign-in. Before
+  // this, an expired session just rendered every page as eerily empty
+  // ("no updates, no charges") with no way back but a manual reload.
+  const { ready, token, user } = useAuthGuard("/login");
   const initials = `${user?.first_name?.[0] ?? ""}${user?.last_name?.[0] ?? ""}`.toUpperCase() || "P";
 
   useEffect(() => {
-    const token = getAccessToken();
+    if (!ready) return;
     if (!token) { router.replace(`/login?next=${encodeURIComponent(pathname || "/portal")}`); return; }
     api.portalGetChildren(token)
       .then((cs) => { setKids(cs ?? []); setError(null); })
       .catch((e) => setError(e instanceof Error ? e.message : "We could not load your family right now."))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ready, token]);
 
   const signOut = () => { api.signOut(); router.replace("/login"); };
 
