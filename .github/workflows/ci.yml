@@ -88,8 +88,12 @@ jobs:
       - name: Seed fixtures
         # Same set a local run relies on (idempotent; catalogue CSVs are
         # committed + embedded). Runs on the host via go run — the dev compose
-        # publishes mongo on localhost:27017.
+        # publishes mongo on localhost:27017. SEED_ALLOW_DROP: cmd/seed's
+        # drop-and-reseed guard (normally set by make) — safe here, the CI
+        # database is created fresh every run.
         working-directory: backend
+        env:
+          SEED_ALLOW_DROP: "1"
         run: |
           for c in seed seedbranches seedusers seedtaxonomy seedfees seedcatalogue seedstaff seedchildren seeddailylogs seedgbp; do
             go run ./cmd/$c
