@@ -892,7 +892,12 @@ prod-image QA gate** (an isolated docker environment, project `bluenest-staging`
 promoting `develop → main`. Don't confuse the staging *environment* with a branch.
 - Local dev: `make dev` (or `make docker-restart`) → runs on :3000/:8080. Default admin is
   `admin@bluenest.uk` (see `.env`). `make seed-all` runs every seed in order; re-run `make seed-users`
-  after role changes, `make seed-catalogue` after adding Gompels order CSVs.
+  after role changes, `make seed-catalogue` after adding Gompels order CSVs. **Fresh/empty database:**
+  run `cd backend && go run ./cmd/seedorg` FIRST (before the API boots and before the other seeds) —
+  it bootstraps the default Organisation (the retired tenancy migration used to; without it the server
+  resolves no default org and seedtaxonomy/seedfees refuse to run) and back-stamps `org_id` onto
+  unstamped rows (refused when multiple orgs exist). Run it again after the other seeds. Idempotent,
+  no-op on already-bootstrapped databases; CI's e2e job uses exactly this sequence.
 - **Local baseline dataset (manual testing):** `docker-up`/`docker-restart` now restore a fixed, full
   single-tenant (Blue Nest) dataset **only if the DB is empty** (`make baseline-ensure`), instead of
   re-running the seeds; your data otherwise persists across restarts. The baseline is a gzipped
@@ -905,9 +910,17 @@ promoting `develop → main`. Don't confuse the staging *environment* with a bra
   driven, PII-free). See `deploy/baseline/README.md`.
 - Local prod-image gate: `make staging-up` builds the prod Dockerfiles and runs on 127.0.0.1:3000/8080
   (needs `.env.staging`; `COMPOSE_FILE` must be set — env-parity check via `scripts/check-env.sh`).
-- Ship: PR feature→develop (CI: Go API + Next.js). Promote develop→main via PR (if `main` has drifted
-  ahead — GitHub adds a merge commit on each release — fast-forward/merge `origin/main` into `develop`
-  first). Tag releases `vX.Y.Z`.
+- Ship: PR feature→develop (CI: **Go API + Next.js + `bnrest e2e`** — the third job boots mongo + the
+  backend via the dev compose, seeds via `seedorg` + the fixture seeds, and runs the FULL bnrest
+  platform (~300 cases, ~2 min), so every PR gates on real API behaviour, not just `go test`). Promote
+  develop→main via PR (if `main` has drifted ahead — GitHub adds a merge commit on each release —
+  fast-forward/merge `origin/main` into `develop` first). Tag releases `vX.Y.Z`. **`develop`/`main`
+  are branch-protected (PR-only + required checks)** — merge with `gh pr merge`, never a direct push.
+- **Prod database backups** (`deploy/backup/`): nightly `mongodump` through the mongo container —
+  integrity-checked, 14-day retention, off-host rclone copy to DO Spaces (loud LOCAL-ONLY warning
+  until configured) — via `bluenest-backup.{service,timer}` (same pattern as the deploy timer).
+  Install + quarterly restore drill: `deploy/backup/README.md`. This is NOT `deploy/baseline/` (the
+  local-dev fixture snapshot).
 - **Prod deploy is on the droplet** (`deploy@165.232.47.89`, app at `~/app`). It currently runs in
   **local-build mode** (`IMAGE_PREFIX` empty), so deploys must **build on the box**:
   `git fetch origin main && git reset --hard origin/main && docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --force-recreate`.
