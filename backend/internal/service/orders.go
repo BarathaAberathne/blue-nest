@@ -9,7 +9,7 @@ import (
 
 type OrderService interface {
 	ListByUser(ctx context.Context, userID string) ([]models.Order, error)
-	ListAll(ctx context.Context) ([]models.Order, error)
+	ListAll(ctx context.Context, limit, skip int64) ([]models.Order, error)
 	GetByID(ctx context.Context, id string) (*models.Order, error)
 	UpdateStatus(ctx context.Context, id, status string) error
 }
@@ -26,22 +26,11 @@ func (s *orderService) ListByUser(ctx context.Context, userID string) ([]models.
 	return s.repo.FindByUserID(ctx, userID)
 }
 
-func (s *orderService) ListAll(ctx context.Context) ([]models.Order, error) {
-	all, err := s.repo.FindAll(ctx)
-	if err != nil {
-		return nil, err
-	}
-	// Hide checkout attempts that never succeeded (pre-payment drafts + failed
-	// payments) so the admin board only shows real, paid orders. Legacy orders
-	// (no payment_status field) are always shown.
-	visible := make([]models.Order, 0, len(all))
-	for _, o := range all {
-		if o.PaymentStatus == models.PaymentUnpaid || o.PaymentStatus == models.PaymentFailed {
-			continue
-		}
-		visible = append(visible, o)
-	}
-	return visible, nil
+func (s *orderService) ListAll(ctx context.Context, limit, skip int64) ([]models.Order, error) {
+	// Visibility (hide pre-payment drafts + failed attempts; legacy orders
+	// always show) is enforced in the repository QUERY so pagination pages
+	// over exactly the rows the admin sees.
+	return s.repo.FindAll(ctx, limit, skip)
 }
 
 func (s *orderService) GetByID(ctx context.Context, id string) (*models.Order, error) {

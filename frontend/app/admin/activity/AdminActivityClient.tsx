@@ -39,6 +39,14 @@ export default function AdminActivityClient() {
   const [entity, setEntity] = useState("");
   const [action, setAction] = useState("");
 
+  // The audit log is append-only and grows forever — pages of PAGE_SIZE,
+  // newest first, with "Load older" appending the next server page. NOTE the
+  // filter dropdowns below are built from the rows loaded SO FAR (loading
+  // more expands them).
+  const PAGE_SIZE = 200;
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   useEffect(() => {
     const token = getAccessToken();
     if (!token) {
@@ -46,11 +54,31 @@ export default function AdminActivityClient() {
       setLoading(false);
       return;
     }
-    api.adminGetAuditLogs(token)
-      .then((data) => setLogs(Array.isArray(data) ? (data as AuditLog[]) : []))
+    api.adminGetAuditLogs(token, { limit: PAGE_SIZE })
+      .then((data) => {
+        const page = Array.isArray(data) ? (data as AuditLog[]) : [];
+        setLogs(page);
+        setHasMore(page.length === PAGE_SIZE);
+      })
       .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load activity"))
       .finally(() => setLoading(false));
   }, []);
+
+  const loadMore = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    setLoadingMore(true);
+    try {
+      const data = await api.adminGetAuditLogs(token, { limit: PAGE_SIZE, skip: logs.length });
+      const page = Array.isArray(data) ? (data as AuditLog[]) : [];
+      setLogs((prev) => [...prev, ...page]);
+      setHasMore(page.length === PAGE_SIZE);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load more activity");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const actorOptions = useMemo(
     () => [...new Set(logs.map((l) => l.actor_email).filter(Boolean))].sort(),
@@ -165,6 +193,18 @@ export default function AdminActivityClient() {
           </tbody>
         </table>
       </div>
+      {hasMore && (
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={loadingMore}
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+          >
+            {loadingMore ? "Loading…" : "Load older activity"}
+          </button>
+        </div>
+      )}
     </>
   );
 }

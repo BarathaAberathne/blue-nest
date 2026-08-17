@@ -62,6 +62,9 @@ func (r *auditLogRepository) FindAll(ctx context.Context, filter models.AuditLog
 	opts := options.Find().
 		SetSort(bson.D{{Key: "created_at", Value: -1}}).
 		SetLimit(limit)
+	if filter.Skip > 0 {
+		opts.SetSkip(filter.Skip)
+	}
 
 	cursor, err := r.col.Find(ctx, q, opts)
 	if err != nil {
