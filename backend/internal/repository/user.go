@@ -20,6 +20,12 @@ type UserRepository interface {
 	FindAll(ctx context.Context) ([]models.User, error)
 	Update(ctx context.Context, id string, update models.AdminUpdateUserRequest) (*models.User, error)
 	UpdatePassword(ctx context.Context, id, passwordHash string) error
+	// BumpTokenVersion atomically invalidates every JWT the user currently
+	// holds (tokens carry the version as a claim; Auth/Refresh compare it)
+	// and returns the NEW version, so the caller can update its cache with
+	// the authoritative value instead of just deleting the entry (a delete
+	// races with concurrent lookups re-caching the pre-bump version).
+	BumpTokenVersion(ctx context.Context, id string) (int, error)
 	Delete(ctx context.Context, id string) error
 	UpsertByEmail(ctx context.Context, email string, user *models.User) (*models.User, error)
 }
@@ -148,6 +154,22 @@ func (r *userRepository) UpdatePassword(ctx context.Context, id, passwordHash st
 	_, err = r.col.UpdateOne(ctx, bson.M{"_id": oid},
 		bson.M{"$set": bson.M{"password_hash": passwordHash, "updated_at": time.Now()}})
 	return err
+}
+
+func (r *userRepository) BumpTokenVersion(ctx context.Context, id string) (int, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return 0, err
+	}
+	var updated models.User
+	err = r.col.FindOneAndUpdate(ctx, bson.M{"_id": oid},
+		bson.M{"$inc": bson.M{"token_version": 1}, "$set": bson.M{"updated_at": time.Now()}},
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	).Decode(&updated)
+	if err != nil {
+		return 0, err
+	}
+	return updated.TokenVersion, nil
 }
 
 func (r *userRepository) Delete(ctx context.Context, id string) error {

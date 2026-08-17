@@ -7,6 +7,7 @@ import (
 	"net/mail"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/blue-nest-montessori/api/internal/models"
@@ -168,6 +169,12 @@ type AuthService interface {
 	ResetPassword(ctx context.Context, id, newPassword string) error
 	DeleteUser(ctx context.Context, id string) error
 	UpsertOAuthUser(ctx context.Context, email, firstName, lastName, provider, providerID string) (*models.AuthResponse, error)
+	// TokenVersion is the middleware revocation lookup: the user's current
+	// token version (cached ~60s in-process, so it is one Mongo read per user
+	// per minute, not per request). Returns an error for unknown/deleted users.
+	TokenVersion(ctx context.Context, userID string) (int, error)
+	// Logout revokes every token the user currently holds (token-version bump).
+	Logout(ctx context.Context, userID string) error
 }
 
 type authService struct {
@@ -175,10 +182,79 @@ type authService struct {
 	jwtSecret          string
 	jwtExpiry          time.Duration
 	refreshTokenExpiry time.Duration
+
+	// token-version cache (userID → version) backing the per-request Auth
+	// check. Entries expire after tvCacheTTL; a revocation on THIS process
+	// invalidates immediately. NOTE single-process: with multiple API
+	// replicas a revocation propagates to other replicas within the TTL.
+	tvMu    sync.Mutex
+	tvCache map[string]tvEntry
 }
 
+type tvEntry struct {
+	version int
+	expires time.Time
+}
+
+// tvCacheTTL bounds how long a revoked token can outlive the bump on other
+// processes / cache hits. 60s keeps Auth cheap while ending a fired user's
+// session within a minute.
+const tvCacheTTL = 60 * time.Second
+
 func NewAuthService(users repository.UserRepository, jwtSecret string, expiry time.Duration, refreshExpiry time.Duration) AuthService {
-	return &authService{users: users, jwtSecret: jwtSecret, jwtExpiry: expiry, refreshTokenExpiry: refreshExpiry}
+	return &authService{users: users, jwtSecret: jwtSecret, jwtExpiry: expiry, refreshTokenExpiry: refreshExpiry, tvCache: map[string]tvEntry{}}
+}
+
+func (s *authService) TokenVersion(ctx context.Context, userID string) (int, error) {
+	s.tvMu.Lock()
+	if e, ok := s.tvCache[userID]; ok && time.Now().Before(e.expires) {
+		s.tvMu.Unlock()
+		return e.version, nil
+	}
+	s.tvMu.Unlock()
+
+	user, err := s.users.FindByID(ctx, userID)
+	if err != nil {
+		return 0, err
+	}
+	s.tvMu.Lock()
+	// Opportunistic cache hygiene: drop expired entries so the map cannot
+	// grow unboundedly across many distinct users.
+	now := time.Now()
+	for k, e := range s.tvCache {
+		if now.After(e.expires) {
+			delete(s.tvCache, k)
+		}
+	}
+	// Monotonic guard: versions only ever increase, so never let a fetch that
+	// raced a concurrent bump (read pre-$inc, arrived post-invalidation)
+	// overwrite a NEWER cached version with a stale one. Without this, a
+	// background request in flight during a logout could resurrect the old
+	// version for a full TTL and 401 fresh post-logout logins as "revoked".
+	if e, ok := s.tvCache[userID]; !ok || user.TokenVersion >= e.version {
+		s.tvCache[userID] = tvEntry{version: user.TokenVersion, expires: now.Add(tvCacheTTL)}
+	}
+	v := s.tvCache[userID].version
+	s.tvMu.Unlock()
+	return v, nil
+}
+
+// revokeTokens bumps the user's token version and writes the NEW version into
+// the cache (not a bare delete — a delete races with concurrent lookups
+// re-caching the pre-bump value; see the monotonic guard in TokenVersion).
+func (s *authService) revokeTokens(ctx context.Context, userID string) error {
+	newVersion, err := s.users.BumpTokenVersion(ctx, userID)
+	if err != nil {
+		return err
+	}
+	s.tvMu.Lock()
+	s.tvCache[userID] = tvEntry{version: newVersion, expires: time.Now().Add(tvCacheTTL)}
+	s.tvMu.Unlock()
+	return nil
+}
+
+func (s *authService) Logout(ctx context.Context, userID string) error {
+	return s.revokeTokens(ctx, userID)
 }
 
 func (s *authService) Register(ctx context.Context, req models.RegisterRequest) (*models.AuthResponse, error) {
@@ -375,6 +451,18 @@ func (s *authService) Refresh(ctx context.Context, refreshToken string) (*models
 		return nil, errors.New("user not found")
 	}
 
+	// Revocation check: a refresh token minted before the user's last
+	// logout / password change / role change carries a stale "tv" claim and
+	// must not mint a fresh pair. A missing claim reads as version 0, which
+	// keeps pre-revocation-era sessions valid until their first bump.
+	tokenVersion := 0
+	if tv, ok := claims["tv"].(float64); ok {
+		tokenVersion = int(tv)
+	}
+	if tokenVersion != user.TokenVersion {
+		return nil, errors.New("invalid or expired refresh token")
+	}
+
 	access, newRefresh, err := s.issueTokenPair(*user)
 	if err != nil {
 		return nil, err
@@ -396,7 +484,18 @@ func (s *authService) UpdateUser(ctx context.Context, id string, req models.Admi
 			return nil, err
 		}
 	}
-	return s.users.Update(ctx, id, req)
+	updated, err := s.users.Update(ctx, id, req)
+	if err != nil {
+		return nil, err
+	}
+	// A role or branch-scope change must invalidate the user's existing
+	// tokens — role and branch_slugs live in the JWT claims and are never
+	// re-read from the DB per request, so without a revocation a demoted
+	// user keeps their old powers until the token expires.
+	if req.Role != "" || req.BranchSlugs != nil {
+		_ = s.revokeTokens(ctx, id) // best-effort; the update itself succeeded
+	}
+	return updated, nil
 }
 
 func (s *authService) ResetPassword(ctx context.Context, id, newPassword string) error {
@@ -407,7 +506,13 @@ func (s *authService) ResetPassword(ctx context.Context, id, newPassword string)
 	if err != nil {
 		return err
 	}
-	return s.users.UpdatePassword(ctx, id, string(hash))
+	if err := s.users.UpdatePassword(ctx, id, string(hash)); err != nil {
+		return err
+	}
+	// A password change ends every existing session (stolen-credential reset
+	// must actually lock the thief out).
+	_ = s.revokeTokens(ctx, id)
+	return nil
 }
 
 func (s *authService) DeleteUser(ctx context.Context, id string) error {
@@ -476,6 +581,7 @@ func (s *authService) issueToken(user models.User, tokenType string, expiry time
 		"org_id":       user.OrgID, // tenant the user belongs to (multi-tenancy)
 		"branch_slugs": user.BranchSlugs,
 		"type":         tokenType,
+		"tv":           user.TokenVersion, // revocation: Auth/Refresh reject a stale version
 		"exp":          time.Now().Add(expiry).Unix(),
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(s.jwtSecret))

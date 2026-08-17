@@ -13,7 +13,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, Baby, CreditCard, LayoutDashboard, LogOut, Menu, UserCircle, X } from "lucide-react";
 import { api } from "@/lib/api";
 import NotificationBell from "@/components/admin/NotificationBell";
-import { clearAuthSession, getAccessToken, getAuthUser } from "@/lib/auth";
+import { getAccessToken, getAuthUser } from "@/lib/auth";
 import type { Child } from "@/types";
 
 type PortalContextValue = {
@@ -45,7 +45,7 @@ export default function PortalShell({ children: content }: { children: React.Rea
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const signOut = () => { clearAuthSession(); router.replace("/login"); };
+  const signOut = () => { api.signOut(); router.replace("/login"); };
 
   const mainNav = [
     { label: "Dashboard", href: "/portal", icon: LayoutDashboard, exact: true },

@@ -32,6 +32,7 @@ Call CatchError ../../cases/auth/AUTH-TC-001-login.bnrest.md
 Call CatchError ../../cases/auth/AUTH-TC-002-invalid-password.bnrest.md
 Call CatchError ../../cases/auth/AUTH-TC-002b-no-enumeration.bnrest.md
 Call CatchError ../../cases/auth/AUTH-TC-004-invalid-credentials-datadriven.bnrest.md
+Call CatchError ../../cases/auth/AUTH-TC-005-logout-revokes-session.bnrest.md
 Call CatchError ../../cases/auth/SEC-TC-001-no-token-rejected.bnrest.md
 Call CatchError ../../cases/auth/SEC-TC-002-malformed-token-rejected.bnrest.md
 Call CatchError ../../cases/auth/SEC-TC-003-operator-injection-inert.bnrest.md

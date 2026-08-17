@@ -68,6 +68,12 @@ type User struct {
 	LastName      string             `bson:"last_name"               json:"last_name"`
 	Role          Role               `bson:"role"                    json:"role"`
 	BranchSlugs   []string           `bson:"branch_slugs"            json:"branch_slugs,omitempty"`
+	// TokenVersion revokes JWTs server-side: every issued token carries the
+	// version as a "tv" claim, and Auth/Refresh reject tokens whose claim no
+	// longer matches. Bumped on logout, password change, role/branch change
+	// — so a fired or demoted user's existing tokens die immediately instead
+	// of surviving to expiry. Zero default keeps pre-existing sessions valid.
+	TokenVersion  int                `bson:"token_version,omitempty" json:"-"`
 	OAuthProvider string             `bson:"oauth_provider,omitempty" json:"oauth_provider,omitempty"`
 	OAuthID       string             `bson:"oauth_id,omitempty"      json:"oauth_id,omitempty"`
 	CreatedAt     time.Time          `bson:"created_at"              json:"created_at"`

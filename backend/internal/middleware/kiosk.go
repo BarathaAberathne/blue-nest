@@ -57,6 +57,32 @@ type rateLimiter struct {
 	hits   map[string][]time.Time
 	limit  int
 	window time.Duration
+	// lastSweep drives the periodic map GC: per-key timestamp pruning alone
+	// never deletes the KEYS, so a scan across many source IPs (or spoofed
+	// ones) grew the map unboundedly for the process lifetime.
+	lastSweep time.Time
+}
+
+// sweep (caller must hold mu) drops keys whose every timestamp has aged out.
+// Runs at most once per 2×window so steady-state cost stays negligible.
+func (rl *rateLimiter) sweep(now time.Time) {
+	if now.Sub(rl.lastSweep) < 2*rl.window {
+		return
+	}
+	rl.lastSweep = now
+	cutoff := now.Add(-rl.window)
+	for key, times := range rl.hits {
+		alive := false
+		for _, t := range times {
+			if t.After(cutoff) {
+				alive = true
+				break
+			}
+		}
+		if !alive {
+			delete(rl.hits, key)
+		}
+	}
 }
 
 // RateLimit allows up to `limit` requests per `window` per client IP. In-memory
@@ -130,6 +156,7 @@ func (rl *rateLimiter) record(key string) {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 	now := time.Now()
+	rl.sweep(now)
 	cutoff := now.Add(-rl.window)
 	kept := rl.hits[key][:0]
 	for _, t := range rl.hits[key] {
@@ -144,6 +171,7 @@ func (rl *rateLimiter) allow(key string) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 	now := time.Now()
+	rl.sweep(now)
 	cutoff := now.Add(-rl.window)
 	kept := rl.hits[key][:0]
 	for _, t := range rl.hits[key] {
@@ -159,15 +187,42 @@ func (rl *rateLimiter) allow(key string) bool {
 	return true
 }
 
-// ClientIP extracts the caller IP, honouring X-Forwarded-For behind the proxy.
+// ClientIP extracts the caller IP. Proxy headers are honoured ONLY when the
+// direct peer is a trusted proxy (loopback / private-range — nginx on the
+// droplet reaches the container over the docker bridge). A client-supplied
+// X-Forwarded-For from an untrusted peer is ignored, and even behind the
+// proxy we prefer X-Real-IP (which our nginx OVERWRITES with $remote_addr,
+// so it cannot be spoofed through it) and otherwise take the RIGHTMOST
+// X-Forwarded-For entry — the one our proxy appended — never the leftmost,
+// which the client controls. Before this, one spoofed header per request
+// defeated the login rate limiter entirely.
 func ClientIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		return strings.TrimSpace(strings.Split(xff, ",")[0])
-	}
+	peer := r.RemoteAddr
 	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
-		return host
+		peer = host
 	}
-	return r.RemoteAddr
+	if !trustedProxy(peer) {
+		return peer
+	}
+	if rip := strings.TrimSpace(r.Header.Get("X-Real-IP")); rip != "" {
+		return rip
+	}
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		parts := strings.Split(xff, ",")
+		return strings.TrimSpace(parts[len(parts)-1])
+	}
+	return peer
+}
+
+// trustedProxy reports whether the direct peer is our own reverse proxy:
+// loopback or a private address (nginx reaches the backend container over
+// 127.0.0.1 port-forwarding / the docker bridge network).
+func trustedProxy(ip string) bool {
+	parsed := net.ParseIP(ip)
+	if parsed == nil {
+		return false
+	}
+	return parsed.IsLoopback() || parsed.IsPrivate()
 }
 
 func clientIP(r *http.Request) string { return ClientIP(r) }
