@@ -34,6 +34,9 @@ export default function PortalChildClient({ childId }: { childId: string }) {
   const [records, setRecords] = useState<DailyRecord[]>([]);
   const [onboarding, setOnboarding] = useState<OnboardingView | null>(null);
   const [denied, setDenied] = useState(false);
+  // Session expiry is handled by PortalShell's auth guard; remaining failures
+  // are real server errors and must be visible, not empty tabs.
+  const [partialError, setPartialError] = useState(false);
 
   const child = children.find((c) => c.id === childId);
 
@@ -41,8 +44,8 @@ export default function PortalChildClient({ childId }: { childId: string }) {
     const token = getAccessToken();
     if (!token) return;
     api.portalGetChildAttendance(token, childId).then((r) => setAttendance(r ?? [])).catch(() => setDenied(true));
-    api.portalGetChildDailyRecords(token, childId).then((r) => setRecords(r ?? [])).catch(() => null);
-    api.portalGetOnboarding(token, childId).then(setOnboarding).catch(() => null);
+    api.portalGetChildDailyRecords(token, childId).then((r) => setRecords(r ?? [])).catch(() => setPartialError(true));
+    api.portalGetOnboarding(token, childId).then(setOnboarding).catch(() => setPartialError(true));
   }, [childId]);
 
   const grouped = useMemo(() => {
@@ -66,6 +69,11 @@ export default function PortalChildClient({ childId }: { childId: string }) {
 
   return (
     <>
+      {partialError && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800" role="alert">
+          Some of {child.first_name}&rsquo;s information could not be loaded just now — please refresh, or contact the nursery if this keeps happening.
+        </div>
+      )}
       <div className="flex items-center gap-4">
         <Avatar name={`${child.first_name} ${child.last_name}`} src={child.photo_url} size="xl" />
         <div>

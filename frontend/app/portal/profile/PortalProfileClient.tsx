@@ -13,6 +13,7 @@ export default function PortalProfileClient() {
   const [parent, setParent] = useState<Parent | null>(null);
   const [rels, setRels] = useState<ChildParentRelationship[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const user = getAuthUser();
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export default function PortalProfileClient() {
     if (!token) return;
     api.portalGetMe(token)
       .then((me) => { setParent(me.parent); setRels(me.children ?? []); })
-      .catch(() => null)
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -28,6 +29,11 @@ export default function PortalProfileClient() {
 
   return (
     <>
+      {loadError && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-800" role="alert">
+          Your profile could not be loaded just now — the details below may be incomplete. Please refresh, or contact the nursery if this keeps happening.
+        </div>
+      )}
       <h1 className="flex items-center gap-2 font-heading text-2xl font-bold text-slate-900"><UserCircle className="h-6 w-6 text-teal-600" /> My Profile</h1>
       <p className="mt-1 text-sm text-slate-500">Your own contact details. To update anything, just let the nursery know.</p>
 
