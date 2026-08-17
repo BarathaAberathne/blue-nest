@@ -51,20 +51,39 @@ type branchRollup struct {
 	birthdays        []string
 }
 
+// rollup is the single-branch path (the per-branch Dashboard): it fetches its
+// own data then delegates to the shared tally, so the maths lives once.
 func (s *branchOverviewService) rollup(ctx context.Context, slug string, capacityHint int) branchRollup {
 	date := today()
+	td := time.Now()
+	kids, err := s.children.FindAll(ctx, repository.ChildFilter{Branch: slug, Status: string(models.ChildActive)})
+	logWarnIf(err, "branch-dashboard: children read failed", "branch", slug)
+	rooms, err := s.rooms.FindAll(ctx, slug)
+	logWarnIf(err, "branch-dashboard: rooms read failed", "branch", slug)
+	staff, err := s.staff.FindAll(ctx, repository.StaffFilter{Branch: slug, Status: string(models.StaffActive)})
+	logWarnIf(err, "branch-dashboard: staff read failed", "branch", slug)
+	sAtt, err := s.staffAtt.FindByDate(ctx, date, slug)
+	logWarnIf(err, "branch-dashboard: staff attendance read failed", "branch", slug)
+	att, err := s.att.FindByDate(ctx, date, slug)
+	logWarnIf(err, "branch-dashboard: child attendance read failed", "branch", slug)
+	return s.rollupFromGrouped(ctx, slug, capacityHint, td, date, kids, rooms, staff, sAtt, att)
+}
+
+// rollupFromGrouped tallies one branch from ALREADY-FETCHED slices (Overview
+// batches the org-wide reads; rollup fetches per branch). The six small
+// per-branch counts (enquiries ×2, daily ×4) run here in both paths.
+func (s *branchOverviewService) rollupFromGrouped(ctx context.Context, slug string, capacityHint int, td time.Time, date string,
+	kids []models.Child, rooms []models.Room, staff []models.Staff,
+	sAtt []models.StaffAttendanceRecord, att []models.AttendanceRecord) branchRollup {
 	var r branchRollup
 
-	kids, _ := s.children.FindAll(ctx, repository.ChildFilter{Branch: slug, Status: string(models.ChildActive)})
 	r.activeChildren = len(kids)
-	td := time.Now()
 	for _, c := range kids {
 		if bd, err := time.Parse("2006-01-02", c.DOB); err == nil && bd.Day() == td.Day() && bd.Month() == td.Month() {
 			r.birthdays = append(r.birthdays, c.FirstName+" "+c.LastName)
 		}
 	}
 
-	rooms, _ := s.rooms.FindAll(ctx, slug)
 	r.rooms = len(rooms)
 	for _, rm := range rooms {
 		r.capacity += rm.Capacity
@@ -74,45 +93,42 @@ func (s *branchOverviewService) rollup(ctx context.Context, slug string, capacit
 	}
 	r.occupancy = percent(r.activeChildren, r.capacity)
 
-	staff, _ := s.staff.FindAll(ctx, repository.StaffFilter{Branch: slug, Status: string(models.StaffActive)})
 	r.staffTotal = len(staff)
 	activeStaff := make(map[string]bool, len(staff))
 	for _, st := range staff {
 		activeStaff[st.ID.Hex()] = true
 	}
-	if sAtt, err := s.staffAtt.FindByDate(ctx, date, slug); err == nil {
-		for _, rec := range sAtt {
-			if !activeStaff[rec.StaffID] {
-				continue // ignore records for archived/inactive staff so present ≤ total
-			}
-			// Shared classification with the staff KPIs + attendance summary.
-			if rec.IsWorking() {
-				r.staffPresent++
-			} else if models.IsAway(rec.Status) {
-				r.staffOnLeave++
-			}
+	for _, rec := range sAtt {
+		if !activeStaff[rec.StaffID] {
+			continue // ignore records for archived/inactive staff so present ≤ total
+		}
+		// Shared classification with the staff KPIs + attendance summary.
+		if rec.IsWorking() {
+			r.staffPresent++
+		} else if models.IsAway(rec.Status) {
+			r.staffOnLeave++
 		}
 	}
 
 	// Count present only for active children (matching the occupancy denominator)
 	// and de-dupe per child, so orphaned/duplicate records can't exceed 100%.
-	if recs, err := s.att.FindByDate(ctx, date, slug); err == nil {
-		activeChild := make(map[string]bool, len(kids))
-		for _, c := range kids {
-			activeChild[c.ID.Hex()] = true
-		}
-		counted := map[string]bool{}
-		for _, rec := range recs {
-			if rec.Status == models.AttPresent && activeChild[rec.ChildID] && !counted[rec.ChildID] {
-				counted[rec.ChildID] = true
-				r.present++
-			}
+	activeChild := make(map[string]bool, len(kids))
+	for _, c := range kids {
+		activeChild[c.ID.Hex()] = true
+	}
+	counted := map[string]bool{}
+	for _, rec := range att {
+		if rec.Status == models.AttPresent && activeChild[rec.ChildID] && !counted[rec.ChildID] {
+			counted[rec.ChildID] = true
+			r.present++
 		}
 	}
 	r.attendanceRate = clamp100(percent(r.present, r.activeChildren))
 
 	if n, err := s.enquiries.Count(ctx, models.EnquiryFilter{Branch: slug}); err == nil {
 		r.enquiries = int(n)
+	} else {
+		logWarnIf(err, "branch-overview: enquiry count failed", "branch", slug)
 	}
 	if n, err := s.enquiries.Count(ctx, models.EnquiryFilter{Branch: slug, Status: models.EnquiryStatusNew}); err == nil {
 		r.newEnquiries = int(n)
@@ -197,11 +213,54 @@ func performance(r branchRollup, rating float64) int {
 	return overallPerformance(performanceDimensions(r, rating))
 }
 
+// Overview batches the org-wide reads ONCE and groups per branch in memory —
+// the old shape issued ~11 queries PER BRANCH (audit finding: ~800 queries at
+// 100 branches, several unindexed, inside the 15s write timeout) and discarded
+// every error so a failing branch silently rendered as "0 children, 0 staff".
+// The small per-branch counts (enquiries ×2, daily ×4 — indexed / tiny
+// collections) stay per branch; the five heavy collection reads do not.
 func (s *branchOverviewService) Overview(ctx context.Context, branches []models.Branch) ([]models.BranchOverviewRow, error) {
+	date := today()
+	td := time.Now()
+
+	kids, kidsErr := s.children.FindAll(ctx, repository.ChildFilter{Status: string(models.ChildActive)})
+	logWarnIf(kidsErr, "branch-overview: children read failed — child KPIs will be zero across all branches")
+	rooms, roomsErr := s.rooms.FindAll(ctx, "")
+	logWarnIf(roomsErr, "branch-overview: rooms read failed — capacity falls back to the branch hint")
+	staff, staffErr := s.staff.FindAll(ctx, repository.StaffFilter{Status: string(models.StaffActive)})
+	logWarnIf(staffErr, "branch-overview: staff read failed — staff KPIs will be zero across all branches")
+	sAtt, sAttErr := s.staffAtt.FindByDate(ctx, date, "")
+	logWarnIf(sAttErr, "branch-overview: staff attendance read failed — present counts will be zero")
+	att, attErr := s.att.FindByDate(ctx, date, "")
+	logWarnIf(attErr, "branch-overview: child attendance read failed — attendance rate will be zero")
+
+	// Group everything by branch slug in one pass each.
+	kidsBy := map[string][]models.Child{}
+	for _, c := range kids {
+		kidsBy[c.BranchSlug] = append(kidsBy[c.BranchSlug], c)
+	}
+	roomsBy := map[string][]models.Room{}
+	for _, rm := range rooms {
+		roomsBy[rm.BranchSlug] = append(roomsBy[rm.BranchSlug], rm)
+	}
+	staffBy := map[string][]models.Staff{}
+	for _, st := range staff {
+		staffBy[st.BranchSlug] = append(staffBy[st.BranchSlug], st)
+	}
+	sAttBy := map[string][]models.StaffAttendanceRecord{}
+	for _, rec := range sAtt {
+		sAttBy[rec.BranchSlug] = append(sAttBy[rec.BranchSlug], rec)
+	}
+	attBy := map[string][]models.AttendanceRecord{}
+	for _, rec := range att {
+		attBy[rec.BranchSlug] = append(attBy[rec.BranchSlug], rec)
+	}
+
 	rows := make([]models.BranchOverviewRow, 0, len(branches))
 	for i := range branches {
 		b := &branches[i]
-		r := s.rollup(ctx, b.Slug, b.Capacity)
+		r := s.rollupFromGrouped(ctx, b.Slug, b.Capacity, td, date,
+			kidsBy[b.Slug], roomsBy[b.Slug], staffBy[b.Slug], sAttBy[b.Slug], attBy[b.Slug])
 		rows = append(rows, models.BranchOverviewRow{
 			Slug: b.Slug, Name: b.Name, Ref: b.Ref, Status: string(b.Status), ManagerID: b.Managers.BranchManager,
 			Children: r.activeChildren, Capacity: r.capacity, Occupancy: r.occupancy,

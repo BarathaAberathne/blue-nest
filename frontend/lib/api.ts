@@ -355,7 +355,13 @@ export const api = {
     apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/reply`, { method: "POST", token }),
 
   // Admin
-  adminGetOrders: (token: string) => apiFetch("/api/v1/admin/orders", { token }),
+  adminGetOrders: (token: string, params?: { limit?: number; skip?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.skip) qs.set("skip", String(params.skip));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return apiFetch(`/api/v1/admin/orders${suffix}`, { token });
+  },
   adminUpdateOrderStatus: (token: string, id: string, status: string) =>
     apiFetch(`/api/v1/admin/orders/${id}/status`, {
       method: "PATCH",
@@ -419,12 +425,13 @@ export const api = {
     apiFetch(`/api/v1/admin/users/${id}`, { method: "DELETE", token }),
 
   // Audit log (admin activity)
-  adminGetAuditLogs: (token: string, params?: { actor?: string; entity_type?: string; action?: string; limit?: number }) => {
+  adminGetAuditLogs: (token: string, params?: { actor?: string; entity_type?: string; action?: string; limit?: number; skip?: number }) => {
     const qs = new URLSearchParams();
     if (params?.actor) qs.set("actor", params.actor);
     if (params?.entity_type) qs.set("entity_type", params.entity_type);
     if (params?.action) qs.set("action", params.action);
     if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.skip) qs.set("skip", String(params.skip));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return apiFetch<AuditLog[]>(`/api/v1/admin/audit-logs${suffix}`, { token });
   },

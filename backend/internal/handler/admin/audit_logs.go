@@ -31,6 +31,11 @@ func (h *AdminAuditLogHandler) List(w http.ResponseWriter, r *http.Request) {
 			filter.Limit = n
 		}
 	}
+	if sk := q.Get("skip"); sk != "" {
+		if n, err := strconv.ParseInt(sk, 10, 64); err == nil && n > 0 {
+			filter.Skip = n
+		}
+	}
 
 	logs, err := h.svc.List(r.Context(), filter)
 	if err != nil {
