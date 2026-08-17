@@ -205,13 +205,17 @@ func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckou
 		return nil, fmt.Errorf("create order: %w", err)
 	}
 
-	_ = s.carts.ClearByUserID(ctx, input.UserID)
+	logWarnIf(s.carts.ClearByUserID(ctx, input.UserID),
+		"checkout: cart not cleared after order create", "order_id", order.ID.Hex())
 
 	// No Stripe key configured (local/dev) — mark paid immediately so the flow works.
 	if !s.stripeActive {
-		_ = s.orders.MarkPaid(ctx, order.ID.Hex(), "local_"+order.ID.Hex(), "")
+		logErrorIf(s.orders.MarkPaid(ctx, order.ID.Hex(), "local_"+order.ID.Hex(), ""),
+			"checkout: order NOT marked paid (no-Stripe path) — order stuck pending while customer sees success",
+			"order_id", order.ID.Hex())
 		for _, item := range orderItems {
-			_ = s.products.DecrementStock(ctx, item.ProductID.Hex(), item.Qty)
+			logErrorIf(s.products.DecrementStock(ctx, item.ProductID.Hex(), item.Qty),
+				"checkout: stock NOT decremented — oversell risk", "product_id", item.ProductID.Hex(), "qty", item.Qty)
 		}
 		return &CreateCheckoutSessionResult{
 			SessionID: "local_" + order.ID.Hex(),
@@ -255,12 +259,15 @@ func (s *checkoutService) CreateSession(ctx context.Context, input CreateCheckou
 	if err != nil {
 		// Stripe session creation failed — cancel the pending order so it doesn't
 		// linger as "pending" and confuse the admin view.
-		_ = s.orders.UpdateStatus(ctx, order.ID.Hex(), string(models.OrderCancelled))
+		logWarnIf(s.orders.UpdateStatus(ctx, order.ID.Hex(), string(models.OrderCancelled)),
+			"checkout: draft order not cancelled after Stripe session failure", "order_id", order.ID.Hex())
 		return nil, fmt.Errorf("create stripe session: %w", err)
 	}
 
 	// Persist the session id so the order is traceable before the webhook lands.
-	_ = s.orders.AttachStripeSession(ctx, order.ID.Hex(), session.ID)
+	logWarnIf(s.orders.AttachStripeSession(ctx, order.ID.Hex(), session.ID),
+		"checkout: stripe session id not attached — webhook reconciliation falls back to metadata",
+		"order_id", order.ID.Hex(), "session_id", session.ID)
 
 	return &CreateCheckoutSessionResult{
 		SessionID: session.ID,

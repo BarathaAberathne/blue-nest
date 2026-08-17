@@ -177,7 +177,12 @@ func (s *inductionService) writeThrough(ctx context.Context, childID, sectionKey
 		}
 	}
 	if changed {
-		_, _ = s.children.Update(ctx, childID, *child)
+		// This is the write-through of induction answers onto the CANONICAL
+		// child record (allergies/dietary/medical/address) — a silent failure
+		// means staff-facing safety data diverges from what the parent wrote.
+		_, err := s.children.Update(ctx, childID, *child)
+		logErrorIf(err, "induction: write-through to canonical child record FAILED — allergy/medical/address data now out of sync",
+			"child_id", childID)
 	}
 }
 
@@ -217,14 +222,14 @@ func (s *inductionService) Submit(ctx context.Context, childID, actorUserID stri
 				recipients = append(recipients, id)
 			}
 		}
-		_ = s.notifs.NotifyMany(ctx, recipients, models.Notification{
+		logWarnIf(s.notifs.NotifyMany(ctx, recipients, models.Notification{
 			Type:       models.NotifInductionSubmitted,
 			Title:      "Induction form to review",
 			Body:       "The induction for " + name + " was submitted and needs a second-person review.",
 			Link:       "/admin/children/" + childID,
 			EntityType: "induction",
 			EntityID:   out.ID.Hex(),
-		})
+		}), "induction: submitted-for-review notification dropped", "child_id", childID)
 	}
 	return out, nil
 }
@@ -255,14 +260,14 @@ func (s *inductionService) Review(ctx context.Context, childID, actorUserID, not
 		if child != nil {
 			name = strings.TrimSpace(child.FirstName + " " + child.LastName)
 		}
-		_ = s.notifs.NotifyMany(ctx, []string{out.SubmittedBy}, models.Notification{
+		logWarnIf(s.notifs.NotifyMany(ctx, []string{out.SubmittedBy}, models.Notification{
 			Type:       models.NotifInductionReviewed,
 			Title:      "Induction reviewed",
 			Body:       "The induction for " + name + " has been reviewed and locked in.",
 			Link:       "/portal",
 			EntityType: "induction",
 			EntityID:   out.ID.Hex(),
-		})
+		}), "induction: reviewed notification dropped", "child_id", childID)
 	}
 	return out, nil
 }

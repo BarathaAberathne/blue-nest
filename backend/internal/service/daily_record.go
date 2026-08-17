@@ -190,13 +190,20 @@ func (s *dailyRecordService) Create(ctx context.Context, req models.DailyRecordR
 		if who == "" {
 			who = "the branch"
 		}
-		_ = s.notifs.NotifyMany(ctx, recipients, models.Notification{
+		nerr := s.notifs.NotifyMany(ctx, recipients, models.Notification{
 			Type:  models.NotifDailyLogSubmitted,
 			Title: "Daily log to review",
 			Body:  string(rec.Type) + " for " + who + " submitted by " + actorName,
 			Link:  "/admin/daily-log/" + rec.ID.Hex(),
 			EntityType: "daily_record", EntityID: rec.ID.Hex(),
 		})
+		// A dropped SAFEGUARDING alert is a compliance failure, not a UX blip.
+		if rec.Type == models.RecSafeguarding {
+			logErrorIf(nerr, "daily-log: SAFEGUARDING submission alert NOT delivered to approvers",
+				"record_id", rec.ID.Hex(), "branch", rec.BranchSlug)
+		} else {
+			logWarnIf(nerr, "daily-log: submission notification dropped", "record_id", rec.ID.Hex())
+		}
 	}
 	return rec, nil
 }
@@ -268,13 +275,13 @@ func (s *dailyRecordService) Approve(ctx context.Context, id, actorID, actorName
 		"rejection_reason": "",
 	})
 	if err == nil && s.notifs != nil && rec.SubmittedBy != "" {
-		_ = s.notifs.NotifyMany(ctx, []string{rec.SubmittedBy}, models.Notification{
+		logWarnIf(s.notifs.NotifyMany(ctx, []string{rec.SubmittedBy}, models.Notification{
 			Type:  models.NotifDailyLogApproved,
 			Title: "Your daily log was approved",
 			Body:  string(rec.Type) + ": " + rec.Title + " — approved by " + actorName,
 			Link:  "/admin/daily-log/" + id,
 			EntityType: "daily_record", EntityID: id,
-		})
+		}), "daily-log: approval notification dropped", "record_id", id)
 	}
 	return updated, err
 }
@@ -299,13 +306,13 @@ func (s *dailyRecordService) Reject(ctx context.Context, id, actorID, actorName,
 		"rejection_reason": strings.TrimSpace(reason),
 	})
 	if err == nil && s.notifs != nil && rec.SubmittedBy != "" {
-		_ = s.notifs.NotifyMany(ctx, []string{rec.SubmittedBy}, models.Notification{
+		logWarnIf(s.notifs.NotifyMany(ctx, []string{rec.SubmittedBy}, models.Notification{
 			Type:  models.NotifDailyLogRejected,
 			Title: "Your daily log was rejected",
 			Body:  string(rec.Type) + ": " + rec.Title + " — " + strings.TrimSpace(reason),
 			Link:  "/admin/daily-log/" + id,
 			EntityType: "daily_record", EntityID: id,
-		})
+		}), "daily-log: rejection notification dropped", "record_id", id)
 	}
 	return updated, err
 }
@@ -396,14 +403,14 @@ func (s *dailyRecordService) Share(ctx context.Context, id, actorID, actorName s
 		return nil, err
 	}
 	if s.notifs != nil && len(parents) > 0 {
-		_ = s.notifs.NotifyMany(ctx, parents, models.Notification{
+		logWarnIf(s.notifs.NotifyMany(ctx, parents, models.Notification{
 			Type:       models.NotifDailyUpdateShared,
 			Title:      "New daily update",
 			Body:       "A new daily update is available for " + rec.ChildName + ".",
 			Link:       "/portal/children/" + rec.ChildID,
 			EntityType: "daily_record",
 			EntityID:   updated.ID.Hex(),
-		})
+		}), "daily-log: share-with-parent notification dropped", "record_id", updated.ID.Hex())
 	}
 	return updated, nil
 }
