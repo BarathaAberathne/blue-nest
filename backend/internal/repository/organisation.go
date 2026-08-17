@@ -30,8 +30,9 @@ type organisationRepository struct {
 
 func NewOrganisationRepository(db *mongo.Database) OrganisationRepository {
 	col := db.Collection("organisations")
-	// slug is the stable tenant key — unique.
-	_, _ = col.Indexes().CreateOne(context.Background(), mongo.IndexModel{
+	// slug is the stable tenant key — unique (globally: organisations ARE the
+	// tenants, so this is the one collection where a bare-slug unique is right).
+	ensureIndexes("organisations", col, mongo.IndexModel{
 		Keys:    bson.D{{Key: "slug", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	})

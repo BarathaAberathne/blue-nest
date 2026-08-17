@@ -24,7 +24,20 @@ type notificationRepository struct {
 }
 
 func NewNotificationRepository(db *mongo.Database) NotificationRepository {
-	return &notificationRepository{col: NewTenantCollection(db, "notifications")}
+	col := db.Collection("notifications")
+	// The bell polls {user} list + {user, read:false} count on every admin
+	// page load — previously both scanned the whole collection.
+	ensureIndexes("notifications", col,
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "user_id", Value: 1}, {Key: "created_at", Value: -1}},
+			Options: options.Index().SetName("idx_notif_org_user_created"),
+		},
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "user_id", Value: 1}, {Key: "read", Value: 1}},
+			Options: options.Index().SetName("idx_notif_org_user_read"),
+		},
+	)
+	return &notificationRepository{col: NewTenantCollectionFrom(col)}
 }
 
 func (r *notificationRepository) CreateMany(ctx context.Context, ns []models.Notification) error {

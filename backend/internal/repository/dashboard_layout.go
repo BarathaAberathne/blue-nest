@@ -35,7 +35,7 @@ type dashboardLayoutRepository struct {
 func NewDashboardLayoutRepository(db *mongo.Database) DashboardLayoutRepository {
 	col := db.Collection("dashboard_layouts")
 	// One layout per (user, name).
-	_, _ = col.Indexes().CreateOne(context.Background(), mongo.IndexModel{
+	ensureIndexes("dashboard_layouts", col, mongo.IndexModel{
 		Keys:    bson.D{{Key: "user_id", Value: 1}, {Key: "name", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	})
