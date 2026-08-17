@@ -34,6 +34,91 @@ jobs:
       - name: Build
         run: go build -o bin/api ./cmd/api
 
+  e2e:
+    # The 290-case BlueNest TestFlow platform (test-platform/) actually gating
+    # merges — previously it was manual/local-only, so CI green never meant the
+    # API behaved (audit item 10). Boots mongo + the backend via the dev
+    # compose, seeds the same fixtures a local run uses, then runs the full
+    # bnrest tree (COL-FUNC-001 + standalone suites) against it.
+    name: bnrest e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go (seeds run via go run against the container's mongo)
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache: true
+
+      - name: Set up JDK 17 (bnrest engine)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Write CI .env
+        # Dev-mode env: APP_ENV stays development so the prod boot guard does
+        # not apply; EMAIL_DNS_CHECK off (no CI DNS flakes); admin credentials
+        # match the engine's QA_ADMIN_PASSWORD default.
+        run: |
+          cat > .env << 'EOF'
+          APP_ENV=development
+          APP_SECRET=ci-only-secret-not-production
+          JWT_SECRET=ci-only-jwt-secret-not-production
+          DEFAULT_ADMIN_EMAIL=admin@bluenest.uk
+          DEFAULT_ADMIN_PASSWORD=changeme-min-8-chars
+          DEFAULT_ADMIN_FIRST_NAME=Admin
+          DEFAULT_ADMIN_LAST_NAME=User
+          EMAIL_DNS_CHECK=false
+          FRONTEND_URL=http://localhost:3000
+          EOF
+
+      - name: Boot mongo
+        run: docker compose up -d mongodb
+
+      - name: Seed fixtures
+        # Order matters on a FRESH database: seedorg bootstraps the default
+        # organisation (the retired tenancy migration used to; without it the
+        # server resolves no default org and seedtaxonomy/seedfees refuse to
+        # run), then the fixture seeds, then seedorg AGAIN to back-stamp
+        # org_id onto the rows the direct-to-Mongo seeds created. All
+        # idempotent; catalogue CSVs are committed + embedded. Runs on the
+        # host via go run — the dev compose publishes mongo on
+        # localhost:27017. SEED_ALLOW_DROP: cmd/seed's drop-and-reseed guard
+        # (normally set by make) — safe here, the CI database is fresh.
+        working-directory: backend
+        env:
+          SEED_ALLOW_DROP: "1"
+        run: |
+          for i in $(seq 1 15); do
+            go run ./cmd/seedorg && break
+            sleep 2
+          done
+          for c in seed seedbranches seedusers seedtaxonomy seedfees seedcatalogue seedstaff seedchildren seeddailylogs seedgbp; do
+            go run ./cmd/$c
+          done
+          go run ./cmd/seedorg
+
+      - name: Boot backend
+        # AFTER the org exists — the server resolves the default org at boot.
+        run: |
+          docker compose up -d --build backend
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:8080/api/v1/health >/dev/null 2>&1 && break
+            sleep 2
+          done
+          curl -fsS http://localhost:8080/api/v1/health
+
+      - name: Run bnrest platform
+        run: make test-new
+
+      - name: Backend logs on failure
+        if: failure()
+        run: docker compose logs backend --tail 200
+
   frontend:
     name: Next.js
     runs-on: ubuntu-latest
