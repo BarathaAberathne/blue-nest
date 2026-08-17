@@ -76,28 +76,41 @@ jobs:
           FRONTEND_URL=http://localhost:3000
           EOF
 
-      - name: Boot mongo + backend
+      - name: Boot mongo
+        run: docker compose up -d mongodb
+
+      - name: Seed fixtures
+        # Order matters on a FRESH database: seedorg bootstraps the default
+        # organisation (the retired tenancy migration used to; without it the
+        # server resolves no default org and seedtaxonomy/seedfees refuse to
+        # run), then the fixture seeds, then seedorg AGAIN to back-stamp
+        # org_id onto the rows the direct-to-Mongo seeds created. All
+        # idempotent; catalogue CSVs are committed + embedded. Runs on the
+        # host via go run — the dev compose publishes mongo on
+        # localhost:27017. SEED_ALLOW_DROP: cmd/seed's drop-and-reseed guard
+        # (normally set by make) — safe here, the CI database is fresh.
+        working-directory: backend
+        env:
+          SEED_ALLOW_DROP: "1"
         run: |
-          docker compose up -d --build mongodb backend
+          for i in $(seq 1 15); do
+            go run ./cmd/seedorg && break
+            sleep 2
+          done
+          for c in seed seedbranches seedusers seedtaxonomy seedfees seedcatalogue seedstaff seedchildren seeddailylogs seedgbp; do
+            go run ./cmd/$c
+          done
+          go run ./cmd/seedorg
+
+      - name: Boot backend
+        # AFTER the org exists — the server resolves the default org at boot.
+        run: |
+          docker compose up -d --build backend
           for i in $(seq 1 60); do
             curl -fsS http://localhost:8080/api/v1/health >/dev/null 2>&1 && break
             sleep 2
           done
           curl -fsS http://localhost:8080/api/v1/health
-
-      - name: Seed fixtures
-        # Same set a local run relies on (idempotent; catalogue CSVs are
-        # committed + embedded). Runs on the host via go run — the dev compose
-        # publishes mongo on localhost:27017. SEED_ALLOW_DROP: cmd/seed's
-        # drop-and-reseed guard (normally set by make) — safe here, the CI
-        # database is created fresh every run.
-        working-directory: backend
-        env:
-          SEED_ALLOW_DROP: "1"
-        run: |
-          for c in seed seedbranches seedusers seedtaxonomy seedfees seedcatalogue seedstaff seedchildren seeddailylogs seedgbp; do
-            go run ./cmd/$c
-          done
 
       - name: Run bnrest platform
         run: make test-new
