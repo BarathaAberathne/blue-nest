@@ -1,0 +1,22 @@
+# systemd unit that runs one MongoDB backup pass. Triggered by
+# bluenest-backup.timer. Install: see deploy/backup/README.md
+# (copy to /etc/systemd/system/, daemon-reload, enable the .timer).
+[Unit]
+Description=Blue Nest production MongoDB backup (mongodump + retention + off-host copy)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+WorkingDirectory=/home/deploy/app
+Environment=APP_DIR=/home/deploy/app
+Environment=BACKUP_DIR=/home/deploy/backups/mongo
+Environment=LOG_FILE=/var/log/bluenest-backup.log
+Environment=RETENTION_DAYS=14
+# Off-host copy target (STRONGLY recommended — set after `rclone config`):
+#Environment=BACKUP_RCLONE_REMOTE=spaces:bluenest-backups/mongo
+ExecStart=/home/deploy/app/deploy/backup/mongo-backup.sh
+# A dump of a few-GB database should never take this long on the droplet.
+TimeoutStartSec=1200

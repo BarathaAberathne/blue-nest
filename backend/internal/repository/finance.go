@@ -83,6 +83,26 @@ func NewFinanceRepository(db *mongo.Database) FinanceRepository {
 	}); err != nil {
 		slog.Warn("families: could not create index", "err", err)
 	}
+	// Stripe PaymentIntent lookups run on the WEBHOOK hot path (ChargeByPI /
+	// PaymentByIntent) — previously full collection scans on every event.
+	ensureIndexes("charges", db.Collection("charges"), mongo.IndexModel{
+		Keys:    bson.D{{Key: "stripe_payment_intent_id", Value: 1}},
+		Options: options.Index().SetName("idx_charges_stripe_pi"),
+	})
+	ensureIndexes("payments", db.Collection("payments"),
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "stripe_payment_intent_id", Value: 1}},
+			Options: options.Index().SetName("idx_payments_stripe_pi"),
+		},
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "family_id", Value: 1}},
+			Options: options.Index().SetName("idx_payments_org_family"),
+		},
+	)
+	ensureIndexes("charges", db.Collection("charges"), mongo.IndexModel{
+		Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "family_id", Value: 1}},
+		Options: options.Index().SetName("idx_charges_org_family"),
+	})
 	return &financeRepository{
 		families:  NewTenantCollectionFrom(fam),
 		charges:   NewTenantCollectionFrom(db.Collection("charges")),

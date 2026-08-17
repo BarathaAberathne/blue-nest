@@ -6,6 +6,7 @@ import PublicLayout from "@/components/layout/PublicLayout";
 import PastelButton from "@/components/ui/PastelButton";
 import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
+import { ContactForm } from "./ContactForm";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/home-learning" },
@@ -388,6 +389,31 @@ export default function HomeLearningPage() {
                   <p className="body-text">{r.desc}</p>
                 </a>
               ))}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+
+      {/* ══════════════════════════════════════════════════════
+          6 — ENQUIRY FORM — ask about the Home Learning Kit
+      ══════════════════════════════════════════════════════ */}
+      <section className="blush-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <div className="container-site">
+          <Reveal>
+            <div className="mx-auto mb-8 max-w-2xl text-center">
+              <span className="section-kicker">Get in touch</span>
+              <h2 className="section-title mt-4 text-[#5fc8c7]">
+                Ask about the Home Learning Kit
+              </h2>
+              <p className="body-text mx-auto mt-5 max-w-md">
+                Send us a message and your nearest nursery will get back to you.
+              </p>
+            </div>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <div className="mx-auto max-w-xl">
+              <ContactForm />
             </div>
           </Reveal>
         </div>

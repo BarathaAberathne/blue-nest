@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"log/slog"
 	"regexp"
 	"time"
 
@@ -44,19 +43,20 @@ func NewEnquiryRepository(db *mongo.Database) EnquiryRepository {
 	col := db.Collection("enquiries")
 
 	// Indexes backing the admissions-CRM list filters and the default
-	// created_at sort. Best-effort: failures are logged, never fatal (matches
-	// the users repo pattern) so a transient index error can't block startup.
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if _, err := col.Indexes().CreateMany(ctx, []mongo.IndexModel{
-		{Keys: bson.D{{Key: "created_at", Value: -1}}, Options: options.Index().SetName("created_at_desc")},
-		{Keys: bson.D{{Key: "status", Value: 1}}, Options: options.Index().SetName("status")},
-		{Keys: bson.D{{Key: "branch", Value: 1}}, Options: options.Index().SetName("branch")},
-		{Keys: bson.D{{Key: "assigned_to", Value: 1}}, Options: options.Index().SetName("assigned_to")},
-		{Keys: bson.D{{Key: "follow_up_date", Value: 1}}, Options: options.Index().SetName("follow_up_date")},
-	}); err != nil {
-		slog.Warn("enquiries: could not create indexes", "err", err)
+	// created_at sort — ORG-PREFIXED, because TenantCollection injects org_id
+	// into every query: the original single-field indexes could not serve an
+	// org-scoped read at all, so every enquiry list still scanned. The legacy
+	// single-field ones are dropped by name (fresh DBs no-op).
+	for _, legacy := range []string{"created_at_desc", "status", "branch", "assigned_to", "follow_up_date"} {
+		dropIndexIfExists("enquiries", col, legacy)
 	}
+	ensureIndexes("enquiries", col,
+		mongo.IndexModel{Keys: bson.D{{Key: "org_id", Value: 1}, {Key: "created_at", Value: -1}}, Options: options.Index().SetName("idx_enq_org_created")},
+		mongo.IndexModel{Keys: bson.D{{Key: "org_id", Value: 1}, {Key: "status", Value: 1}}, Options: options.Index().SetName("idx_enq_org_status")},
+		mongo.IndexModel{Keys: bson.D{{Key: "org_id", Value: 1}, {Key: "branch", Value: 1}}, Options: options.Index().SetName("idx_enq_org_branch")},
+		mongo.IndexModel{Keys: bson.D{{Key: "org_id", Value: 1}, {Key: "assigned_to", Value: 1}}, Options: options.Index().SetName("idx_enq_org_assigned")},
+		mongo.IndexModel{Keys: bson.D{{Key: "org_id", Value: 1}, {Key: "follow_up_date", Value: 1}}, Options: options.Index().SetName("idx_enq_org_followup")},
+	)
 
 	return &enquiryRepository{col: NewTenantCollectionFrom(col)}
 }

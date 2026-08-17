@@ -46,7 +46,21 @@ type childRepository struct {
 }
 
 func NewChildRepository(db *mongo.Database) ChildRepository {
-	return &childRepository{col: NewTenantCollection(db, "children")}
+	col := db.Collection("children")
+	ensureIndexes("children", col,
+		// The largest tenant-scoped collection had no index at all: list
+		// filters run on {org, branch, status}, and the alphabetical list
+		// sort on {org, last_name, first_name}.
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "branch_slug", Value: 1}, {Key: "status", Value: 1}},
+			Options: options.Index().SetName("idx_children_org_branch_status"),
+		},
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "last_name", Value: 1}, {Key: "first_name", Value: 1}},
+			Options: options.Index().SetName("idx_children_org_name"),
+		},
+	)
+	return &childRepository{col: NewTenantCollectionFrom(col)}
 }
 
 func (r *childRepository) Create(ctx context.Context, c *models.Child) error {

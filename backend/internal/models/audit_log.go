@@ -31,4 +31,7 @@ type AuditLogFilter struct {
 	EntityType string
 	Action     string
 	Limit      int64
+	// Skip pages through the append-only log (audit grows forever; the UI
+	// loads pages of Limit rows rather than the whole history).
+	Skip int64
 }

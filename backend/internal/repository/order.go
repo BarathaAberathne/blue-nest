@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // StripeDetails carries the customer + address data reconciled from a verified
@@ -23,7 +24,7 @@ type StripeDetails struct {
 }
 
 type OrderRepository interface {
-	FindAll(ctx context.Context) ([]models.Order, error)
+	FindAll(ctx context.Context, limit, skip int64) ([]models.Order, error)
 	FindByUserID(ctx context.Context, userID string) ([]models.Order, error)
 	FindByID(ctx context.Context, id string) (*models.Order, error)
 	UpdateStatus(ctx context.Context, id, status string) error
@@ -55,11 +56,40 @@ type orderRepository struct {
 }
 
 func NewOrderRepository(db *mongo.Database, counter CounterRepository) OrderRepository {
-	return &orderRepository{col: NewTenantCollection(db, "orders"), counter: counter}
+	col := db.Collection("orders")
+	ensureIndexes("orders", col,
+		// Admin list (created_at desc) + the customer's own order history.
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "created_at", Value: -1}},
+			Options: options.Index().SetName("idx_orders_org_created"),
+		},
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "user_id", Value: 1}},
+			Options: options.Index().SetName("idx_orders_org_user"),
+		},
+	)
+	return &orderRepository{col: NewTenantCollectionFrom(col), counter: counter}
 }
 
-func (r *orderRepository) FindAll(ctx context.Context) ([]models.Order, error) {
-	cursor, err := r.col.Find(ctx, bson.M{})
+// FindAll returns paid/real orders newest-first, paged. The visibility rule
+// (hide pre-payment drafts + failed attempts; legacy orders with no
+// payment_status always show) lives in the QUERY now — it used to be an
+// in-memory filter over an unbounded, unsorted full-collection fetch, which
+// made server-side pagination impossible. $nin passes documents where the
+// field is absent, which is exactly the legacy-order rule.
+func (r *orderRepository) FindAll(ctx context.Context, limit, skip int64) ([]models.Order, error) {
+	if limit <= 0 || limit > 500 {
+		limit = 200
+	}
+	opts := options.Find().
+		SetSort(bson.D{{Key: "created_at", Value: -1}}).
+		SetLimit(limit)
+	if skip > 0 {
+		opts.SetSkip(skip)
+	}
+	cursor, err := r.col.Find(ctx, bson.M{
+		"payment_status": bson.M{"$nin": []string{string(models.PaymentUnpaid), string(models.PaymentFailed)}},
+	}, opts)
 	if err != nil {
 		return nil, err
 	}

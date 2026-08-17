@@ -49,12 +49,20 @@ export default function AdminOrdersClient() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
+  // Server-side pages of PAGE_SIZE, newest first — the endpoint no longer
+  // returns the whole collection. "Load older orders" appends the next page.
+  const PAGE_SIZE = 200;
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const load = useCallback(async () => {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated — please sign in as admin."); setLoading(false); return; }
     try {
-      const data = await api.adminGetOrders(token);
-      setOrders(Array.isArray(data) ? (data as Order[]) : []);
+      const data = await api.adminGetOrders(token, { limit: PAGE_SIZE });
+      const page = Array.isArray(data) ? (data as Order[]) : [];
+      setOrders(page);
+      setHasMore(page.length === PAGE_SIZE);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load orders");
@@ -62,6 +70,22 @@ export default function AdminOrdersClient() {
       setLoading(false);
     }
   }, []);
+
+  const loadMore = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    setLoadingMore(true);
+    try {
+      const data = await api.adminGetOrders(token, { limit: PAGE_SIZE, skip: orders.length });
+      const page = Array.isArray(data) ? (data as Order[]) : [];
+      setOrders((prev) => [...prev, ...page]);
+      setHasMore(page.length === PAGE_SIZE);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load more orders");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [orders.length]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -195,6 +219,18 @@ export default function AdminOrdersClient() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      {hasMore && (
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={loadingMore}
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+          >
+            {loadingMore ? "Loading…" : "Load older orders"}
+          </button>
         </div>
       )}
     </>

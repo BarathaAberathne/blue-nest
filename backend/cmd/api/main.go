@@ -19,6 +19,13 @@ func main() {
 	cfg := config.Load()
 	log := logger.New(cfg.App.Env)
 
+	// Fail fast in production if secrets are still placeholders or Mongo fell
+	// back to the dev localhost default — never serve traffic on "change-me-jwt".
+	if err := cfg.Validate(); err != nil {
+		log.Error("invalid production configuration", "error", err)
+		os.Exit(1)
+	}
+
 	if cfg.Stripe.SecretKey != "" {
 		stripePlatform.Init(cfg.Stripe.SecretKey)
 	}

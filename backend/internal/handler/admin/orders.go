@@ -2,6 +2,7 @@ package admin
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/blue-nest-montessori/api/internal/service"
 	"github.com/blue-nest-montessori/api/pkg/response"
@@ -18,10 +19,24 @@ func NewAdminOrderHandler(svc service.OrderService, audit service.AuditService) 
 	return &AdminOrderHandler{svc: svc, audit: audit}
 }
 
+// List returns paid orders newest-first, paged via ?limit (default 200, cap
+// 500) and ?skip — the list used to return the entire collection.
 func (h *AdminOrderHandler) List(w http.ResponseWriter, r *http.Request) {
-	orders, err := h.svc.ListAll(r.Context())
+	q := r.URL.Query()
+	var limit, skip int64
+	if v := q.Get("limit"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+			limit = n
+		}
+	}
+	if v := q.Get("skip"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+			skip = n
+		}
+	}
+	orders, err := h.svc.ListAll(r.Context(), limit, skip)
 	if err != nil {
-		response.InternalError(w, err.Error())
+		response.InternalError(w, "failed to fetch orders")
 		return
 	}
 	response.OK(w, orders)

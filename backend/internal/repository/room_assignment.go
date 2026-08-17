@@ -39,7 +39,7 @@ func NewStaffRoomAssignmentRepository(db *mongo.Database) StaffRoomAssignmentRep
 	// Concurrency backstop: the same staff member can never hold two ACTIVE
 	// assignments to the same room, even under racing requests. Multiple
 	// active assignments to different rooms remain allowed (multi-room work).
-	_, _ = col.Indexes().CreateOne(context.Background(), mongo.IndexModel{
+	ensureIndexes("staff_room_assignments", col, mongo.IndexModel{
 		Keys: bson.D{{Key: "staff_id", Value: 1}, {Key: "room_id", Value: 1}},
 		Options: options.Index().SetUnique(true).
 			SetPartialFilterExpression(bson.M{"status": string(models.AssignmentActive)}),
@@ -142,16 +142,18 @@ func NewChildRoomAssignmentRepository(db *mongo.Database) ChildRoomAssignmentRep
 	// The hard invariants (CHILDROOM-TC-018): at most one ACTIVE placement and
 	// at most one SCHEDULED placement per child — racing transfers cannot both
 	// win; the loser gets a duplicate-key error.
-	_, _ = col.Indexes().CreateOne(context.Background(), mongo.IndexModel{
-		Keys: bson.D{{Key: "child_id", Value: 1}},
-		Options: options.Index().SetUnique(true).SetName("one_active_room_per_child").
-			SetPartialFilterExpression(bson.M{"status": string(models.AssignmentActive)}),
-	})
-	_, _ = col.Indexes().CreateOne(context.Background(), mongo.IndexModel{
-		Keys: bson.D{{Key: "child_id", Value: 1}, {Key: "status", Value: 1}},
-		Options: options.Index().SetUnique(true).SetName("one_scheduled_room_per_child").
-			SetPartialFilterExpression(bson.M{"status": string(models.AssignmentScheduled)}),
-	})
+	ensureIndexes("child_room_assignments", col,
+		mongo.IndexModel{
+			Keys: bson.D{{Key: "child_id", Value: 1}},
+			Options: options.Index().SetUnique(true).SetName("one_active_room_per_child").
+				SetPartialFilterExpression(bson.M{"status": string(models.AssignmentActive)}),
+		},
+		mongo.IndexModel{
+			Keys: bson.D{{Key: "child_id", Value: 1}, {Key: "status", Value: 1}},
+			Options: options.Index().SetUnique(true).SetName("one_scheduled_room_per_child").
+				SetPartialFilterExpression(bson.M{"status": string(models.AssignmentScheduled)}),
+		},
+	)
 	return &childRoomAssignmentRepository{col: NewTenantCollectionFrom(col)}
 }
 

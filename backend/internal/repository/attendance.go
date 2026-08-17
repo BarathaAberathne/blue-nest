@@ -26,7 +26,21 @@ type attendanceRepository struct {
 }
 
 func NewAttendanceRepository(db *mongo.Database) AttendanceRepository {
-	return &attendanceRepository{col: NewTenantCollection(db, "attendance")}
+	col := db.Collection("attendance")
+	ensureIndexes("attendance", col,
+		// Same shapes as staff_attendance: daily register reads by
+		// {org, [branch,] date}, and one row per child per day as a hard
+		// invariant behind the Upsert (concurrent kiosk/admin check-ins).
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "branch_slug", Value: 1}, {Key: "date", Value: 1}},
+			Options: options.Index().SetName("idx_att_org_branch_date"),
+		},
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "child_id", Value: 1}, {Key: "date", Value: 1}},
+			Options: options.Index().SetUnique(true).SetName("uniq_att_org_child_date"),
+		},
+	)
+	return &attendanceRepository{col: NewTenantCollectionFrom(col)}
 }
 
 func (r *attendanceRepository) Upsert(ctx context.Context, rec models.AttendanceRecord) (*models.AttendanceRecord, error) {

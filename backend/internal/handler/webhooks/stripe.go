@@ -351,9 +351,12 @@ func firstNonEmpty(vals ...string) string {
 }
 
 // ── Finance module events (idempotent via MarkEventProcessed) ────────────────
-// NOTE: like every public route this runs under the DEFAULT tenant — family
-// billing webhooks currently resolve for the default org (multi-org follows
-// the kiosk cross-org pattern later).
+// NOTE: the webhook route is explicitly wrapped in middleware.DefaultTenant in
+// routes.go (it is registered on the root mux, outside the /api/v1 group, so
+// it does NOT inherit the group's tenant pinning) — family billing webhooks
+// resolve for the default org. Without that wrapper the context is cross-org
+// and PaymentCreate/CommLogCreate insert rows with no org_id (invisible to
+// org-scoped admin reads). Multi-org follows the kiosk cross-org pattern later.
 
 func (h *StripeWebhookHandler) handleFinanceSetup(ctx context.Context, event stripe.Event) {
 	if h.finance == nil || !h.finance.MarkEventProcessed(ctx, event.ID) {

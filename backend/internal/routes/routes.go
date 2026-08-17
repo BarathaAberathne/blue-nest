@@ -90,13 +90,19 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 	health := handler.NewHealthHandler()
 	r.Get("/api/v1/health", health.Check)
 
-	// ── Stripe webhook (raw body required before JSON middleware) ───────────
+	// ── Stripe webhook (raw body required, so it stays outside the /api/v1
+	// group) ── it MUST still carry the tenant middleware: without DefaultTenant
+	// the request context is cross-org, so webhook-created rows (finance
+	// payments, communication logs) insert with NO org_id and become invisible
+	// to every org-scoped admin read. Multi-org webhooks later resolve the org
+	// from the charge/order row itself (the kiosk cross-org pattern).
 	stripeWH := webhooks.NewStripeWebhookHandler(stripeWebhookSecret, repos.Orders, repos.Products, repos.Branches, repos.Mailer, repos.OrderAdminTo, repos.OrderBATo, svc.Finance)
-	r.Post("/api/v1/webhooks/stripe", stripeWH.Handle)
+	r.With(middleware.DefaultTenant(svc.DefaultOrgID)).Post("/api/v1/webhooks/stripe", stripeWH.Handle)
 
-	// ── GBP digest ingest (shared-secret webhook, no user JWT) ──────────────
+	// ── GBP digest ingest (shared-secret webhook, no user JWT; same tenant
+	// pinning requirement as the Stripe webhook above) ──────────────────────
 	gbpWH := integrations.NewGBPHandler(svc.GBP, cfg.GBPIngestSecret)
-	r.Post("/api/v1/integrations/gbp/digest", gbpWH.IngestDigest)
+	r.With(middleware.DefaultTenant(svc.DefaultOrgID)).Post("/api/v1/integrations/gbp/digest", gbpWH.IngestDigest)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// Multi-tenancy: pin every request to a tenant. Public/unauthenticated
@@ -116,12 +122,16 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Post("/auth/login", authH.Login)
 			r.Post("/admin/auth/login", authH.AdminLogin)
 		})
-		r.Post("/auth/register", authH.Register)
+		// Registration is bcrypt-expensive and account-creating — throttled
+		// per IP (generous enough for a family on one NAT or an e2e run).
+		r.With(middleware.RateLimit(15, time.Minute)).Post("/auth/register", authH.Register)
 	// Parent portal activation: single-use invitation token → password set.
+	// Throttled — the invite token is the only credential here, so the
+	// endpoint must not be free to brute-force (a real parent activates once).
 	// NOTE: runs under DefaultTenant — like all public routes — so invitations
 	// currently activate for the default org only (multi-org portal activation
 	// follows the kiosk cross-org pattern later).
-	r.Post("/auth/portal/activate", func(w http.ResponseWriter, req *http.Request) {
+	r.With(middleware.RateLimit(10, time.Minute)).Post("/auth/portal/activate", func(w http.ResponseWriter, req *http.Request) {
 		var body models.InviteAcceptRequest
 		if err := validator.DecodeJSON(req, &body); err != nil {
 			response.BadRequest(w, err.Error())
@@ -134,8 +144,11 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		}
 		response.OK(w, p)
 	})
-		r.Post("/auth/logout", authH.Logout)
-		r.Post("/auth/refresh", authH.Refresh)
+		// Logout moved to the authenticated group below — it now revokes the
+		// caller's tokens server-side, so it needs the JWT to know whose.
+		// Refresh is throttled: it re-mints full token pairs, so it must not
+		// be free to hammer.
+		r.With(middleware.RateLimit(30, time.Minute)).Post("/auth/refresh", authH.Refresh)
 
 		// ── Products & categories (public) ────────────────────────────────
 		productH := handler.NewProductHandler(svc.Products)
@@ -152,7 +165,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 
 		commentH := handler.NewCommentHandler(svc.Comments)
 		r.Get("/blog/posts/{slug}/comments", commentH.List)
-		r.Post("/blog/posts/{slug}/comments", commentH.Add)
+		r.With(middleware.RateLimit(10, time.Minute)).Post("/blog/posts/{slug}/comments", commentH.Add)
 
 		// ── Branches (public) ─────────────────────────────────────────────
 		branchH := handler.NewBranchHandler(svc.Branches)
@@ -168,7 +181,10 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 
 		// ── Contact / Enquiries (public) ──────────────────────────────────
 		contactH := handler.NewContactHandler(svc.Enquiries)
-		r.Post("/contact", contactH.Submit)
+		// Throttled: every submission fans out notification emails. 30/min is
+		// far above any legitimate burst (school NAT, e2e suites) but caps an
+		// abuse loop's email amplification.
+		r.With(middleware.RateLimit(30, time.Minute)).Post("/contact", contactH.Submit)
 
 		// ── Kiosk (entrance tablet) ───────────────────────────────────────
 		// Isolated from the CMS: device-token auth (X-Kiosk-Token), rate-limited,
@@ -186,10 +202,12 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 
 		// ── Authenticated routes ───────────────────────────────────────────
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.Auth(jwtSecret))
+			r.Use(middleware.Auth(jwtSecret, svc.Auth.TokenVersion))
 
 			// Identity + capabilities (drives UI nav/page gating).
 			r.Get("/auth/me", authH.Me)
+			// Server-side logout: revokes the caller's tokens (version bump).
+			r.Post("/auth/logout", authH.Logout)
 
 			// Per-user customizable dashboard layout (any authenticated user).
 			// A user can keep several named layouts and switch the active one.
@@ -242,7 +260,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		// ── Parent portal (customer-role logins; every handler re-scopes the
 		// caller via ParentService.AuthorisedChildIDs — IDOR-proof) ─────────
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.Auth(jwtSecret))
+			r.Use(middleware.Auth(jwtSecret, svc.Auth.TokenVersion))
 			r.Use(middleware.RequireRole("customer"))
 			portalH := handler.NewPortalHandler(svc.Parents, svc.Children, svc.Induction, svc.Onboarding, svc.Finance, svc.DailyRecords, svc.Attendance, svc.Audit, cfg.FrontendURL)
 			r.Get("/portal/me", portalH.Me)
@@ -262,7 +280,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 
 		// ── Staff supply requests (staff + management, not customers) ───────
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.Auth(jwtSecret))
+			r.Use(middleware.Auth(jwtSecret, svc.Auth.TokenVersion))
 			r.Use(middleware.RequireRole("super_admin", "admin", "branch_manager", "staff"))
 
 			orderReqH := handler.NewOrderRequestHandler(svc.OrderRequests, svc.Audit)
@@ -294,7 +312,7 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 		// specialists); each resource group is then gated by a granular
 		// permission, so a specialist only reaches the sections it is granted.
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.Auth(jwtSecret))
+			r.Use(middleware.Auth(jwtSecret, svc.Auth.TokenVersion))
 			r.Use(middleware.ManagementOnly)
 
 			// Organisation (own tenant): any back-office role can read their org's

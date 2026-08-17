@@ -1,4 +1,4 @@
-import { clearAuthSession, getRefreshToken, storeAuthResponse } from "@/lib/auth";
+import { clearAuthSession, getAccessToken, getRefreshToken, storeAuthResponse } from "@/lib/auth";
 import type { AttendanceCorrectionInput, AttendanceDaySummary, AttendanceRecord, AttendanceStats, AuditLog, Branch, BranchDashboard, BranchInput, BranchManagers, BranchOverviewRow, ReviewsAnalytics, CapacityForecast, CatalogueItem, Child, ChildInput, ChildStats, DailyRecord, DailyRecordInput, DailyStats, DashboardLayout, DashboardProfile, DashboardProfilesResponse, DashboardWidget, Enquiry, EnquiryAssignee, EnquiryBulkRequest, EnquiryBulkResult, EnquiryCreateInput, EnquiryPage, EnquiryStats, EnquiryTasks, KioskDevice, KioskOverview, Parent, ParentInput, ChildParentRelationship, RelationshipFlagsInput, InductionBundle, ChildInduction, Consent, ConsentsBundle, OnboardingView, KioskSession, KioskStaffResult, LeaveRequest, LeaveRequestInput, LeaveBalances, MeAttendance, MeProfileInput, Shift, ShiftInput, Me, OrderRequest, OrderTemplate, ProcurementAnalytics, PurchaseCart, RoleDefinition, RolesResponse, Room, RoomInput, RoomCapacitySummary, StaffRoomAssignment, StaffRoomAssignmentInput, ChildRoomAssignment, ChildRoomAssignmentInput, ChildTransferInput, Organisation, OrgProfileInput, Staff, StaffAbsenceSummary, StaffAttendanceRecord, StaffInput, StaffStats, Supplier, SupplierInput, TaxonomyTerm, TaxonomyInput, Term, TermInput, FeeConfigBundle, FeeBranchConfig, FeeConfigInput, FeeMeta, BranchTemplate, BranchTemplateInput, BranchTemplateApplyResult, EmailTemplate, EmailTemplateInput, NotificationPreferences, NotificationsResponse, User, Family, FamilyView, Charge, FamilyPayment, PaymentScheduleItem, FinanceDashboard, CommunicationLog, ChildSendSupport, SendSupportInput, SendOverview, PortalAttendanceRow,
   PayrollSummary,} from "@/types";
 
@@ -164,6 +164,15 @@ export const api = {
     apiFetch("/api/v1/admin/auth/login", { method: "POST", body: JSON.stringify(body) }),
   logout: (token: string) =>
     apiFetch("/api/v1/auth/logout", { method: "POST", token }),
+  // signOut is THE sign-out entry point for UI buttons: it revokes the
+  // session server-side (token-version bump — a stolen copy of the token
+  // dies too) fire-and-forget, then clears local storage. Callers only need
+  // to navigate afterwards.
+  signOut: () => {
+    const token = getAccessToken();
+    if (token) void apiFetch("/api/v1/auth/logout", { method: "POST", token }).catch(() => {});
+    clearAuthSession();
+  },
 
   // Products
   getProducts: () => apiFetch("/api/v1/products"),
@@ -346,7 +355,13 @@ export const api = {
     apiFetch<Enquiry>(`/api/v1/admin/enquiries/${id}/reply`, { method: "POST", token }),
 
   // Admin
-  adminGetOrders: (token: string) => apiFetch("/api/v1/admin/orders", { token }),
+  adminGetOrders: (token: string, params?: { limit?: number; skip?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.skip) qs.set("skip", String(params.skip));
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    return apiFetch(`/api/v1/admin/orders${suffix}`, { token });
+  },
   adminUpdateOrderStatus: (token: string, id: string, status: string) =>
     apiFetch(`/api/v1/admin/orders/${id}/status`, {
       method: "PATCH",
@@ -410,12 +425,13 @@ export const api = {
     apiFetch(`/api/v1/admin/users/${id}`, { method: "DELETE", token }),
 
   // Audit log (admin activity)
-  adminGetAuditLogs: (token: string, params?: { actor?: string; entity_type?: string; action?: string; limit?: number }) => {
+  adminGetAuditLogs: (token: string, params?: { actor?: string; entity_type?: string; action?: string; limit?: number; skip?: number }) => {
     const qs = new URLSearchParams();
     if (params?.actor) qs.set("actor", params.actor);
     if (params?.entity_type) qs.set("entity_type", params.entity_type);
     if (params?.action) qs.set("action", params.action);
     if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.skip) qs.set("skip", String(params.skip));
     const suffix = qs.toString() ? `?${qs.toString()}` : "";
     return apiFetch<AuditLog[]>(`/api/v1/admin/audit-logs${suffix}`, { token });
   },

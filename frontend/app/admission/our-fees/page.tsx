@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { ArrowRight, Clock, Download, Info, Star, Sun, Sunset } from "lucide-react";
+import { ArrowRight, Clock, Info, Star, Sun, Sunset } from "lucide-react";
 import PublicLayout from "@/components/layout/PublicLayout";
 import Doodle from "@/components/ui/Doodle";
 import FeeCalculatorCard from "@/components/ui/FeeCalculatorCard";
@@ -74,10 +74,15 @@ const faqJsonLd = {
   ],
 };
 
-const downloads = [
-  { branch: "Harrow",      color: "#7fd8d2", bg: "rgba(127,216,210,0.18)", border: "rgba(127,216,210,0.55)", file: "/fees-harrow.pdf"      },
-  { branch: "Pinner",      color: "#ef8cab", bg: "rgba(246,213,223,0.35)", border: "rgba(239,140,171,0.45)", file: "/fees-pinner.pdf"      },
-  { branch: "Borehamwood", color: "#f0bd55", bg: "rgba(247,215,116,0.22)", border: "rgba(240,189,85,0.45)",  file: "/fees-borehamwood.pdf" },
+// Per-branch fee links point at the live fee calculator (same page, #fee-calculator
+// anchor) — the single always-current rate source. The previous per-branch PDF
+// downloads pointed at files that never existed in public/ (404 on the admissions
+// path); restore real <a download> links here only once actual PDFs are shipped.
+const feeLinks = [
+  { branch: "Harrow",      color: "#7fd8d2", bg: "rgba(127,216,210,0.18)", border: "rgba(127,216,210,0.55)" },
+  { branch: "Pinner",      color: "#ef8cab", bg: "rgba(246,213,223,0.35)", border: "rgba(239,140,171,0.45)" },
+  { branch: "Borehamwood", color: "#f0bd55", bg: "rgba(247,215,116,0.22)", border: "rgba(240,189,85,0.45)" },
+  { branch: "Aldershot",   color: "#e0965f", bg: "rgba(224,150,95,0.16)",  border: "rgba(224,150,95,0.45)" },
 ];
 
 const sessions = [
@@ -223,23 +228,23 @@ export default function OurFeesPage() {
         <div className="container-site">
           <Reveal eager>
             <div className="mx-auto mb-10 max-w-2xl text-center">
-              <span className="section-kicker">Branch fee sheets</span>
+              <span className="section-kicker">Branch fee rates</span>
               <h2 className="section-title mt-4 text-[#cf7d9c]">
-                Download Our Fees
+                Fees for Every Nursery
               </h2>
               <p className="body-text mx-auto mt-5 max-w-md">
-                You can download our fees for each of our nurseries using the links below.
+                Current rates for every branch are in the fee calculator above — pick your nursery
+                to see live session and weekly prices.
               </p>
             </div>
           </Reveal>
 
           <Reveal delay={0.06}>
-            <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-3">
-              {downloads.map((d) => (
+            <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {feeLinks.map((d) => (
                 <a
                   key={d.branch}
-                  href={d.file}
-                  download
+                  href="#fee-calculator"
                   className="group flex items-center justify-between rounded-[1.6rem] px-5 py-4 ring-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(90,74,66,0.10)]"
                   style={{ background: d.bg, borderColor: d.border }}
                 >
@@ -247,14 +252,14 @@ export default function OurFeesPage() {
                     <span
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/70"
                     >
-                      <Download className="h-4 w-4" style={{ color: d.color }} strokeWidth={2} />
+                      <ArrowRight className="h-4 w-4" style={{ color: d.color }} strokeWidth={2} />
                     </span>
                     <span className="text-sm font-bold text-[var(--ink)]">
-                      Download Fees<br />
-                      <span className="font-extrabold" style={{ color: d.color }}>– {d.branch} (PDF)</span>
+                      View fees<br />
+                      <span className="font-extrabold" style={{ color: d.color }}>– {d.branch}</span>
                     </span>
                   </div>
-                  <Download className="h-4 w-4 opacity-50 transition group-hover:opacity-100" style={{ color: d.color }} strokeWidth={2} />
+                  <ArrowRight className="h-4 w-4 opacity-50 transition group-hover:opacity-100" style={{ color: d.color }} strokeWidth={2} />
                 </a>
               ))}
             </div>

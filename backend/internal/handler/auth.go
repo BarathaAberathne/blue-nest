@@ -64,7 +64,15 @@ func (h *AuthHandler) AdminLogin(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, res)
 }
 
+// Logout revokes every token the caller holds (token-version bump), so a
+// sign-out actually ends the session server-side instead of only clearing
+// localStorage. Registered in the authenticated group — the JWT identifies
+// whose tokens to revoke. Best-effort: the response is 200 either way, since
+// the client clears its stored tokens regardless.
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	if userID, ok := r.Context().Value(middleware.UserIDKey).(string); ok && userID != "" {
+		_ = h.svc.Logout(r.Context(), userID)
+	}
 	response.OK(w, map[string]string{"message": "logged out"})
 }
 

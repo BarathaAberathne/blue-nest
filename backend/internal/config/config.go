@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"log"
 	"os"
 	"strconv"
@@ -168,6 +169,32 @@ func Load() *Config {
 			AmazonBusinessEnabled: strings.EqualFold(getEnv("AMAZON_BUSINESS_ENABLED", "false"), "true"),
 		},
 	}
+}
+
+// Validate refuses to run production with placeholder/fallback secrets or the
+// dev-localhost Mongo URI. check-env.sh gates the deploy from outside, but this
+// is the in-process backstop: if the env plumbing breaks (missing env_file,
+// stripped var), the container must fail fast at boot instead of serving
+// traffic signed with "change-me-jwt". Called from cmd/api only — one-shot
+// seed/tool commands stay usable in dev where APP_ENV is unset.
+func (c *Config) Validate() error {
+	if c.App.Env != "production" {
+		return nil
+	}
+	var problems []string
+	if c.App.Secret == "" || c.App.Secret == "change-me" {
+		problems = append(problems, "APP_SECRET is unset or still the placeholder default")
+	}
+	if c.JWT.Secret == "" || c.JWT.Secret == "change-me-jwt" {
+		problems = append(problems, "JWT_SECRET is unset or still the placeholder default")
+	}
+	if c.Mongo.URI == "" || c.Mongo.URI == "mongodb://localhost:27017" {
+		problems = append(problems, "MONGODB_URI is unset (fell back to the dev localhost default)")
+	}
+	if len(problems) > 0 {
+		return errors.New("refusing to start with APP_ENV=production: " + strings.Join(problems, "; "))
+	}
+	return nil
 }
 
 func getEnv(key, fallback string) string {

@@ -31,7 +31,13 @@ const UserEmailKey contextKey = "userEmail"
 const UserBranchesKey contextKey = "userBranches"
 const UserOrgKey contextKey = "userOrg"
 
-func Auth(jwtSecret string) func(http.Handler) http.Handler {
+// TokenVersionLookup resolves a user's current token version (cached by the
+// auth service). Auth compares it against the token's "tv" claim so revoked
+// tokens (logout, password change, role change, deleted user) die immediately
+// instead of surviving to expiry. A nil lookup disables the check (tests).
+type TokenVersionLookup func(ctx context.Context, userID string) (int, error)
+
+func Auth(jwtSecret string, tokenVersion TokenVersionLookup) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			header := r.Header.Get("Authorization")
@@ -89,6 +95,25 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 			} else {
 				ctx = repository.WithOrg(ctx, orgID)
 			}
+
+			// Revocation: reject tokens whose "tv" claim no longer matches the
+			// user's current token version (bumped on logout / password change /
+			// role change; a deleted user fails the lookup). Runs AFTER the org
+			// pinning so the lookup is tenant-scoped. A missing claim reads as
+			// version 0 so pre-revocation-era sessions stay valid until their
+			// first bump.
+			if tokenVersion != nil {
+				claimVersion := 0
+				if tv, ok := claims["tv"].(float64); ok {
+					claimVersion = int(tv)
+				}
+				current, err := tokenVersion(ctx, userID)
+				if err != nil || claimVersion != current {
+					response.Unauthorized(w, "session revoked — please sign in again")
+					return
+				}
+			}
+
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
