@@ -33,7 +33,26 @@ type staffAttendanceRepository struct {
 }
 
 func NewStaffAttendanceRepository(db *mongo.Database) StaffAttendanceRepository {
-	return &staffAttendanceRepository{col: NewTenantCollection(db, "staff_attendance")}
+	col := db.Collection("staff_attendance")
+	ensureIndexes("staff_attendance", col,
+		// Every register/summary/payroll read filters {org, [branch,] date} —
+		// this is the fastest-growing operational collection and previously
+		// every one of those reads was a COLLSCAN (payroll's FindByRange also
+		// sorted in memory).
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "branch_slug", Value: 1}, {Key: "date", Value: 1}},
+			Options: options.Index().SetName("idx_staffatt_org_branch_date"),
+		},
+		// One register row per staff member per day is a hard invariant the
+		// Upsert relies on — without a unique index a concurrent kiosk
+		// double-tap can split a day into duplicate rows that the upsert then
+		// silently alternates between. Serves the per-staff range reads too.
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "staff_id", Value: 1}, {Key: "date", Value: 1}},
+			Options: options.Index().SetUnique(true).SetName("uniq_staffatt_org_staff_date"),
+		},
+	)
+	return &staffAttendanceRepository{col: NewTenantCollectionFrom(col)}
 }
 
 func (r *staffAttendanceRepository) Upsert(ctx context.Context, rec models.StaffAttendanceRecord) (*models.StaffAttendanceRecord, error) {

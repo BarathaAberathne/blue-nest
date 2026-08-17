@@ -29,9 +29,14 @@ type dashboardProfileRepository struct {
 
 func NewDashboardProfileRepository(db *mongo.Database) DashboardProfileRepository {
 	col := db.Collection("dashboard_profiles")
-	_, _ = col.Indexes().CreateOne(context.Background(), mongo.IndexModel{
-		Keys:    bson.D{{Key: "slug", Value: 1}},
-		Options: options.Index().SetUnique(true),
+	// Slug uniqueness is PER ORG (audit finding: the legacy global unique on
+	// bare slug blocked tenant B from using a slug tenant A already had —
+	// same defect class as the branch-slug index fixed in the multi-tenant
+	// hardening pass). Legacy index dropped by its auto-generated name.
+	dropIndexIfExists("dashboard_profiles", col, "slug_1")
+	ensureIndexes("dashboard_profiles", col, mongo.IndexModel{
+		Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "slug", Value: 1}},
+		Options: options.Index().SetUnique(true).SetName("uniq_dashboard_profile_slug_per_org"),
 	})
 	return &dashboardProfileRepository{col: NewTenantCollectionFrom(col)}
 }

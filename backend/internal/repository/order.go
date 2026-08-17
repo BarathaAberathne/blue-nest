@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // StripeDetails carries the customer + address data reconciled from a verified
@@ -55,7 +56,19 @@ type orderRepository struct {
 }
 
 func NewOrderRepository(db *mongo.Database, counter CounterRepository) OrderRepository {
-	return &orderRepository{col: NewTenantCollection(db, "orders"), counter: counter}
+	col := db.Collection("orders")
+	ensureIndexes("orders", col,
+		// Admin list (created_at desc) + the customer's own order history.
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "created_at", Value: -1}},
+			Options: options.Index().SetName("idx_orders_org_created"),
+		},
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "user_id", Value: 1}},
+			Options: options.Index().SetName("idx_orders_org_user"),
+		},
+	)
+	return &orderRepository{col: NewTenantCollectionFrom(col), counter: counter}
 }
 
 func (r *orderRepository) FindAll(ctx context.Context) ([]models.Order, error) {

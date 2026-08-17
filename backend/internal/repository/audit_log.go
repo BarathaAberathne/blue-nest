@@ -21,7 +21,16 @@ type auditLogRepository struct {
 }
 
 func NewAuditLogRepository(db *mongo.Database) AuditLogRepository {
-	return &auditLogRepository{col: NewTenantCollection(db, "audit_logs")}
+	col := db.Collection("audit_logs")
+	// Append-only and the fastest-growing collection of all; the list is
+	// always sorted created_at DESC. Without this index the sort runs in
+	// memory and eventually exceeds Mongo's 32MB sort limit — at which point
+	// the audit page starts ERRORING, not just slowing down.
+	ensureIndexes("audit_logs", col, mongo.IndexModel{
+		Keys:    bson.D{{Key: "org_id", Value: 1}, {Key: "created_at", Value: -1}},
+		Options: options.Index().SetName("idx_audit_org_created"),
+	})
+	return &auditLogRepository{col: NewTenantCollectionFrom(col)}
 }
 
 func (r *auditLogRepository) Create(ctx context.Context, log *models.AuditLog) error {

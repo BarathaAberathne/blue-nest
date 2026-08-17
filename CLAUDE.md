@@ -1028,6 +1028,18 @@ field) whenever convenient.
 - Commits: conventional style, **no `Co-Authored-By` Claude trailer**.
 - Don't commit `next-env.d.ts` churn or stray root files (QA reports/xlsx).
 - Round trig in SVG coords (avoid SSR hydration mismatches).
+- **Mongo indexes (audit item 6, delivered):** every repository's boot-time index work goes through
+  `repository.ensureIndexes` (`indexes.go`) — creation failures are LOGGED, never swallowed (`_, _ =` on
+  CreateOne is banned; a silently-missing index means collscans AND a missing uniqueness guarantee).
+  Hot collections are indexed org-first (TenantCollection injects `org_id` into every query, so indexes
+  MUST be org-prefixed to be usable): `staff_attendance`/`attendance` ({org,branch,date} + UNIQUE
+  {org,staff|child,date} — one register row per person per day is now a DB-level invariant against
+  concurrent kiosk double-taps), `audit_logs` ({org,created_at} — unindexed it would eventually blow
+  Mongo's 32MB sort limit), `notifications` (bell polling), `orders`, `children`, `charges`/`payments`
+  (incl. bare `stripe_payment_intent_id` for the cross-org webhook hot path), and the enquiry indexes
+  re-shaped org-first (legacy single-field ones dropped by name). `dashboard_profiles` slug uniqueness is
+  now per-org (was a cross-tenant blocker, same class as the branch-slug fix). New repos: add the same
+  ensureIndexes call for whatever their list/filters query on.
 - Verify changes: `cd backend && go build ./... && go vet ./internal/...`;
   `cd frontend && npm run type-check && npx eslint <paths>`; then browser-check via chrome-devtools.
   **Then, for any change touching backend business logic, permissions, or an API contract: rebuild +
