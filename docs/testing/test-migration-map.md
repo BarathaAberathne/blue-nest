@@ -214,7 +214,7 @@ single source of truth (see `docs/architecture/duplicate-implementation-audit.md
 | RoleSuite.tc_role_002d_reg_deputyCannotEscalateToSuperAdmin | TC-ROLE-002d-REG | `ROLE-TC-006` | ✅ completed | verified |
 | RoleSuite.tc_role_002e_reg_deputyCannotEscalateViaUpdate | TC-ROLE-002e-REG | `ROLE-TC-007` | ✅ completed | verified |
 | RoleSuite.tc_role_002f_superAdminCanStillGrantSuperAdmin | TC-ROLE-002f | `ROLE-TC-008` | ✅ completed | verified |
-| RoleSuite.tc_role_003_activeSessionKeepsOldRoleUntilRefresh | TC-ROLE-003 | `ROLE-TC-009` | ✅ completed | verified |
+| RoleSuite.tc_role_003_activeSessionKeepsOldRoleUntilRefresh | TC-ROLE-003 | `ROLE-TC-009` | ✅ completed | **policy inverted** — the auth-hardening pass (audit item 5) made role changes revoke existing tokens, so `ROLE-TC-009` now locks the NEW behaviour (401 "session revoked" on the old token); the legacy `tc_role_003` asserts the OLD behaviour and FAILS on current code — expected, superseded, do not "fix" it |
 | RoleSuite.tc_role_003b_freshLoginReflectsNewRole | TC-ROLE-003b | `ROLE-TC-010` | ✅ completed | verified |
 | StaffSuite.tc_staff_001_createsStaffOnce | TC-STAFF-001 | `STAFF-TC-001` | ✅ completed | verified |
 | StaffSuite.tc_staff_001b_invalidStatusRejected | TC-STAFF-001b | `STAFF-TC-002` | ✅ completed | verified |
