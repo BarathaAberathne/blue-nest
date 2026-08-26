@@ -1434,6 +1434,9 @@ export interface Staff {
   first_aid_expiry?: string;
   emergency_contacts?: EmergencyContact[];
   user_id?: string; // linked login account (empty = HR-only, no login)
+  // Computed projection of the linked account's system role (user.role is the
+  // single source of truth — never stored on staff). Empty = no login linked.
+  login_role?: UserRole;
   has_pin?: boolean; // whether a kiosk clock-in PIN is set
   created_at?: string;
   updated_at?: string;

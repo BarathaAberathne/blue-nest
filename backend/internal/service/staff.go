@@ -31,6 +31,7 @@ type StaffAccounts interface {
 	CreateAdminUser(ctx context.Context, req models.AdminCreateUserRequest) (*models.User, error)
 	UpdateUser(ctx context.Context, id string, req models.AdminUpdateUserRequest) (*models.User, error)
 	FindUserByEmail(ctx context.Context, email string) (*models.User, error)
+	FindUserByID(ctx context.Context, id string) (*models.User, error)
 }
 
 type staffService struct {
@@ -159,7 +160,21 @@ func (s *staffService) GetByID(ctx context.Context, id string) (*models.Staff, e
 		return nil, err
 	}
 	s.resolveRoom(ctx, st)
+	s.resolveLoginRole(ctx, st)
 	return st, nil
+}
+
+// resolveLoginRole fills the transient LoginRole from the linked user account
+// — user.role is the single source of truth for the system role; the staff
+// record never stores it (see the field comment in models.Staff). Best-effort:
+// a missing/deleted account just leaves the projection empty.
+func (s *staffService) resolveLoginRole(ctx context.Context, st *models.Staff) {
+	if st == nil || st.UserID == "" || s.accounts == nil {
+		return
+	}
+	if u, err := s.accounts.FindUserByID(ctx, st.UserID); err == nil && u != nil {
+		st.LoginRole = u.Role
+	}
 }
 
 // resolveRoom fills the transient RoomID/RoomName from the staff member's

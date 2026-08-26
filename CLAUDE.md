@@ -174,6 +174,16 @@ methods + `getAccessToken()`.
 ## Modules (current)
 Store (products/categories/cart/checkout/orders), Blog, Branches, Contact/**Enquiries** (admissions
 CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Area (4 games).
+- **Job title vs system role — single source of truth (delivered):** `staff.job_title` is a free-text
+  HR label; the RBAC role lives ONLY on the linked user account (`user.role`). Staff reads project it
+  live as `Staff.LoginRole` (`bson:"-"`, resolved in `staffService.GetByID` via `StaffAccounts.
+  FindUserByID` — same pattern as the RoomID/RoomName projection), so the staff profile ("System role
+  (login)" field + current-role line in the login section) and `/admin/users` can never disagree. The
+  staff edit form hydrates its login-role dropdown from this projection (the old hardcoded `"staff"`
+  default silently DOWNGRADED managers when "Update login role" was ticked and saved untouched).
+  `/admin/users` role edits now audit-log `role old → new` (+ `previous_role` in details) — the
+  pre-fix "Updated user X" entries made drift untraceable. Locked by `staff_login_role_test.go` +
+  bnrest `STAFF-TC-009` (role changed on either surface → staff GET reports it).
 - **Branch leadership is org-wide (delivered):** `Branch.Managers` assigns staff IDs as relationships
   with deliberately NO same-branch constraint — an area/regional manager employed at one branch leads
   others (the "Dolvy scenario"). The Leadership tab on `/admin/branches/[slug]` assigns from
