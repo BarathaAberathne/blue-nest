@@ -11,6 +11,7 @@ import {
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
+import { useAssignableRoles } from "@/lib/useAssignableRoles";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
 import StageBadge from "@/components/admin/ui/StageBadge";
 import StaffRoomAllocations from "@/components/admin/rooms/StaffRoomAllocations";
@@ -860,6 +861,7 @@ function QualificationsPanel({ quals, onSave }: { quals: string[]; onSave: (next
 // contract hours live in Contract's). Reuses the existing staff update + login
 // provisioning endpoint. ────────────────────────────────────────────────────
 function IdentityEditForm({ form, member, branches, setField }: { form: StaffInput; member: Staff; branches: Branch[]; setField: (p: Partial<StaffInput>) => void }) {
+  const loginRoles = useAssignableRoles(true);
   return (
     <div className="card mb-6 grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
       <Field label="Branch">
@@ -897,7 +899,7 @@ function IdentityEditForm({ form, member, branches, setField }: { form: StaffInp
             )}
             <Field label="Login role">
               <select value={form.login_role} onChange={(e) => setField({ login_role: e.target.value as StaffInput["login_role"] })} className="inp bg-white">
-                {["staff", "branch_manager", "deputy_manager", "regional_manager", "finance", "admissions", "procurement"].map((r) => <option key={r} value={r}>{r.replace("_", " ")}</option>)}
+                {loginRoles.map((r) => <option key={r.name} value={r.name}>{r.label}</option>)}
               </select>
             </Field>
             {!member.user_id && <Field label="Password (min 8 chars)"><input type="password" value={form.login_password ?? ""} onChange={(e) => setField({ login_password: e.target.value })} placeholder="Leave blank to link existing account" className="inp" /></Field>}

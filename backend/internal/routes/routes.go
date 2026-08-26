@@ -565,6 +565,10 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequirePermission(models.PermStaffManage))
 				adminStaffH := adminHandler.NewAdminStaffHandler(svc.Staff, svc.Audit)
+				// Minimal role list for the login-role pickers (staff form +
+				// users page) — full Permission Builder CRUD stays SuperAdminOnly.
+				staffRoleDirH := adminHandler.NewAdminRoleHandler(svc.Roles, svc.Audit)
+				r.Get("/admin/roles/assignable", staffRoleDirH.Assignable)
 				r.Get("/admin/staff", adminStaffH.List)
 				r.Get("/admin/staff/export", adminStaffH.Export)
 				r.Get("/admin/staff/{id}", adminStaffH.Get)

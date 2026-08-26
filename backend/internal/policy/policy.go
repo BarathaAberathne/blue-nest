@@ -20,13 +20,18 @@ func IsPlatformOperator(role models.Role) bool {
 // CanGrantRole reports whether callerRole may provision a staff login with
 // targetRole. staff.manage (held by branch_manager, deputy_manager, regional
 // manager and HR officer — see models/permission.go) is meant for day-to-day
-// HR record-keeping, not for handing out the two highest-privilege roles:
-// only an existing super_admin/platform_super_admin may grant super_admin or
-// platform_super_admin. Without this, any staff.manage holder could create a
-// new staff record with login_role=super_admin and mint themselves — or
-// anyone — unrestricted system access, a full privilege-escalation path.
+// HR record-keeping, not for handing out high-privilege roles: only an
+// existing super_admin/platform_super_admin may grant the org-wide tier
+// (super_admin, admin, director) or platform_super_admin. Without this, any
+// staff.manage holder could create a staff record with an elevated
+// login_role and mint themselves — or anyone — broad system access.
+// (admin/director joined the gated set with the custom-role wiring fix: they
+// carry near-full org-wide permissions, so deputy→admin was still an open
+// escalation path. platform_super_admin is FURTHER restricted by
+// authService.isAssignableRole to cross-org callers only.)
 func CanGrantRole(callerRole, targetRole models.Role) bool {
-	if targetRole == models.RoleSuperAdmin || targetRole == models.RolePlatformSuperAdmin {
+	switch targetRole {
+	case models.RoleSuperAdmin, models.RolePlatformSuperAdmin, models.RoleAdmin, models.RoleDirector:
 		return callerRole == models.RoleSuperAdmin || callerRole == models.RolePlatformSuperAdmin
 	}
 	return true

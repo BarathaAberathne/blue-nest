@@ -27,21 +27,10 @@ platform operator rather than needing a pre-seeded one. Reads the shared
 ```bnrest
 Setup
 Set platformSuffix = random()
-Post /api/v1/admin/users Into platformUser Using adminSession.accessToken
-{
-  "email": "qa-autotest-platformop-${platformSuffix}@bluenest.test",
-  "password": "PlatformOp2027!",
-  "first_name": "QA-AUTOTEST",
-  "last_name": "PlatformOp",
-  "role": "platform_super_admin"
-}
-AssertStatus platformUser 201
-
+# Uses the SEEDED platform operator — see USER-TC-009's note on the
+# tenant-pinned platform_super_admin assignment guard.
 Call ../../utils/auth/AUTH-UTIL-001-login.bnrest.md With Json Into platformSession
-{
-  "email": "qa-autotest-platformop-${platformSuffix}@bluenest.test",
-  "password": "PlatformOp2027!"
-}
+{ "email": "platform@bluenest.uk", "password": "${secret:QA_ADMIN_PASSWORD}" }
 
 Body
 When Post /api/v1/admin/organisations Into rejectedForRegularAdmin Using adminSession.accessToken
@@ -76,6 +65,4 @@ When Get /api/v1/admin/organisations Into list Using platformSession.accessToken
 Then AssertStatus list 200
 And AssertJson list "$.body.data[?(@.slug=='${created.body.data.slug}')].length()" == 1
 
-Teardown
-Delete /api/v1/admin/users/${platformUser.body.data.id} Using adminSession.accessToken
 ```

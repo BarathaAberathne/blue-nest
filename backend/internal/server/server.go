@@ -147,7 +147,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	})
 
 	// Services
-	authSvc := service.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays)
+	authSvc := service.NewAuthService(userRepo, roleRepo, cfg.JWT.Secret, cfg.JWT.ExpiryHours, cfg.JWT.RefreshExpiryDays)
 	// Room allocation is the single source of truth for staff/child rooms; the
 	// staff/child/attendance/kiosk services READ from these assignment repos to
 	// project the current room (no stored scalar, no sync).

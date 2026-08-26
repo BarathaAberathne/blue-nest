@@ -81,7 +81,9 @@ func (h *AdminUserHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	updated, err := h.auth.UpdateUser(r.Context(), id, req)
 	if err != nil {
-		response.InternalError(w, err.Error())
+		// Same mapping as Create: service errors here are validation failures
+		// ("invalid role", bad email) — a 500 misreported them as server faults.
+		response.BadRequest(w, err.Error())
 		return
 	}
 

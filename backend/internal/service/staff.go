@@ -62,6 +62,14 @@ func (s *staffService) provisionLogin(ctx context.Context, st *models.Staff, req
 	if role == "" {
 		role = models.RoleStaff
 	}
+	// NB the actor-aware escalation guard is policy.CanGrantRole, enforced in
+	// the staff HANDLER (a super_admin may legitimately grant high-tier roles
+	// via this form — TC-ROLE-002f — while a deputy may not — 002d/002e);
+	// role validity incl. custom roles is authService.isAssignableRole. Only
+	// the nonsensical case is rejected here.
+	if role == models.RoleCustomer {
+		return errors.New("a staff login cannot use the customer role")
+	}
 	scope := []string{st.BranchSlug}
 
 	// Already linked → keep role/scope in sync.
