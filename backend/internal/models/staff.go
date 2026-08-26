@@ -72,6 +72,13 @@ type Staff struct {
 	PhotoURL          string             `bson:"photo_url,omitempty"    json:"photo_url,omitempty"`
 	BranchSlug        string             `bson:"branch_slug"            json:"branch_slug"`
 	JobTitle          string             `bson:"job_title,omitempty"    json:"job_title,omitempty"`
+	// LoginRole is a computed projection of the linked user account's system
+	// role (never stored here — user.role is the single source of truth; this
+	// mirrors the RoomID/RoomName projection pattern). It exists so the staff
+	// profile and the users page can never show two different answers to
+	// "what is this person's role": job_title stays a free-text HR label,
+	// LoginRole is the live RBAC role. Empty when no login is linked.
+	LoginRole Role `bson:"-" json:"login_role,omitempty"`
 	StaffType         StaffType          `bson:"staff_type"             json:"staff_type"`
 	Status            StaffStatus        `bson:"status"                 json:"status"`
 	StartDate         string             `bson:"start_date,omitempty"   json:"start_date,omitempty"` // YYYY-MM-DD

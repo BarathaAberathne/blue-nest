@@ -61,7 +61,10 @@ const memberToInput = (m: Staff): StaffInput => ({
   contract_hours: m.contract_hours ?? 0, annual_leave_days: m.annual_leave_days ?? 0, sick_leave_days: m.sick_leave_days ?? 0, qualifications: m.qualifications ?? [],
   dbs_number: m.dbs_number ?? "", dbs_expiry: m.dbs_expiry ?? "", first_aid_expiry: m.first_aid_expiry ?? "",
   emergency_contacts: m.emergency_contacts ?? [],
-  enable_login: false, login_role: "staff", login_password: "",
+  // login_role hydrates from the LIVE linked-account role (projection), so
+  // ticking "Update login role" and saving without touching the dropdown is a
+  // no-op — the old hardcoded "staff" default silently DOWNGRADED managers.
+  enable_login: false, login_role: m.login_role ?? "staff", login_password: "",
 });
 
 export default function StaffDetailClient({ id }: { id: string }) {
@@ -477,9 +480,10 @@ export default function StaffDetailClient({ id }: { id: string }) {
                     {!basicEditing || !basicForm ? (
                       <dl className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
                         <ReadField icon={User} label="Name" value={fullName} />
-                        <ReadField icon={BadgeCheck} label="Job title" value={member.job_title} />
+                        <ReadField icon={BadgeCheck} label="Job title (HR)" value={member.job_title} />
                         <ReadField icon={Mail} label="Email" value={member.email} />
                         <ReadField icon={Phone} label="Phone number" value={member.phone} isPhone />
+                        <ReadField icon={User} label="System role (login)" value={member.login_role ? member.login_role.replace(/_/g, " ") : member.user_id ? "—" : "No login"} />
                       </dl>
                     ) : (
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -874,7 +878,9 @@ function IdentityEditForm({ form, member, branches, setField }: { form: StaffInp
 
       <div className="sm:col-span-2 rounded-lg border border-slate-100 bg-slate-50 p-3">
         {member.user_id ? (
-          <p className="text-sm text-slate-600">This person has a system login. Re-tick below to change their login role - it stays scoped to this branch.</p>
+          <p className="text-sm text-slate-600">
+            This person has a system login — current role: <strong>{member.login_role ? member.login_role.replace(/_/g, " ") : "unknown"}</strong>. Re-tick below to change it (stays scoped to this branch). The job title above is an HR label and does not grant access.
+          </p>
         ) : (
           <p className="text-sm text-slate-600">This person is an HR-only record with no login.</p>
         )}

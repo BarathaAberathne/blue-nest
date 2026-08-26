@@ -72,14 +72,25 @@ func (h *AdminUserHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Capture the previous role so the audit trail records role CHANGES with
+	// their before value — "Updated user X" alone made drift untraceable.
+	prevRole := ""
+	if prev, err := h.auth.FindUserByID(r.Context(), id); err == nil && prev != nil {
+		prevRole = string(prev.Role)
+	}
+
 	updated, err := h.auth.UpdateUser(r.Context(), id, req)
 	if err != nil {
 		response.InternalError(w, err.Error())
 		return
 	}
 
+	summary := "Updated user " + updated.Email
+	if prevRole != "" && prevRole != string(updated.Role) {
+		summary += " (role " + prevRole + " → " + string(updated.Role) + ")"
+	}
 	h.audit.Record(r, "update", "user", id,
-		"Updated user "+updated.Email, map[string]interface{}{"role": string(updated.Role)})
+		summary, map[string]interface{}{"role": string(updated.Role), "previous_role": prevRole})
 	response.OK(w, updated)
 }
 
