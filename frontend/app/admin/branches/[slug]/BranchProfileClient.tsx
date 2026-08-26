@@ -16,7 +16,7 @@ import StageBadge from "@/components/admin/ui/StageBadge";
 import ProgressBar from "@/components/admin/ui/ProgressBar";
 import Tabs from "@/components/ui/Tabs";
 import ReviewsTab from "./ReviewsTab";
-import type { Branch, BranchDashboard, BranchInput, Child, Room, Staff } from "@/types";
+import type { Branch, BranchDashboard, BranchInput, Child, LeadershipCandidate, Room, Staff } from "@/types";
 
 // branchBriefing turns the live dashboard into a short rule-based morning
 // briefing (the per-branch AI voice — same stub pattern as the MD Command
@@ -59,6 +59,10 @@ export default function BranchProfileClient({ slug }: { slug: string }) {
   const [branch, setBranch] = useState<Branch | null>(null);
   const [dash, setDash] = useState<BranchDashboard | null>(null);
   const [staff, setStaff] = useState<Staff[]>([]);
+  // Org-wide leadership directory — the Leadership tab assigns from THIS list
+  // (not the branch roster), so an area manager based at another branch is
+  // assignable here.
+  const [candidates, setCandidates] = useState<LeadershipCandidate[]>([]);
   const [children, setChildren] = useState<Child[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,10 +76,11 @@ export default function BranchProfileClient({ slug }: { slug: string }) {
   const load = async () => {
     const token = getAccessToken();
     if (!token) { setError("Not authenticated."); setLoading(false); return; }
-    const [b, d, s, c, r] = await Promise.allSettled([
+    const [b, d, s, c, r, lc] = await Promise.allSettled([
       api.adminGetBranch(token, slug), api.adminGetBranchDashboard(token, slug),
       api.adminGetStaff(token, { branch: slug }), api.adminGetChildren(token, { branch: slug }),
       api.adminGetRooms(token, slug),
+      api.adminGetLeadershipCandidates(token),
     ]);
     if (b.status === "fulfilled") { setBranch(b.value as Branch); setForm(toInput(b.value as Branch)); setManagers((b.value as Branch).managers ?? {}); }
     else { setError("Branch not found or outside your scope."); }
@@ -83,14 +88,35 @@ export default function BranchProfileClient({ slug }: { slug: string }) {
     if (s.status === "fulfilled") setStaff((s.value as Staff[]) ?? []);
     if (c.status === "fulfilled") setChildren((c.value as Child[]) ?? []);
     if (r.status === "fulfilled") setRooms((r.value as Room[]) ?? []);
+    if (lc.status === "fulfilled") setCandidates((lc.value as LeadershipCandidate[]) ?? []);
     setLoading(false);
   };
   useEffect(() => { void load(); }, [slug]);
 
+  // Assigned leadership can be based at ANY branch, so names resolve from the
+  // org-wide directory first, then the branch roster.
   const staffName = useMemo(() => {
     const m = new Map(staff.map((s) => [s.id, `${s.first_name} ${s.last_name}`]));
+    for (const c of candidates) if (!m.has(c.id)) m.set(c.id, `${c.first_name} ${c.last_name}`);
     return (id?: string) => (id ? m.get(id) ?? "—" : "Unassigned");
-  }, [staff]);
+  }, [staff, candidates]);
+
+  // Dropdown groups: this branch's people first, then each other branch.
+  const candidateGroups = useMemo(() => {
+    const bySlug = new Map<string, LeadershipCandidate[]>();
+    for (const c of candidates) {
+      const list = bySlug.get(c.branch_slug) ?? [];
+      list.push(c);
+      bySlug.set(c.branch_slug, list);
+    }
+    for (const list of bySlug.values()) list.sort((a, z) => `${a.first_name} ${a.last_name}`.localeCompare(`${z.first_name} ${z.last_name}`));
+    const others = [...bySlug.keys()].filter((s) => s !== slug).sort();
+    return { here: bySlug.get(slug) ?? [], others: others.map((s) => ({ slug: s, list: bySlug.get(s)! })) };
+  }, [candidates, slug]);
+
+  const prettySlug = (s: string) => s.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  const candidateLabel = (c: LeadershipCandidate) =>
+    `${c.first_name} ${c.last_name} · ${c.job_title || "No job title"}${c.status === "on_leave" ? " · on leave" : ""}`;
 
   const saveGeneral = async () => {
     const token = getAccessToken();
@@ -246,12 +272,12 @@ export default function BranchProfileClient({ slug }: { slug: string }) {
         <div className="card p-5">
           <h2 className="mb-1 text-sm font-bold uppercase tracking-widest text-slate-400">Leadership</h2>
           <p className="mb-4 text-sm text-slate-500">
-            Assign an existing <strong>staff member</strong> to each leadership role — a relationship, never a duplicate record. These are drawn from this branch&apos;s <strong>staff records</strong> (People → Staff), not user login accounts. Saving requires Super Admin.
+            Assign an existing <strong>staff member</strong> to each leadership role — a relationship, never a duplicate record. Leadership is <strong>organisation-wide</strong>: the list covers every branch&apos;s staff records (People → Staff), so an area or regional manager based at another branch is assignable here. Saving requires Super Admin.
           </p>
-          {staff.length === 0 ? (
+          {candidates.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-              No staff records at {branchShortName(branch)} yet.{" "}
-              <Link href={`/admin/staff?branch=${branch.slug}`} className="font-medium text-teal-600 hover:underline">Add a staff member</Link> first, then assign them here.
+              No staff records in your organisation yet.{" "}
+              <Link href="/admin/staff" className="font-medium text-teal-600 hover:underline">Add a staff member</Link> first, then assign them here.
             </div>
           ) : (
             <>
@@ -260,13 +286,22 @@ export default function BranchProfileClient({ slug }: { slug: string }) {
                   <Field key={key} label={label}>
                     <select value={managers?.[key] ?? ""} onChange={(e) => setManagers((m) => ({ ...m, [key]: e.target.value }))} className="inp bg-white">
                       <option value="">Unassigned</option>
-                      {staff.map((s) => <option key={s.id} value={s.id}>{s.first_name} {s.last_name} · {s.job_title}</option>)}
+                      {candidateGroups.here.length > 0 && (
+                        <optgroup label={branchShortName(branch)}>
+                          {candidateGroups.here.map((c) => <option key={c.id} value={c.id}>{candidateLabel(c)}</option>)}
+                        </optgroup>
+                      )}
+                      {candidateGroups.others.map((g) => (
+                        <optgroup key={g.slug} label={prettySlug(g.slug)}>
+                          {g.list.map((c) => <option key={c.id} value={c.id}>{candidateLabel(c)}</option>)}
+                        </optgroup>
+                      ))}
                     </select>
                   </Field>
                 ))}
               </div>
               <p className="mt-3 text-xs text-slate-400">
-                Can&apos;t find someone? They need a <Link href={`/admin/staff?branch=${branch.slug}`} className="text-teal-600 hover:underline">staff record at {branchShortName(branch)}</Link> — a user account alone isn&apos;t enough.
+                Can&apos;t find someone? They need a <Link href="/admin/staff" className="text-teal-600 hover:underline">staff record</Link> (any branch) — a user account alone isn&apos;t enough. Staff marked as left are not assignable.
               </p>
               <div className="mt-4 flex justify-end">
                 <button type="button" onClick={saveManagers} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"><Save className="h-4 w-4" />{saving ? "Saving…" : "Save leadership"}</button>

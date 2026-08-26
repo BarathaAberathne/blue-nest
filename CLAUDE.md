@@ -174,6 +174,16 @@ methods + `getAccessToken()`.
 ## Modules (current)
 Store (products/categories/cart/checkout/orders), Blog, Branches, Contact/**Enquiries** (admissions
 CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Area (4 games).
+- **Branch leadership is org-wide (delivered):** `Branch.Managers` assigns staff IDs as relationships
+  with deliberately NO same-branch constraint — an area/regional manager employed at one branch leads
+  others (the "Dolvy scenario"). The Leadership tab on `/admin/branches/[slug]` assigns from
+  `GET /admin/branches/leadership-candidates` (`branches.manage`, NOT `policy.EffectiveBranch`-scoped
+  — see the handler comment): a minimal org-wide projection (`models.LeadershipCandidate`: name/
+  job-title/home-branch/status, no sensitive staff fields) excluding left/archived staff, grouped by
+  branch in the dropdowns. `branchService.SetManagers` now VALIDATES every assigned id (incl.
+  key_persons) against the tenant's staff records via the narrow `StaffDirectory` interface — a
+  bogus/cross-org id is a 400 (it used to store any string unvalidated). Locked by
+  `branch_leadership_test.go` + bnrest `BRANCH-TC-005`.
 - **Store orders** (`models/order.go`, collection `orders`): lifecycle is **order-first** — the cart's
   in-app checkout form collects name/email/phone + optional nursery **branch** (default `n/a` = Not
   applicable) + optional child ref; `POST /checkout/session` creates a `pending`/`unpaid` order with

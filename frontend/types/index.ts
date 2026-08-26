@@ -1439,6 +1439,18 @@ export interface Staff {
   updated_at?: string;
 }
 
+// Org-wide minimal directory row for assigning branch leadership — leadership
+// is cross-branch (an area manager based at one branch leads others), so this
+// is NOT branch-scoped and carries no sensitive staff fields.
+export interface LeadershipCandidate {
+  id: string;
+  first_name: string;
+  last_name: string;
+  job_title?: string;
+  branch_slug: string;
+  status: StaffStatus;
+}
+
 export interface StaffInput {
   first_name: string;
   last_name: string;

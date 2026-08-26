@@ -16,9 +16,10 @@ tags:
 state (migrated 1:1 from legacy `BranchSuite` — genuinely
 environment-specific per `test-platform-architecture.md`'s "Exceptions",
 not yet physically moved to a separate `COL-CONFIG-001`). `BRANCH-TC-002/
-002b/004` are branch-independent generic behaviour (duplicate-slug
-rejection, create-an-active-branch) and don't depend on Harrow specifically
-— `BRANCH-TC-004` uses the new dynamic `BRANCH-FIX-001`/`002` fixtures
+002b/004/005` are branch-independent generic behaviour (duplicate-slug
+rejection, create-an-active-branch, cross-branch leadership assignment +
+manager-id validation) and don't depend on Harrow specifically —
+`BRANCH-TC-004/005` use the dynamic `BRANCH-FIX-001`/`002` fixtures
 rather than the real branch.
 
 ```bnrest
@@ -29,4 +30,5 @@ Call CatchError ../../cases/branch/BRANCH-TC-002b-repeated-duplicate-rejected.bn
 Call CatchError ../../cases/branch/BRANCH-TC-003-config-roundtrip.bnrest.md
 Call CatchError ../../cases/branch/BRANCH-TC-003b-invalid-opening-hours-gap-lock.bnrest.md
 Call CatchError ../../cases/branch/BRANCH-TC-004-create-active-branch.bnrest.md
+Call CatchError ../../cases/branch/BRANCH-TC-005-cross-branch-leadership.bnrest.md
 ```
