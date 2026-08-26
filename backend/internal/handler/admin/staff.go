@@ -22,6 +22,21 @@ func NewAdminStaffHandler(svc service.StaffService, audit service.AuditService) 
 	return &AdminStaffHandler{svc: svc, audit: audit}
 }
 
+// LeadershipCandidates serves the org-wide directory the branch-management
+// Leadership tab assigns from. Deliberately NOT run through
+// policy.EffectiveBranch: leadership roles (area/regional managers) are
+// cross-branch by nature, and the payload is a minimal name/title/branch
+// projection with none of the sensitive staff-record fields. The route sits
+// behind branches.manage.
+func (h *AdminStaffHandler) LeadershipCandidates(w http.ResponseWriter, r *http.Request) {
+	rows, err := h.svc.LeadershipCandidates(r.Context())
+	if err != nil {
+		response.InternalError(w, err.Error())
+		return
+	}
+	response.OK(w, rows)
+}
+
 func (h *AdminStaffHandler) List(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	role, scope := caller(r)

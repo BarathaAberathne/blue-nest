@@ -13,6 +13,9 @@ import (
 
 type StaffService interface {
 	List(ctx context.Context, f repository.StaffFilter) ([]models.Staff, error)
+	// LeadershipCandidates returns the org-wide minimal directory used by the
+	// branch-management Leadership tab (see models.LeadershipCandidate).
+	LeadershipCandidates(ctx context.Context) ([]models.LeadershipCandidate, error)
 	GetByID(ctx context.Context, id string) (*models.Staff, error)
 	Create(ctx context.Context, req models.StaffRequest) (*models.Staff, error)
 	Update(ctx context.Context, id string, req models.StaffRequest) (*models.Staff, error)
@@ -125,6 +128,31 @@ func (s *staffService) List(ctx context.Context, f repository.StaffFilter) ([]mo
 	}
 	return staff, nil
 }
+
+// LeadershipCandidates lists every currently-employed staff member of the org
+// (all branches) as a minimal directory row. Branch leadership is a
+// cross-branch relationship — an area/regional manager based at one branch
+// leads others — so unlike List this is NOT branch-scoped; the caller-facing
+// route gates it behind branches.manage and the projection exposes only
+// name/title/branch/status.
+func (s *staffService) LeadershipCandidates(ctx context.Context) ([]models.LeadershipCandidate, error) {
+	staff, err := s.repo.FindAll(ctx, repository.StaffFilter{})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]models.LeadershipCandidate, 0, len(staff))
+	for _, st := range staff {
+		if st.Status == models.StaffInactive { // left/archived — not assignable
+			continue
+		}
+		out = append(out, models.LeadershipCandidate{
+			ID: st.ID, FirstName: st.FirstName, LastName: st.LastName,
+			JobTitle: st.JobTitle, BranchSlug: st.BranchSlug, Status: st.Status,
+		})
+	}
+	return out, nil
+}
+
 func (s *staffService) GetByID(ctx context.Context, id string) (*models.Staff, error) {
 	st, err := s.repo.FindByID(ctx, id)
 	if err != nil {

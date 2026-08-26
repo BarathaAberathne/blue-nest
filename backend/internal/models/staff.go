@@ -161,3 +161,18 @@ type StaffStats struct {
 type StaffPhotoRequest struct {
 	PhotoURL string `json:"photo_url"`
 }
+
+// LeadershipCandidate is one row of the org-wide directory used to assign
+// branch leadership (BranchManagers). Leadership is cross-branch by design —
+// an area/regional manager is employed at one branch but leads several — so
+// this deliberately minimal projection (name, title, home branch, status)
+// carries none of the sensitive staff-record fields (contacts, DBS,
+// allowances, PIN), which stay behind the branch-scoped staff endpoints.
+type LeadershipCandidate struct {
+	ID         primitive.ObjectID `json:"id"`
+	FirstName  string             `json:"first_name"`
+	LastName   string             `json:"last_name"`
+	JobTitle   string             `json:"job_title,omitempty"`
+	BranchSlug string             `json:"branch_slug"`
+	Status     StaffStatus        `json:"status"`
+}

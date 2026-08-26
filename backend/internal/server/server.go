@@ -181,7 +181,7 @@ func New(cfg *config.Config, log *slog.Logger) (*Server, error) {
 	inductionSvc := service.NewInductionService(inductionRepo, consentRepo, childRepo, userRepo, notifSvc)
 	sendSvc := service.NewSendSupportService(sendSupportRepo, childRepo, staffRepo, roomRepo, childRoomAssignRepo)
 	revalNotifier := revalidate.NewNotifier(cfg.FrontendInternalURL, cfg.RevalidateSecret)
-	branchSvc := service.NewBranchService(branchRepo, counterRepo, revalNotifier)
+	branchSvc := service.NewBranchService(branchRepo, counterRepo, revalNotifier, staffRepo)
 	svc := routes.Services{
 		Organisations:     orgSvc,
 		DefaultOrgID:      defaultOrgID,

@@ -2831,6 +2831,21 @@ paths:
       responses:
         '200': { description: OK }
 
+  /admin/branches/leadership-candidates:
+    get:
+      tags: [Branches]
+      summary: Org-wide leadership directory (assignable staff, every branch)
+      description: >
+        Minimal projection (id, name, job title, home branch, status) of every
+        currently-employed staff member in the organisation, for the branch
+        Leadership tab. Deliberately NOT branch-scoped — leadership roles
+        (area/regional managers) are cross-branch by nature. Left/archived
+        staff are excluded. Requires branches.manage.
+      operationId: adminLeadershipCandidates
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
   /admin/branches/{slug}:
     get:
       tags: [Branches]
@@ -2886,7 +2901,12 @@ paths:
   /admin/branches/{slug}/managers:
     patch:
       tags: [Branches]
-      summary: Update the branch's assigned managers
+      summary: Update the branch's assigned leadership (staff-id relationships)
+      description: >
+        Every non-empty id must reference an existing staff record in the
+        organisation (validated; cross-org/bogus ids are rejected 400). There
+        is deliberately NO same-branch constraint — an area/regional manager
+        employed at one branch may lead another. Requires branch.admin.
       operationId: adminUpdateBranchManagers
       security: [{ BearerAuth: [] }]
       parameters: [{ name: slug, in: path, required: true, schema: { type: string } }]
@@ -2897,9 +2917,15 @@ paths:
             schema:
               type: object
               properties:
-                manager_ids: { type: array, items: { type: string } }
+                director: { type: string }
+                regional: { type: string }
+                branch_manager: { type: string }
+                deputy: { type: string }
+                assistant: { type: string }
+                key_persons: { type: array, items: { type: string } }
       responses:
         '200': { description: Updated }
+        '400': { description: An assigned id has no staff record behind it }
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Roles & permissions (users.manage / super admin)
