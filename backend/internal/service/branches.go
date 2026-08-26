@@ -24,17 +24,26 @@ type BranchService interface {
 	Archive(ctx context.Context, slug string, archived bool) error
 }
 
+// StaffDirectory is the subset of the staff repository the branch service
+// needs to validate leadership assignments (StaffRepository satisfies it).
+// FindByID runs through the tenant-scoped collection, so an id from another
+// organisation fails the lookup and is rejected like any unknown id.
+type StaffDirectory interface {
+	FindByID(ctx context.Context, id string) (*models.Staff, error)
+}
+
 type branchService struct {
 	repo     repository.BranchRepository
 	counters repository.CounterRepository
+	staff    StaffDirectory // nil-safe: skips leadership validation when absent
 	// reval busts the public site's Next.js route cache when branch data
 	// changes (status/coming-soon, contact details, archive) so admin edits
 	// show immediately instead of after the ISR window. Nil-safe.
 	reval revalidate.Notifier
 }
 
-func NewBranchService(repo repository.BranchRepository, counters repository.CounterRepository, reval revalidate.Notifier) BranchService {
-	return &branchService{repo: repo, counters: counters, reval: reval}
+func NewBranchService(repo repository.BranchRepository, counters repository.CounterRepository, reval revalidate.Notifier, staff StaffDirectory) BranchService {
+	return &branchService{repo: repo, counters: counters, reval: reval, staff: staff}
 }
 
 func (s *branchService) revalidateSite() {
@@ -137,7 +146,47 @@ func (s *branchService) Update(ctx context.Context, slug string, req models.Bran
 }
 
 func (s *branchService) SetManagers(ctx context.Context, slug string, m models.BranchManagers) (*models.Branch, error) {
+	if err := s.validateManagers(ctx, m); err != nil {
+		return nil, err
+	}
 	return s.repo.SetManagers(ctx, slug, m)
+}
+
+// validateManagers rejects a leadership assignment whose staff id does not
+// resolve to a real staff record in the caller's organisation. Leadership is
+// deliberately cross-branch (an area manager employed at one branch leads
+// others), so there is no same-branch constraint — only existence within the
+// tenant (the tenant-scoped FindByID makes a cross-org id fail the lookup).
+func (s *branchService) validateManagers(ctx context.Context, m models.BranchManagers) error {
+	if s.staff == nil {
+		return nil
+	}
+	check := func(role, id string) error {
+		if id == "" {
+			return nil
+		}
+		if _, err := s.staff.FindByID(ctx, id); err != nil {
+			return errors.New(role + ": no staff record found for the assigned id — leadership must reference an existing staff member")
+		}
+		return nil
+	}
+	for _, a := range []struct{ role, id string }{
+		{"director", m.Director},
+		{"regional manager", m.Regional},
+		{"branch manager", m.BranchManager},
+		{"deputy manager", m.Deputy},
+		{"assistant manager", m.Assistant},
+	} {
+		if err := check(a.role, a.id); err != nil {
+			return err
+		}
+	}
+	for _, id := range m.KeyPersons {
+		if err := check("key person", id); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *branchService) Archive(ctx context.Context, slug string, archived bool) error {

@@ -627,6 +627,12 @@ func Register(r *chi.Mux, svc Services, repos Repos, jwtSecret, stripeWebhookSec
 				adminBranchH := adminHandler.NewAdminBranchHandler(svc.Branches, svc.BranchOverview, svc.GBP, svc.Audit)
 				r.Get("/admin/branches", adminBranchH.List)
 				r.Get("/admin/branches/overview", adminBranchH.Overview)
+				// Org-wide leadership directory for the branch Leadership tab —
+				// lives under branches.manage (not staff.manage) because it
+				// exists solely to assign BranchManagers, and is intentionally
+				// unscoped by branch (see the handler comment).
+				branchStaffDirH := adminHandler.NewAdminStaffHandler(svc.Staff, svc.Audit)
+				r.Get("/admin/branches/leadership-candidates", branchStaffDirH.LeadershipCandidates)
 				r.Get("/admin/branches/{slug}", adminBranchH.Get)
 				r.Get("/admin/branches/{slug}/dashboard", adminBranchH.Dashboard)
 				r.Get("/admin/branches/{slug}/reviews", adminBranchH.Reviews)
