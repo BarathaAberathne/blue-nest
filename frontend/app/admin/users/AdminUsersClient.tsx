@@ -6,6 +6,7 @@ import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import RolesPanel from "./RolesPanel";
 import DashboardProfilesPanel from "./DashboardProfilesPanel";
+import { useAssignableRoles } from "@/lib/useAssignableRoles";
 import type { Branch, User, UserRole } from "@/types";
 
 type Role = UserRole;
@@ -46,14 +47,14 @@ type EditState = {
   branch_slugs: string[];
 };
 
-const ROLES: Role[] = [
-  "staff", "practitioner", "apprentice", "room_leader", "eyfs_lead", "senco",
-  "office_admin", "admissions_officer", "finance_officer", "hr_officer", "kitchen", "maintenance",
-  "deputy_manager", "branch_manager", "regional_manager", "director",
-  "external_inspector", "finance", "admissions", "procurement", "admin", "super_admin", "customer",
-];
+// Role options come live from GET /admin/roles/assignable (built-in + custom
+// Permission-Builder roles) via useAssignableRoles — never a hardcoded list,
+// so a new custom role is immediately assignable here. "customer" is appended
+// locally (parents aren't a role definition).
 
 export default function AdminUsersClient() {
+  const assignableRoles = useAssignableRoles();
+  const roleOptions = [...assignableRoles, { name: "customer" as Role, label: "customer", is_custom: false }];
   const [users, setUsers] = useState<User[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -231,9 +232,9 @@ export default function AdminUsersClient() {
           onChange={(e) => setForm((p) => ({ ...p, role: e.target.value as Role }))}
           className="rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white"
         >
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {r}
+          {roleOptions.map((r) => (
+            <option key={r.name} value={r.name}>
+              {r.label}
             </option>
           ))}
         </select>
@@ -325,9 +326,9 @@ export default function AdminUsersClient() {
                           }
                           className="rounded border border-gray-200 px-2 py-1 text-xs bg-white"
                         >
-                          {ROLES.map((r) => (
-                            <option key={r} value={r}>
-                              {r}
+                          {roleOptions.map((r) => (
+                            <option key={r.name} value={r.name}>
+                              {r.label}
                             </option>
                           ))}
                         </select>

@@ -72,6 +72,8 @@ jobs:
           DEFAULT_ADMIN_PASSWORD=changeme-min-8-chars
           DEFAULT_ADMIN_FIRST_NAME=Admin
           DEFAULT_ADMIN_LAST_NAME=User
+          DEFAULT_PLATFORM_EMAIL=platform@bluenest.uk
+          DEFAULT_PLATFORM_PASSWORD=changeme-min-8-chars
           EMAIL_DNS_CHECK=false
           FRONTEND_URL=http://localhost:3000
           EOF

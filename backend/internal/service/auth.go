@@ -166,6 +166,7 @@ type AuthService interface {
 	ListAllUsers(ctx context.Context) ([]models.User, error)
 	UpdateUser(ctx context.Context, id string, req models.AdminUpdateUserRequest) (*models.User, error)
 	FindUserByEmail(ctx context.Context, email string) (*models.User, error)
+	FindUserByID(ctx context.Context, id string) (*models.User, error)
 	ResetPassword(ctx context.Context, id, newPassword string) error
 	DeleteUser(ctx context.Context, id string) error
 	UpsertOAuthUser(ctx context.Context, email, firstName, lastName, provider, providerID string) (*models.AuthResponse, error)
@@ -179,6 +180,7 @@ type AuthService interface {
 
 type authService struct {
 	users              repository.UserRepository
+	roles              RoleDirectory // custom-role assignability lookup; nil-safe (built-ins only)
 	jwtSecret          string
 	jwtExpiry          time.Duration
 	refreshTokenExpiry time.Duration
@@ -201,8 +203,16 @@ type tvEntry struct {
 // session within a minute.
 const tvCacheTTL = 60 * time.Second
 
-func NewAuthService(users repository.UserRepository, jwtSecret string, expiry time.Duration, refreshExpiry time.Duration) AuthService {
-	return &authService{users: users, jwtSecret: jwtSecret, jwtExpiry: expiry, refreshTokenExpiry: refreshExpiry, tvCache: map[string]tvEntry{}}
+// RoleDirectory is the subset of the role repository the auth service needs to
+// validate role assignments: it resolves an org's role definitions (built-in
+// AND Permission-Builder custom roles) in the caller's tenant context.
+// RoleRepository satisfies it.
+type RoleDirectory interface {
+	FindByName(ctx context.Context, name string) (*models.RoleDefinition, error)
+}
+
+func NewAuthService(users repository.UserRepository, roles RoleDirectory, jwtSecret string, expiry time.Duration, refreshExpiry time.Duration) AuthService {
+	return &authService{users: users, roles: roles, jwtSecret: jwtSecret, jwtExpiry: expiry, refreshTokenExpiry: refreshExpiry, tvCache: map[string]tvEntry{}}
 }
 
 func (s *authService) TokenVersion(ctx context.Context, userID string) (int, error) {
@@ -327,8 +337,11 @@ func (s *authService) Login(ctx context.Context, req models.LoginRequest) (*mode
 func (s *authService) AdminLogin(ctx context.Context, req models.LoginRequest) (*models.AuthResponse, error) {
 	// Staff are allowed in: they sign into the same back-office shell (a
 	// restricted "Staff Portal" — see AdminLayout) as management. Only customers
-	// are excluded from the admin login.
-	return s.loginWithRoleGuard(ctx, req, models.ManagementRoles)
+	// are excluded from the admin login — mirroring middleware.ManagementOnly,
+	// so Permission-Builder CUSTOM roles are admitted too (they used to be
+	// rejected here by a literal built-in-role allowlist, which made custom
+	// roles unusable end-to-end even when assigned).
+	return s.loginWithRoleGuard(ctx, req, func(r models.Role) bool { return r != models.RoleCustomer })
 }
 
 func (s *authService) CreateAdminUser(ctx context.Context, req models.AdminCreateUserRequest) (*models.User, error) {
@@ -337,7 +350,7 @@ func (s *authService) CreateAdminUser(ctx context.Context, req models.AdminCreat
 		role = models.RoleCustomer
 	}
 
-	if !isAssignableRole(role) {
+	if !s.isAssignableRole(ctx, role) {
 		return nil, errors.New("invalid role")
 	}
 
@@ -385,7 +398,7 @@ func (s *authService) ListAdminUsers(ctx context.Context) ([]models.User, error)
 	return s.users.FindByRoles(ctx, []models.Role{models.RoleAdmin, models.RoleBranchManager})
 }
 
-func (s *authService) loginWithRoleGuard(ctx context.Context, req models.LoginRequest, allowedRoles []models.Role) (*models.AuthResponse, error) {
+func (s *authService) loginWithRoleGuard(ctx context.Context, req models.LoginRequest, roleAllowed func(models.Role) bool) (*models.AuthResponse, error) {
 	user, err := s.users.FindByEmail(ctx, normalizeEmail(req.Email))
 	if err != nil {
 		return nil, errors.New("invalid credentials")
@@ -395,20 +408,11 @@ func (s *authService) loginWithRoleGuard(ctx context.Context, req models.LoginRe
 		return nil, errors.New("invalid credentials")
 	}
 
-	if len(allowedRoles) > 0 {
-		allowed := false
-		for _, role := range allowedRoles {
-			if user.Role == role {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			// The credentials were valid, but this account isn't a management
-			// role. Make that explicit so staff/parents who land on the admin
-			// login don't think their password is wrong.
-			return nil, errors.New("this account doesn't have staff or admin access — parents sign in at the main login page")
-		}
+	if roleAllowed != nil && !roleAllowed(user.Role) {
+		// The credentials were valid, but this account isn't a management
+		// role. Make that explicit so staff/parents who land on the admin
+		// login don't think their password is wrong.
+		return nil, errors.New("this account doesn't have staff or admin access — parents sign in at the main login page")
 	}
 
 	access, refresh, err := s.issueTokenPair(*user)
@@ -476,7 +480,7 @@ func (s *authService) ListAllUsers(ctx context.Context) ([]models.User, error) {
 }
 
 func (s *authService) UpdateUser(ctx context.Context, id string, req models.AdminUpdateUserRequest) (*models.User, error) {
-	if req.Role != "" && !isAssignableRole(req.Role) {
+	if req.Role != "" && !s.isAssignableRole(ctx, req.Role) {
 		return nil, errors.New("invalid role")
 	}
 	if req.Password != "" {
@@ -525,13 +529,39 @@ func (s *authService) FindUserByEmail(ctx context.Context, email string) (*model
 	return s.users.FindByEmail(ctx, normalizeEmail(email))
 }
 
-// isAssignableRole reports whether a role can be assigned to a user account.
-func isAssignableRole(role models.Role) bool {
+// FindUserByID resolves one user account — used by the staff module to project
+// the linked login's system role onto staff reads (Staff.LoginRole), and by the
+// users admin handler to audit role changes with their before value.
+func (s *authService) FindUserByID(ctx context.Context, id string) (*models.User, error) {
+	return s.users.FindByID(ctx, id)
+}
+
+// isAssignableRole reports whether a role can be assigned to a user account:
+// customer, any built-in back-office role, or a role DEFINED for the caller's
+// org (the Permission Builder's custom roles — resolved through the
+// tenant-scoped roles collection, so one tenant's custom role never validates
+// in another). platform_super_admin — the only cross-tenant role — is
+// assignable ONLY from a cross-org context, i.e. by an existing platform
+// operator (middleware.Auth pins tenant callers to their org, so an org
+// super-admin minting a platform operator was a cross-org privilege
+// escalation). The first platform operator is provisioned by cmd/seedusers
+// (DEFAULT_PLATFORM_EMAIL/PASSWORD), not through these endpoints.
+func (s *authService) isAssignableRole(ctx context.Context, role models.Role) bool {
+	if role == models.RolePlatformSuperAdmin {
+		// Fail-closed: only the EXPLICIT cross-org marker (a platform
+		// operator's request context) qualifies — a bare context does not.
+		return repository.IsCrossOrg(ctx)
+	}
 	if role == models.RoleCustomer {
 		return true
 	}
 	for _, r := range models.ManagementRoles {
 		if r == role {
+			return true
+		}
+	}
+	if s.roles != nil {
+		if def, err := s.roles.FindByName(ctx, string(role)); err == nil && def != nil {
 			return true
 		}
 	}

@@ -31,6 +31,7 @@ type StaffAccounts interface {
 	CreateAdminUser(ctx context.Context, req models.AdminCreateUserRequest) (*models.User, error)
 	UpdateUser(ctx context.Context, id string, req models.AdminUpdateUserRequest) (*models.User, error)
 	FindUserByEmail(ctx context.Context, email string) (*models.User, error)
+	FindUserByID(ctx context.Context, id string) (*models.User, error)
 }
 
 type staffService struct {
@@ -60,6 +61,14 @@ func (s *staffService) provisionLogin(ctx context.Context, st *models.Staff, req
 	role := req.LoginRole
 	if role == "" {
 		role = models.RoleStaff
+	}
+	// NB the actor-aware escalation guard is policy.CanGrantRole, enforced in
+	// the staff HANDLER (a super_admin may legitimately grant high-tier roles
+	// via this form — TC-ROLE-002f — while a deputy may not — 002d/002e);
+	// role validity incl. custom roles is authService.isAssignableRole. Only
+	// the nonsensical case is rejected here.
+	if role == models.RoleCustomer {
+		return errors.New("a staff login cannot use the customer role")
 	}
 	scope := []string{st.BranchSlug}
 
@@ -159,7 +168,21 @@ func (s *staffService) GetByID(ctx context.Context, id string) (*models.Staff, e
 		return nil, err
 	}
 	s.resolveRoom(ctx, st)
+	s.resolveLoginRole(ctx, st)
 	return st, nil
+}
+
+// resolveLoginRole fills the transient LoginRole from the linked user account
+// — user.role is the single source of truth for the system role; the staff
+// record never stores it (see the field comment in models.Staff). Best-effort:
+// a missing/deleted account just leaves the projection empty.
+func (s *staffService) resolveLoginRole(ctx context.Context, st *models.Staff) {
+	if st == nil || st.UserID == "" || s.accounts == nil {
+		return
+	}
+	if u, err := s.accounts.FindUserByID(ctx, st.UserID); err == nil && u != nil {
+		st.LoginRole = u.Role
+	}
 }
 
 // resolveRoom fills the transient RoomID/RoomName from the staff member's

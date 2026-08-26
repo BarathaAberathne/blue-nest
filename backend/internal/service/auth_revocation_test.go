@@ -53,7 +53,7 @@ func newRevocationFixture(t *testing.T) (*authService, *fakeUserRepo, models.Use
 		Email: "revoke-test@bluenest.test",
 		Role:  models.RoleStaff,
 	}}
-	svc := NewAuthService(repo, "test-secret", time.Hour, 24*time.Hour).(*authService)
+	svc := NewAuthService(repo, nil, "test-secret", time.Hour, 24*time.Hour).(*authService)
 	return svc, repo, repo.user
 }
 

@@ -174,6 +174,38 @@ methods + `getAccessToken()`.
 ## Modules (current)
 Store (products/categories/cart/checkout/orders), Blog, Branches, Contact/**Enquiries** (admissions
 CRM at `/admin/inquiries`), **Users** (super-admin account mgmt), Online Play Area (4 games).
+- **Job title vs system role — single source of truth (delivered):** `staff.job_title` is a free-text
+  HR label; the RBAC role lives ONLY on the linked user account (`user.role`). Staff reads project it
+  live as `Staff.LoginRole` (`bson:"-"`, resolved in `staffService.GetByID` via `StaffAccounts.
+  FindUserByID` — same pattern as the RoomID/RoomName projection), so the staff profile ("System role
+  (login)" field + current-role line in the login section) and `/admin/users` can never disagree. The
+  staff edit form hydrates its login-role dropdown from this projection (the old hardcoded `"staff"`
+  default silently DOWNGRADED managers when "Update login role" was ticked and saved untouched).
+  `/admin/users` role edits now audit-log `role old → new` (+ `previous_role` in details) — the
+  pre-fix "Updated user X" entries made drift untraceable. Locked by `staff_login_role_test.go` +
+  bnrest `STAFF-TC-009` (role changed on either surface → staff GET reports it).
+- **Custom roles are wired end-to-end (delivered — the "Mahaveer escalation" fix):** a
+  Permission-Builder custom role used to be unusable (rejected by `isAssignableRole`'s built-in-only
+  list AND by AdminLogin's built-in allowlist), so granting one person blog access meant escalating
+  them to deputy_manager. Now: `authService.isAssignableRole(ctx, role)` also accepts any role
+  DEFINED for the caller's org (tenant-scoped `RoleDirectory.FindByName` — one tenant's custom role
+  never validates in another), and `platform_super_admin` ONLY from an explicit cross-org context
+  (`repository.IsCrossOrg`, fail-closed — an org super-admin could previously mint the cross-tenant
+  operator role; the FIRST platform operator comes from `cmd/seedusers` `DEFAULT_PLATFORM_EMAIL/
+  PASSWORD`, seeded in dev+CI as platform@bluenest.uk); `AdminLogin` admits any non-customer role
+  (mirroring `middleware.ManagementOnly` + `lib/auth.ts isManagementRole`); the staff form's
+  escalation guard remains the actor-aware `policy.CanGrantRole` (handler-level), now gating the
+  full org-wide tier — super_admin/admin/director + platform — behind super-admin callers (legacy
+  `TC-ROLE-002d/e/f` still hold: a super_admin's legitimate grants work, a deputy's escalation
+  doesn't). **Every role picker** (users page,
+  staff create + detail login sections) renders from `GET /admin/roles/assignable`
+  (`staff.manage`; minimal `{name,label,is_custom}`, platform never served) via
+  `lib/useAssignableRoles.ts` (`useAssignableRoles(forStaffLogin)` filters the admin tier for staff
+  forms) — no hardcoded role arrays, so a new custom role appears everywhere immediately. NB
+  `roleService.CreateCustom` slugifies names ('-'→'_'). `/admin/users` update errors are now 400s
+  (validation), not 500s. Locked by `role_assignability_test.go` + bnrest `ROLE-TC-011` (full
+  journey: create custom role → assign via staff form → admin login → blog 200/children 403 →
+  escalation guards).
 - **Branch leadership is org-wide (delivered):** `Branch.Managers` assigns staff IDs as relationships
   with deliberately NO same-branch constraint — an area/regional manager employed at one branch leads
   others (the "Dolvy scenario"). The Leadership tab on `/admin/branches/[slug]` assigns from

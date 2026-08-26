@@ -42,6 +42,17 @@ func WithCrossOrg(ctx context.Context) context.Context {
 	return context.WithValue(ctx, orgContextKey, crossOrgMarker)
 }
 
+// IsCrossOrg reports whether ctx carries the EXPLICIT cross-org marker set by
+// WithCrossOrg (i.e. the caller is the platform operator). Unlike
+// OrgFromContext — where an absent/empty org also reads as "no tenant filter"
+// — this is fail-closed: a bare context is NOT cross-org. Use it for
+// privilege checks (e.g. only a platform operator may assign
+// platform_super_admin), never for query scoping.
+func IsCrossOrg(ctx context.Context) bool {
+	v, _ := ctx.Value(orgContextKey).(string)
+	return v == crossOrgMarker
+}
+
 // OrgFromContext returns (orgID, crossOrg). crossOrg true (or an empty orgID)
 // means no tenant filter is applied.
 func OrgFromContext(ctx context.Context) (string, bool) {

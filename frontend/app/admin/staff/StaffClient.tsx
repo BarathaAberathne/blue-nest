@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 import { branchShortName } from "@/lib/branch";
 import { useAutoRefresh } from "@/lib/useAutoRefresh";
+import { useAssignableRoles } from "@/lib/useAssignableRoles";
 import ExportButton from "@/components/admin/ExportButton";
 import StatCard from "@/components/admin/ui/StatCard";
 import StageBadge from "@/components/admin/ui/StageBadge";
@@ -21,10 +22,12 @@ const emptyForm: StaffInput = {
   enable_login: false, login_role: "staff", login_password: "",
 };
 
-// Roles that can be granted to a person's optional system login.
-const LOGIN_ROLES = ["staff", "branch_manager", "deputy_manager", "regional_manager", "finance", "admissions", "procurement"] as const;
+// Login-role options come live from GET /admin/roles/assignable via
+// useAssignableRoles(true) — built-in + custom roles, minus the admin tier
+// (super_admin/admin/director stay Users-page-only; backend enforces the same).
 
 export default function StaffClient() {
+  const loginRoles = useAssignableRoles(true);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [stats, setStats] = useState<StaffStats | null>(null);
@@ -295,7 +298,7 @@ export default function StaffClient() {
                   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <Field label="Login role">
                       <select value={form.login_role} onChange={(e) => setField({ login_role: e.target.value as StaffInput["login_role"] })} className="inp bg-white">
-                        {LOGIN_ROLES.map((r) => <option key={r} value={r}>{r.replace("_", " ")}</option>)}
+                        {loginRoles.map((r) => <option key={r.name} value={r.name}>{r.label}</option>)}
                       </select>
                     </Field>
                     <Field label="Password (min 8 chars)"><input type="password" value={form.login_password ?? ""} onChange={(e) => setField({ login_password: e.target.value })} placeholder="Leave blank to link an existing account" className="inp" /></Field>

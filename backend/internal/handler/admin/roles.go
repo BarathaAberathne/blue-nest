@@ -34,6 +34,33 @@ func (h *AdminRoleHandler) List(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Assignable returns the minimal {name,label,is_custom} list of roles a login
+// can be given — the SINGLE source every role picker (users page, staff-form
+// login section) renders from, so custom Permission-Builder roles appear
+// everywhere without hardcoded lists. platform_super_admin (cross-tenant) is
+// never offered. Sits under staff.manage (not SuperAdminOnly) because the
+// staff form's login section needs it; it leaks no permission payloads.
+func (h *AdminRoleHandler) Assignable(w http.ResponseWriter, r *http.Request) {
+	roles, err := h.svc.List(r.Context())
+	if err != nil {
+		response.InternalError(w, "failed to load roles")
+		return
+	}
+	type row struct {
+		Name     models.Role `json:"name"`
+		Label    string      `json:"label"`
+		IsCustom bool        `json:"is_custom"`
+	}
+	out := make([]row, 0, len(roles))
+	for _, rd := range roles {
+		if rd.Name == models.RolePlatformSuperAdmin {
+			continue
+		}
+		out = append(out, row{Name: rd.Name, Label: rd.Label, IsCustom: rd.IsCustom})
+	}
+	response.OK(w, out)
+}
+
 func (h *AdminRoleHandler) UpdatePermissions(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	var body struct {

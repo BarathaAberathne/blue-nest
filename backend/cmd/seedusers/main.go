@@ -83,6 +83,12 @@ func main() {
 		// DEFAULT_DIRECTOR_EMAIL/PASSWORD are set (otherwise assign the role on
 		// /admin/users). Director lands on /admin/command-center after login.
 		{envPrefix: "DEFAULT_DIRECTOR", role: models.RoleDirector, defaultFN: "Managing", defaultLN: "Director"},
+		// Optional SaaS platform operator (the ONLY cross-tenant role). Seeded
+		// only when DEFAULT_PLATFORM_EMAIL/PASSWORD are set. This is the
+		// bootstrap path for platform accounts: the user endpoints refuse to
+		// assign platform_super_admin from a tenant-pinned context (see
+		// authService.isAssignableRole), so the first operator comes from here.
+		{envPrefix: "DEFAULT_PLATFORM", role: models.RolePlatformSuperAdmin, defaultFN: "Platform", defaultLN: "Operator"},
 		// Optional branch-scoped demo accounts for the Branch Management System.
 		// Regional Manager sees Northwood + Pinner + Pinner Green (not Harrow);
 		// Branch Manager sees Harrow only. Seeded only when their env vars are set.

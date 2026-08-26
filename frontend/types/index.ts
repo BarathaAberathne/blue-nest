@@ -342,6 +342,15 @@ export interface PermissionInfo {
   category: string;
 }
 
+// One row of GET /admin/roles/assignable — the minimal list every role picker
+// (users page, staff-form login section) renders from. Includes custom roles;
+// platform_super_admin is never served.
+export interface AssignableRole {
+  name: UserRole;
+  label: string;
+  is_custom: boolean;
+}
+
 export interface RolesResponse {
   roles: RoleDefinition[];
   catalogue: PermissionInfo[];
@@ -1434,6 +1443,9 @@ export interface Staff {
   first_aid_expiry?: string;
   emergency_contacts?: EmergencyContact[];
   user_id?: string; // linked login account (empty = HR-only, no login)
+  // Computed projection of the linked account's system role (user.role is the
+  // single source of truth — never stored on staff). Empty = no login linked.
+  login_role?: UserRole;
   has_pin?: boolean; // whether a kiosk clock-in PIN is set
   created_at?: string;
   updated_at?: string;
