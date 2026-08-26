@@ -26,18 +26,12 @@ fixture (see `SUI-USERACCOUNT-001`).
 ```bnrest
 Setup
 Set opSuffix = random()
-Post /api/v1/admin/users Into platformUser Using adminSession.accessToken
-{
-  "email": "qa-autotest-op7-${opSuffix}@bluenest.test",
-  "password": "PlatformOp2027!",
-  "first_name": "QA-AUTOTEST",
-  "last_name": "PlatformOp7",
-  "role": "platform_super_admin"
-}
-AssertStatus platformUser 201
-
+# platform_super_admin is no longer assignable from a tenant-pinned context
+# (an org super-admin minting the cross-tenant role was an escalation hole),
+# so this uses the SEEDED platform operator (cmd/seedusers DEFAULT_PLATFORM_*,
+# whose password matches the admin seed in dev/CI).
 Call ../../utils/auth/AUTH-UTIL-001-login.bnrest.md With Json Into platformSession
-{ "email": "qa-autotest-op7-${opSuffix}@bluenest.test", "password": "PlatformOp2027!" }
+{ "email": "platform@bluenest.uk", "password": "${secret:QA_ADMIN_PASSWORD}" }
 
 Body
 When Post /api/v1/admin/organisations Into created Using platformSession.accessToken
@@ -58,5 +52,4 @@ Then AssertStatus roles 200
 And AssertJson roles "$.body.data.roles[?(@.name=='branch_manager')]" == 1
 And AssertJson roles "$.body.data.roles[?(@.name=='super_admin')]" == 1
 
-Teardown
-Delete /api/v1/admin/users/${platformUser.body.data.id} Using adminSession.accessToken
+```

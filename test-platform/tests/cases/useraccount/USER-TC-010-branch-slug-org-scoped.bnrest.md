@@ -30,18 +30,10 @@ with a friendly message. Reads the shared `adminSession` fixture
 ```bnrest
 Setup
 Set slugSuffix = random()
-Post /api/v1/admin/users Into platformUser10 Using adminSession.accessToken
-{
-  "email": "qa-autotest-op10-${slugSuffix}@bluenest.test",
-  "password": "PlatformOp2027!",
-  "first_name": "QA-AUTOTEST",
-  "last_name": "PlatformOp10",
-  "role": "platform_super_admin"
-}
-AssertStatus platformUser10 201
-
+# Uses the SEEDED platform operator — see USER-TC-009's note on the
+# tenant-pinned platform_super_admin assignment guard.
 Call ../../utils/auth/AUTH-UTIL-001-login.bnrest.md With Json Into platformSession10
-{ "email": "qa-autotest-op10-${slugSuffix}@bluenest.test", "password": "PlatformOp2027!" }
+{ "email": "platform@bluenest.uk", "password": "${secret:QA_ADMIN_PASSWORD}" }
 
 Post /api/v1/admin/organisations Into org10 Using platformSession10.accessToken
 {
@@ -75,5 +67,4 @@ And Assert dupe.body.error == "a branch with that slug already exists"
 Teardown
 Post /api/v1/admin/branches/qa-autotest-shared-${slugSuffix}/archive Using adminSession.accessToken
 Post /api/v1/admin/branches/qa-autotest-shared-${slugSuffix}/archive Using orgAdmin10.accessToken
-Delete /api/v1/admin/users/${platformUser10.body.data.id} Using adminSession.accessToken
 ```

@@ -2831,6 +2831,21 @@ paths:
       responses:
         '200': { description: OK }
 
+  /admin/roles/assignable:
+    get:
+      tags: [Users & Roles]
+      summary: Minimal assignable-role list for role pickers
+      description: >
+        {name,label,is_custom} rows for every role a login can be given —
+        built-in AND Permission-Builder custom roles for the caller's org.
+        platform_super_admin (cross-tenant) is never served. Requires
+        staff.manage (the staff form's login section renders from it); the
+        full Permission Builder CRUD stays super-admin-only.
+      operationId: adminAssignableRoles
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200': { description: OK }
+
   /admin/branches/leadership-candidates:
     get:
       tags: [Branches]

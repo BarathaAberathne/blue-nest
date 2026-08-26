@@ -342,6 +342,15 @@ export interface PermissionInfo {
   category: string;
 }
 
+// One row of GET /admin/roles/assignable — the minimal list every role picker
+// (users page, staff-form login section) renders from. Includes custom roles;
+// platform_super_admin is never served.
+export interface AssignableRole {
+  name: UserRole;
+  label: string;
+  is_custom: boolean;
+}
+
 export interface RolesResponse {
   roles: RoleDefinition[];
   catalogue: PermissionInfo[];
