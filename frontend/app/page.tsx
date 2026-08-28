@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { faqPageJsonLd, generalFaqs } from "@/lib/faq";
 import PublicLayout from "@/components/layout/PublicLayout";
 import HeroSection          from "@/components/sections/HeroSection";
+import AldershotBanner      from "@/components/sections/AldershotBanner";
 import QuickInfoStrip       from "@/components/sections/QuickInfoStrip";
 import FeatureCardsSection  from "@/components/sections/FeatureCardsSection";
 import AboutSection         from "@/components/sections/AboutSection";
@@ -38,6 +39,7 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <HeroSection />
+      <AldershotBanner />
       <QuickInfoStrip />
       <FeatureCardsSection />
       <AboutSection />
