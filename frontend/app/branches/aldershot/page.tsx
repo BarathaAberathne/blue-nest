@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     description:
       "Aldershot's first dedicated Montessori day nursery, for ages 3 months to 5 years. Forest school, 15/30 hours funded childcare, open 7:30am-6:00pm. Book a visit.",
     url: "/branches/aldershot",
-    images: [{ url: "/home/branches/aldershot/aldershot-hero.jpg", width: 2000, height: 921, alt: "Blue Nest Montessori Aldershot nursery entrance" }],
+    images: [{ url: "/home/branches/aldershot/aldershot-hero.webp", width: 2000, height: 1500, alt: "The Blue Nest Montessori Aldershot nursery building and artificial-lawn garden" }],
     type: "website",
   },
 };
@@ -91,44 +91,68 @@ const features: Feature[] = [
   },
 ];
 
-// ── Gallery (example imagery until the Aldershot photo set is ready) ──────────
+// ── Gallery — the real Aldershot photo set ────────────────────────────────────
 
 const gallery = [
   {
-    src: "/home/branches/aldershot/aldershot-hero.jpg",
-    alt: "The entrance to Blue Nest Montessori Aldershot on Belle Vue Road",
+    src: "/home/branches/aldershot/aldershot-welcome-board.webp",
+    alt: "The Aldershot welcome board greeting families in many languages, from Fàilte to Witaj",
     rotate: -2,
-    caption: "Our Belle Vue Road entrance",
-  },
-  {
-    src: "/home/branches/aldershot/aldershot-sign.jpg",
-    alt: "The Blue Nest Montessori School Aldershot branch sign with our website and phone number",
-    rotate: 2,
-    caption: "Look out for our sign",
-  },
-  {
-    src: "/home/branches/aldershot/aldershot-welcome-board.jpg",
-    alt: "The Aldershot welcome board greeting families in many languages, from Hola to Vanakkam",
-    rotate: -1,
     caption: "Welcome, in every language",
   },
   {
-    src: "/home/forest-school-2.jpg",
-    alt: "Forest school at Blue Nest Montessori",
+    src: "/home/branches/aldershot/aldershot-gallery-02.webp",
+    alt: "The outdoor playground at Blue Nest Montessori Aldershot with swings and a slide under mature trees",
     rotate: 2,
-    caption: "Forest School",
+    caption: "Our shaded playground",
   },
   {
-    src: "/home/outdoor-learning-and-play-area.jpg",
-    alt: "Outdoor learning area at Blue Nest Montessori",
+    src: "/home/branches/aldershot/aldershot-gallery-03.webp",
+    alt: "The wooden climbing frame and slide on the bark-chip play surface at Blue Nest Montessori Aldershot",
+    rotate: -1,
+    caption: "Climb, balance and slide",
+  },
+  {
+    src: "/home/branches/aldershot/aldershot-gallery-04.webp",
+    alt: "The baby room play area with a mirrored arch, dinosaur play mat and treasure baskets at Blue Nest Montessori Aldershot",
+    rotate: 2,
+    caption: "Our baby room",
+  },
+  {
+    src: "/home/branches/aldershot/aldershot-gallery-05.webp",
+    alt: "A cosy reading den with soft toys, board books and a play mat at Blue Nest Montessori Aldershot",
     rotate: -2,
-    caption: "Outdoor classroom",
+    caption: "The cosy corner",
   },
   {
-    src: "/home/DSC_0177.jpg",
-    alt: "Montessori classroom activity",
+    src: "/home/branches/aldershot/aldershot-gallery-06.webp",
+    alt: "A wooden sensory tent with liquid floor tiles and discovery bottles at Blue Nest Montessori Aldershot",
     rotate: 1,
-    caption: "Learning through play",
+    caption: "Sensory discovery",
+  },
+  {
+    src: "/home/branches/aldershot/aldershot-gallery-07.webp",
+    alt: "The book corner and wooden calendar board at Blue Nest Montessori Aldershot",
+    rotate: -1,
+    caption: "Stories every day",
+  },
+  {
+    src: "/home/branches/aldershot/aldershot-gallery-08.webp",
+    alt: "A toddler activity room with a half-moon table and Montessori practical-life shelves at Blue Nest Montessori Aldershot",
+    rotate: 2,
+    caption: "Room to grow",
+  },
+  {
+    src: "/home/branches/aldershot/aldershot-gallery-09.webp",
+    alt: "The bright preschool room with floor-to-ceiling garden windows at Blue Nest Montessori Aldershot",
+    rotate: -2,
+    caption: "Light-filled classrooms",
+  },
+  {
+    src: "/home/branches/aldershot/aldershot-gallery-01.webp",
+    alt: "The Blue Nest Montessori Aldershot sign beneath the maple trees on Belle Vue Road",
+    rotate: 1,
+    caption: "Look out for our sign",
   },
 ];
 
@@ -146,7 +170,7 @@ export default async function AldershotBranchPage() {
     "@id": "https://bluenest.uk/branches/aldershot#preschool",
     name: "Blue Nest Montessori School — Aldershot",
     url: "https://bluenest.uk/branches/aldershot",
-    image: "https://bluenest.uk/home/branches/aldershot/aldershot-hero.jpg",
+    image: "https://bluenest.uk/home/branches/aldershot/aldershot-hero.webp",
     telephone: "+44 " + c.phone.replace(/^0/, "").replace(/\s+/g, " "),
     email: c.email,
     priceRange: "££",
@@ -189,8 +213,8 @@ export default async function AldershotBranchPage() {
         location="Aldershot, Hampshire"
         heading="Montessori Nursery in Aldershot"
         description="Aldershot's first dedicated Montessori day nursery on Belle Vue Road, for children aged 3 months to 5 years. Authentic Montessori learning, forest school sessions and 15/30 hours funded childcare, open Monday–Friday 7:30am–6:00pm."
-        image="/home/branches/aldershot/aldershot-hero.jpg"
-        imageAlt="The tree-lined entrance to Blue Nest Montessori Aldershot"
+        image="/home/branches/aldershot/aldershot-hero.webp"
+        imageAlt="The Blue Nest Montessori Aldershot nursery building and its artificial-lawn garden"
         primaryCta={{ label: "Book a Visit", href: "/contact?enquiry=book-visit&branch=aldershot", variant: "rose" }}
         secondaryCta={{ label: "Contact Us", href: "#visit", variant: "mint" }}
         trustLine={"Ofsted Registered\u2002\u00b7\u20025-Star Food Hygiene Rated\u2002\u00b7\u2002Mon\u2013Fri 7:30 am \u2013 6:00 pm"}
@@ -210,7 +234,7 @@ export default async function AldershotBranchPage() {
             <Reveal>
               <div className="mx-auto w-full max-w-[420px]">
                 <StickerCard
-                  src="/home/branches/aldershot/aldershot-sign.jpg"
+                  src="/home/branches/aldershot/aldershot-sign.webp"
                   alt="The Blue Nest Montessori School Aldershot branch sign on Belle Vue Road"
                   rotate={-3}
                   sizes="(max-width: 1024px) 80vw, 38vw"
