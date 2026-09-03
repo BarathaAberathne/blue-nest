@@ -65,7 +65,7 @@ const branchesFallback = [
     name:        "Aldershot",
     href:        "/branches/aldershot",
     images: [
-      { src: "/home/branches/aldershot/aldershot-hero.webp",       alt: "The Blue Nest Montessori Aldershot nursery building and artificial-lawn garden" },
+      { src: "/home/branches/aldershot/aldershot-hero.webp",       alt: "Children playing outside the Blue Nest Montessori Aldershot nursery" },
       { src: "/home/branches/aldershot/aldershot-gallery-02.webp", alt: "The outdoor playground at Blue Nest Montessori Aldershot with swings under mature trees" },
       { src: "/home/branches/aldershot/aldershot-gallery-09.webp", alt: "The bright preschool room with floor-to-ceiling garden windows at Blue Nest Montessori Aldershot" },
       { src: "/home/branches/aldershot/aldershot-gallery-05.webp", alt: "A cosy reading den with soft toys and board books at Blue Nest Montessori Aldershot" },
