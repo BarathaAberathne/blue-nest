@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     description:
       "Aldershot's first dedicated Montessori day nursery, for ages 3 months to 5 years. Forest school, 15/30 hours funded childcare, open 7:30am-6:00pm. Book a visit.",
     url: "/branches/aldershot",
-    images: [{ url: "/home/branches/aldershot/aldershot-hero.webp", width: 2000, height: 1500, alt: "The Blue Nest Montessori Aldershot nursery building and artificial-lawn garden" }],
+    images: [{ url: "/home/branches/aldershot/aldershot-hero.webp", width: 1448, height: 1086, alt: "Children playing outside the Blue Nest Montessori Aldershot nursery" }],
     type: "website",
   },
 };
@@ -214,7 +214,7 @@ export default async function AldershotBranchPage() {
         heading="Montessori Nursery in Aldershot"
         description="Aldershot's first dedicated Montessori day nursery on Belle Vue Road, for children aged 3 months to 5 years. Authentic Montessori learning, forest school sessions and 15/30 hours funded childcare, open Monday–Friday 7:30am–6:00pm."
         image="/home/branches/aldershot/aldershot-hero.webp"
-        imageAlt="The Blue Nest Montessori Aldershot nursery building and its artificial-lawn garden"
+        imageAlt="Children playing in the bark-chip play area outside the Blue Nest Montessori Aldershot nursery"
         primaryCta={{ label: "Book a Visit", href: "/contact?enquiry=book-visit&branch=aldershot", variant: "rose" }}
         secondaryCta={{ label: "Contact Us", href: "#visit", variant: "mint" }}
         trustLine={"Ofsted Registered\u2002\u00b7\u20025-Star Food Hygiene Rated\u2002\u00b7\u2002Mon\u2013Fri 7:30 am \u2013 6:00 pm"}
