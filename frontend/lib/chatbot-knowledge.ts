@@ -52,11 +52,11 @@ Our mission is to nurture curious, independent, and confident children through a
 
 ## Opening Hours & Sessions
 
-- **Setting hours**: Monday to Friday, 7:30am – 6:30pm
+- **Setting hours**: Monday to Friday, 7:30am – 6:00pm
 - **Full-day session**: 8:00am – 6:00pm
 - **Morning session**: 8:00am – 1:00pm
 - **Afternoon session**: 1:00pm – 6:00pm
-- **Extended care**: Available from 7:30am and until 6:30pm
+- **Extended care**: Available from 7:30am and until 6:00pm
 - Closed on UK bank holidays and for two weeks at Christmas
 - Minimum booking: 2 days per week (recommended for consistency and settling)
 
@@ -118,7 +118,7 @@ Parents should check their eligibility at childcarechoices.gov.uk and obtain the
 - 3:00pm — Creative arts / group sensorial activity
 - 4:00pm — Story time and reflection circle
 - 5:00pm — Extended care / collection
-- 6:30pm — Setting closes
+- 6:00pm — Setting closes
 
 ## Food & Nutrition
 

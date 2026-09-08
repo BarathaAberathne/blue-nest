@@ -29,19 +29,22 @@ export const metadata: Metadata = {
   alternates: { canonical: "/branches/aldershot" },
   // The layout's title template appends "| Blue Nest Montessori" — don't
   // repeat it here (it rendered doubled).
-  title: "Montessori Nursery in Aldershot — Ages 3 months to 5 years",
+  title: "Montessori Nursery in Aldershot, GU12 — Belle Vue Road",
   description:
-    "Montessori day nursery on Belle Vue Road, Aldershot (GU12) for ages 3 months\u20135 years. Forest school, 15/30 hours funded childcare, halal food. Book a visit.",
+    "Montessori day nursery on Belle Vue Road, Aldershot GU12 4RZ, on the same road as Alderwood Infant School. Ages 3 months to 5 years, 7:30am-6pm, forest school, funded hours. Book a visit.",
   keywords: [
     "montessori nursery aldershot", "nursery in aldershot", "aldershot nursery", "day nursery aldershot",
     "preschool aldershot", "baby nursery aldershot", "forest school aldershot", "funded childcare aldershot",
     "15 hours funded childcare", "30 hours funded childcare", "nursery near aldershot station",
     "childcare for military families aldershot", "halal food nursery", "nursery ash vale", "nursery farnborough",
+    "nursery near alderwood infant school", "nursery belle vue road aldershot", "nursery gu12",
+    "preschool near alderwood school", "school readiness nursery aldershot", "baby room aldershot",
+    "nursery holidays aldershot",
   ],
   openGraph: {
     title: "Montessori Nursery in Aldershot | Blue Nest Montessori",
     description:
-      "Aldershot's first dedicated Montessori day nursery, for ages 3 months to 5 years. Forest school, 15/30 hours funded childcare, open 7:30am-6:00pm. Book a visit.",
+      "Montessori day nursery on Belle Vue Road, Aldershot GU12 4RZ, on the same road as Alderwood Infant School. Ages 3 months to 5 years, 7:30am-6:00pm, forest school, funded hours. Book a visit.",
     url: "/branches/aldershot",
     images: [{ url: "/home/branches/aldershot/aldershot-hero.webp", width: 1448, height: 1086, alt: "Children playing outside the Blue Nest Montessori Aldershot nursery" }],
     type: "website",
@@ -386,6 +389,62 @@ export default async function AldershotBranchPage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════
+          2b — THE NURSERY ON BELLE VUE ROAD
+      ══════════════════════════════════════════════════════ */}
+      <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <Doodle kind="leaf" className="right-[3%] top-10 h-9 w-9 opacity-40 hidden sm:block" />
+
+        <div className="container-site">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
+
+            {/* Text — left */}
+            <Reveal>
+              <span className="section-kicker">Our neighbourhood</span>
+              <h2 className="section-title mt-4" style={{ color: "#cf7d9c" }}>
+                The Nursery on Belle Vue Road
+              </h2>
+              <div className="body-text mt-5 space-y-5">
+                <p>
+                  Blue Nest sits on Belle Vue Road in GU12, the same road and the same postcode as
+                  Alderwood Infant School. For families already walking to the school gate each
+                  morning with an older child, that makes the nursery run genuinely simple: one
+                  road, one journey, one drop-off in the same few minutes.
+                </p>
+                <p>
+                  Alderwood is an all-through school of around 1,500 pupils, with the infant site
+                  here on Belle Vue Road for ages 4 to 7, the junior site a short distance away on
+                  Haig Road in GU12 4PP, and the senior site on Tongham Road. Many Aldershot
+                  families will spend twelve years inside that one school family. Blue Nest is the
+                  setting that comes first, caring for children from 3 months until they are ready
+                  to walk up the road and start Reception.
+                </p>
+                <p>
+                  We are also within easy reach for families in Ash, Ash Vale, North Camp, Badshot
+                  Lea, Tongham, Farnborough and Fleet, and a short journey from Aldershot railway
+                  station for parents commuting on to Guildford or London.
+                </p>
+              </div>
+            </Reveal>
+
+            {/* Image — right */}
+            <Reveal delay={0.1}>
+              <div className="mx-auto w-full max-w-[420px]">
+                <StickerCard
+                  src="/home/branches/aldershot/aldershot-gallery-11.webp"
+                  alt="The Blue Nest Montessori Aldershot nursery on Belle Vue Road, GU12, a short walk from Alderwood Infant School"
+                  rotate={3}
+                  sizes="(max-width: 1024px) 80vw, 38vw"
+                  className="w-full"
+                  aspectRatio="4/5"
+                />
+              </div>
+            </Reveal>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════
           3 — FEATURES
       ══════════════════════════════════════════════════════ */}
       <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
@@ -425,6 +484,187 @@ export default async function AldershotBranchPage() {
       {/* ══════════════════════════════════════════════════════
           3.5 — FEE CALCULATOR
       ══════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════
+          3b — READY FOR RECEPTION
+      ══════════════════════════════════════════════════════ */}
+      <section className="blush-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <Doodle kind="blue-flower" className="left-[3%] top-10 h-9 w-9 opacity-45 hidden lg:block" />
+
+        <div className="container-site">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
+
+            {/* Image — left */}
+            <Reveal>
+              <div className="mx-auto w-full max-w-[420px] lg:sticky lg:top-28">
+                <StickerCard
+                  src="/home/branches/aldershot/aldershot-gallery-23.webp"
+                  alt="Montessori practical life shelves at Blue Nest Aldershot, where children build the independence needed for Reception"
+                  rotate={-3}
+                  sizes="(max-width: 1024px) 80vw, 38vw"
+                  className="w-full"
+                  aspectRatio="4/5"
+                />
+              </div>
+            </Reveal>
+
+            {/* Text — right */}
+            <Reveal delay={0.1}>
+              <span className="section-kicker">School readiness</span>
+              <h2 className="section-title mt-4" style={{ color: "#9FC6A8" }}>
+                Ready for Reception, Ready for Alderwood
+              </h2>
+              <div className="body-text mt-5 space-y-5">
+                <p>
+                  Starting school is the biggest step a young child takes, and it arrives faster
+                  than most parents expect. Children join Alderwood Infant School in the September
+                  after they turn four. Everything we do in the year before that is designed so
+                  your child walks in on day one feeling capable rather than overwhelmed.
+                </p>
+                <p>
+                  Alderwood asks its pupils to be kind, honest, respectful, committed, resilient
+                  and independent. Those last two are not add-ons in a{" "}
+                  <a href="/why-montessori" className="font-semibold underline">Montessori</a>{" "}
+                  setting, they are the whole method. A child who has spent two years choosing
+                  their own work, finishing it, and putting it back on the shelf has already
+                  practised{" "}
+                  <a href="/why-montessori" className="font-semibold underline">independence</a>{" "}
+                  a thousand times before a teacher ever asks for it.
+                </p>
+                <h3 className="font-heading text-lg text-[var(--ink)]">
+                  What school readiness looks like at Blue Nest
+                </h3>
+                <ul className="list-disc space-y-3 pl-5">
+                  <li>
+                    <strong>Doing it themselves.</strong> Coats, shoes, buttons, zips,
+                    hand-washing, pouring their own water, clearing their own plate. Practical
+                    life is a Montessori cornerstone, and it is exactly what a Reception teacher
+                    needs from thirty children at once.
+                  </li>
+                  <li>
+                    <strong>Sitting with a task until it is finished.</strong> Our uninterrupted
+                    work cycles build the concentration that carries a child through a phonics
+                    session.
+                  </li>
+                  <li>
+                    <strong>Early phonics and mark-making.</strong> Sandpaper letters, sound games
+                    and pre-writing work introduce letters through touch and sound long before a
+                    pencil is expected to behave.
+                  </li>
+                  <li>
+                    <strong>Numbers that mean something.</strong> Montessori number rods, spindle
+                    boxes and counters give children a physical understanding of quantity, not
+                    just a memorised sequence.
+                  </li>
+                  <li>
+                    <strong>Speaking up and listening.</strong> Group time, sharing news and
+                    resolving small disagreements with support, so that a busy classroom feels
+                    familiar rather than frightening.
+                  </li>
+                  <li>
+                    <strong>Managing a full day.</strong> Open from 7:30am, with a rhythm of
+                    focused work, outdoor time, a proper cooked lunch and rest, which is close to
+                    the shape of a school day.
+                  </li>
+                </ul>
+                <p>
+                  We are not connected to Alderwood School and we make no claim to influence its
+                  admissions. What we do is hand over a child who is confident, curious and
+                  genuinely ready for the classroom, whichever Aldershot school you choose.
+                </p>
+              </div>
+            </Reveal>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════
+          3c — CHILDCARE FROM 3 MONTHS
+      ══════════════════════════════════════════════════════ */}
+      <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <Doodle kind="pink-flower" className="right-[4%] bottom-10 h-9 w-9 opacity-45 hidden lg:block" />
+
+        <div className="container-site">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-start lg:gap-16">
+
+            {/* Text — left */}
+            <Reveal>
+              <span className="section-kicker">Before the clubs begin</span>
+              <h2 className="section-title mt-4" style={{ color: "#cf7d9c" }}>
+                Childcare From 3 Months, Years Before Wraparound Clubs Begin
+              </h2>
+              <div className="body-text mt-5 space-y-5">
+                <p>
+                  There is good out-of-school childcare in Aldershot. Breakfast, after-school and
+                  holiday clubs run at Alderwood Infant School and at several other local schools,
+                  and they are a genuine help to working parents.
+                </p>
+                <p>
+                  The catch is when they start. Those clubs take children from their fourth
+                  birthday, and children need to be fully potty trained, because nappy changing
+                  and intimate care are outside what they offer. For a parent with a
+                  six-month-old, a fifteen-month-old or a two-year-old still in nappies, that
+                  leaves the first four years to solve on your own.
+                </p>
+                <p className="font-semibold">That is the gap Blue Nest fills.</p>
+                <ul className="list-disc space-y-3 pl-5">
+                  <li>
+                    <strong>From 3 months.</strong> A full baby room with gentle key-person care,
+                    when most Aldershot settings will not take a child until two.
+                  </li>
+                  <li>
+                    <strong>Nappies, weaning, first steps, all of it.</strong> Intimate care,
+                    sleep routines and feeding handled as a matter of course, with daily updates
+                    so you know how the day went.
+                  </li>
+                  <li>
+                    <strong>7:30am to 6:00pm, five days a week.</strong> The earliest drop-off in
+                    town, built around commutes to Farnborough, Guildford and London.
+                  </li>
+                  <li>
+                    <strong>Open through the school holidays.</strong> All-year contracts mean no
+                    scramble to cover half term and no six-week summer gap. Term-time-only
+                    contracts are available if that suits you better.
+                  </li>
+                  <li>
+                    <strong>
+                      <a href="/admission/our-fees" className="underline">15 and 30 funded hours</a>, and Tax-Free Childcare.
+                    </strong>{" "}
+                    Applied to your booked sessions, with our team walking you through exactly
+                    what you are entitled to.
+                  </li>
+                </ul>
+                <p>
+                  By the time your child is old enough for a breakfast club, they will have spent
+                  their most formative years somewhere calm, structured and familiar, five minutes
+                  from the school gate.
+                </p>
+              </div>
+              <div className="mt-7">
+                <PastelButton href="/contact?enquiry=book-visit&branch=aldershot" variant="rose">
+                  Book a Visit <ArrowRight className="h-4 w-4" />
+                </PastelButton>
+              </div>
+            </Reveal>
+
+            {/* Image — right */}
+            <Reveal delay={0.1}>
+              <div className="mx-auto w-full max-w-[420px] lg:sticky lg:top-28">
+                <StickerCard
+                  src="/home/branches/aldershot/aldershot-gallery-20.webp"
+                  alt="The baby room at Blue Nest Montessori Aldershot, caring for children from 3 months in GU12"
+                  rotate={4}
+                  sizes="(max-width: 1024px) 80vw, 38vw"
+                  className="w-full"
+                  aspectRatio="4/5"
+                />
+              </div>
+            </Reveal>
+
+          </div>
+        </div>
+      </section>
+
       <BranchFeeCalculatorSection branch="aldershot" branchName="Aldershot" />
 
       {/* ══════════════════════════════════════════════════════
@@ -501,6 +741,40 @@ export default async function AldershotBranchPage() {
             </Reveal>
 
           </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════
+          5b — FAQ (shares its data with the FAQPage JSON-LD above)
+      ══════════════════════════════════════════════════════ */}
+      <section className="paper-bg relative px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+        <Doodle kind="leaf" className="right-[3%] top-10 h-9 w-9 opacity-40 hidden sm:block" />
+
+        <div className="container-site">
+          <Reveal>
+            <div className="mb-10 text-center">
+              <span className="section-kicker">Good to know</span>
+              <h2 className="section-title mt-4" style={{ color: "#cf7d9c" }}>
+                Aldershot Nursery Questions
+              </h2>
+            </div>
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            <div className="mx-auto max-w-3xl space-y-3">
+              {branchFaqs.aldershot.map((faq) => (
+                <details
+                  key={faq.question}
+                  className="group rounded-2xl bg-white px-6 py-4 shadow-[0_6px_16px_rgba(90,74,66,0.06)] ring-1 ring-[rgba(90,74,66,0.05)]"
+                >
+                  <summary className="cursor-pointer list-none font-heading text-base font-bold text-[var(--ink)] marker:content-none">
+                    {faq.question}
+                  </summary>
+                  <p className="body-text mt-3">{faq.answer}</p>
+                </details>
+              ))}
+            </div>
+          </Reveal>
         </div>
       </section>
 

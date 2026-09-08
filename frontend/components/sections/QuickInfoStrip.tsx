@@ -3,7 +3,7 @@ import { Baby, Clock, MapPin, Phone } from "lucide-react";
 const items = [
   { icon: Baby,   label: "Ages",      value: "3 months – 5 years"         },
   { icon: Clock,  label: "Hours",     value: "Mon–Fri, 7:30am–6:00pm"     },
-  { icon: MapPin, label: "Locations", value: "Harrow · Pinner · Borehamwood" },
+  { icon: MapPin, label: "Locations", value: "Harrow · Pinner · Borehamwood · Aldershot" },
   { icon: Phone,  label: "Call us",   value: "020 8861 5574"               },
 ];
 
