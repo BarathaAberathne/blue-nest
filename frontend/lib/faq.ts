@@ -60,36 +60,43 @@ export const generalFaqs: Faq[] = [
 export const branchFaqs: Record<string, Faq[]> = {
   aldershot: [
     {
-      question: "Is there a Montessori nursery in Aldershot?",
+      question: "How close is Blue Nest to Alderwood Infant School?",
       answer:
-        "Yes. Blue Nest Montessori School on Belle Vue Road is Aldershot's first dedicated Montessori day nursery, taking children from 3 months to 5 years.",
+        "We are on Belle Vue Road in GU12 4RZ, the same road and the same postcode as the Alderwood infant site. For families with an older child already at the school, the nursery run and the school run are the same short walk.",
     },
     {
-      question: "Do you offer 15 and 30 hours funded childcare in Aldershot?",
+      question: "What age can my child start?",
       answer:
-        "Yes. We accept government-funded hours for eligible children from 9 months, term-time or stretched across the year. Our team can check your eligibility and help you apply.",
+        "From 3 months. We have a full baby room, a toddler room and a preschool room, and children stay with us until they leave for Reception at four or five.",
     },
     {
-      question: "What ages does the Aldershot nursery take?",
-      answer: "From 3 months to 5 years, across dedicated baby, toddler and preschool rooms.",
-    },
-    {
-      question: "What are the opening hours of the Aldershot nursery?",
-      answer: "Monday to Friday, 7:30am to 6:00pm. The earliest drop-off in town, minutes from Aldershot station.",
-    },
-    {
-      question: "How much does nursery cost in Aldershot?",
+      question: "Will Blue Nest prepare my child for Alderwood or another Aldershot primary?",
       answer:
-        "Use our online fee calculator for an instant estimate. Fees vary by age, sessions and funding, and sibling discounts are available.",
+        "Yes. Our preschool year focuses on the practical independence, early phonics, early number work and concentration that Reception teachers look for. We are an independent nursery with no formal link to any school, so you remain completely free in your school choice.",
     },
     {
-      question: "Do you provide halal food?",
+      question: "Do you take children who are still in nappies?",
       answer:
-        "Yes. Halal options are part of our standard menu, prepared in our 5-star hygiene rated kitchen, with vegetarian and allergy-aware choices too.",
+        "Yes, at any age. Nappy changing, toilet training and all intimate care are part of what we do, which is where we differ from the school-based breakfast, after-school and holiday clubs in Aldershot, most of which start at four and require children to be fully potty trained.",
     },
     {
-      question: "How do I book a visit to the Aldershot nursery?",
-      answer: "Use the Book a Visit button or call 01252 343772, and we'd love to show you around.",
+      question: "Are you open in the school holidays?",
+      answer:
+        "Yes. We offer all-year contracts covering 52 weeks, as well as term-time-only contracts across 38 weeks if you prefer. There is no summer gap to cover.",
+    },
+    {
+      question: "Do you accept funded childcare?",
+      answer:
+        "We accept 15 and 30 funded hours for eligible families, and Tax-Free Childcare. Use the fee calculator on this page for an indicative figure, then ask us for a personalised quote.",
+    },
+    {
+      question: "What are your opening hours?",
+      answer: "Monday to Friday, 7:30am to 6:00pm, with early drop-off available from 7:30am.",
+    },
+    {
+      question: "Do you support forces families?",
+      answer:
+        "Yes. Aldershot is a garrison town and we are used to children joining and leaving mid-year. Our key-person approach and flexible contracts are built to settle a child quickly.",
     },
   ],
   harrow: [
