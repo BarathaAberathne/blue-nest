@@ -104,22 +104,10 @@ const gallery = [
     caption: "Welcome, in every language",
   },
   {
-    src: "/home/branches/aldershot/aldershot-gallery-10.webp",
-    alt: "The Blue Nest Montessori Aldershot welcome sign on the entrance gate beside the baby garden",
-    rotate: 2,
-    caption: "Welcome at the gate",
-  },
-  {
     src: "/home/branches/aldershot/aldershot-gallery-11.webp",
     alt: "The white clapboard nursery building, bark-chip play yard and teal canopy at Blue Nest Montessori Aldershot",
     rotate: -1,
     caption: "Our nursery and play yard",
-  },
-  {
-    src: "/home/branches/aldershot/aldershot-gallery-12.webp",
-    alt: "The fenced garden and covered outdoor area under a blue sky at Blue Nest Montessori Aldershot",
-    rotate: 2,
-    caption: "Space to explore outdoors",
   },
   {
     src: "/home/branches/aldershot/aldershot-gallery-13.webp",
