@@ -244,7 +244,7 @@ export const NOTE_TEMPLATES: string[] = [
 // Pre-written replies the admin can pick, edit, then open in their mail client.
 // Wording mirrors the public site ("within one working day", contact details).
 const SIGN_OFF =
-  "\n\nWarm regards,\nThe Blue Nest Montessori Team\n020 8861 5574 · manager@bluenest.uk\nMon–Fri, 07:30–18:30";
+  "\n\nWarm regards,\nThe Blue Nest Montessori Team\n020 8861 5574 · manager@bluenest.uk\nMon–Fri, 07:30–18:00";
 
 export type ReplyTemplate = {
   key: string;
@@ -273,7 +273,7 @@ export const REPLY_TEMPLATES: ReplyTemplate[] = [
     label: "Book a visit invitation",
     subject: "Come and visit us — Blue Nest Montessori",
     body: (e) =>
-      `Dear ${e.name},\n\nWe'd love to welcome you and your child for a visit to ${fmtBranch(e.branch) || "our nursery"}, so you can meet the team and see our Montessori environment.\n\nPlease let us know a few dates and times that suit you (we're open Mon–Fri, 07:30–18:30) and we'll arrange a convenient slot.${SIGN_OFF}`,
+      `Dear ${e.name},\n\nWe'd love to welcome you and your child for a visit to ${fmtBranch(e.branch) || "our nursery"}, so you can meet the team and see our Montessori environment.\n\nPlease let us know a few dates and times that suit you (we're open Mon–Fri, 07:30–18:00) and we'll arrange a convenient slot.${SIGN_OFF}`,
   },
   {
     key: "follow_up",

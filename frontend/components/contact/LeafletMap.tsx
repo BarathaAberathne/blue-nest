@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { api } from "@/lib/api";
 import { branchShortName } from "@/lib/branch";
-import { BRANCH_FALLBACKS } from "@/lib/branch-public";
+import { BRANCH_FALLBACKS, branchHoursLabel } from "@/lib/branch-public";
 import type { Branch } from "@/types";
 
 interface BranchPin {
@@ -41,7 +41,7 @@ const PINS: BranchPin[] = BRANCH_FALLBACKS.map((fb) => {
     name:    fb.label,
     address: fb.address + ", " + fb.postcode,
     phone:   fb.phone ?? "",
-    hours:   fb.comingSoon ? "Opening soon" : "Mon\u2013Fri, 07:30\u201318:30",
+    hours:   fb.comingSoon ? "Opening soon" : fb.hours,
     lat:     fb.lat,
     lng:     fb.lng,
     colour:  style.colour,
@@ -103,7 +103,7 @@ export default function LeafletMap({ focusBranch }: { focusBranch?: string }) {
             merged.push({
               id: b.slug, name: branchShortName(b),
               address: b.contact?.address || "", phone: b.contact?.phone || "",
-              hours: "Mon–Fri, 07:30–18:30", lat: b.lat, lng: b.lng,
+              hours: b.status === "coming_soon" ? "Opening soon" : branchHoursLabel(b), lat: b.lat, lng: b.lng,
               colour: "#3aada9", letter: (branchShortName(b)[0] || "B").toUpperCase(),
               mapUrl: b.google?.maps_url || "", comingSoon: b.status === "coming_soon",
             });

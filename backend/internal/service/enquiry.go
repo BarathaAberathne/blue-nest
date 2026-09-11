@@ -1108,7 +1108,7 @@ func userConfirmationHTML(req models.EnquiryRequest) string {
     </div>
     <div style="background:#fdf8f5;padding:16px 32px;text-align:center;font-size:12px;color:rgba(90,74,66,0.55);">
       Blue Nest Montessori School &mdash; Harrow &bull; Pinner &bull; Borehamwood<br>
-      Mon&ndash;Fri, 07:30&ndash;18:30
+      Mon&ndash;Fri, 07:30&ndash;18:00
     </div>
   </div>
 </body>
