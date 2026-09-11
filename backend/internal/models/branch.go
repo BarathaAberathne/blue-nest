@@ -154,7 +154,7 @@ func SeedBranches() []Branch {
 			Contact: BranchContact{
 				Phone:   "020 8861 5574",
 				Email:   sharedEmail,
-				Address: "29 Churchfield Close, Harrow, HA2 6BD",
+				Address: "29 Churchfield Close, Harrow HA2 6BD",
 				MapURL:  "https://www.google.com/maps/search/?api=1&query=29+Churchfield+Close+Harrow+HA2+6BD",
 			},
 			Admissions: BranchAdmissions{
