@@ -157,7 +157,9 @@ prevention & real-time sync" in CLAUDE.md)*, `TC-REG-001/002/003`,
 `TC-ROOM-001/002`, `TC-SCHEDULE-001`, `TC-STAFF-001/003`, `TC-VISIT-001/004`
 *(expressed as status transitions — see "no separate Visit suite" above)*,
 `TC-CHILDROOM-002`, `TC-ROLE-003` *(session/permission-propagation policy —
-old token keeps old permissions until refresh, a fresh login picks up a role
+a role change revokes the user's existing tokens immediately (token-version
+bump, audit item 5; the pre-hardening suite asserted the old
+keeps-permissions-until-refresh policy), a fresh login picks up a role
 change, and the privilege-escalation regression this session found and
 fixed)*.
 

@@ -287,8 +287,8 @@ class RoleSuite {
 
     @Test
     @Order(9)
-    @DisplayName("TC-ROLE-003: an already-issued access token keeps its OLD role's permissions until it's refreshed (documented session policy)")
-    void tc_role_003_activeSessionKeepsOldRoleUntilRefresh() {
+    @DisplayName("TC-ROLE-003: a role change revokes the user's already-issued tokens immediately (token-version bump)")
+    void tc_role_003_roleChangeRevokesActiveSessions() {
         // Given a deputy manager with an active session (deputyToken, issued in @BeforeAll)
         given().spec(Api.authed(deputyToken))
                 .when().get("/api/v1/admin/enquiries?branch=" + Env.HARROW_BRANCH_SLUG)
@@ -304,15 +304,15 @@ class RoleSuite {
                 .when().put("/api/v1/admin/staff/" + deputyStaffId)
                 .then().statusCode(200);
 
-        // Then the OLD, still-unexpired token continues to work — role/permission
-        // claims are baked into the JWT at issuance (see middleware/auth.go:
-        // `role, _ := claims["role"].(string)`), not re-checked against the DB
-        // per request. This is a real, documented characteristic of this
-        // system's session policy: a permission downgrade takes effect on the
-        // user's NEXT login/refresh, not instantly for an open session.
+        // Then the OLD, still-unexpired token is REJECTED. Token revocation
+        // (audit item 5, v1.16.0) changed the session policy this test used
+        // to lock: an admin role change bumps User.TokenVersion, and
+        // middleware.Auth compares the JWT's `tv` claim against it — so a
+        // downgrade ends the user's open sessions immediately rather than at
+        // the next login/refresh. (Backend lock: auth_revocation_test.go.)
         given().spec(Api.authed(deputyToken))
                 .when().get("/api/v1/admin/enquiries?branch=" + Env.HARROW_BRANCH_SLUG)
-                .then().statusCode(200);
+                .then().statusCode(401);
     }
 
     @Test
