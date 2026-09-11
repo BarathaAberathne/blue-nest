@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import BranchMap from "./BranchMap";
 import { branchShortName } from "@/lib/branch";
-import { BRANCH_FALLBACKS } from "@/lib/branch-public";
+import { BRANCH_FALLBACKS, DEFAULT_HOURS_LABEL, branchHoursLabel } from "@/lib/branch-public";
 import type { Branch as ApiBranch } from "@/types";
 
 // ── Branch data ────────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ const BRANCHES: Branch[] = BRANCH_FALLBACKS.map((fb) => {
     postcode: fb.postcode,
     phone,
     tel:      "tel:" + phone.replace(/\s+/g, ""),
-    hours:    fb.comingSoon ? "Opening soon" : "Mon\u2013Fri, 07:30\u201318:30",
+    hours:    fb.comingSoon ? "Opening soon" : fb.hours,
     ageRange: "3 months \u2013 5 years",
     colour:   style.colour,
     bg:       style.bg,
@@ -216,7 +216,7 @@ export default function ContactPageClient() {
               id: b.slug, name: branchShortName(b),
               address: b.contact?.address || "", postcode: b.postcode || "",
               phone, tel: "tel:" + phone.replace(/\s+/g, ""),
-              hours: b.status === "coming_soon" ? "Opening soon" : "Mon–Fri, 07:30–18:30",
+              hours: b.status === "coming_soon" ? "Opening soon" : branchHoursLabel(b),
               ageRange: b.admissions?.age_range || "3 months – 5 years",
               colour: "#3aada9", bg: "rgba(127,216,210,0.13)",
               mapUrl: b.google?.maps_url || "",
@@ -702,7 +702,7 @@ export default function ContactPageClient() {
                   </a>
                   <span className="flex items-center gap-1.5 text-[rgba(90,74,66,0.85)]">
                     <Clock className="h-3 w-3" strokeWidth={1.8} />
-                    Mon–Fri, 07:30–18:30
+                    {DEFAULT_HOURS_LABEL}
                   </span>
                 </div>
               </div>

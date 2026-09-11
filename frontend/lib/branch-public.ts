@@ -26,12 +26,12 @@ export type PublicBranchFallback = {
 };
 
 export const BRANCH_FALLBACKS: PublicBranchFallback[] = [
-  { slug: "harrow", label: "Harrow", phone: "020 8861 5574", address: "29 Churchfield Close, Harrow", postcode: "HA2 6BD", lat: 51.5836, lng: -0.3364, hours: "Mon–Fri 7:30 am – 6:00 pm", colour: "var(--branch-harrow)", mapEmbedUrl: "https://www.google.com/maps?q=Blue+Nest+Montessori+School%2C+29+Churchfield+Close%2C+Harrow+HA2+6BD&output=embed" },
-  { slug: "borehamwood", label: "Borehamwood", phone: "020 8953 1718", address: "31-33 Farriers Way, Borehamwood", postcode: "WD6 2TB", lat: 51.6594, lng: -0.2724, hours: "Mon–Fri 7:30 am – 6:00 pm", colour: "var(--branch-borehamwood)", mapEmbedUrl: "https://www.google.com/maps?q=Blue+Nest+Montessori+School%2C+31-33+Farriers+Way%2C+Borehamwood+WD6+2TB&output=embed" },
-  { slug: "pinner", label: "Pinner", phone: "07400 430630", address: "Cuckoo Hill Road, Pinner", postcode: "HA5 1AY", lat: 51.5919, lng: -0.3795, hours: "Mon–Fri 7:30 am – 6:00 pm", colour: "var(--branch-pinner)", mapEmbedUrl: "https://www.google.com/maps?q=Blue+Nest+Montessori+School+Pinner%2C+Cuckoo+Hill+Rd%2C+Pinner+HA5+1AY&output=embed" },
-  { slug: "aldershot", label: "Aldershot", phone: "01252 343772", address: "Belle Vue Rd, Aldershot", postcode: "GU12 4RZ", lat: 51.2416, lng: -0.746, hours: "Mon–Fri 7:30 am – 6:00 pm", colour: "var(--branch-aldershot)", mapEmbedUrl: "https://www.google.com/maps?q=Blue+Nest+Montessori+Aldershot%2C+Belle+Vue+Rd%2C+Aldershot+GU12+4RZ&output=embed" },
-  { slug: "pinner-green", label: "Pinner Green", phone: "07400 430630", address: "Pinner Green, Pinner", postcode: "HA5", lat: 51.5972, lng: -0.3878, hours: "Mon–Fri 7:30 am – 6:00 pm", comingSoon: true, colour: "var(--branch-pinner-green)" },
-  { slug: "northwood", label: "Northwood", address: "Sandy Lane, Northwood", postcode: "HA6 3DA", lat: 51.6091, lng: -0.4186, hours: "Mon–Fri 7:30 am – 6:00 pm", comingSoon: true, colour: "var(--branch-northwood)" },
+  { slug: "harrow", label: "Harrow", phone: "020 8861 5574", address: "29 Churchfield Close, Harrow", postcode: "HA2 6BD", lat: 51.5836, lng: -0.3364, hours: "Mon–Fri, 7:30 am – 6:00 pm", colour: "var(--branch-harrow)", mapEmbedUrl: "https://www.google.com/maps?q=Blue+Nest+Montessori+School%2C+29+Churchfield+Close%2C+Harrow+HA2+6BD&output=embed" },
+  { slug: "borehamwood", label: "Borehamwood", phone: "020 8953 1718", address: "31-33 Farriers Way, Borehamwood", postcode: "WD6 2TB", lat: 51.6594, lng: -0.2724, hours: "Mon–Fri, 7:30 am – 6:00 pm", colour: "var(--branch-borehamwood)", mapEmbedUrl: "https://www.google.com/maps?q=Blue+Nest+Montessori+School%2C+31-33+Farriers+Way%2C+Borehamwood+WD6+2TB&output=embed" },
+  { slug: "pinner", label: "Pinner", phone: "07400 430630", address: "Cuckoo Hill Rd, Pinner", postcode: "HA5 1AY", lat: 51.5919, lng: -0.3795, hours: "Mon–Fri, 7:30 am – 6:00 pm", colour: "var(--branch-pinner)", mapEmbedUrl: "https://www.google.com/maps?q=Blue+Nest+Montessori+School+Pinner%2C+Cuckoo+Hill+Rd%2C+Pinner+HA5+1AY&output=embed" },
+  { slug: "aldershot", label: "Aldershot", phone: "01252 343772", address: "Belle Vue Rd, Aldershot", postcode: "GU12 4RZ", lat: 51.2416, lng: -0.746, hours: "Mon–Fri, 7:30 am – 6:00 pm", colour: "var(--branch-aldershot)", mapEmbedUrl: "https://www.google.com/maps?q=Blue+Nest+Montessori+Aldershot%2C+Belle+Vue+Rd%2C+Aldershot+GU12+4RZ&output=embed" },
+  { slug: "pinner-green", label: "Pinner Green", phone: "07400 430630", address: "Pinner Green, Pinner", postcode: "HA5", lat: 51.5972, lng: -0.3878, hours: "Mon–Fri, 7:30 am – 6:00 pm", comingSoon: true, colour: "var(--branch-pinner-green)" },
+  { slug: "northwood", label: "Northwood", address: "Sandy Lane, Northwood", postcode: "HA6 3DA", lat: 51.6091, lng: -0.4186, hours: "Mon–Fri, 7:30 am – 6:00 pm", comingSoon: true, colour: "var(--branch-northwood)" },
 ];
 
 export const fallbackFor = (slug: string): PublicBranchFallback | undefined =>
@@ -89,6 +89,18 @@ export type BranchContactView = {
   lat: number;
   lng: number;
 };
+
+// The ONE human-readable weekday-hours label. Components must render hours
+// via branchHoursLabel (live admissions times, falling back to the standard
+// 7:30–6:00) or this constant — never a hardcoded time string, so a changed
+// closing time can't drift between surfaces again.
+export const DEFAULT_HOURS_LABEL = "Mon–Fri, 7:30 am – 6:00 pm";
+
+export function branchHoursLabel(branch?: Branch | null): string {
+  const open = fmtClock(branch?.admissions?.opening_time, "7:30 am");
+  const close = fmtClock(branch?.admissions?.closing_time, "6:00 pm");
+  return `Mon–Fri, ${open} – ${close}`;
+}
 
 const fmtClock = (hhmm?: string, fallback = "") => {
   if (!hhmm) return fallback;
