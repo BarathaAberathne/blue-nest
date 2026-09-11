@@ -19,7 +19,7 @@ import ZigzagBand from "@/components/ui/ZigzagBand";
 import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
 import { LightboxGallery } from "@/components/ui/LightboxGallery";
-import BranchMap from "@/components/contact/BranchMap";
+import BranchMapEmbed from "@/components/contact/BranchMapEmbed";
 import BranchFeeCalculatorSection from "@/components/sections/BranchFeeCalculatorSection";
 import BranchHero from "@/components/sections/BranchHero";
 import { branchContactView, getPublicBranch } from "@/lib/branch-public";
@@ -843,7 +843,7 @@ export default async function AldershotBranchPage() {
 
             <Reveal delay={0.1}>
               <div className="h-[320px] overflow-hidden rounded-[1.8rem] shadow-[0_4px_20px_rgba(90,74,66,0.10)] sm:h-[400px]">
-                <BranchMap branchId="aldershot" />
+                <BranchMapEmbed src={c.mapEmbedUrl} branchName="Aldershot" />
               </div>
             </Reveal>
 
