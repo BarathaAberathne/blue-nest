@@ -25,7 +25,7 @@ import StickerCard from "@/components/ui/StickerCard";
 import Doodle from "@/components/ui/Doodle";
 import { Reveal } from "@/components/ui/Motion";
 import { LightboxGallery } from "@/components/ui/LightboxGallery";
-import BranchMap from "@/components/contact/BranchMap";
+import BranchMapEmbed from "@/components/contact/BranchMapEmbed";
 import BranchEnrichmentSection, { type EnrichmentActivity } from "@/components/sections/BranchEnrichmentSection";
 import BranchHero from "@/components/sections/BranchHero";
 import { branchContactView, getPublicBranch } from "@/lib/branch-public";
@@ -46,7 +46,9 @@ const branchJsonLd = {
   priceRange: "££",
   address: {
     "@type": "PostalAddress",
-    streetAddress: "Cuckoo Hill Road",
+    // "Rd" not "Road" — must match the live Google Business Profile
+    // address character-for-character for the local-SEO signal.
+    streetAddress: "Cuckoo Hill Rd",
     addressLocality: "Pinner",
     postalCode: "HA5 1AY",
     addressCountry: "GB",
@@ -514,7 +516,7 @@ export default async function PinnerBranchPage() {
 
             <Reveal delay={0.1}>
               <div className="h-[320px] overflow-hidden rounded-[1.8rem] shadow-[0_4px_20px_rgba(90,74,66,0.10)] sm:h-[400px]">
-                <BranchMap branchId="pinner" />
+                <BranchMapEmbed src={c.mapEmbedUrl} branchName="Pinner" />
               </div>
             </Reveal>
           </div>
