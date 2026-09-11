@@ -27,7 +27,7 @@ export type PublicBranchFallback = {
 
 export const BRANCH_FALLBACKS: PublicBranchFallback[] = [
   { slug: "harrow", label: "Harrow", phone: "020 8861 5574", address: "29 Churchfield Close, Harrow", postcode: "HA2 6BD", lat: 51.5836, lng: -0.3364, hours: "Mon–Fri, 7:30 am – 6:00 pm", colour: "var(--branch-harrow)", mapEmbedUrl: "https://www.google.com/maps?q=Blue+Nest+Montessori+School%2C+29+Churchfield+Close%2C+Harrow+HA2+6BD&output=embed" },
-  { slug: "borehamwood", label: "Borehamwood", phone: "020 8953 1718", address: "31-33 Farriers Way, Borehamwood", postcode: "WD6 2TB", lat: 51.6594, lng: -0.2724, hours: "Mon–Fri, 7:30 am – 6:00 pm", colour: "var(--branch-borehamwood)", mapEmbedUrl: "https://www.google.com/maps?q=Blue+Nest+Montessori+School%2C+31-33+Farriers+Way%2C+Borehamwood+WD6+2TB&output=embed" },
+  { slug: "borehamwood", label: "Borehamwood", phone: "020 8953 1718", address: "31-33 Farriers Way, Borehamwood, Hertfordshire", postcode: "WD6 2TB", lat: 51.6594, lng: -0.2724, hours: "Mon–Fri, 7:30 am – 6:00 pm", colour: "var(--branch-borehamwood)", mapEmbedUrl: "https://www.google.com/maps?q=Blue+Nest+Montessori+School%2C+31-33+Farriers+Way%2C+Borehamwood+WD6+2TB&output=embed" },
   { slug: "pinner", label: "Pinner", phone: "07400 430630", address: "Cuckoo Hill Rd, Pinner", postcode: "HA5 1AY", lat: 51.5919, lng: -0.3795, hours: "Mon–Fri, 7:30 am – 6:00 pm", colour: "var(--branch-pinner)", mapEmbedUrl: "https://www.google.com/maps?q=Blue+Nest+Montessori+School+Pinner%2C+Cuckoo+Hill+Rd%2C+Pinner+HA5+1AY&output=embed" },
   { slug: "aldershot", label: "Aldershot", phone: "01252 343772", address: "Belle Vue Rd, Aldershot", postcode: "GU12 4RZ", lat: 51.2416, lng: -0.746, hours: "Mon–Fri, 7:30 am – 6:00 pm", colour: "var(--branch-aldershot)", mapEmbedUrl: "https://www.google.com/maps?q=Blue+Nest+Montessori+Aldershot%2C+Belle+Vue+Rd%2C+Aldershot+GU12+4RZ&output=embed" },
   { slug: "pinner-green", label: "Pinner Green", phone: "07400 430630", address: "Pinner Green, Pinner", postcode: "HA5", lat: 51.5972, lng: -0.3878, hours: "Mon–Fri, 7:30 am – 6:00 pm", comingSoon: true, colour: "var(--branch-pinner-green)" },
@@ -121,7 +121,10 @@ export function branchContactView(slug: string, branch: Branch | null): BranchCo
     phone,
     telHref: "tel:" + phone.replace(/\s+/g, ""),
     email: branch?.contact?.email || "manager@bluenest.uk",
-    address: branch?.contact?.address || `${fb?.address ?? ""}, ${fb?.postcode ?? ""}`,
+    // Postcode joins with a space (no comma) so the fallback string matches
+    // the branch's Google Business Profile address character-for-character
+    // (NAP consistency), same as the live DB value.
+    address: branch?.contact?.address || `${fb?.address ?? ""} ${fb?.postcode ?? ""}`.trim(),
     hoursLine1: "Monday – Friday",
     hoursLine2: `${open} – ${close}`,
     mapsUrl: branch?.google?.maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((fb?.address ?? slug) + " " + (fb?.postcode ?? ""))}`,
