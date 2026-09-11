@@ -160,7 +160,7 @@ func SeedBranches() []Branch {
 			Admissions: BranchAdmissions{
 				AgeRange:    "3 months – 5 years",
 				OpeningTime: "07:30",
-				ClosingTime: "18:30",
+				ClosingTime: "18:00",
 			},
 			CreatedAt: now,
 			UpdatedAt: now,
@@ -174,13 +174,13 @@ func SeedBranches() []Branch {
 			Contact: BranchContact{
 				Phone:   "020 8953 1718",
 				Email:   sharedEmail,
-				Address: "31-33 Farriers Way, Borehamwood, WD6 2TB",
+				Address: "31-33 Farriers Way, Borehamwood, Hertfordshire WD6 2TB",
 				MapURL:  "https://www.google.com/maps/search/?api=1&query=31-33+Farriers+Way+Borehamwood+WD6+2TB",
 			},
 			Admissions: BranchAdmissions{
 				AgeRange:    "3 months – 5 years",
 				OpeningTime: "07:30",
-				ClosingTime: "18:30",
+				ClosingTime: "18:00",
 			},
 			CreatedAt: now,
 			UpdatedAt: now,
@@ -194,13 +194,13 @@ func SeedBranches() []Branch {
 			Contact: BranchContact{
 				Phone:   "07400 430630",
 				Email:   sharedEmail,
-				Address: "Cuckoo Hill Road, Pinner, HA5 1AY",
+				Address: "Cuckoo Hill Rd, Pinner HA5 1AY",
 				MapURL:  "https://www.google.com/maps/search/?api=1&query=Cuckoo+Hill+Road+Pinner+HA5+1AY",
 			},
 			Admissions: BranchAdmissions{
 				AgeRange:    "3 months – 5 years",
 				OpeningTime: "07:30",
-				ClosingTime: "18:30",
+				ClosingTime: "18:00",
 			},
 			CreatedAt: now,
 			UpdatedAt: now,
@@ -220,7 +220,7 @@ func SeedBranches() []Branch {
 			Admissions: BranchAdmissions{
 				AgeRange:    "3 months – 5 years",
 				OpeningTime: "07:30",
-				ClosingTime: "18:30",
+				ClosingTime: "18:00",
 			},
 			CreatedAt: now,
 			UpdatedAt: now,
@@ -265,9 +265,9 @@ func SeedBranches() []Branch {
 	}
 	ageGroups := []string{"Babies (3–24m)", "Toddlers (2–3y)", "Pre-school (3–4y)", "Kindergarten (4–5y)"}
 	hours := []BranchHours{
-		{Day: "Mon", Open: "07:30", Close: "18:30"}, {Day: "Tue", Open: "07:30", Close: "18:30"},
-		{Day: "Wed", Open: "07:30", Close: "18:30"}, {Day: "Thu", Open: "07:30", Close: "18:30"},
-		{Day: "Fri", Open: "07:30", Close: "18:30"}, {Day: "Sat", Closed: true}, {Day: "Sun", Closed: true},
+		{Day: "Mon", Open: "07:30", Close: "18:00"}, {Day: "Tue", Open: "07:30", Close: "18:00"},
+		{Day: "Wed", Open: "07:30", Close: "18:00"}, {Day: "Thu", Open: "07:30", Close: "18:00"},
+		{Day: "Fri", Open: "07:30", Close: "18:00"}, {Day: "Sat", Closed: true}, {Day: "Sun", Closed: true},
 	}
 	for i := range branches {
 		b := &branches[i]
